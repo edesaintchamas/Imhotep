@@ -1,0 +1,26 @@
+# Local, never published
+local/
+refs/
+build/
+*.gpr
+*.rep/
+
+# Game content (belt and braces; tools/check_no_game_files.py is the real guard)
+*.exe
+*.dll
+*.sg2
+*.sg3
+*.555
+*.map
+*.pak
+*.sav
+*.bik
+*.smk
+*.eng
+*.inf
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
+__pycache__/

@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: No game content
+        run: python3 tools/check_no_game_files.py
+      - name: Provenance
+        run: |
+          python3 tools/check_provenance.py
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            python3 tools/check_provenance.py --diff "origin/${{ github.base_ref }}"
+          fi
+      - name: Build
+        run: |
+          if [ -f CMakeLists.txt ]; then
+            cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build
+          else
+            echo "No CMakeLists.txt yet, skipping build"
+          fi
+      # Differential tests need the original game files and run locally only.
