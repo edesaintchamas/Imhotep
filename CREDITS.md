@@ -16,7 +16,10 @@ tagged `@from <project>:<path>`. List them here:
 
 | Imhotep file | Origin | Notes |
 |---|---|---|
-| _(none yet)_ | | |
+| `core/io/pkware.c` | julius:`src/core/zip.c` (`pk_explode`, code tables) | PKWARE DCL explode in C, from the Python port below; confirmed on every compressed map chunk |
+| `core/io/pkware_implode.c` | julius:`src/core/zip.c` (`pk_implode` and helpers, tables) | PKWARE DCL implode; output byte-identical to the game's compressor `0x0055BF10` on every compressed chunk of 15 saves (`oracle_save_check`) |
+| `tools/extract/pkware.py` | julius:`src/core/zip.c` (`pk_explode`, code tables) | PKWARE DCL explode, translated to Python; checked on all 165 compressed map chunks |
+| `tools/extract/extract_graphics.py` | akhenaten:`src/content/imagepak.cpp` (`convert_compressed`, `convert_isometric_footprint`, `FOOTPRINT_X_START_PER_HEIGHT`); julius:`src/core/image.c` (`convert_compressed`, `to_32_bit`) | RLE and isometric footprint decoding translated to Python; layout re-checked against the game files (`docs/formats/graphics.md`) |
 
 ## Original games
 

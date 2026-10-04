@@ -8,7 +8,7 @@ aiming at faithful simulation and compatibility with original save files.
 ## Requirements
 
 Imhotep does not include any game content. You need a legitimate copy of
-**Pharaoh + Cleopatra** (the GOG release, patched to 1.3, is the reference version).
+**Pharaoh + Cleopatra** (the GOG release, version 2.1, is the reference version).
 
 ## Method
 

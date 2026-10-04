@@ -5,7 +5,7 @@ to the original game.** Please read this page before opening a pull request.
 
 ## The reference version
 
-All analysis targets **Pharaoh + Cleopatra, GOG release, patched 1.3**. Check your files with
+All analysis targets **Pharaoh + Cleopatra, GOG release 2.1** (`Pharaoh.exe` version 2.1.0.0). Check your files with
 `make verify`. If your hashes differ, say so in your PR.
 
 ## Provenance tags

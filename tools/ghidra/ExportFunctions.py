@@ -1,8 +1,9 @@
-# Ghidra headless script (Jython / Python 2.7 syntax): export every function of the current
-# program as one JSON file: address, name, signature, callers, callees, decompiled C.
+# Ghidra headless script (PyGhidra, Python 3; Ghidra 12 no longer ships Jython): export every
+# function of the current program as one JSON file: address, name, signature, callers, callees,
+# decompiled C.
 #
 # Usage (see Makefile `analyze`):
-#   analyzeHeadless <projdir> <projname> -import Pharaoh.exe \
+#   pyghidraRun -H <projdir> <projname> -import Pharaoh.exe \
 #     -postScript ExportFunctions.py <outdir> -scriptPath tools/ghidra
 #
 # Output goes to local/ghidra-export/ and must never be committed (it contains decompiled code).

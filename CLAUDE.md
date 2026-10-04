@@ -9,12 +9,15 @@ Imhotep is an open-source (AGPL-3.0) reimplementation of the engine of **Pharaoh
 loading and writing original save files. Original assets are loaded from a legitimate
 installation of the game; nothing from the game ships with this repository.
 
-Reference version: **GOG Pharaoh + Cleopatra, patched 1.3**. Its hashes are recorded in
+Reference version: **GOG Pharaoh + Cleopatra 2.1** (GOG build; `Pharaoh.exe` version resource
+2.1.0.0, SHA-256 `b21b7d71…a7eca662`). Its hashes are recorded in
 `docs/source-fingerprint.json`. All analysis is performed on this exact binary.
 
 ## Sources of truth (in strict order)
 
-1. **The original binary** (`Pharaoh.exe`, GOG 1.3). The only ground truth.
+1. **The original binary** (`Pharaoh.exe`, GOG 2.1). The only ground truth. Read through the
+   Ghidra export, and executed headless by the oracle (`tools/oracle/`, `docs/oracle.md`): its own
+   code loads, advances and saves states, and runs single functions for comparison.
 2. **Julius / Augustus** (Caesar III). Reliable for engine structure shared with Caesar III
    (walkers, services, routing, save layout). Pharaoh differs on floods, farming, monuments,
    roads, religion and more.
@@ -32,7 +35,7 @@ in a comment on the line above or at the end of the line:
 | Tag | Meaning | Status |
 |---|---|---|
 | `@bin 0x004A1B20 <short desc>` | Confirmed at this address in the reference binary | confirmed |
-| `@diff <test name>` | Confirmed by a differential test against the original | confirmed |
+| `@diff <test name>` | Confirmed by a differential test against the original (stored data or the oracle) | confirmed |
 | `@hint akhenaten:<path>` / `@hint julius:<path>` | Taken from a reference project, not yet confirmed | hint |
 | `@unverified <reason>` | Origin unknown; listed in `docs/unverified.md` | unverified |
 
@@ -80,8 +83,10 @@ platform/             SDL rendering, input, audio, file system
 docs/formats/         file format specs (confirmed / assumed fields)
 docs/provenance/      binary address -> engine function index
 docs/unverified.md    open questions, one entry per @unverified tag
+docs/roadmap.md       phases and items, in order, with their acceptance tests
 docs/source-fingerprint.json   SHA-256 of the reference game files
 tools/                fingerprinting, provenance and file checks, Ghidra scripts, loop
+tools/oracle/         Pharaoh.exe run headless in a CPU emulator (reference runs, saves, functions)
 prompts/              standing prompts for headless runs
 tests/differential/   differential test harness (reference saves stay outside the repo)
 refs/                 Julius, Augustus, Akhenaten clones (git-ignored, read-only)
@@ -92,22 +97,27 @@ local/                game data, Ghidra project and exports, save corpus (git-ig
 
 ```
 make verify        # check game files against docs/source-fingerprint.json
-make extract       # extract the GOG installer into local/game (innoextract)
+make extract       # extract the GOG installer into local/game; game files land in local/game/app
 make refs          # clone reference projects into refs/
 make analyze       # Ghidra headless: export functions to local/ghidra-export/
 make provenance    # provenance report for core/
+make core          # build core/ (C11) into build/libimhotep_core.a
+make differential  # differential tests (terrain, save, desirability), needs the game files
+make oracle-env    # local/venv with Unicorn + Capstone, for tools/oracle
+make corpus        # reference save corpus: player saves advanced 12 months by the original
 make check-files   # fail if game files are tracked by git
 make test          # all checks + unit tests + differential tests (when available)
 ```
 
-Environment: `IMHOTEP_GAME_DIR` (default `local/game`), `GHIDRA_HOME`, `PHARAOH_INSTALLER`.
+Environment: `IMHOTEP_GAME_DIR` (default `local/game/app`), `GHIDRA_HOME` and `JAVA_HOME` (default: Homebrew `ghidra` / `openjdk@21`), `PHARAOH_INSTALLER`.
 
 ## How to work on a task
 
 1. Read the relevant spec in `docs/` and the exported functions in `local/ghidra-export/`.
 2. Look at `refs/` only to locate the mechanic, then find it in the binary.
 3. Implement in `core/` with provenance tags. Small, testable units.
-4. Write or update the test. For simulation rules, prefer a differential test.
+4. Write or update the test. For simulation rules, prefer a differential test; the oracle can run
+   the original function on corpus states for comparison.
 5. Update `docs/provenance/` (address -> function) and remove resolved `docs/unverified.md` entries.
 6. Run `make test`. Do not commit; the human or the loop script commits.
 
@@ -115,9 +125,23 @@ When unsure, stop and write down the question in `docs/unverified.md` rather tha
 
 ## Current status
 
-- [ ] Fingerprint of the reference installation recorded
-- [ ] Graphics format readers (sprites) + PNG extractor, visually validated
-- [ ] Map reader
-- [ ] Save reader (load original saves, dump state)
-- [ ] Reference save corpus generated (campaign missions, monthly saves)
-- [ ] First differential test passing
+- [x] Fingerprint of the reference installation recorded
+- [x] Graphics format readers (sprites) + PNG extractor, visually validated (tools/extract)
+- [x] Map reader (core/io/map_file.c)
+- [x] Terrain image rebuild at scenario start (core/map/terrain.c), differential test against the
+      image grids stored by the original game (`make differential`)
+- [x] Save reader (core/io/save_file.c: original saves -> version-160 layout; core/io/save_load.c:
+      the loader's later steps incl. version upgrades; `build/save_dump`, `build/save_check`)
+- [x] Oracle: Pharaoh.exe boots, loads, ticks and saves headless in a CPU emulator (tools/oracle/)
+- [x] Reference save corpus generated: player saves advanced 12 months by the original, saved by
+      its own saver (`make corpus`, local/saves/generated/, 104 files)
+- [x] First simulation differential test passing (desirability grid, `build/desirability_check`)
+
+- [x] Game state in core (core/state: mirror of the exe's data segments + heap arena), load and
+      save on it; save files byte-identical to the original's (`make oracle-check`)
+
+- [x] Tick skeleton (core/sim/tick.c) running in lockstep with the original: unported callees
+      replayed from the original, every tick equal (`tools/oracle/lockstep.py`)
+
+Next steps: `docs/roadmap.md` (phase 4: port the tick's callees, in the order of
+`lockstep.py --report`).
