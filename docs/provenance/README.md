@@ -1,6 +1,8 @@
 # Provenance index
 
-Maps addresses in the reference executable to Imhotep functions.
+Maps addresses in the reference executable to Imhotep functions. Every ported function of the
+simulation is listed in [ported.md](ported.md) (generated from the port tables); the table below
+holds notes on the functions read for the file formats and the first ports.
 
 | Address | Original role (our name) | Imhotep function | Status |
 |---|---|---|---|

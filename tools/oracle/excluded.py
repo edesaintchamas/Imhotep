@@ -18,6 +18,18 @@ RANGES = [
     (0x00BC9740, 0xC, 'scratch: pattern matcher results (variant, extra, offset)'),
     (0x00BC9760, 0xC, 'scratch: terrain pass cursor (y, x, grid offset)'),
     (0x00BC97C0, 0x20, 'scratch: neighbour flags'),
+    # presentation (core/sim/platform.h): only the video module (0x00538E30 .. 0x00539220) and the
+    # screen present 0x004D0280 read the video globals; the sound request block is read only by the
+    # sound driver 0x0055F0E8; the path and log buffers by the file and log functions (0x004CE100,
+    # 0x004CE330 .. 0x004CE480, 0x004CFF20). Static references: local/ghidra-export.
+    (0x00F53FF4, 0x68, 'video player state (0x00538E30)'),
+    (0x00F54114, 0x4, 'video player handle (0x00538E30)'),
+    (0x00E92DA8, 0x14, 'sound request block (0x0053B4A0, 0x0053B090)'),
+    (0x00E36BF8, 0x28, 'file path buffer (0x004CE100)'),
+    (0x00E38AEC, 0x4, 'file path state (0x004CE100 and the file functions)'),
+    (0x00E39108, 0x20, 'log buffer (0x004CFF20)'),
+    (0x00E92BF8 + 0x1D8, 0xC, 'sound stream handles (0x0055F449; read by the sound functions 0x0055Fxxx)'),
+    (0x00E36C90, 0x100, 'log line buffer (0x004CE6E0)'),
 ]
 
 ROUTES = 0x00776FB0      # chunk 143: 50 records of 0x144 bytes

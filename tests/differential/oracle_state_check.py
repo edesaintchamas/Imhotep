@@ -63,7 +63,7 @@ def check(path, tmp, verbose):
     report = attribute.load_with_attribution(g, open(path, 'rb').read())
     theirs = g.state_bytes()
     out = os.path.join(tmp, 'ours.state')
-    r = subprocess.run([os.path.join(ROOT, 'build', 'state_load'), pre, path, out], capture_output=True, text=True)
+    r = subprocess.run([os.path.join(ROOT, os.environ.get('IMHOTEP_BUILD', 'build'), 'state_load'), pre, path, out], capture_output=True, text=True)
     if r.returncode != 0:
         print('  %s: state_load failed: %s' % (path, r.stderr.strip()))
         return None

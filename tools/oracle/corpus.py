@@ -35,7 +35,7 @@ def pak_record(n):
     """Bytes of record n of mission1.pak, through build/save_dump's reader (campaign_pak.c)."""
     out = os.path.join(ROOT, 'local', 'oracle', 'record.bin')
     os.makedirs(os.path.dirname(out), exist_ok=True)
-    r = subprocess.run([os.path.join(ROOT, 'build', 'save_dump'), '--pak', str(n), '--stored', '--raw', out],
+    r = subprocess.run([os.path.join(ROOT, os.environ.get('IMHOTEP_BUILD', 'build'), 'save_dump'), '--pak', str(n), '--stored', '--raw', out],
                        capture_output=True, text=True)
     if r.returncode != 0:
         raise RuntimeError(r.stderr.strip())
@@ -43,7 +43,7 @@ def pak_record(n):
 
 
 def describe(path):
-    r = subprocess.run([os.path.join(ROOT, 'build', 'save_dump'), '--stored', path], capture_output=True, text=True)
+    r = subprocess.run([os.path.join(ROOT, os.environ.get('IMHOTEP_BUILD', 'build'), 'save_dump'), '--stored', path], capture_output=True, text=True)
     if r.returncode != 0:
         return {}
     d = json.loads(r.stdout)

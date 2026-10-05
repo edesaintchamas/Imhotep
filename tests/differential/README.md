@@ -110,6 +110,8 @@ The rule tag `@diff oracle_load_check` refers to this test.
 Each ported function (core/state/ported.c) runs with the original on the same state: player
 saves loaded by the original, outputs scrambled first where useful (`--fill`). The whole state
 (data segments, simulation heap) and every return value must be equal (`tools/oracle/harness.py`).
+Original functions that are not ported yet and are called inside are recorded in the original's
+run and replayed into the port (`tools/oracle/replay.py`), so a port is checked on its own.
 Scratch variables written before every read within a tick are ignored (tools/oracle/excluded.py).
 Covered: desirability, map row ranges, routing grids and fillers, goods predicates over every
 good, goods lists, post-load links, pre-load clear. The terrain rebuild `0x004DEA50` (and its 16
@@ -132,12 +134,17 @@ Current result: 15 / 15 (7 player saves, 8 corpus saves).
 ## lockstep (core/sim/tick.c)
 
 `tools/oracle/lockstep.py SAVE --ticks N [--chained] [--report]` runs our tick against the
-original's, tick by tick. The original records what each call of the tick skeleton changed; our
-skeleton must make the same calls in the same order, runs the ported callees natively and replays
-the others; the states after each tick must be equal (docs/formats/tick.md). `--chained`
-continues from our state, so a difference would accumulate; `--report` lists every callee with the
-bytes it wrote (the porting to-do list of phase 4). `make oracle-check` runs one chained day on two
+original's, tick by tick. The original records every outermost call to an unported function, at
+any depth, with what it changed; our tick runs the ports natively and must make the same unported
+calls in the same order, which are replayed; the states after each tick must be equal
+(docs/formats/tick.md). `--chained`
+continues from our state, so a difference would accumulate; `--report` lists the replayed
+functions with the bytes they wrote (the porting to-do list of phase 4). `make oracle-check` runs one chained day on two
 cities.
+
+Result (phase 4 done): `--ticks 9792 --chained --report` on the 8 corpus cities, 0 ticks with
+differences on each; only platform requests and two partial ports are still recorded
+(docs/roadmap.md 4.8).
 
 ## Reference save corpus (`local/saves/generated/`)
 

@@ -310,6 +310,33 @@ last:
 - Slot 10: TEMPLE_NILE / RA / PTAH / SETH / BAST (table `0x005E018C`, `0x00470990`,
   `0x004C0F30`).
 
+**What a load writes in the game state** (**@bin** `0x0053DD90`, `0x0053DFF0`, asm; measured in the
+oracle on Sais, slot 5 maus0_1a → maus0_2a: 26 bytes; slot 29 TombRamDummy → TombRam: 1,265 bytes).
+`this` = 0x00F55BB0:
+
+| Where | Written | From |
+|---|---|---|
+| `this + 8·(first group + k)` | group record {slot, first image id + first index − 1} for the k-th non-zero group, in group order | `.sg3` group table (+80), minus 200 when the first bitmap is `system.bmp` |
+| `this + 0x1F40 + 0xCC3C·slot` | file name, bitmap names (+0x104 each, 200-byte records), +0xCC28 `.555` size, +0xCC2C max(old, new) image count, +0xCC30 group count, +0xCC34 / +0xCC38 first image / group | `.sg3` header (+16, +20), bitmap records (+680); `.555` file size (−0x992E with `system.bmp`) |
+| `this + 0x180E48 + 64·id` | the file's entries 1 + skip …; +12 := slot, +0 := pointer into the pixel buffer (internal images) or 1 (external, when 0), +53 := 0 (internal, not type 30, length > 0), +28 := group number on each group's first entry | `.sg3` entries (+40680) |
+| +0xCC24, 0x00D3B5F4 | the pixel buffer (graphics heap) and the running pointer into it | `0x0053F660` |
+| `this + 0x30F5D0` | total pixel bytes (− old size + new size) | |
+| `this + 0x30F5C8 / CC / D4` | running totals of groups, images, slots (first fill of a slot only) | |
+
+The group records are simulation state: image ids taken from them (0x00F56B84, 0x00F57544 …) are
+stored in the saved grids. A reload changes them when the new file's group table differs from the
+slot's current file: `AbuSimbel` / `AbuSimbelDummy` (slot 26), `LibExtra(2)` / `LibExtraDummy`
+(slot 23), `Tomb*` / `Tomb*Dummy` (slots 25, 27–29). The files of the other reload families (maus*,
+sphinx*, obelisk*, suntemple*, temples, caesareum*, LtHouse*, LibMain*) all share one group table
+per family. The rest (entries, names, pixel pointers and sizes) is read only by drawing and by
+`0x0053DD90` itself (tick read set, `tools/oracle/readset.py`: no read of these pages in a month on
+three cities, except the font entries' widths, `0x004CBF30`, whose slot is never reloaded).
+
+So `0x0053DFF0` is not presentation only. Its port needs the `.sg3` bytes (header, group table,
+bitmap records, entries) supplied to core (`state_map_external`, as the text file), and leaves the
+`.555` read (`0x0053F660`, graphics heap) to the platform. `0x0053DD90` (the slot bookkeeping) is
+ported (`core/graphics/last_graphics.c`) and calls `0x0053DFF0` as an unported function.
+
 **For `render_map.py`:** terrain groups are not in these slots, so terrain renders are correct with
 the startup files. Enemy, monument and temple images would need the selections above.
 

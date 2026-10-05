@@ -3,12 +3,14 @@
 #include "state/ported.h"
 
 #include <stddef.h>
+#include <string.h>
 
 #include "city/desirability.h"
 #include "city/goods.h"
 #include "map/routing.h"
 #include "map/terrain.h"
 #include "sim/small.h"
+#include "sim/tick.h"
 #include "state/post_load.h"
 #include "state/pre_load.h"
 #include "state/scenario_start.h"
@@ -118,54 +120,6 @@ static int32_t run_floodplain_build(game_state *st, const int32_t *a)
     return 0;
 }
 
-/* the sub-pass ports cover the whole map: called with another rectangle, they are not ported */
-static int whole_map(game_state *st, const int32_t *a, uint32_t addr)
-{
-    int n = addr == 0x00475DC0u || addr == 0x00476530u || addr == 0x00477210u || addr == 0x0047B570u ||
-                    addr == 0x0047B1A0u || addr == 0x0047D870u
-                ? 0
-                : 4;
-    /* the flags the whole-map ports assume (as called by 0x004DEA50) */
-    int flags_ok = addr == 0x00475CC0u   ? a[4] == 0
-                   : addr == 0x00475720u ? a[4] == 1
-                   : addr == 0x0047BAE0u ? a[4] == 0
-                   : addr == 0x004767D0u ? a[4] == 0 && a[5] == 0
-                   : addr == 0x0047D870u ? a[0] == 0
-                                         : 1;
-    if ((n == 4 && (a[0] > 0 || a[1] > 0 || a[2] < S32(st, 0x00BCA2D0u) - 1 || a[3] < S32(st, 0x00BCA2D4u) - 1)) ||
-        !flags_ok) {
-        state_unported(st, addr);
-        return 0;
-    }
-    return 1;
-}
-
-#define SUBPASS(name, addr) \
-    static int32_t name(game_state *st, const int32_t *a) \
-    { \
-        terrain_state t = {st, {0, 0, 0}}; \
-        if (whole_map(st, a, addr)) { \
-            terrain_subpass(&t, addr); \
-        } \
-        return 0; \
-    }
-SUBPASS(run_pass_special_rocks, 0x004770F0u)
-SUBPASS(run_pass_rocks, 0x00475DC0u)
-SUBPASS(run_pass_trees, 0x00475BF0u)
-SUBPASS(run_pass_flag_0x20, 0x00476530u)
-SUBPASS(run_pass_signposts, 0x0047D870u)
-SUBPASS(run_pass_land, 0x004767D0u)
-SUBPASS(run_pass_floodplain, 0x004777C0u)
-SUBPASS(run_pass_meadow, 0x00477500u)
-SUBPASS(run_pass_flag_0x40000, 0x004776F0u)
-SUBPASS(run_pass_dunes, 0x00477210u)
-SUBPASS(run_pass_water, 0x00475CC0u)
-SUBPASS(run_pass_rubble, 0x00477890u)
-SUBPASS(run_pass_roads, 0x0047B570u)
-SUBPASS(run_pass_plaza, 0x00475720u)
-SUBPASS(run_pass_walls, 0x0047B1A0u)
-SUBPASS(run_pass_canals, 0x0047BAE0u)
-
 static int32_t run_nothing(game_state *st, const int32_t *a)
 {
     (void) st;
@@ -173,72 +127,356 @@ static int32_t run_nothing(game_state *st, const int32_t *a)
     return 0; /* @bin 0x0051F780 an empty function */
 }
 
+static int32_t run_game_tick(game_state *st, const int32_t *a)
+{
+    (void) a;
+    game_tick(st, st->env);
+    return 0;
+}
+
+static int32_t run_day_dispatch(game_state *st, const int32_t *a)
+{
+    (void) a;
+    day_dispatch(st, st->env);
+    return 0;
+}
+
+static int32_t run_day_cascade(game_state *st, const int32_t *a)
+{
+    (void) a;
+    day_cascade(st, st->env);
+    return 0;
+}
+
+/* @bin 0x0040F8F0 fill(p, n, byte): dwords then the remaining bytes (the game's own memset) */
+static int32_t run_fill_bytes(game_state *st, const int32_t *a)
+{
+    uint8_t *p = state_ptr(st, (uint32_t) a[0], (uint32_t) a[1]);
+    if (p) {
+        memset(p, (uint8_t) a[2], (uint32_t) a[1]);
+    } else if (a[1] != 0) {
+        state_unported(st, 0x0040F8F0u); /* outside the state: a caller's local buffer */
+    }
+    return 0;
+}
+
 VOID0(run_anim_counters, anim_counters)
 VOID0(run_clear_0x0078d784, clear_0x0078d784)
 VOID0(run_countdown_0x00ea89dc, countdown_0x00ea89dc)
 
 /* @bin addresses of the original functions (each port carries its own tags) */
-const ported_function ported_functions[] = {
-    {0x0046A0C0u, "desirability_buildings", 0, 0, 0, run_desirability_buildings},
-    {0x0046A140u, "desirability_tiles", 0, 0, 0, run_desirability_tiles},
-    {0x0046F7B0u, "map_row_ranges", 0, 0, 0, run_map_row_ranges},
-    {0x00517A20u, "routing_clear_ee0c50", 0, 0, 0, run_routing_clear_ee0c50},
-    {0x005178B0u, "routing_rebuild_ed4140", 0, 0, 0, run_routing_rebuild_ed4140},
-    {0x005178E0u, "routing_rebuild_ebab20", 0, 0, 0, run_routing_rebuild_ebab20},
-    {0x00517660u, "routing_rebuild_ec7630", 0, 0, 0, run_routing_rebuild_ec7630},
-    {0x00517370u, "routing_rebuild_ee0c50", 0, 0, 0, run_routing_rebuild_ee0c50},
-    {0x00517690u, "routing_fill_ed4140", 4, 0, 0, run_fill_ed4140},
-    {0x005173A0u, "routing_fill_ec7630", 4, 0, 0, run_fill_ec7630},
-    {0x00516F90u, "routing_fill_ee0c50", 5, 0, 0, run_fill_ee0c50},
-    {0x005596D0u, "goods_available_update", 0, 0, 0, run_goods_available_update},
-    {0x004439C0u, "goods_trade_city", 1, 32, 0, run_goods_trade_city},
-    {0x00443950u, "goods_trade_city_flag5", 1, 32, 0, run_goods_trade_city_flag5},
-    {0x00443B90u, "goods_chain_b90", 1, 32, 0, run_goods_chain_b90},
-    {0x00443D90u, "goods_chain_d90", 1, 32, 0, run_goods_chain_d90},
-    {0x00559480u, "goods_event_list", 1, 8, 0, run_goods_event_list},
-    {0x004C5190u, "trade_city_mood", 0, 32, 0, run_trade_city_mood},
-    {0x004C5240u, "trade_limit_adjusted", 1, 32, 0, run_trade_limit_adjusted},
-    {0x00447790u, "empire_city_trades", 2, 8, 0, run_empire_city_trades},
-    {0x0046B100u, "storage_create", 1, 32, 0, run_storage_create},
-    {0x0046B320u, "load_rebuild_storage_links", 0, 0, 0, run_load_rebuild_storage_links},
-    {0x0046EFD0u, "rec88_create", 1, 32, 0, run_rec88_create},
-    {0x0046F030u, "load_rebuild_0x88_links", 0, 0, 0, run_load_rebuild_0x88_links},
-    {0x0046A280u, "rec4a_create", 1, 0, 0, run_rec4a_create},
-    {0x0046A320u, "load_rebuild_0x4a_links", 0, 0, 0, run_load_rebuild_0x4a_links},
-    {0x0046F930u, "map_tile_inside", 2, 8, 0, run_map_tile_inside},
-    {0x0046FA40u, "pre_load_clear", 0, 0, 0, run_pre_load_clear},
-    {0x004DEA50u, "terrain_rebuild", 0, 0, 0, run_terrain_rebuild},
-    {0x0051F780u, "nothing", 0, 0, 0, run_nothing},
-    {0x004CDC70u, "anim_counters", 0, 0, 0, run_anim_counters},
-    {0x00452150u, "clear_0x0078d784", 0, 0, 0, run_clear_0x0078d784},
-    {0x004E7E40u, "countdown_0x00ea89dc", 0, 0, 0, run_countdown_0x00ea89dc},
-    /* sub-passes of 0x004DEA50, run over the whole map (the harness passes the same arguments) */
-    {0x004770F0u, "pass_special_rocks", 4, 0, 0, run_pass_special_rocks},
-    {0x00475DC0u, "pass_rocks", 0, 0, 0, run_pass_rocks},
-    {0x00475BF0u, "pass_trees", 4, 0, 0, run_pass_trees},
-    {0x00476530u, "pass_flag_0x20", 0, 0, 0, run_pass_flag_0x20},
-    {0x0047D870u, "pass_signposts", 1, 0, 0, run_pass_signposts},
-    {0x004767D0u, "pass_land", 6, 0, 0, run_pass_land},
-    {0x004777C0u, "pass_floodplain", 4, 0, 0, run_pass_floodplain},
-    {0x00477500u, "pass_meadow", 4, 0, 0, run_pass_meadow},
-    {0x004776F0u, "pass_flag_0x40000", 4, 0, 0, run_pass_flag_0x40000},
-    {0x00477210u, "pass_dunes", 0, 0, 0, run_pass_dunes},
-    {0x00475CC0u, "pass_water", 5, 0, 0, run_pass_water},
-    {0x00477890u, "pass_rubble", 4, 0, 0, run_pass_rubble},
-    {0x0047B570u, "pass_roads", 0, 0, 0, run_pass_roads},
-    {0x00475720u, "pass_plaza", 5, 0, 0, run_pass_plaza},
-    {0x0047B1A0u, "pass_walls", 0, 0, 0, run_pass_walls},
-    {0x0047BAE0u, "pass_canals", 5, 0, 0, run_pass_canals},
-    {0x004BE160u, "floodplain_build", 4, 0, 0x00D05720u, run_floodplain_build},
+const ported_function state_ports[] = {
+    {0x0046A0C0u, "desirability_buildings", 0, 0, 0, run_desirability_buildings, 0},
+    {0x0046A140u, "desirability_tiles", 0, 0, 0, run_desirability_tiles, 0},
+    {0x0046F7B0u, "map_row_ranges", 0, 0, 0, run_map_row_ranges, 0},
+    {0x00517A20u, "routing_clear_ee0c50", 0, 0, 0, run_routing_clear_ee0c50, 0},
+    {0x005178B0u, "routing_rebuild_ed4140", 0, 0, 0, run_routing_rebuild_ed4140, 0},
+    {0x005178E0u, "routing_rebuild_ebab20", 0, 0, 0, run_routing_rebuild_ebab20, 0},
+    {0x00517660u, "routing_rebuild_ec7630", 0, 0, 0, run_routing_rebuild_ec7630, 0},
+    {0x00517370u, "routing_rebuild_ee0c50", 0, 0, 0, run_routing_rebuild_ee0c50, 0},
+    {0x00517690u, "routing_fill_ed4140", 4, 0, 0, run_fill_ed4140, 0},
+    {0x005173A0u, "routing_fill_ec7630", 4, 0, 0, run_fill_ec7630, 0},
+    {0x00516F90u, "routing_fill_ee0c50", 5, 0, 0, run_fill_ee0c50, 0},
+    {0x005596D0u, "goods_available_update", 0, 0, 0, run_goods_available_update, 0},
+    {0x004439C0u, "goods_trade_city", 1, 32, 0, run_goods_trade_city, 0},
+    {0x00443950u, "goods_trade_city_flag5", 1, 32, 0, run_goods_trade_city_flag5, 0},
+    {0x00443B90u, "goods_chain_b90", 1, 32, 0, run_goods_chain_b90, 0},
+    {0x00443D90u, "goods_chain_d90", 1, 32, 0, run_goods_chain_d90, 0},
+    {0x00559480u, "goods_event_list", 1, 8, 0, run_goods_event_list, 0},
+    {0x004C5190u, "trade_city_mood", 0, 32, 0, run_trade_city_mood, 0},
+    {0x004C5240u, "trade_limit_adjusted", 1, 32, 0, run_trade_limit_adjusted, 0},
+    {0x00447790u, "empire_city_trades", 2, 8, 0, run_empire_city_trades, 0},
+    {0x0046B100u, "storage_create", 1, 32, 0, run_storage_create, 0},
+    {0x0046B320u, "load_rebuild_storage_links", 0, 0, 0, run_load_rebuild_storage_links, 0},
+    {0x0046EFD0u, "rec88_create", 1, 32, 0, run_rec88_create, 0},
+    {0x0046F030u, "load_rebuild_0x88_links", 0, 0, 0, run_load_rebuild_0x88_links, 0},
+    {0x0046A280u, "rec4a_create", 1, 0, 0, run_rec4a_create, 0},
+    {0x0046A320u, "load_rebuild_0x4a_links", 0, 0, 0, run_load_rebuild_0x4a_links, 0},
+    {0x0046F930u, "map_tile_inside", 2, 8, 0, run_map_tile_inside, 0},
+    {0x0046FA40u, "pre_load_clear", 0, 0, 0, run_pre_load_clear, 0},
+    {0x004DEA50u, "terrain_rebuild", 0, 0, 0, run_terrain_rebuild, 0},
+    {0x004D7090u, "game_tick", 0, 0, 0, run_game_tick, 0},
+    {0x00451C50u, "day_dispatch", 0, 0, 0, run_day_dispatch, 0},
+    {0x00452370u, "day_cascade", 0, 0, 0, run_day_cascade, 0},
+    {0x0051F780u, "nothing", 0, 0, 0, run_nothing, 0},
+    {0x004CDC70u, "anim_counters", 0, 0, 0, run_anim_counters, 0},
+    {0x00452150u, "clear_0x0078d784", 0, 0, 0, run_clear_0x0078d784, 0},
+    {0x004E7E40u, "countdown_0x00ea89dc", 0, 0, 0, run_countdown_0x00ea89dc, 0},
+    {0x004BE160u, "floodplain_build", 4, 0, 0x00D05720u, run_floodplain_build, 0},
+    {0x0040F8F0u, "fill_bytes", 3, 0, 0, run_fill_bytes, 0},
+    /* helpers ported inside their callers (not callable on their own): the oracle does not record
+     * them, since every call from ported code is handled by the port */
+    {0x00481830u, "desirability_rings (in desirability.c)", 7, 0, 0, NULL, 0},
+    {0x004818A0u, "desirability_ring (in desirability.c)", 5, 0, 0, NULL, 0},
+    /* 0x00481AA0: day2_misc_ports (ring_tile_outside) */
+    {0x005013A0u, "storage_kind (in goods.c)", 1, 32, 0, NULL, 0},
+    {0x0046FC30u, "pre_load_outside_tiles (in pre_load.c)", 0, 0, 0, NULL, 0},
+    {0x0046FC80u, "pre_load_random_grid (in pre_load.c)", 0, 0, 0, NULL, 0},
+    {0x00475B80u, "pre_load_image_grid (in pre_load.c)", 0, 0, 0, NULL, 0},
+    {0x00484EE0u, "pre_load_table_flags (in pre_load.c)", 0, 0, 0, NULL, 0},
+    {0x004BE0F0u, "floodplain_clear (in pre_load.c)", 0, 0, 0, NULL, 0},
+    {0x004BD6A0u, "floodplain_list_release (in pre_load.c)", 0, 0, 0, NULL, 0},
+    /* the CRT heap: state_alloc / state_dealloc (core/state/state.h) */
+    {0x00561A1Du, "operator new (state_alloc)", 1, 32, 0, NULL, 0},
+    {0x00561A2Bu, "operator delete (state_dealloc)", 1, 0, 0, NULL, 0},
+    {0x00561B68u, "malloc (state_alloc)", 1, 32, 0, NULL, 0},
+    {0x00561B7Au, "_nh_malloc (state_alloc)", 2, 32, 0, NULL, 0},
+    {0x00561BDCu, "free (state_dealloc)", 1, 0, 0, NULL, 0},
 };
-const int ported_function_count = sizeof(ported_functions) / sizeof(ported_functions[0]);
+const int state_ports_count = sizeof(state_ports) / sizeof(state_ports[0]);
+
+/* the modules' tables (core/state/ported.h) */
+PORTED_TABLE(state_ports)
+PORTED_TABLE(platform_ports)
+PORTED_TABLE(text_ports)
+PORTED_TABLE(random_ports)
+PORTED_TABLE(figure_ports)
+PORTED_TABLE(house_ports)
+PORTED_TABLE(message_ports)
+PORTED_TABLE(route_search_ports)
+PORTED_TABLE(building_daily_ports)
+PORTED_TABLE(labour_ports)
+PORTED_TABLE(day_basic_ports)
+PORTED_TABLE(day_access_ports)
+PORTED_TABLE(day_buildings_ports)
+PORTED_TABLE(day_labour_ports)
+PORTED_TABLE(day_anim_ports)
+PORTED_TABLE(day_city_ports)
+PORTED_TABLE(day_state_ports)
+PORTED_TABLE(day_water_ports)
+PORTED_TABLE(day_road_ports)
+PORTED_TABLE(day_flood_ports)
+PORTED_TABLE(x87_ports)
+PORTED_TABLE(day_goals_ports)
+PORTED_TABLE(day_houses_ports)
+PORTED_TABLE(month_ports)
+PORTED_TABLE(month_mood_ports)
+PORTED_TABLE(month_health_ports)
+PORTED_TABLE(month_ratings_ports)
+PORTED_TABLE(month_message_ports)
+PORTED_TABLE(month_events_ports)
+PORTED_TABLE(month2_events_ports)
+PORTED_TABLE(month2_handlers_ports)
+PORTED_TABLE(month2_festival_ports)
+PORTED_TABLE(month2_monument_ports)
+PORTED_TABLE(month2_actions_ports)
+PORTED_TABLE(month2_troops_ports)
+PORTED_TABLE(month2_military_ports)
+PORTED_TABLE(figa_ports)
+PORTED_TABLE(figa_service_ports)
+PORTED_TABLE(figa_service2_ports)
+PORTED_TABLE(figd_ports)
+PORTED_TABLE(figd_boat_ports)
+PORTED_TABLE(figc_ports)
+PORTED_TABLE(figc2_ports)
+PORTED_TABLE(figb_ports)
+PORTED_TABLE(bigb_update_ports)
+PORTED_TABLE(bigb_market_ports)
+PORTED_TABLE(bigb_route_ports)
+PORTED_TABLE(bigb_formation_ports)
+PORTED_TABLE(bigb_figure_ports)
+PORTED_TABLE(bigb_spawn_ports)
+PORTED_TABLE(bigb_map_ports)
+PORTED_TABLE(bigb_gatherer_ports)
+PORTED_TABLE(bigb_misc_ports)
+PORTED_TABLE(bigb_path_ports)
+PORTED_TABLE(bigb_link_ports)
+PORTED_TABLE(bigb_misc2_ports)
+PORTED_TABLE(bigb_extra_ports)
+PORTED_TABLE(bigb_invader_ports)
+PORTED_TABLE(bigb_army_route_ports)
+PORTED_TABLE(bigb_enemy_ports)
+PORTED_TABLE(bigb2_land_ports)
+PORTED_TABLE(bigb2_queue_ports)
+PORTED_TABLE(bigb2_monument_ports)
+PORTED_TABLE(bigb2_water_ports)
+PORTED_TABLE(bigb2_roads_ports)
+PORTED_TABLE(bigb2_flood_ports)
+PORTED_TABLE(figx_route_ports)
+PORTED_TABLE(figx_ports)
+PORTED_TABLE(figx_a_ports)
+PORTED_TABLE(figx_b_ports)
+PORTED_TABLE(day2_misc_ports)
+PORTED_TABLE(day2_monument_ports)
+PORTED_TABLE(day2_gods_ports)
+PORTED_TABLE(day2_events_ports)
+PORTED_TABLE(day2_flood_ports)
+PORTED_TABLE(day2_farm_ports)
+PORTED_TABLE(day2_docks_ports)
+PORTED_TABLE(day2_destroy_ports)
+PORTED_TABLE(day2_redraw_ports)
+PORTED_TABLE(terr_rocks_ports)
+PORTED_TABLE(terr_veg_ports)
+PORTED_TABLE(terr_misc_ports)
+PORTED_TABLE(terr_rings_ports)
+PORTED_TABLE(terr_monument_ports)
+PORTED_TABLE(terr_pyramid_ports)
+PORTED_TABLE(terr_take_ports)
+PORTED_TABLE(terr_coast_ports)
+PORTED_TABLE(terr_create_ports)
+PORTED_TABLE(rest_destroy_ports)
+PORTED_TABLE(rest_monument_ports)
+PORTED_TABLE(rest_redraw_ports)
+PORTED_TABLE(rest_gods_ports)
+PORTED_TABLE(rest_notice_ports)
+PORTED_TABLE(rest_misc_ports)
+PORTED_TABLE(last_terrain_ports)
+PORTED_TABLE(last_figure_ports)
+PORTED_TABLE(last_city_ports)
+PORTED_TABLE(last_graphics_ports)
+
+static const struct {
+    const ported_function *table;
+    const int *count;
+} ported_modules[] = {
+    {state_ports, &state_ports_count},
+    {platform_ports, &platform_ports_count},
+    {text_ports, &text_ports_count},
+    {random_ports, &random_ports_count},
+    {figure_ports, &figure_ports_count},
+    {house_ports, &house_ports_count},
+    {message_ports, &message_ports_count},
+    {route_search_ports, &route_search_ports_count},
+    {building_daily_ports, &building_daily_ports_count},
+    {labour_ports, &labour_ports_count},
+    {day_basic_ports, &day_basic_ports_count},
+    {day_access_ports, &day_access_ports_count},
+    {day_buildings_ports, &day_buildings_ports_count},
+    {day_labour_ports, &day_labour_ports_count},
+    {day_anim_ports, &day_anim_ports_count},
+    {day_city_ports, &day_city_ports_count},
+    {day_state_ports, &day_state_ports_count},
+    {day_water_ports, &day_water_ports_count},
+    {day_road_ports, &day_road_ports_count},
+    {day_flood_ports, &day_flood_ports_count},
+    {x87_ports, &x87_ports_count},
+    {day_goals_ports, &day_goals_ports_count},
+    {day_houses_ports, &day_houses_ports_count},
+    {month_ports, &month_ports_count},
+    {month_mood_ports, &month_mood_ports_count},
+    {month_health_ports, &month_health_ports_count},
+    {month_ratings_ports, &month_ratings_ports_count},
+    {month_message_ports, &month_message_ports_count},
+    {month_events_ports, &month_events_ports_count},
+    {month2_events_ports, &month2_events_ports_count},
+    {month2_handlers_ports, &month2_handlers_ports_count},
+    {month2_festival_ports, &month2_festival_ports_count},
+    {month2_monument_ports, &month2_monument_ports_count},
+    {month2_actions_ports, &month2_actions_ports_count},
+    {month2_troops_ports, &month2_troops_ports_count},
+    {month2_military_ports, &month2_military_ports_count},
+    {figa_ports, &figa_ports_count},
+    {figa_service_ports, &figa_service_ports_count},
+    {figa_service2_ports, &figa_service2_ports_count},
+    {figd_ports, &figd_ports_count},
+    {figd_boat_ports, &figd_boat_ports_count},
+    {figc_ports, &figc_ports_count},
+    {figc2_ports, &figc2_ports_count},
+    {figb_ports, &figb_ports_count},
+    {bigb_update_ports, &bigb_update_ports_count},
+    {bigb_market_ports, &bigb_market_ports_count},
+    {bigb_route_ports, &bigb_route_ports_count},
+    {bigb_formation_ports, &bigb_formation_ports_count},
+    {bigb_figure_ports, &bigb_figure_ports_count},
+    {bigb_spawn_ports, &bigb_spawn_ports_count},
+    {bigb_map_ports, &bigb_map_ports_count},
+    {bigb_gatherer_ports, &bigb_gatherer_ports_count},
+    {bigb_misc_ports, &bigb_misc_ports_count},
+    {bigb_path_ports, &bigb_path_ports_count},
+    {bigb_link_ports, &bigb_link_ports_count},
+    {bigb_misc2_ports, &bigb_misc2_ports_count},
+    {bigb_extra_ports, &bigb_extra_ports_count},
+    {bigb_invader_ports, &bigb_invader_ports_count},
+    {bigb_army_route_ports, &bigb_army_route_ports_count},
+    {bigb_enemy_ports, &bigb_enemy_ports_count},
+    {bigb2_land_ports, &bigb2_land_ports_count},
+    {bigb2_queue_ports, &bigb2_queue_ports_count},
+    {bigb2_monument_ports, &bigb2_monument_ports_count},
+    {bigb2_water_ports, &bigb2_water_ports_count},
+    {bigb2_roads_ports, &bigb2_roads_ports_count},
+    {bigb2_flood_ports, &bigb2_flood_ports_count},
+    {figx_route_ports, &figx_route_ports_count},
+    {figx_ports, &figx_ports_count},
+    {figx_a_ports, &figx_a_ports_count},
+    {figx_b_ports, &figx_b_ports_count},
+    {day2_misc_ports, &day2_misc_ports_count},
+    {day2_monument_ports, &day2_monument_ports_count},
+    {day2_gods_ports, &day2_gods_ports_count},
+    {day2_events_ports, &day2_events_ports_count},
+    {day2_flood_ports, &day2_flood_ports_count},
+    {day2_farm_ports, &day2_farm_ports_count},
+    {day2_docks_ports, &day2_docks_ports_count},
+    {day2_destroy_ports, &day2_destroy_ports_count},
+    {day2_redraw_ports, &day2_redraw_ports_count},
+    {terr_rocks_ports, &terr_rocks_ports_count},
+    {terr_veg_ports, &terr_veg_ports_count},
+    {terr_misc_ports, &terr_misc_ports_count},
+    {terr_rings_ports, &terr_rings_ports_count},
+    {terr_monument_ports, &terr_monument_ports_count},
+    {terr_pyramid_ports, &terr_pyramid_ports_count},
+    {terr_take_ports, &terr_take_ports_count},
+    {terr_coast_ports, &terr_coast_ports_count},
+    {terr_create_ports, &terr_create_ports_count},
+    {rest_destroy_ports, &rest_destroy_ports_count},
+    {rest_monument_ports, &rest_monument_ports_count},
+    {rest_redraw_ports, &rest_redraw_ports_count},
+    {rest_gods_ports, &rest_gods_ports_count},
+    {rest_notice_ports, &rest_notice_ports_count},
+    {rest_misc_ports, &rest_misc_ports_count},
+    {last_terrain_ports, &last_terrain_ports_count},
+    {last_figure_ports, &last_figure_ports_count},
+    {last_city_ports, &last_city_ports_count},
+    {last_graphics_ports, &last_graphics_ports_count},
+};
+#define NMODULES ((int) (sizeof(ported_modules) / sizeof(ported_modules[0])))
+
+int ported_count(void)
+{
+    int n = 0;
+    for (int m = 0; m < NMODULES; m++) {
+        n += *ported_modules[m].count;
+    }
+    return n;
+}
+
+const ported_function *ported_at(int i)
+{
+    for (int m = 0; m < NMODULES; m++) {
+        if (i < *ported_modules[m].count) {
+            return &ported_modules[m].table[i];
+        }
+        i -= *ported_modules[m].count;
+    }
+    return NULL;
+}
+
+/* open-addressing index of every port by address, built on first use (constant afterwards) */
+#define INDEX_SIZE 8192
+static const ported_function *index_table[INDEX_SIZE];
+static int index_built;
+
+static void build_index(void)
+{
+    for (int i = 0, n = ported_count(); i < n; i++) {
+        const ported_function *p = ported_at(i);
+        uint32_t h = (p->address * 2654435761u) >> 19;
+        while (index_table[h % INDEX_SIZE]) {
+            h++;
+        }
+        index_table[h % INDEX_SIZE] = p;
+    }
+    index_built = 1;
+}
 
 const ported_function *ported_find(uint32_t address)
 {
-    for (int i = 0; i < ported_function_count; i++) {
-        if (ported_functions[i].address == address) {
-            return &ported_functions[i];
+    if (!index_built) {
+        build_index();
+    }
+    for (uint32_t h = (address * 2654435761u) >> 19;; h++) {
+        const ported_function *p = index_table[h % INDEX_SIZE];
+        if (!p || p->address == address) {
+            return p;
         }
     }
-    return NULL;
 }

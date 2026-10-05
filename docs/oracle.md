@@ -14,13 +14,17 @@ Set up once: `make oracle-env` (a venv in `local/venv` with Unicorn and Capstone
 | `game.py` | `Game`: CRT file and heap functions over a virtual file system, `boot()`, `load_save()`, `save()` |
 | `corpus.py` | reference save corpus: a state advanced month by month, saved by the game |
 | `diff.py` | two states compared field by field (names from `docs/formats/save.md`) |
-| `harness.py` | original functions and their ports on the same state (`build/state_run`) |
+| `harness.py` | original functions and their ports on the same state (`build/state_replay`), unported callees replayed |
+| `replay.py` | deep recorder: every outermost call to an unported function inside an original call, with its changes and return value (docs/porting.md §4) |
+| `lockstep.py` | our tick against the original's, tick by tick, unported functions replayed |
+| `frontier.py` | the unported functions an original call (or the tick) still reaches: what to port next |
+| `coverage.py` | every function the tick enters on the corpus, with its callers (indirect calls included) |
 | `attribute.py` | which call of a function wrote which bytes (snapshots at every call site) |
 | `readset.py` | pages of the state the tick reads (page protection) |
 | `scratch.py` | is a variable written before every read within a tick |
 | `watch.py` | who writes an address |
 | `excluded.py` | state the comparisons ignore, with the reason |
-| `state_run.c`, `state_load.c`, `state_save.c` | the port's side: ported functions, load, save on state files |
+| `state_run.c`, `state_replay.c`, `state_load.c`, `state_save.c` | the port's side: ported functions (alone, or with a replay of the original's unported calls), load, save on state files |
 | `where.py`, `disasm.py` | address → exported function; Capstone disassembly of the exe |
 
 ## What is replaced, and why it does not change the simulation
@@ -36,6 +40,9 @@ Set up once: `make oracle-env` (a venv in `local/venv` with Unicorn and Capstone
   `malloc` / `calloc` / `realloc` / `free`, `new` / `delete`, `atexit`, replaced by Python. The C
   initialiser table (CRT internals) is not run; its effect on the simulation, the x87 precision
   (53-bit, `0x005640EC`), is set directly.
+- **Hooks and translation.** Unicorn applies a new code hook only to code it translates after the
+  hook is added: tools that hook after the boot or the load flush the translation cache
+  (`ctl_flush_tb`, `ctl_remove_cache`).
 - **Start-up.** `Game.boot()` runs the C++ static constructors (`0x00576000` … `0x0057607C`), then
   WinMain's (`0x00413ED0`) initialisation calls in order, with their `this` pointers from the
   disassembly. Skipped: the CD drive search `0x004268C0` (its result, the drive letter, is set),

@@ -6,6 +6,8 @@
  * established yet: names below are the grids' addresses (docs/formats/state.md). */
 #include "map/routing.h"
 
+#include "sim/call.h"
+
 #include <string.h>
 
 #define SIDE 0xE4
@@ -268,13 +270,19 @@ void routing_fill_ee0c50(game_state *st, int32_t x0, int32_t y0, int32_t x1, int
     if (!flag) {
         return;
     }
-    /* @bin 0x00516F90 then every type-0x88 building (state 1 or 3), ids 0..3999: its link to the
-     * other end (+0xC4) is traced (0x0043F060, route search) and marked */
-    for (uint32_t id = 0; id < 4000; id++) {
-        uint32_t p = BUILDINGS + BUILDING_SIZE * id;
-        if (S16(st, p + 0x10) == 0x88 && (U8(st, p) == 1 || U8(st, p) == 3)) {
-            state_unported(st, 0x0043F060u);
-            return;
+    /* @bin 0x005172F8 .. 0x00517358 then every type-0x88 building (state 1 or 3), ids 0..3999: with
+     * no link (+0x40 == 0) or a linked building (+0xC4) whose +0x40 is <= 0, route search
+     * 0x0043F060(id, 1, 3) and 0x004A36B0(id); else 0x0043F060(id, 1, 1) */
+    for (int32_t id = 0; id < 4000; id++) {
+        uint32_t p = BUILDINGS + BUILDING_SIZE * (uint32_t) id;
+        if (S16(st, p + 0x10) != 0x88 || (U8(st, p) != 1 && U8(st, p) != 3)) {
+            continue;
+        }
+        if (S16(st, p + 0x40) == 0 || S16(st, BUILDINGS + BUILDING_SIZE * U32(st, p + 0xC4) + 0x40) < 1) {
+            GAME_CALL(st, 0x0043F060u, id, 1, 3);
+            GAME_CALL(st, 0x004A36B0u, id);
+        } else {
+            GAME_CALL(st, 0x0043F060u, id, 1, 1);
         }
     }
 }

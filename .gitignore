@@ -2,6 +2,7 @@
 local/
 refs/
 build/
+build-*/
 *.gpr
 *.rep/
 

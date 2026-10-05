@@ -10,17 +10,21 @@ int32_t sim_call(game_state *st, const sim_env *env, uint32_t address, const int
                  uint32_t this_ptr)
 {
     int32_t result = 0;
+    if (!env) {
+        env = st->env;
+    }
     if (env && env->external && env->external(env, st, address, args, nargs, this_ptr, &result)) {
         return result;
     }
     const ported_function *p = ported_find(address);
-    if (!p) {
+    if (!p || !p->run) {
         state_unported(st, address);
         return 0;
     }
     int32_t a[16] = {0};
-    for (int i = 0; i < nargs && i < 16; i++) {
+    for (int i = 0; i < nargs && i < 15; i++) {
         a[i] = args[i];
     }
+    a[PORT_THIS_ARG] = (int32_t) this_ptr; /* thiscall on a variable object: core/state/ported.h */
     return p->run(st, a);
 }

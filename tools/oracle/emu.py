@@ -319,6 +319,7 @@ STUBS = {
     'GetLastError': (0, lambda e: 0),
     'SetLastError': (1, lambda e, v: 0),
     'Sleep': (1, lambda e, ms: 0),
+    'OutputDebugStringA': (1, lambda e, p: 0),  # debugger output (figure actions 0x004A98B0, ...)
     'GetSystemMetrics': (1, lambda e, i: {0: 1024, 1: 768}.get(i, 0)),
     'GetCurrentDirectoryA': (2, lambda e, n, p: (e.write(p, b'C:\\\0'), 3)[1]),
     'timeGetTime': (0, lambda e: 0),

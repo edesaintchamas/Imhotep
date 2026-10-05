@@ -143,5 +143,7 @@ When unsure, stop and write down the question in `docs/unverified.md` rather tha
 - [x] Tick skeleton (core/sim/tick.c) running in lockstep with the original: unported callees
       replayed from the original, every tick equal (`tools/oracle/lockstep.py`)
 
-Next steps: `docs/roadmap.md` (phase 4: port the tick's callees, in the order of
-`lockstep.py --report`).
+- [x] Simulation ported (phase 4): 1,240 functions of the tick, 12 months in lockstep with the
+      original on the whole corpus with no difference (docs/roadmap.md 4.8)
+
+Next steps: `docs/roadmap.md` (phase 5: player commands; carried-over items under 4.8).

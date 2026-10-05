@@ -42,7 +42,7 @@ analyze: verify ## Ghidra headless analysis and export to local/ghidra-export (G
 	mkdir -p $(GHIDRA_PROJ_DIR) $(GHIDRA_EXPORT)
 	JAVA_HOME="$(JAVA_HOME)" "$(GHIDRA_HOME)/support/pyghidraRun" -H $(GHIDRA_PROJ_DIR) pharaoh \
 		-import "$(GAME_EXE)" -overwrite \
-		-scriptPath tools/ghidra -postScript ExportFunctions.py $(GHIDRA_EXPORT)
+		-scriptPath tools/ghidra -postScript CreateTableFunctions.py -postScript ExportFunctions.py $(GHIDRA_EXPORT)
 
 provenance: ## Provenance report for core/
 	python3 tools/check_provenance.py
@@ -52,62 +52,63 @@ check-files: ## Fail if game content is tracked by git
 
 # ---- core/ build (C11, no dependencies) ----
 CC      ?= cc
+BUILD   ?= build
 CFLAGS  ?= -O2
 CORE_CFLAGS := -std=c11 -Wall -Wextra -Werror -Icore $(CFLAGS)
 CORE_SRC := $(shell find core -name '*.c')
-CORE_OBJ := $(CORE_SRC:%.c=build/%.o)
+CORE_OBJ := $(CORE_SRC:%.c=$(BUILD)/%.o)
 
-build/%.o: %.c
+$(BUILD)/%.o: %.c
 	@mkdir -p $(dir $@)
 	$(CC) $(CORE_CFLAGS) -c $< -o $@
 
-build/libimhotep_core.a: $(CORE_OBJ)
+$(BUILD)/libimhotep_core.a: $(CORE_OBJ)
 	ar rcs $@ $^
 
 PLATFORM_SRC := platform/game_files.c platform/exe_image.c
 TOOL_CFLAGS := $(CORE_CFLAGS) -I.
 
-build/terrain_check: tests/differential/terrain_check.c $(PLATFORM_SRC) build/libimhotep_core.a
-	$(CC) $(TOOL_CFLAGS) $< $(PLATFORM_SRC) build/libimhotep_core.a -o $@
+$(BUILD)/terrain_check: tests/differential/terrain_check.c $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a
+	$(CC) $(TOOL_CFLAGS) $< $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a -o $@
 
-build/save_check: tests/differential/save_check.c $(PLATFORM_SRC) build/libimhotep_core.a
-	$(CC) $(TOOL_CFLAGS) $< $(PLATFORM_SRC) build/libimhotep_core.a -o $@
+$(BUILD)/save_check: tests/differential/save_check.c $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a
+	$(CC) $(TOOL_CFLAGS) $< $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a -o $@
 
-build/desirability_check: tests/differential/desirability_check.c $(PLATFORM_SRC) build/libimhotep_core.a
-	$(CC) $(TOOL_CFLAGS) $< $(PLATFORM_SRC) build/libimhotep_core.a -o $@
+$(BUILD)/desirability_check: tests/differential/desirability_check.c $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a
+	$(CC) $(TOOL_CFLAGS) $< $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a -o $@
 
-build/save_dump: tools/extract/save_dump.c $(PLATFORM_SRC) build/libimhotep_core.a
-	$(CC) $(TOOL_CFLAGS) $< $(PLATFORM_SRC) build/libimhotep_core.a -o $@
+$(BUILD)/save_dump: tools/extract/save_dump.c $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a
+	$(CC) $(TOOL_CFLAGS) $< $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a -o $@
 
-build/terrain_dump: tools/extract/terrain_dump.c $(PLATFORM_SRC) build/libimhotep_core.a
-	$(CC) $(TOOL_CFLAGS) $< $(PLATFORM_SRC) build/libimhotep_core.a -o $@
+$(BUILD)/terrain_dump: tools/extract/terrain_dump.c $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a
+	$(CC) $(TOOL_CFLAGS) $< $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a -o $@
 
-build/state_run: tools/oracle/state_run.c build/libimhotep_core.a
-	$(CC) $(TOOL_CFLAGS) $< build/libimhotep_core.a -o $@
+$(BUILD)/state_run: tools/oracle/state_run.c $(BUILD)/libimhotep_core.a
+	$(CC) $(TOOL_CFLAGS) $< $(BUILD)/libimhotep_core.a -o $@
 
-build/state_load: tools/oracle/state_load.c $(PLATFORM_SRC) build/libimhotep_core.a
-	$(CC) $(TOOL_CFLAGS) $< $(PLATFORM_SRC) build/libimhotep_core.a -o $@
+$(BUILD)/state_load: tools/oracle/state_load.c $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a
+	$(CC) $(TOOL_CFLAGS) $< $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a -o $@
 
-build/state_save: tools/oracle/state_save.c build/libimhotep_core.a
-	$(CC) $(TOOL_CFLAGS) $< build/libimhotep_core.a -o $@
+$(BUILD)/state_save: tools/oracle/state_save.c $(BUILD)/libimhotep_core.a
+	$(CC) $(TOOL_CFLAGS) $< $(BUILD)/libimhotep_core.a -o $@
 
-build/state_tick: tools/oracle/state_tick.c build/libimhotep_core.a
-	$(CC) $(TOOL_CFLAGS) $< build/libimhotep_core.a -o $@
+$(BUILD)/state_replay: tools/oracle/state_replay.c $(BUILD)/libimhotep_core.a
+	$(CC) $(TOOL_CFLAGS) $< $(BUILD)/libimhotep_core.a -o $@
 
-tools: build/terrain_dump build/save_dump build/state_run build/state_load build/state_save build/state_tick ## Build the C tools used by tools/extract (terrain_dump, save_dump)
+tools: $(BUILD)/terrain_dump $(BUILD)/save_dump $(BUILD)/state_run $(BUILD)/state_load $(BUILD)/state_save $(BUILD)/state_replay ## Build the C tools used by tools/extract (terrain_dump, save_dump)
 
-core: build/libimhotep_core.a ## Build core/ (static library)
+core: $(BUILD)/libimhotep_core.a ## Build core/ (static library)
 
 unit: core ## Unit tests (none yet; builds core/)
 	@echo "unit: core/ builds; no unit tests yet"
 
-differential: build/terrain_check build/save_check build/desirability_check ## Differential tests against data produced by the original game
-	@if [ -d "$(IMHOTEP_GAME_DIR)/Maps" ]; then ./build/terrain_check && ./build/terrain_check --campaign && ./build/save_check && ./build/desirability_check; \
+differential: $(BUILD)/terrain_check $(BUILD)/save_check $(BUILD)/desirability_check ## Differential tests against data produced by the original game
+	@if [ -d "$(IMHOTEP_GAME_DIR)/Maps" ]; then ./$(BUILD)/terrain_check && ./$(BUILD)/terrain_check --campaign && ./$(BUILD)/save_check && ./$(BUILD)/desirability_check; \
 	else echo "differential: skipped ($(IMHOTEP_GAME_DIR) not found)"; fi
 	@if [ -x local/venv/bin/python ] && [ -d "$(IMHOTEP_GAME_DIR)/Maps" ]; then $(MAKE) -s oracle-check; \
 	else echo "oracle checks: skipped (make oracle-env)"; fi
 
-oracle-check: build/save_dump build/desirability_check build/state_run build/state_load build/state_save build/state_tick ## Differential tests against the original run by the oracle (needs make oracle-env)
+oracle-check: $(BUILD)/save_dump $(BUILD)/desirability_check $(BUILD)/state_run $(BUILD)/state_load $(BUILD)/state_save $(BUILD)/state_replay ## Differential tests against the original run by the oracle (needs make oracle-env)
 	local/venv/bin/python tests/differential/oracle_load_check.py --pak | tail -1
 	local/venv/bin/python tests/differential/oracle_load_check.py | tail -1
 	local/venv/bin/python tests/differential/oracle_function_check.py | tail -1
@@ -119,7 +120,7 @@ oracle-env: ## Python venv in local/venv with Unicorn and Capstone (tools/oracle
 	python3 -m venv local/venv
 	local/venv/bin/pip install -q unicorn==2.1.4 capstone
 
-corpus: build/save_dump ## Reference save corpus: player saves advanced 12 months by the original, headless (tools/oracle/corpus.py)
+corpus: $(BUILD)/save_dump ## Reference save corpus: player saves advanced 12 months by the original, headless (tools/oracle/corpus.py)
 	find local/saves/downloaded -name '*.sav' -print0 | xargs -0 -n 1 -P 8 local/venv/bin/python tools/oracle/corpus.py --months 12
 
 test: check-files provenance unit differential ## All checks

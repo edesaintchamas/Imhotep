@@ -34,6 +34,9 @@
 #define STATE_HEAP_BASE 0x60000000u
 #define STATE_HEAP_LIMIT 0x08000000u
 
+struct sim_env;      /* core/sim/call.h */
+struct sim_platform; /* core/sim/platform.h */
+
 typedef struct {
     uint8_t *mem;       /* STATE_SIZE bytes; mem[a - STATE_BASE] is the byte at address a */
     uint8_t *heap;      /* heap_cap bytes; heap[a - STATE_HEAP_BASE] */
@@ -42,6 +45,13 @@ typedef struct {
     uint32_t *blocks;   /* (offset, size) of every allocation, in address order */
     uint32_t nblocks, blocks_cap;
     uint32_t unported;  /* first original function reached that is not ported yet (0: none) */
+    const struct sim_env *env; /* who handles calls to unported functions (tests); not copied */
+    const struct sim_platform *platform; /* video and sound requests (NULL: none); not copied */
+    struct {
+        uint32_t address, size;
+        const uint8_t *data;
+    } external[4]; /* read-only game data outside the segments (state_map_external); not copied */
+    int nexternal;
 } game_state;
 
 /* A ported function reached a branch that calls an original function not ported yet: recorded
@@ -59,6 +69,12 @@ void state_load_section(game_state *st, uint32_t address, const uint8_t *data, s
 /* Pointer to the byte at `address`, or NULL when [address, address + len) is outside the data
  * segments and the allocated heap. Code that follows a pointer stored by the game uses this. */
 uint8_t *state_ptr(const game_state *st, uint32_t address, uint32_t len);
+
+/* Make `size` bytes of game data that the original keeps outside its segments (the text file
+ * Pharaoh_Text.eng from byte 0x1F5C, at the address the state's pointer 0x00E36C70 holds) readable
+ * through state_ptr, read-only (writes through P8/P16/P32 there are not allowed). data must stay
+ * valid. Returns 0, or -1 when the table is full. */
+int state_map_external(game_state *st, uint32_t address, const uint8_t *data, uint32_t size);
 
 /* new / malloc: n zeroed bytes in the heap arena; returns their address, or 0 when the arena is
  * full or out of memory (the original's allocation failures). */

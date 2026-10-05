@@ -22,12 +22,25 @@ struct sim_env {
     void *ctx;
 };
 
-/* @bin the original function at `address`: call its port (or the environment's replacement).
- * Call the original function at `address` (its port, or the environment). Returns its eax. */
+/* @bin the original function at `address`, called with its stack arguments and `this`:
+ * call its port (or the environment). Returns its eax.
+ * env NULL: the state's own environment (st->env). */
 int32_t sim_call(game_state *st, const sim_env *env, uint32_t address, const int32_t *args, int nargs,
                  uint32_t this_ptr);
 
 #define SIM_CALL0(st, env, a) sim_call(st, env, a, NULL, 0, 0)
 #define SIM_CALLT(st, env, a, t) sim_call(st, env, a, NULL, 0, t)
+
+/* A port calls an original function that is not ported yet (or is reached through a pointer, such
+ * as the figure action table): GAME_CALL(st, address, args...) for cdecl / stdcall,
+ * GAME_CALLT(st, this, address, args...) for thiscall. Ported functions call each other directly. */
+#define GAME_CALL0(st, a) sim_call(st, NULL, a, NULL, 0, 0)
+#define GAME_CALL(st, a, ...) \
+    sim_call(st, NULL, a, (const int32_t[]){__VA_ARGS__}, \
+             (int) (sizeof((const int32_t[]){__VA_ARGS__}) / sizeof(int32_t)), 0)
+#define GAME_CALLT0(st, t, a) sim_call(st, NULL, a, NULL, 0, t)
+#define GAME_CALLT(st, t, a, ...) \
+    sim_call(st, NULL, a, (const int32_t[]){__VA_ARGS__}, \
+             (int) (sizeof((const int32_t[]){__VA_ARGS__}) / sizeof(int32_t)), t)
 
 #endif

@@ -10,9 +10,14 @@ boots in the emulator, loads the save with its own loader, and optionally runs N
 whole game state (Pharaoh.exe's data segments, core/state/state.h) is then taken as the input of
 both sides:
   - the original functions run in the emulator, in order;
-  - their ports run on a copy of the same bytes (build/state_run, core/state/ported.c).
+  - their ports run on a copy of the same bytes (build/state_replay, core/state/ported.c); the
+    original functions they call that are not ported yet are recorded in the original's run and
+    replayed on the port's side (tools/oracle/replay.py).
 --fill overwrites a region of the input first (e.g. an output grid, so that a recomputation is
 seen in full). Every byte of the two results is compared; differences are named after docs/formats/save.md.
+--replay A,B replays these ported functions too; --actions A,B runs only these figure actions
+(table 0x005DC28C) natively, the other ported actions are replayed (to check one's own ports while
+others are being written).
 Exit status: 0 when every result is equal, 1 otherwise, 2 on setup error.
 """
 import glob
@@ -25,55 +30,110 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from game import Game  # noqa: E402
 import diff  # noqa: E402
 import excluded  # noqa: E402
+from replay import DeepRecorder, external_maps, ported_table  # noqa: E402
 
 ROOT = diff.ROOT
 STATE_BASE, STATE_END = 0x0056F000, 0x01267AA8  # core/state/state.h
 GAME_TICK = 0x004D7090
 
 
+THIS = {}  # address -> `this` given on the command line (ADDR@THIS:ARGS)
+
+
 def parse_call(text):
-    addr, _, args = text.partition(':')
-    return int(addr, 16), [int(a, 0) & 0xFFFFFFFF for a in args.split(',') if a]
+    """ADDR[@THIS][:ARG,...] -> (address, [args]); THIS is kept in THIS[address]"""
+    head, _, args = text.partition(':')
+    addr, _, this = head.partition('@')
+    a = int(addr, 16)
+    if this:
+        THIS[a] = int(this, 16)
+    return a, [int(x, 0) & 0xFFFFFFFF for x in args.split(',') if x]
+
+
+CACHE = os.path.join(ROOT, 'local', 'oracle', 'cache')
 
 
 def oracle_state(save, ticks):
+    """The original game with SAVE loaded and advanced `ticks` ticks. Advanced states are cached
+    (local/oracle/cache): a later run loads the save, then the cached state over it."""
     g = Game()
     g.boot()
-    if g.load_save(open(save, 'rb').read()) != 0:
+    data = open(save, 'rb').read()
+    if g.load_save(data) != 0:
         raise RuntimeError('the game could not load %s' % save)
+    if ticks <= 0:
+        return g
+    import hashlib
+    key = '%s_%d.state' % (hashlib.sha1(data).hexdigest()[:16], ticks)
+    path = os.path.join(CACHE, key)
+    if os.path.exists(path):
+        g.load_state(open(path, 'rb').read())
+        return g
     for _ in range(ticks):
         g.call(GAME_TICK)
+    os.makedirs(CACHE, exist_ok=True)
+    tmp = path + '.%d' % os.getpid()
+    open(tmp, 'wb').write(g.state_bytes())
+    os.replace(tmp, path)
     return g
 
 
 def ported():
     """{address: (nargs, return mask, name)} from build/state_run --list."""
-    r = subprocess.run([os.path.join(ROOT, 'build', 'state_run'), '--list'], capture_output=True, text=True, check=True)
+    r = subprocess.run([os.path.join(ROOT, os.environ.get('IMHOTEP_BUILD', 'build'), 'state_run'), '--list'], capture_output=True, text=True, check=True)
     out = {}
     for line in r.stdout.splitlines():
-        a, n, bits, this, name = line.split()
+        a, n, bits, this, _, name = line.split(None, 5)
         out[int(a, 16)] = (int(n), (1 << int(bits)) - 1, name, int(this, 16))
     return out
 
 
+FORCED_REPLAY = set()  # ported functions replayed anyway (--replay, --actions)
+ACTION_TABLE, ACTION_TYPES = 0x005DC28C, 110
+
+
+def action_functions():
+    """the figure action functions (table 0x005DC28C)"""
+    from disasm import image
+    import struct
+    base, mem = image()
+    return {struct.unpack_from('<I', mem, ACTION_TABLE - base + 4 * i)[0] for i in range(ACTION_TYPES)}
+
+
+def recorder(g):
+    """The deep recorder of g (tools/oracle/replay.py), created once per game."""
+    if not hasattr(g, 'deep_recorder'):
+        table = ported_table()
+        g.deep_recorder = DeepRecorder(g, {a for a, t in table.items() if not t[4]} - FORCED_REPLAY)
+    return g.deep_recorder
+
+
 def compare(g, calls, tmp, limit=12):
-    """Run calls in the oracle and the port from g's current state; returns the differences."""
+    """Run calls in the oracle and the port from g's current state; returns the differences.
+    Unported functions the originals call are recorded and replayed on the port's side."""
     table = ported()
     RET_MASK = [table[a][1] if a in table else 0 for a, _ in calls]
+    rec = recorder(g)
+    rec.take()
     pre = g.state_bytes()
     returns_o = []
     for addr, args in calls:
-        this = table[addr][3] if addr in table and table[addr][3] else None
-        returns_o.append(g.call(addr, *args, ecx=this))
+        this = THIS.get(addr) or (table[addr][3] if addr in table and table[addr][3] else None)
+        returns_o.append(rec.call(addr, args, this))
+    replay = rec.take()
     post_o = g.state_bytes()
-    src, dst = os.path.join(tmp, 'pre.state'), os.path.join(tmp, 'post.state')
+    src, rpl, dst = (os.path.join(tmp, n) for n in ('pre.state', 'replay', 'post.state'))
     open(src, 'wb').write(pre)
-    spec = ['%08X' % a + (':' + ','.join(str(x) for x in args) if args else '') for a, args in calls]
-    r = subprocess.run([os.path.join(ROOT, 'build', 'state_run'), src, dst] + spec, capture_output=True, text=True)
+    open(rpl, 'wb').write(replay)
+    extra = ['--replay', ','.join('%X' % a for a in sorted(FORCED_REPLAY))] if FORCED_REPLAY else []
+    extra += external_maps(g, tmp)
+    r = subprocess.run([os.path.join(ROOT, os.environ.get('IMHOTEP_BUILD', 'build'), 'state_replay'), src, rpl, dst] + extra,
+                       capture_output=True, text=True)
     if r.returncode != 0:
-        raise RuntimeError('state_run exit %d: %s' % (r.returncode, r.stderr.strip()))
+        raise RuntimeError('state_replay exit %d: %s %s' % (r.returncode, r.stdout.strip()[-1500:], r.stderr.strip()))
     post_p = open(dst, 'rb').read()
-    returns_p = [int(x) & 0xFFFFFFFF for x in r.stdout.split()]
+    returns_p = [int(l.split()[1]) & 0xFFFFFFFF for l in r.stdout.splitlines() if l.startswith('return ')]
+    compare.replayed = sum(1 for l in r.stdout.splitlines() if l.startswith('replay '))
     written = sum(n for _, n in diff.state_file_diff(pre, post_o))
     bad_returns = [(calls[i], returns_o[i], returns_p[i]) for i in range(len(calls))
                    if (returns_o[i] & RET_MASK[i]) != (returns_p[i] & RET_MASK[i])]
@@ -89,6 +149,15 @@ def main():
     if '--ticks' in argv:
         k = argv.index('--ticks')
         ticks = int(argv[k + 1])
+        del argv[k:k + 2]
+    if '--replay' in argv:
+        k = argv.index('--replay')
+        FORCED_REPLAY.update(int(a, 16) for a in argv[k + 1].split(','))
+        del argv[k:k + 2]
+    if '--actions' in argv:  # only these figure actions run natively; the other ported ones replay
+        k = argv.index('--actions')
+        keep = {int(a, 16) for a in argv[k + 1].split(',')}
+        FORCED_REPLAY.update((action_functions() & set(ported_table())) - keep - {0x0051F780})  # the empty function
         del argv[k:k + 2]
     fills = []
     while '--fill' in argv:

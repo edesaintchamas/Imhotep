@@ -45,7 +45,7 @@ def check(g, path, tmp):
     g.call(LOADER, fd)
     g.call(0x005647EB, fd)
     img = os.path.join(tmp, 'ours.img')
-    r = subprocess.run([os.path.join(ROOT, 'build', 'save_dump'), path, '--rand', str(seed), '--image', img],
+    r = subprocess.run([os.path.join(ROOT, os.environ.get('IMHOTEP_BUILD', 'build'), 'save_dump'), path, '--rand', str(seed), '--image', img],
                        capture_output=True, text=True)
     if r.returncode != 0:
         print('  %s: save_dump failed: %s' % (path, r.stderr.strip()))
@@ -70,7 +70,7 @@ def pak_records(tmp):
     out = []
     for n in range(100):
         path = os.path.join(tmp, 'record%d.sav' % n)
-        r = subprocess.run([os.path.join(ROOT, 'build', 'save_dump'), '--pak', str(n), '--stored', '--raw', path],
+        r = subprocess.run([os.path.join(ROOT, os.environ.get('IMHOTEP_BUILD', 'build'), 'save_dump'), '--pak', str(n), '--stored', '--raw', path],
                            capture_output=True, text=True)
         if r.returncode == 0:
             out.append(path)

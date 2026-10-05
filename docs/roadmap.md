@@ -79,25 +79,53 @@ and messages. Porting goes bottom-up, leaf functions first, each checked against
 ## Phase 4: simulation subsystems
 
 Each item: decompile, port with `@bin`, function-harness test on corpus states, then lockstep.
-Order follows dependencies (shared helpers before their users).
+Method and conventions: docs/porting.md.
 
-- [ ] 4.1 Shared infrastructure: building / figure constructors and deletion (`0x0046A400`,
+- [x] 4.0 Porting infrastructure:
+      - deep replay (`tools/oracle/replay.py`, `build/state_replay`): inside any original call,
+        every outermost call to an unported function is recorded with its changes and replayed
+        into the port, so a function is checked as soon as it is ported, top-down or bottom-up;
+        the harness and the lockstep both use it;
+      - `frontier.py` (what a call still replays), `coverage.py` (functions the tick runs, indirect
+        calls included);
+      - per-module port tables with a hashed index;
+      - the Ghidra export completed with the functions reached only through pointer tables
+        (`tools/ghidra/CreateTableFunctions.py`: 490 functions, among them 101 of the 102 figure
+        action functions of table 0x005DC28C).
+
+- [x] 4.1 Shared infrastructure: building / figure constructors and deletion (`0x0046A400`,
       `0x004B4800`), map helpers, road network and connectivity, terrain updates (`0x00475CC0`,
       `0x004776F0`), the CRT `rand` and x87 arithmetic where the game uses them (integer-exact
       reproduction of 53-bit rounding; no floating point in `core/`).
-- [ ] 4.2 Daily city passes from the dispatcher: house population and capacity (`0x00458440`),
+- [x] 4.2 Daily city passes from the dispatcher: house population and capacity (`0x00458440`),
       industry counts (`0x004677C0`, `0x00468170`), storage (`0x0045AA30`, `0x0045AAA0`),
       labour (`0x00462180`), fire and collapse risk (`0x00468B70`), desirability (done),
       religion / health / entertainment coverage, house evolution (`0x00454190`).
-- [ ] 4.3 Figures: action dispatch, movement, routing / path finding, each figure type
+- [x] 4.3 Figures: action dispatch, movement, routing / path finding, each figure type
       (walkers, cart pushers, traders, animals, ...). The largest part.
-- [ ] 4.4 Production and the Nile: floods (`0x004BE770`), farms, industries, storage yards,
+- [x] 4.4 Production and the Nile: floods (`0x004BE770`), farms, industries, storage yards,
       granaries, bazaars, water.
-- [ ] 4.5 Month and year: finances (taxes, wages, tribute), trade and prices, ratings, kingdom
+- [x] 4.5 Month and year: finances (taxes, wages, tribute), trade and prices, ratings, kingdom
       requests and events, invasions, scenario win / loss, autosave arming.
-- [ ] 4.6 Monuments (pyramids, mastabas, Cleopatra monuments) and their work gangs.
-- [ ] 4.7 Military: companies, formations, battles, enemies.
-- [ ] 4.8 Done when: lockstep runs 12 months on the whole corpus with no difference.
+- [x] 4.6 Monuments (pyramids, mastabas, Cleopatra monuments) and their work gangs.
+- [x] 4.7 Military: companies, formations, battles, enemies.
+- [x] 4.8 Done when: lockstep runs 12 months on the whole corpus with no difference.
+
+      Result (2026-10-05): 1,240 functions ported (docs/provenance/ported.md). `lockstep.py
+      --ticks 9792 --chained --report` on the 8 corpus cities (the 7 downloaded saves and
+      pak00 m00): 9,792 ticks each, 0 with differences, the ports write 100 % of the changed
+      bytes. Still recorded as units, by design: the platform requests (video 0x00538E30,
+      sounds 0x0053B4A0 / 0x0053B090; core/sim/platform.h) and two partial ports whose
+      unported paths the game never takes (0x0051CAE0 outside the angles the game passes,
+      0x00496640's endless-loop path). `make test` passes; provenance 100 % confirmed.
+
+      Carried over (not reached by the tick on the corpus, or file input):
+      - 0x0053DFF0, the `.sg3` reader under the ported graphics loader 0x0053DD90: it writes the
+        group records of the state (docs/formats/graphics.md §11), so its port needs the file
+        bytes from the platform (like the text file, `state_map_external`) and 0x004CEB60 as a
+        platform request. The tick reloads slots only on some maps (0x00401800).
+      - 0x00470990 (building placement): phase 5.
+      - 0x00422A90, 0x0053D850, 0x004BD740 (floodplain objects at load): load path.
 
 ## Phase 5: player commands
 

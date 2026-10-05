@@ -37,7 +37,7 @@ def main():
             open(state, 'wb').write(g.state_bytes())
             theirs = g.save('check.sav')
             ours_path = os.path.join(tmp, 'ours.sav')
-            r = subprocess.run([os.path.join(ROOT, 'build', 'state_save'), state, ours_path], capture_output=True, text=True)
+            r = subprocess.run([os.path.join(ROOT, os.environ.get('IMHOTEP_BUILD', 'build'), 'state_save'), state, ours_path], capture_output=True, text=True)
             if r.returncode != 0:
                 print('  %s: state_save failed: %s' % (path, r.stderr.strip()))
                 return 2

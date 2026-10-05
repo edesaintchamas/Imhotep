@@ -14,6 +14,9 @@ int state_create(game_state *st)
     st->blocks = NULL;
     st->nblocks = st->blocks_cap = 0;
     st->unported = 0;
+    st->env = NULL;
+    st->platform = NULL;
+    st->nexternal = 0;
     return st->mem ? 0 : -1;
 }
 
@@ -181,7 +184,25 @@ uint8_t *state_ptr(const game_state *st, uint32_t address, uint32_t len)
     if (address >= STATE_HEAP_BASE && (uint64_t) address + len <= (uint64_t) STATE_HEAP_BASE + st->heap_used) {
         return st->heap + (address - STATE_HEAP_BASE);
     }
+    for (int i = 0; i < st->nexternal; i++) {
+        uint32_t a = st->external[i].address;
+        if (address >= a && (uint64_t) address + len <= (uint64_t) a + st->external[i].size) {
+            return (uint8_t *) (uintptr_t) (st->external[i].data + (address - a));
+        }
+    }
     return NULL;
+}
+
+int state_map_external(game_state *st, uint32_t address, const uint8_t *data, uint32_t size)
+{
+    if (st->nexternal >= (int) (sizeof(st->external) / sizeof(st->external[0]))) {
+        return -1;
+    }
+    st->external[st->nexternal].address = address;
+    st->external[st->nexternal].size = size;
+    st->external[st->nexternal].data = data;
+    st->nexternal++;
+    return 0;
 }
 
 void state_unported(game_state *st, uint32_t address)

@@ -16,9 +16,23 @@
 int main(int argc, char **argv)
 {
     if (argc == 2 && strcmp(argv[1], "--list") == 0) {
-        for (int i = 0; i < ported_function_count; i++) {
-            printf("0x%08X %d %d 0x%08X %s\n", ported_functions[i].address, ported_functions[i].nargs,
-                   ported_functions[i].ret_bits, ported_functions[i].this_ptr, ported_functions[i].name);
+        int dup = 0;
+        for (int i = 0; i < ported_count(); i++) {
+            for (int k = 0; k < i; k++) {
+                if (ported_at(k)->address == ported_at(i)->address) {
+                    fprintf(stderr, "0x%08X is registered twice (%s, %s)\n", ported_at(i)->address,
+                            ported_at(k)->name, ported_at(i)->name);
+                    dup = 1;
+                }
+            }
+        }
+        if (dup) {
+            return 1;
+        }
+        for (int i = 0; i < ported_count(); i++) {
+            const ported_function *p = ported_at(i);
+            printf("0x%08X %d %d 0x%08X %d %s\n", p->address, p->nargs, p->ret_bits, p->this_ptr, p->partial,
+                   p->name);
         }
         return 0;
     }
@@ -36,7 +50,7 @@ int main(int argc, char **argv)
     for (int i = 3; i < argc; i++) {
         uint32_t addr = (uint32_t) strtoul(argv[i], NULL, 16);
         const ported_function *p = ported_find(addr);
-        if (!p) {
+        if (!p || !p->run) {
             fprintf(stderr, "0x%08X is not ported\n", addr);
             return 3;
         }

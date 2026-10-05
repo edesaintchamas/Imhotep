@@ -54,7 +54,7 @@ def read_image(path):
     if not path.endswith('.img'):
         with tempfile.TemporaryDirectory() as tmp:
             img = os.path.join(tmp, 'state.img')
-            r = subprocess.run([os.path.join(ROOT, 'build', 'save_dump'), path, '--stored', '--image', img],
+            r = subprocess.run([os.path.join(ROOT, os.environ.get('IMHOTEP_BUILD', 'build'), 'save_dump'), path, '--stored', '--image', img],
                                capture_output=True, text=True)
             if r.returncode != 0:
                 raise RuntimeError('save_dump %s: %s' % (path, r.stderr.strip()))

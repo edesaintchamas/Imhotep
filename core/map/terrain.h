@@ -45,12 +45,6 @@ void terrain_rebuild(terrain_state *t);
 /* @bin 0x004BE160 (this = 0x00D05720) floodplain build over a rectangle, then 0x004DEA50. */
 void terrain_floodplain_build(terrain_state *t, int32_t x0, int32_t y0, int32_t x1, int32_t y1);
 
-/* @bin 0x004F3D70 state of a pyramid tile (-1: no pyramid there) */
-int32_t pyramid_tile_state(game_state *g, int32_t offset);
-
-/* One sub-pass of 0x004DEA50 by its original address, over the whole map (tests); -1 if unknown. */
-int terrain_subpass(terrain_state *t, uint32_t address);
-
 /* @bin 0x004D52A0: zero the image grid, rebuild, floodplain build (which rebuilds again). */
 void terrain_scenario_start(terrain_state *t);
 

@@ -67,3 +67,22 @@ On Actium (no floodplain, no type-0x88 buildings) the simulation bytes that stil
 load come from: the terrain image rebuild `0x004DEA50` (in `core/map/terrain.c` on its own
 structures; to be moved onto the state), `0x00457AF0`, `0x00485F70` (building images and grid),
 and a dozen small steps (`0x00468860`, `0x00404350`, `0x00443330`, `0x004677C0`, ...).
+
+## Game data outside the segments, and presentation
+
+- **Text.** The original loads `Pharaoh_Text.eng` at start-up (`0x004CEC40`): its 0x1C-byte header
+  (0x00E36B78) and its 8,000-byte group index (0x00E34C38) are in the data segments; the strings
+  (the file from byte 0x1F5C) are in a heap block whose address is at 0x00E36C70. Some simulation
+  functions read strings (`0x00469D50` reads the mission's flag string, text group 0x133, through
+  `0x004CC110`). Core reads them through `state_map_external`: the platform (and the test tools,
+  `tools/oracle/replay.py` `external_maps`) maps the strings read-only at the address the state's
+  pointer holds, so pointers the game stores into the text (the cursor 0x00E20768) compare equal.
+- **Video and sound** (`core/sim/platform.h`). The tick calls the video player `0x00538E30` and the
+  sound functions `0x0053B4A0`, `0x0053B090`. They write only presentation state: the video
+  player's globals (0x00F53FF4 – 0x00F5405B, 0x00F54114), the sound request block (0x00E92DA8,
+  20 bytes), file path and log buffers (0x00E36BF8, 0x00E38AEC, 0x00E39108). Static references
+  show no other readers than the video module, the sound driver and the file and log functions.
+  Core turns the calls into requests to an optional platform layer and writes none of these; the
+  comparisons exclude them (`tools/oracle/excluded.py`). The video returns 0 (not played) without a
+  platform, as the original does without a video device (under the oracle it then retries every
+  tick).
