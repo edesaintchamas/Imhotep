@@ -10,16 +10,22 @@
  * must be the next recorded call (same address) and gets the recorded changes and eax. Partial
  * ports run natively and fall back to their record when they reach unported code. --replay
  * replays these ported functions instead (the recorder must have recorded them). --map makes a file
- * readable at ADDR (state_map_external: game data the original keeps outside its segments).
+ * readable at ADDR (state_map_external: game data the original keeps outside its segments);
+ * --map files=DIR serves the game's file reads (platform_file_read, core/sim/platform.h) and the
+ * pixel loads (platform_pixels_load: the handle is the original's buffer address, from the record)
+ * from the game directory DIR, names matched case-insensitively as tools/oracle/game.py does.
  * Prints "return N" per top-level call, "replay ADDR" / "native ADDR" / "fallback ADDR" per
  * recorded call, "args ADDR i original port" when a replayed call's arguments differ.
  * Exit: 0, 4 on a call sequence mismatch, 5 when a replayed call wrote its caller's stack (an
  * output buffer: it needs a port), 2 on errors. */
+#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 
 #include "sim/call.h"
+#include "sim/platform.h"
 #include "state/ported.h"
 #include "state/state.h"
 
@@ -61,6 +67,10 @@ static int forced_replay(const replay_ctx *c, uint32_t a)
     }
     return 0;
 }
+
+/* the record of the platform request being run (pixels_load takes the original's buffer address
+ * from it: the one value the request writes, slot +0xCC24 of 0x0053F660) */
+static const record *platform_record;
 
 static void apply(game_state *st, const record *r)
 {
@@ -113,7 +123,9 @@ static int external(const sim_env *env, game_state *st, uint32_t address, const 
             a[i] = args[i];
         }
         a[PORT_THIS_ARG] = (int32_t) this_ptr;
+        platform_record = r;
         *result = p->run(st, a);
+        platform_record = NULL;
         printf("platform 0x%08X\n", address);
         return 1;
     }
@@ -149,6 +161,65 @@ static int external(const sim_env *env, game_state *st, uint32_t address, const 
     apply(st, r);
     *result = r->eax;
     return 1;
+}
+
+static uint32_t pixels_load(void *ctx, const char *path, uint32_t skip, uint32_t size)
+{
+    (void) ctx;
+    (void) path;
+    (void) skip;
+    (void) size;
+    if (platform_record && platform_record->nranges > 0 && rd32(platform_record->ranges + 4) == 4) {
+        return rd32(platform_record->ranges + 8);
+    }
+    return 0;
+}
+
+static int32_t file_read(void *ctx, const char *path, uint32_t offset, uint8_t *buf, uint32_t size)
+{
+    /* DIR + the game's relative path, '\\' as '/', each part matched case-insensitively */
+    char full[4096];
+    snprintf(full, sizeof(full), "%s", (const char *) ctx);
+    for (const char *p = path; *p;) {
+        char part[256];
+        size_t n = 0;
+        while (*p && *p != '\\' && *p != '/' && n + 1 < sizeof(part)) {
+            part[n++] = *p++;
+        }
+        part[n] = 0;
+        while (*p == '\\' || *p == '/') {
+            p++;
+        }
+        DIR *d = opendir(full);
+        const char *match = part;
+        struct dirent *e;
+        while (d && (e = readdir(d)) != NULL) {
+            if (strcasecmp(e->d_name, part) == 0) {
+                match = e->d_name;
+                break;
+            }
+        }
+        size_t l = strlen(full);
+        snprintf(full + l, sizeof(full) - l, "/%s", match);
+        if (d) {
+            closedir(d);
+        }
+    }
+    FILE *f = fopen(full, "rb");
+    if (!f) {
+        return -1;
+    }
+    fseek(f, 0, SEEK_END);
+    long n = ftell(f);
+    if (buf && size && (long) offset < n) {
+        fseek(f, (long) offset, SEEK_SET);
+        size_t want = (size_t) (n - (long) offset) < size ? (size_t) (n - (long) offset) : size;
+        if (fread(buf, 1, want, f) != want) {
+            n = -1;
+        }
+    }
+    fclose(f);
+    return (int32_t) n;
 }
 
 static int parse(replay_ctx *c, const uint8_t *data, size_t len)
@@ -223,8 +294,16 @@ int main(int argc, char **argv)
         return 2;
     }
     fclose(f);
+    sim_platform files = {0};
     for (int i = 4; i < argc && nmaps; i++) {
         if (strcmp(argv[i], "--map") != 0 || i + 1 >= argc) {
+            continue;
+        }
+        if (strncmp(argv[i + 1], "files=", 6) == 0) {
+            files.ctx = argv[i + 1] + 6;
+            files.file_read = file_read;
+            files.pixels_load = pixels_load;
+            st.platform = &files;
             continue;
         }
         char *colon = strchr(argv[i + 1], ':');

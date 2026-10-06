@@ -324,7 +324,33 @@ PORTED_TABLE(last_terrain_ports)
 PORTED_TABLE(last_figure_ports)
 PORTED_TABLE(last_city_ports)
 PORTED_TABLE(last_graphics_ports)
+PORTED_TABLE(sg3_ports)
+PORTED_TABLE(clear_ports)
+PORTED_TABLE(undo_ports)
+PORTED_TABLE(ui_ports)
+PORTED_TABLE(ui_checks_ports)
+PORTED_TABLE(ui_path_ports)
+PORTED_TABLE(ui_lift_ports)
+PORTED_TABLE(place_ports)
+PORTED_TABLE(place_notice_ports)
+PORTED_TABLE(place_drag_ports)
+PORTED_TABLE(place_ent_ports)
+PORTED_TABLE(place_misc_ports)
+PORTED_TABLE(military_ports)
 
+PORTED_TABLE(orders_ports)
+PORTED_TABLE(orders_storage_ports)
+PORTED_TABLE(orders_messages_ports)
+PORTED_TABLE(trade_ports)
+PORTED_TABLE(kingdom_ports)
+PORTED_TABLE(cheats_ports)
+PORTED_TABLE(rotate_ports)
+PORTED_TABLE(map_add_ports)
+PORTED_TABLE(map_add_monument_ports)
+PORTED_TABLE(menu_ports)
+PORTED_TABLE(hover_ports)
+PORTED_TABLE(advisor_ports)
+PORTED_TABLE(models_ports)
 static const struct {
     const ported_function *table;
     const int *count;
@@ -427,6 +453,32 @@ static const struct {
     {last_figure_ports, &last_figure_ports_count},
     {last_city_ports, &last_city_ports_count},
     {last_graphics_ports, &last_graphics_ports_count},
+    {sg3_ports, &sg3_ports_count},
+    {clear_ports, &clear_ports_count},
+    {undo_ports, &undo_ports_count},
+    {ui_ports, &ui_ports_count},
+    {ui_checks_ports, &ui_checks_ports_count},
+    {ui_path_ports, &ui_path_ports_count},
+    {ui_lift_ports, &ui_lift_ports_count},
+    {place_ports, &place_ports_count},
+    {place_notice_ports, &place_notice_ports_count},
+    {place_drag_ports, &place_drag_ports_count},
+    {place_ent_ports, &place_ent_ports_count},
+    {place_misc_ports, &place_misc_ports_count},
+    {military_ports, &military_ports_count},
+    {orders_ports, &orders_ports_count},
+    {orders_storage_ports, &orders_storage_ports_count},
+    {orders_messages_ports, &orders_messages_ports_count},
+    {trade_ports, &trade_ports_count},
+    {kingdom_ports, &kingdom_ports_count},
+    {cheats_ports, &cheats_ports_count},
+    {rotate_ports, &rotate_ports_count},
+    {map_add_ports, &map_add_ports_count},
+    {map_add_monument_ports, &map_add_monument_ports_count},
+    {menu_ports, &menu_ports_count},
+    {hover_ports, &hover_ports_count},
+    {advisor_ports, &advisor_ports_count},
+    {models_ports, &models_ports_count},
 };
 #define NMODULES ((int) (sizeof(ported_modules) / sizeof(ported_modules[0])))
 

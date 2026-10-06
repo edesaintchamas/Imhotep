@@ -120,21 +120,55 @@ Method and conventions: docs/porting.md.
       0x00496640's endless-loop path). `make test` passes; provenance 100 % confirmed.
 
       Carried over (not reached by the tick on the corpus, or file input):
-      - 0x0053DFF0, the `.sg3` reader under the ported graphics loader 0x0053DD90: it writes the
-        group records of the state (docs/formats/graphics.md §11), so its port needs the file
-        bytes from the platform (like the text file, `state_map_external`) and 0x004CEB60 as a
-        platform request. The tick reloads slots only on some maps (0x00401800).
-      - 0x00470990 (building placement): phase 5.
-      - 0x00422A90, 0x0053D850, 0x004BD740 (floodplain objects at load): load path.
+      - 0x0053DFF0, the `.sg3` reader under the graphics loader: done in phase 5 (core/graphics/sg3.c;
+        the file bytes come from the platform, the `.555` pixel load is a platform request).
+      - 0x00470990 (building placement): done in phase 5.
+      - 0x00422A90, 0x004BD740 (floodplain objects at load): load path (0x0053D850 done in phase 5).
 
 ## Phase 5: player commands
 
-- [ ] 5.1 Construction and clearing (every building type, roads, walls, canals, plazas, gardens),
-      with their checks and costs.
-- [ ] 5.2 Settings and orders: taxes, wages, trade routes, storage orders, military orders,
-      gifts and requests.
-- [ ] 5.3 Check: each command applied by the original's own command functions in the oracle and by
-      the port, on corpus states, then lockstep.
+Commands are ported at the UI-handler boundary (docs/porting.md, docs/commands.md): the original's
+own handler functions, whose inputs are globals of the state that the platform sets.
+
+- [x] 5.0 Command infrastructure:
+      - docs/commands.md: the command layer of the original (input dispatch, button tables,
+        confirmation popup, every command with its handler, inputs and effects);
+      - `lockstep.py --commands`: commands applied between ticks, in both games, states compared
+        after each command and each following tick; `tests/differential/oracle_command_check.py`;
+      - platform requests for what only drives the screen or reads files (core/sim/platform.h):
+        modal message box, file reads, pixel loads, video close.
+- [x] 5.1 Construction and clearing: choosing a building (menus, availability), mouse down / drag
+      / up for every building type and drag type, the place step `0x004728A0` with its checks,
+      costs and notices, the map add `0x00470990`, clearing with its confirmations, undo, the
+      hover rules the place step reads (ferry reach and validity, bridge measure:
+      core/command/hover.c, `oracle_hover_check.py`), the graphics slot loads monuments trigger
+      (`0x0053DFF0`).
+- [x] 5.2 Settings and orders: taxes, wages, salary, donations, gifts, labour priorities,
+      festivals, trade routes and goods, storage orders, kingdom requests, grave goods, messages
+      and event replies, military and ship orders, troop dispatch, advisors, difficulty (model
+      reloads), options, map rotation, cheats.
+- [x] 5.3 Check: each command applied by the original's own handlers in the oracle and by the
+      port, on corpus states, then lockstep.
+
+      Result (2026-10-06): 1,620 functions ported in all (docs/provenance/ported.md).
+      `oracle_command_check.py`: 203 / 203 command sequences equal to the original, after each
+      command and each following tick (chained), on the downloaded saves and pak00 m00;
+      `oracle_hover_check.py`: 175 / 175 hovered tiles; `oracle_function_check.py`: 423 / 423.
+      Nothing under the commands is replayed but platform requests. The 12-month lockstep still
+      runs on the 8 corpus cities with 0 differences; `make test` passes; provenance 100 %.
+
+      Carried over:
+      - the ferry landing validity `0x00BCA314` is a core function (`ferry_hover`, checked
+        against the original's draw), but the command tests set it as an input: the platform
+        will call it for the hovered tile (phase 7); the link of a second ferry landing
+        (`0x00486A30` returning 1) is ported from the disassembly but no corpus geometry reaches it;
+      - the map editor's commands (`0x00478440`, `0x004795E0`, editor flag `0x00605A3C`): out of
+        scope;
+      - cheats 4–6 (mock attacks, frame counter) cannot be typed in the shipped game (gate byte
+        `0x00578C68`, docs/commands.md §7); cheat 5 reads stack leftovers and stays unported;
+      - the window id and video request around a playing video (`0x00539170`, `0x00539220`):
+        the platform's video handling (phase 7);
+      - the main menu `0x004CB6A0` (reached from "stop governing"): phase 6.
 
 ## Phase 6: new games
 

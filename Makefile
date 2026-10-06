@@ -113,6 +113,8 @@ oracle-check: $(BUILD)/save_dump $(BUILD)/desirability_check $(BUILD)/state_run 
 	local/venv/bin/python tests/differential/oracle_load_check.py | tail -1
 	local/venv/bin/python tests/differential/oracle_function_check.py | tail -1
 	local/venv/bin/python tests/differential/oracle_save_check.py | tail -1
+	local/venv/bin/python tests/differential/oracle_hover_check.py | tail -1
+	local/venv/bin/python tests/differential/oracle_command_check.py -j 8 | tail -1
 	local/venv/bin/python tools/oracle/lockstep.py local/saves/downloaded/1592/39-Actium-Dec30c.sav --ticks 51 --chained | tail -1
 	local/venv/bin/python tools/oracle/lockstep.py local/saves/downloaded/1564/CaesarAlan-Iken.sav --ticks 51 --chained | tail -1
 

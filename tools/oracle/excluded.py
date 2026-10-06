@@ -30,6 +30,11 @@ RANGES = [
     (0x00E39108, 0x20, 'log buffer (0x004CFF20)'),
     (0x00E92BF8 + 0x1D8, 0xC, 'sound stream handles (0x0055F449; read by the sound functions 0x0055Fxxx)'),
     (0x00E36C90, 0x100, 'log line buffer (0x004CE6E0)'),
+    # the message box's button table 0x005F8910 (3 x 0x1C): the drawing 0x00538940 writes the
+    # rectangles (first 8 bytes of each); read only by the button handling of the box
+    (0x005F8910, 8, 'message box button rectangle (0x00538940)'),
+    (0x005F892C, 8, 'message box button rectangle (0x00538940)'),
+    (0x005F8948, 8, 'message box button rectangle (0x00538940)'),
 ]
 
 ROUTES = 0x00776FB0      # chunk 143: 50 records of 0x144 bytes

@@ -51,13 +51,30 @@ Set up once: `make oracle-env` (a venv in `local/venv` with Unicorn and Capstone
   screen text `0x004CF7B0` (GDI text only) and the screen fade / present `0x004D0280` (writes
   only its fade counters `0x00E92E08`, `0x00E38DC8`).
 - **Game log** `0x004CE6E0`: collected in `Game.log`.
+- **Modal message box** `0x00538CD0` (trade refusals and the like): its Win32 message loop waits for
+  the player. `game.py` `_message_box` presses the first button at once and makes the same state
+  writes as the port's `platform_message_box` (button count, pressed flag and index, redraw flag;
+  docs/commands.md §7). Other `MessageBoxA` calls still stop the run: they report errors.
+- **Game files on the port's side.** The ports read game data files through the platform
+  (`platform_file_read`, e.g. the `.sg3` indexes of `0x0053DFF0`). `replay.py` `external_maps`
+  passes `--map files=DIR` (the game directory, `IMHOTEP_GAME_DIR`) to `build/state_replay`, which
+  then serves those reads from DIR, names matched case-insensitively and `\` read as `/`, as
+  `game.py` resolves the original's file opens: both sides read the same bytes. The `.555` pixel
+  load `0x0053F660` is a platform request (`platform_pixels_load`): on the port's side
+  `state_replay` returns the original's buffer address from the recorded call, so the stored
+  handle (slot `+0xCC24` and the image entries derived from it) is the original's.
+- **Player commands.** `lockstep.py --commands FILE` applies commands between ticks: each line
+  names a UI handler (docs/commands.md) and the globals to set first (hovered tile, menu item,
+  button parameters, confirmation answer); the handler runs in the original and in the port from
+  the same state. `tests/differential/oracle_command_check.py` holds the command tests.
 
 ## Known differences from a real run
 
 - `timeGetTime` returns 0. The game reseeds the CRT `rand` with it at some points (`0x004EAEC0`,
   `0x004EB000`), so a real run is not reproducible there and the oracle's run is; the port takes
   the seed as an input.
-- No player input: the oracle advances a city exactly as an idle player would.
+- No player input except the scripted commands: without them the oracle advances a city exactly as
+  an idle player would.
 
 ## Checks so far
 

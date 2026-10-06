@@ -332,10 +332,13 @@ per family. The rest (entries, names, pixel pointers and sizes) is read only by 
 `0x0053DD90` itself (tick read set, `tools/oracle/readset.py`: no read of these pages in a month on
 three cities, except the font entries' widths, `0x004CBF30`, whose slot is never reloaded).
 
-So `0x0053DFF0` is not presentation only. Its port needs the `.sg3` bytes (header, group table,
-bitmap records, entries) supplied to core (`state_map_external`, as the text file), and leaves the
-`.555` read (`0x0053F660`, graphics heap) to the platform. `0x0053DD90` (the slot bookkeeping) is
-ported (`core/graphics/last_graphics.c`) and calls `0x0053DFF0` as an unported function.
+So `0x0053DFF0` is not presentation only. It is ported (`core/graphics/sg3.c`): the `.sg3` bytes
+come from the platform (`platform_file_read`, docs/formats/state.md "Game data outside the
+segments"); the group list nodes (`0x00540540`, `0x005404B0`, `0x00540570`, `0x00540590`, graphics
+heap) are kept on the host; the `.555` read `0x0053F660` stays an original call (it allocates the
+pixel buffer in the graphics heap and writes only its address, +0xCC24); the 565 conversions
+`0x004CDF20` / `0x004CDEB0` act on that buffer only. `0x0053DD90` (the slot bookkeeping) is ported
+in `core/graphics/last_graphics.c`.
 
 **For `render_map.py`:** terrain groups are not in these slots, so terrain renders are correct with
 the startup files. Enemy, monument and temple images would need the selections above.

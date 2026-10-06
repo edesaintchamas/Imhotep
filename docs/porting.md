@@ -14,6 +14,16 @@ CLAUDE.md first (sources of truth, provenance tags, determinism rules).
   dispatcher first, its callees replayed) or bottom-up (helpers first). Small shared helpers first
   saves work: every later port calls them directly.
 
+Player commands (phase 5) are ported at the UI-handler boundary: the handler functions
+themselves (`0x00405200` choose a building, `0x00405C20` / `0x00405D90` / `0x00405E90` mouse down,
+drag, up, the button callbacks; docs/commands.md §4). Their inputs are globals of the state that
+the platform will set (hovered tile, menu item, callback parameters, confirmation answer). Values
+the original computes while drawing the hovered tile and the place step reads (ferry reach and
+validity, bridge measure) are core "hover" functions (core/command/hover.c) that the platform calls
+for the hovered tile, as the original's draw does. Effects that only drive the screen, sound or
+files are platform requests (core/sim/platform.h: videos, sounds, message boxes, file reads, pixel
+loads).
+
 ## 2. Sources for one function
 
 - `local/ghidra-export/functions/0x........json`: Ghidra's decompiled C, callers, callees. A

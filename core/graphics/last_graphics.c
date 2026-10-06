@@ -93,9 +93,10 @@ done:
     {
         /* @bin 0x0053DEB3 the slot's group count against the expected running totals (+0x30F548
          * by slot, minus the previous slot's); a difference shows the "Graphic file out of sync"
-         * message box (MFC strings, MessageBoxA): interface only, and never with the game's own
-         * files (every file a slot is loaded with has the same group table as the slot's first
-         * file, docs/formats/graphics.md §11) */
+         * message box (MFC strings, MessageBoxA): interface only. Not reached in play: every file
+         * a slot is loaded with has the same group table as the slot's first file
+         * (docs/formats/graphics.md §11); only a monument the scenario does not offer, forced into
+         * a slot (obelisk5x5a, 1 group, into a slot of 66), reaches it */
         int32_t expected = S32(st, self + 0x30F548u + 4u * (uint32_t) slot) - 1;
         int32_t before = slot > 0 ? S32(st, self + 0x30F544u + 4u * (uint32_t) slot) - 1 : 0;
         if (expected - before != S32(st, rec + 0xCC30)) {

@@ -77,6 +77,17 @@ and a dozen small steps (`0x00468860`, `0x00404350`, `0x00443330`, `0x004677C0`,
   `0x004CC110`). Core reads them through `state_map_external`: the platform (and the test tools,
   `tools/oracle/replay.py` `external_maps`) maps the strings read-only at the address the state's
   pointer holds, so pointers the game stores into the text (the cursor 0x00E20768) compare equal.
+- **Image files** (`.sg3` indexes). The slot loader `0x0053DFF0` reads `data\<name>.sg3` whole into its
+  own stack frame (`0x004CEB60`) and writes simulation state from it (group records, entries, names:
+  docs/formats/graphics.md §11). Core asks the platform for the file by the path the game builds
+  (`platform_file_read`, `core/sim/platform.h`: path, offset, buffer; returns the file's size or -1),
+  so the real game reads it from its own directory and core holds no file data. The test tools pass
+  the game directory (`state_replay --map files=DIR`, `external_maps`), the same files the oracle's
+  file hooks read (`tools/oracle/game.py`). `0x004CEB60` is registered with that request for callers
+  whose buffer is in the state; callers with a stack buffer call `platform_file_read` themselves.
+  The `.555` pixels (`0x0053F660`), the group list nodes and the 565 conversions live in the graphics
+  heap, outside the state; only the buffer's address (slot +0xCC24) and the pointers derived from it
+  (entries +0, 0x00D3B5F4) are state, read by drawing only.
 - **Video and sound** (`core/sim/platform.h`). The tick calls the video player `0x00538E30` and the
   sound functions `0x0053B4A0`, `0x0053B090`. They write only presentation state: the video
   player's globals (0x00F53FF4 – 0x00F5405B, 0x00F54114), the sound request block (0x00E92DA8,

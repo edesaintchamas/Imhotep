@@ -146,6 +146,22 @@ Result (phase 4 done): `--ticks 9792 --chained --report` on the 8 corpus cities,
 differences on each; only platform requests and two partial ports are still recorded
 (docs/roadmap.md 4.8).
 
+## oracle_command_check (core/command/, player commands)
+
+`tests/differential/oracle_command_check.py [NAME ...] [-j JOBS]` applies scripted player
+commands (docs/commands.md) between the ticks of a chained lockstep run (`lockstep.py
+--commands`): each command's UI handler runs in the original and in the port from the same state,
+the states must be equal after it and after each following tick. Helpers write the UI sequences
+(`build()`: choose a building, mouse down, drag, mouse up). The entries cover every building type,
+drags, clearing with its confirmations, undo, every setting and order of the advisors and
+building windows, kingdom requests, military and ship orders, cheats, map rotation and difficulty
+changes, with refusals, on the downloaded saves and pak00 m00.
+
+## oracle_hover_check (core/command/hover.c)
+
+The hover functions (ferry reach, bridge measure, ferry landing validity) against what the
+original's city-view drawing computes for the hovered tile, on shore tiles of several saves.
+
 ## Reference save corpus (`local/saves/generated/`)
 
 `make corpus` advances each downloaded save 12 months with the original's tick function in the

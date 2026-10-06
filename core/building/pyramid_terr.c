@@ -47,14 +47,14 @@ void copy_bytes(game_state *st, uint32_t src, uint32_t dst, int32_t n)
 
 int32_t building_keep_removed(game_state *st, int32_t id)
 {
-    /* @bin 0x00485100 0x00BC95F0 counts the used entries of the 269 (0x00BA746C .. 0x00BA7886);
+    /* @bin 0x00485100 0x00BC95F0 counts the used entries of the 525 (0x00BA746C .. 0x00BA7886, cmp at 0x00485132);
      * a free entry takes id and a copy of its record (0x0040F860); none free: 0x00BC9694 := 0 */
     if (id <= 0) {
         return 0;
     }
     int32_t used = 0, found = 0;
     S32(st, 0x00BC95F0u) = 0;
-    for (uint32_t i = 0; i < 269; i++) {
+    for (uint32_t i = 0; i < 525; i++) {
         int16_t w = S16(st, 0x00BA746Cu + 2u * i);
         used += w != 0;
         found |= w == id;
@@ -63,7 +63,7 @@ int32_t building_keep_removed(game_state *st, int32_t id)
     if (found) {
         return 0;
     }
-    for (uint32_t i = 0; i < 269; i++) {
+    for (uint32_t i = 0; i < 525; i++) {
         if (S16(st, 0x00BA746Cu + 2u * i) == 0) {
             S32(st, 0x00BC95F0u) = used + 1;
             copy_bytes(st, B(id), 0x00BA7888u + 0x108u * i, 0x108);

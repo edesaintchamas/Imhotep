@@ -146,4 +146,8 @@ When unsure, stop and write down the question in `docs/unverified.md` rather tha
 - [x] Simulation ported (phase 4): 1,240 functions of the tick, 12 months in lockstep with the
       original on the whole corpus with no difference (docs/roadmap.md 4.8)
 
-Next steps: `docs/roadmap.md` (phase 5: player commands; carried-over items under 4.8).
+- [x] Player commands (phase 5): the original's UI handlers ported (construction, clearing, undo,
+      settings and orders, military), 203 command sequences equal to the original in lockstep
+      (docs/commands.md, docs/roadmap.md 5.3)
+
+Next steps: `docs/roadmap.md` (phase 6: new games; carried-over items under 4.8 and 5.3).

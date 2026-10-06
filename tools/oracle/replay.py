@@ -170,14 +170,16 @@ TEXT_SKIP = 0x1F5C
 
 
 def external_maps(g, tmp):
-    """state_replay --map options for the game data the original keeps outside its segments"""
+    """state_replay --map options for the game data the original keeps outside its segments, and
+    the game directory for the files the ports read through the platform (platform_file_read:
+    the .sg3 indexes of 0x0053DFF0), the same files the original reads here (game.py)"""
+    from game import GAME_DIR
     base = g.u32(TEXT_POINTER)
     path = os.path.join(tmp, 'text.bin')
     if base and not os.path.exists(path):
-        from game import GAME_DIR
         size = os.path.getsize(os.path.join(GAME_DIR, 'Pharaoh_Text.eng')) - TEXT_SKIP
         open(path, 'wb').write(g.read(base, size))
-    return ['--map', '%08X:%s' % (base, path)] if base else []
+    return (['--map', '%08X:%s' % (base, path)] if base else []) + ['--map', 'files=' + GAME_DIR]
 
 
 def eax_signed(v):

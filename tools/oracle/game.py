@@ -50,6 +50,14 @@ SIM_ALLOCATORS = {
     0x00451A70: 'static constructor: arrays of 20 for shipwright queues 0-4 (kept by a load that fits)',
 }
 
+# The modal message box 0x00538CD0 runs a Win32 message loop until the player presses a button.
+# Headless, the first button is pressed at once: the same writes as core/sim/platform.c
+# platform_message_box (button count, pressed flag and index, redraw flag; the window id is
+# restored), without the drawing (0x00538C80) and the button rectangles (excluded.py).
+MESSAGE_BOX = 0x00538CD0
+MESSAGE_BOX_RESULTS = {0: 1, 1: 1, 2: 3, 3: 6, 4: 6, 5: 4}  # first button's code (0x00538940)
+MESSAGE_BOX_BUTTONS = {0: 1, 1: 2, 2: 3, 3: 3, 4: 2, 5: 2}
+
 SPARE_SCREEN = 0x00E92E1C  # 100,000-byte work buffer the model loader reads into
 
 
@@ -78,6 +86,7 @@ class Game(Pharaoh):
         self.hook(FILE_SIZE, lambda e: len(self._file(e.cstr(e.arg(0))) or b''))
         for addr in PRESENTATION:
             self.hook(addr, lambda e: 0)
+        self.hook(MESSAGE_BOX, self._message_box)
         self.set_u32(SPARE_SCREEN, self.alloc(100000))
 
     # --- files ---------------------------------------------------------------------------------
@@ -171,6 +180,15 @@ class Game(Pharaoh):
             if HEAP_BASE <= old < self.heap and old in self.sizes:
                 e.write(old, bytes(self.sizes[old]))
         return p
+
+    def _message_box(self, e):
+        k = e.arg(2) & 0xF
+        k = k if k <= 5 else 0
+        self.write(0x00F535C8, struct.pack('<i', MESSAGE_BOX_BUTTONS[k]))
+        self.write(0x00F535C0, b'\x01')
+        self.write(0x00F535C4, struct.pack('<i', 0))
+        self.write(0x00E38DCA, b'\x01')
+        return MESSAGE_BOX_RESULTS[k]
 
     def _log(self, e):
         self.log.append(e.cstr(e.arg(0)) if e.arg(0) else '')
