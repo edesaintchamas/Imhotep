@@ -77,6 +77,10 @@ and a dozen small steps (`0x00468860`, `0x00404350`, `0x00443330`, `0x004677C0`,
   `0x004CC110`). Core reads them through `state_map_external`: the platform (and the test tools,
   `tools/oracle/replay.py` `external_maps`) maps the strings read-only at the address the state's
   pointer holds, so pointers the game stores into the text (the cursor 0x00E20768) compare equal.
+  The same loader reads `Pharaoh_MM.eng`, the messages: its 0x13898-byte header and index at
+  0x00E209A0 in the segments, the rest (from byte 0x13898) in a heap block at 0x00E36C74, mapped
+  the same way. The message posts read video names from it (`0x004E0CF0` checks that the
+  message's video file exists, `0x004CE3F0`).
 - **Image files** (`.sg3` indexes). The slot loader `0x0053DFF0` reads `data\<name>.sg3` whole into its
   own stack frame (`0x004CEB60`) and writes simulation state from it (group records, entries, names:
   docs/formats/graphics.md §11). Core asks the platform for the file by the path the game builds

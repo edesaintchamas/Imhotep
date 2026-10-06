@@ -38,6 +38,7 @@ typedef struct {
     save_load_env *env;
     save_load_stats *st;
     game_state *gs; /* state mode: every access goes to the game state */
+    const int32_t *restore[4]; /* state mode: dword 0 of the restored tables before the load */
 } ctx;
 
 static uint8_t *mem(ctx *c, uint32_t addr, uint32_t n)
@@ -111,7 +112,7 @@ static int32_t isqrt64(uint64_t d)
     return (int32_t) r;
 }
 
-static void route_rebuild(ctx *c, uint32_t r)
+static int route_rebuild(ctx *c, uint32_t r)
 {
     int n = rd8(c, r + 0x141), step = rd8(c, r);
     int32_t est = 0;
@@ -142,7 +143,7 @@ static void route_rebuild(ctx *c, uint32_t r)
     int32_t count = 0;
     for (int i = 1; i < n; i++) {
         if (rd32(c, r + 0x134) < count) {
-            return; /* @bin 0x004D4720 more points than estimated: give up, endpoints unchanged */
+            return 0; /* @bin 0x004D4720 more points than estimated: give up, endpoints unchanged */
         }
         int32_t dx = rd16(c, r + 8 + 6 * i) - rd16(c, r + 8 + 6 * (i - 1));
         int32_t dy = rd16(c, r + 10 + 6 * i) - rd16(c, r + 10 + 6 * (i - 1));
@@ -162,7 +163,7 @@ static void route_rebuild(ctx *c, uint32_t r)
     wr32(c, r + 0x134, count);
     if (!c->env->image_size) {
         c->st->endpoints_kept++; /* without image sizes the stored endpoints stay */
-        return;
+        return 1;
     }
     wr32(c, r + 0x13C, -1); /* both endpoints := 0xFFFF */
     /* @bin 0x004D4720 endpoints: the last empire object (in use, kind 1) whose image rectangle
@@ -187,6 +188,7 @@ static void route_rebuild(ctx *c, uint32_t r)
             wr16(c, r + 0x13E, j);
         }
     }
+    return 1; /* @bin 0x004D4720 al := 1 */
 }
 
 static void routes(ctx *c)
@@ -798,8 +800,31 @@ static void load_steps(ctx *cp);
 
 int save_file_load_state(game_state *gs, save_file *s, save_load_env *env, save_load_stats *stats)
 {
-    ctx c = {s, env, stats, gs};
+    ctx c = {s, env, stats, gs, {NULL, NULL, NULL, NULL}};
     memset(stats, 0, sizeof(*stats));
+    /* @bin 0x004D41E0 before the chunks: 0x00E945C0 := 0xA0, 0x00E945C4 := 0; dword 0 of every record
+     * of the tables 0x005E45B0 (10), 0x005E46A0 (18), 0x005C1140 (22), 0x005C1350 (13) kept on the
+     * stack (restored after the load: step 7); the empire routes' point buffers released (+0x04 :=
+     * 0, +0x138 := 0) */
+    static const uint32_t T[4] = {0x005E45B0u, 0x005E46A0u, 0x005C1140u, 0x005C1350u};
+    static const int N[4] = {10, 18, 22, 13};
+    int32_t keep[4][22];
+    S32(gs, 0x00E945C0u) = 0xA0;
+    S32(gs, 0x00E945C4u) = 0;
+    for (int t = 0; t < 4; t++) {
+        for (int k = 0; k < N[t]; k++) {
+            keep[t][k] = S32(gs, T[t] + 24u * (uint32_t) k);
+        }
+        c.restore[t] = keep[t];
+    }
+    for (uint32_t k = 0; k < 50; k++) {
+        uint32_t r = A_ROUTES + 324u * k;
+        if (U32(gs, r + 4) != 0) {
+            state_dealloc(gs, U32(gs, r + 4)); /* @bin 0x00561A2B */
+            U32(gs, r + 4) = 0;
+            U32(gs, r + 0x138) = 0;
+        }
+    }
     for (uint32_t i = 0; i < s->read_chunks && i < SAVE_SCHEMA_RECORDS; i++) {
         const save_schema_record *t = &save_schema[i];
         size_t n = (size_t) t->elem_size * t->elem_count;
@@ -811,6 +836,18 @@ int save_file_load_state(game_state *gs, save_file *s, save_load_env *env, save_
             state_load_section(gs, t->address, s->chunk[i], n);
         }
     }
+    if (s->read_chunks < SAVE_SCHEMA_RECORDS) {
+        /* @bin 0x004D3C40 also writes the carry-over records around chunk 175: at 0x006FDCBC,
+         * 0x006FDCC8, 0x006FDCD4, 0x006FDCE4 (chunk 175 +4), 0x006FDCF0, 0x006FDCFC: byte := 0xFF,
+         * dword +4 := -1, byte +8 := 0; chunk 175 +0 := 0 */
+        static const uint32_t E[6] = {0x006FDCBCu, 0x006FDCC8u, 0x006FDCD4u, 0x006FDCE4u, 0x006FDCF0u, 0x006FDCFCu};
+        for (int k = 0; k < 6; k++) {
+            U8(gs, E[k]) = 0xFF;
+            S32(gs, E[k] + 4) = -1;
+            U8(gs, E[k] + 8) = 0;
+        }
+        S32(gs, 0x006FDCE0u) = 0;
+    }
     /* @bin 0x00562348 the CRT rand() state is the game's variable 0x00604950 */
     env->crt_rand = U32(gs, 0x00604950u);
     load_steps(&c);
@@ -818,9 +855,17 @@ int save_file_load_state(game_state *gs, save_file *s, save_load_env *env, save_
     return 0;
 }
 
+int save_route_rebuild_state(game_state *gs, uint32_t route, save_load_env *env)
+{
+    save_load_stats stats;
+    memset(&stats, 0, sizeof(stats));
+    ctx c = {NULL, env, &stats, gs, {NULL, NULL, NULL, NULL}};
+    return route_rebuild(&c, route);
+}
+
 int save_file_load(save_file *s, save_load_env *env, save_load_stats *stats)
 {
-    ctx c = {s, env, stats, NULL};
+    ctx c = {s, env, stats, NULL, {NULL, NULL, NULL, NULL}};
     memset(stats, 0, sizeof(*stats));
     if (s->read_chunks < SAVE_SCHEMA_RECORDS) {
         /* chunks 176-180 are not in the file and keep what the game held: here the exe's initial
@@ -876,7 +921,7 @@ static void load_steps(ctx *cp)
     };
     for (int t = 0; t < 4; t++) {
         for (int k = 0; k < R[t].count; k++) {
-            wr32(&c, save_schema[R[t].chunk].address + 24u * (uint32_t) k, R[t].v[k]);
+            wr32(&c, save_schema[R[t].chunk].address + 24u * (uint32_t) k, c.restore[t] ? c.restore[t][k] : R[t].v[k]);
         }
     }
     /* @bin 0x004D41E0 0x00EAAF5C := (0x0078D7A4 > 0): not saved (dropped in chunk mode) */

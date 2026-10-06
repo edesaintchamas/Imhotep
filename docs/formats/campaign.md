@@ -12,8 +12,9 @@ Analysis dated 2026-10-04. Readers: `core/io/campaign_pak.c`, `core/io/map_file.
 | 240 | … | 53 records back to back (slots 0–52; 53–59 empty) | confirmed: each record's chunk walk ends exactly at the next record's offset (or end of file) |
 
 Loading a record (**@bin 0x004D58B0**): seek to its offset, load it with the saved-game loader
-`0x004D41E0`, then `0x004BD360` and **`0x004D52A0`, the scenario start used for custom maps** —
-so a campaign mission's terrain images are rebuilt exactly like a map's.
+`0x004D41E0`, then `0x004BD360` and **`0x004D52A0`** (the scenario start). Custom maps do not run
+`0x004D52A0`: they go through the reset `0x00540A10` and the setup `0x004DE820`, which rebuild the
+terrain images with the same function (`0x004DEA50`) (run on all 33 bundled maps, docs/newgame.md).
 
 ## 2. Record
 

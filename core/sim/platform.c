@@ -4,6 +4,7 @@
 
 #include <string.h>
 
+#include "sim/call.h"
 #include "state/ported.h"
 
 #define SOUND_ON 0x00F55B88u    /* sound system initialised */
@@ -145,6 +146,68 @@ int32_t platform_file_read(game_state *st, const char *path, uint32_t offset, ui
     return p->file_read(p->ctx, path, offset, buf, size);
 }
 
+int32_t platform_file_list(game_state *st, const char *pattern, int32_t index, char *name, uint32_t size)
+{
+    /* @bin 0x0041C927 FindFirstFileA (0x0056F058), 0x0041C9DA FindNextFileA (0x0056F05C), 0x0041C9ED
+     * FindClose (0x0056F128): the directory and its order are the platform's */
+    const sim_platform *p = st->platform;
+    if (!p || !p->file_list || !pattern || index < 0 || !name || size == 0) {
+        return -1;
+    }
+    int32_t n = p->file_list(p->ctx, pattern, index, name, size);
+    name[size - 1] = 0;
+    return n < 0 ? -1 : (int32_t) strlen(name);
+}
+
+int32_t platform_video_bink(game_state *st, uint32_t self, uint32_t name, int32_t x, int32_t y)
+{
+    (void) self; /* the player's object: the Bink handle (+0x10, closed first), the old window id */
+    /* @bin 0x00413594 with a sound driver ([0x012663AC]) the streams 0, 2, 1 are stopped (0x0055F561)
+     * and Bink gets the Miles sound system (BinkSetSoundSystem: the platform's) */
+    if (U32(st, 0x012663ACu) != 0) {
+        GAME_CALLT(st, 0x00E92BF8u, 0x0055F561u, 0);
+        GAME_CALLT(st, 0x00E92BF8u, 0x0055F561u, 2);
+        GAME_CALLT(st, 0x00E92BF8u, 0x0055F561u, 1);
+    }
+    /* @bin 0x004135DA the file: sprintf "%s", fopen "rb", else "%c:\\%s" with the CD drive 0x00E38E62;
+     * BinkOpen (0x0056F24C): the platform's. It fails without a video device: 0 */
+    const sim_platform *p = st->platform;
+    const char *s = cstring(st, name);
+    if (!p || !p->video_modal || !s || !p->video_modal(p->ctx, s, x, y)) {
+        return 0;
+    }
+    /* @bin 0x00413655 it played: the window id 0x4A (the video) during the modal loop 0x00413690, then
+     * @bin 0x00413420 the one before the call back (kept in the object), redraw */
+    U8(st, 0x00E38DCAu) = 1;
+    if (U32(st, 0x00E38E5Cu) != 0) {
+        /* @bin 0x00413833 with the option 0x00E38E5C the display mode is set back after the video
+         * (0x004D01E0, 0x004CFDC0, 0x00414BD0, 0x004D0220: surfaces, window, screen buffer, the
+         * platform's), then the view rows 0x004E2AB0, 0x005E06B0 := 0, the resolution check
+         * 0x00402DA0, redraw */
+        GAME_CALL0(st, 0x004E2AB0u);
+        U32(st, 0x005E06B0u) = 0;
+        GAME_CALL0(st, 0x00402DA0u);
+        U8(st, 0x00E38DCAu) = 1;
+    }
+    return 1;
+}
+
+static int32_t run_video_bink(game_state *st, const int32_t *a)
+{
+    return platform_video_bink(st, (uint32_t) a[PORT_THIS_ARG], (uint32_t) a[0], a[1], a[2]);
+}
+
+int32_t platform_file_write(game_state *st, const char *path, const uint8_t *data, uint32_t size)
+{
+    /* @bin 0x0041B8A0 fopen(path, "wb") (0x00561A0A), fwrite (0x00561F5F), fclose (0x00561994):
+     * the stream and the file are the platform's */
+    const sim_platform *p = st->platform;
+    if (!p || !p->file_write || !path) {
+        return -1;
+    }
+    return p->file_write(p->ctx, path, data, size);
+}
+
 int32_t platform_pixels_load(game_state *st, uint32_t name, uint32_t out, int32_t convert, int32_t size,
                              int32_t rle, int32_t offset, int32_t skip)
 {
@@ -227,6 +290,7 @@ static int32_t run_ui_sound(game_state *st, const int32_t *a)
 
 const ported_function platform_ports[] = {
     {0x00538E30u, "platform_video_play", 4, 32, 0, run_video, PORT_PLATFORM},
+    {0x00413580u, "platform_video_bink", 3, 8, 0, run_video_bink, PORT_PLATFORM},
     {0x00539170u, "platform_video_close", 0, 0, 0, run_video_close, PORT_PLATFORM},
     {0x0053B4A0u, "platform_figure_sound", 3, 0, 0, run_figure_sound, PORT_PLATFORM},
     {0x0053B090u, "platform_ui_sound", 1, 0, 0, run_ui_sound, PORT_PLATFORM},

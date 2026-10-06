@@ -1,42 +1,78 @@
-/* Imhotep - load a saved game into the game state (Pharaoh.exe 0x004D5100).
+/* Imhotep - load a saved game into the game state (Pharaoh.exe 0x004D5100), standalone.
  * Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0. */
 #include "state/load_game.h"
 
 #include <string.h>
 
-#include "state/post_load.h"
+#include "sim/call.h"
+#include "sim/platform.h"
+#include "state/loader.h"
+#include "state/ported.h"
 #include "state/pre_load.h"
-#include "state/scenario_start.h"
+
+/* game_env's file callback as the platform's file reads (core/sim/platform.h) */
+static int32_t env_file_read(void *ctx, const char *path, uint32_t offset, uint8_t *buf, uint32_t size)
+{
+    const game_env *env = ctx;
+    /* the game's paths use '\\' (e.g. "data\\Pyramid.sg3"); the callback takes '/' */
+    char name[260];
+    size_t k = 0;
+    for (; path[k] && k + 1 < sizeof(name); k++) {
+        name[k] = path[k] == '\\' ? '/' : path[k];
+    }
+    name[k] = 0;
+    size_t len;
+    const uint8_t *data = env->file ? env->file(env->file_ctx, name, &len) : NULL;
+    if (!data) {
+        return -1;
+    }
+    if (buf && size && offset < len) {
+        size_t n = len - offset < size ? len - offset : size;
+        memcpy(buf, data + offset, n);
+    }
+    return (int32_t) len;
+}
+
+/* Without a test environment, a call to an original function that has no port leaves the state as
+ * it is (the steps not ported yet; oracle_state_check.py lists what they write in the original). */
+static int skip_unported(const sim_env *env, game_state *st, uint32_t address, const int32_t *args, int nargs,
+                         uint32_t this_ptr, int32_t *result)
+{
+    (void) env;
+    (void) st;
+    (void) args;
+    (void) nargs;
+    (void) this_ptr;
+    const ported_function *p = ported_find(address);
+    if (p && p->run) {
+        return 0;
+    }
+    *result = 0;
+    return 1;
+}
 
 int game_load_save(game_state *st, const uint8_t *data, size_t len, const game_env *env, save_load_stats *stats)
 {
-    save_file s;
-    if (save_file_read(data, len, &s) != SAVE_OK) {
-        return -1;
+    const sim_platform *platform = st->platform;
+    const sim_env *call_env = st->env;
+    sim_platform files = {0};
+    sim_env skip = {skip_unported, NULL};
+    if (!platform) {
+        files.ctx = (void *) env;
+        files.file_read = env_file_read;
+        st->platform = &files;
     }
-    /* @bin 0x004D5100 before the loader: 0x004BD330 (floodplain settings, this = 0x00D38360),
-     * 0x0046FA40 (grids cleared), 0x004CE2D0 (working directory: nothing to do here) */
+    if (!call_env) {
+        st->env = &skip;
+    }
+    /* @bin 0x004D5100 before the file opens: 0x004BD330 (floodplain settings, this = 0x00D38360),
+     * 0x0046FA40 (grids cleared), 0x004CE2D0 (working directory), 0x00D3B1B8 := 0 (byte) */
     floodplain_settings_reset(st);
     pre_load_clear(st);
-    U32(st, 0x00D3B1B8u) = 0; /* @bin 0x004D5100 */
-    U32(st, 0x00F55B94u) = 0; /* @bin 0x004D5100 after 0x0055F561(2) (sound) */
-    save_load_env le = {0, (int32_t) S32(st, 0x005E4EF4u), env->image_size, env->image_ctx,
-                        S32(st, 0x0126517Cu)};
-    save_file_load_state(st, &s, &le, stats);
-    save_file_free(&s);
-    U32(st, 0x00D3B1B8u) = 1; /* @bin 0x004D5100 */
-    if (scenario_start(st, env) != 0) {
-        return -1;
-    }
-    /* @bin 0x004D5100 after scenario start: 0x0046B320, 0x0046F030, 0x0046A320 */
-    load_rebuild_storage_links(st);
-    load_rebuild_0x88_links(st);
-    load_rebuild_0x4a_links(st);
-    /* @bin 0x004D5100 strcpy(0x00EA184C, 0x00E38E74): the player name into chunk 30 +0x20 */
-    char *dst = (char *) state_ptr(st, 0x00EA184Cu, 32);
-    const char *src = (const char *) state_ptr(st, 0x00E38E74u, 32);
-    size_t n = strnlen(src, 31);
-    memcpy(dst, src, n);
-    dst[n] = 0;
-    return 0;
+    GAME_CALL0(st, 0x004CE2D0u);
+    U8(st, 0x00D3B1B8u) = 0;
+    int rc = loader_load_save_bytes(st, data, len, 0, env->image_size, env->image_ctx, stats);
+    st->platform = platform;
+    st->env = call_env;
+    return rc;
 }

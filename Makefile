@@ -14,6 +14,10 @@ GHIDRA_PROJ_DIR  := local/ghidra
 GHIDRA_EXPORT    := local/ghidra-export
 export IMHOTEP_GAME_DIR
 
+
+# a check piped through tail must still fail the build when it fails
+SHELL := /bin/bash
+.SHELLFLAGS := -o pipefail -c
 .PHONY: help verify fingerprint extract refs analyze provenance check-files core tools unit differential oracle-env oracle-check corpus test
 
 help:
@@ -113,6 +117,8 @@ oracle-check: $(BUILD)/save_dump $(BUILD)/desirability_check $(BUILD)/state_run 
 	local/venv/bin/python tests/differential/oracle_load_check.py | tail -1
 	local/venv/bin/python tests/differential/oracle_function_check.py | tail -1
 	local/venv/bin/python tests/differential/oracle_save_check.py | tail -1
+	local/venv/bin/python tests/differential/oracle_state_check.py -j 8 | tail -1
+	local/venv/bin/python tests/differential/oracle_newgame_check.py -j 8 | tail -1
 	local/venv/bin/python tests/differential/oracle_hover_check.py | tail -1
 	local/venv/bin/python tests/differential/oracle_command_check.py -j 8 | tail -1
 	local/venv/bin/python tools/oracle/lockstep.py local/saves/downloaded/1592/39-Actium-Dec30c.sav --ticks 51 --chained | tail -1

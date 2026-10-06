@@ -21,6 +21,13 @@ CRT_WRITE = 0x005664D5     # _write(fd, buf, n) -> n written
 CRT_CLOSE = 0x005647EB     # _close(fd)
 CRT_CHDIR = 0x0056B2DD     # _chdir(path) -> 0
 CRT_FILELENGTH = 0x0056B1B6  # _filelength(fd)
+CRT_FOPEN = 0x00561A0A     # fopen(name, mode) -> FILE * (campaign.txt 0x0041AE40, Pharaoh.inf, ...)
+CRT_FGETS = 0x00561E4D     # fgets(buf, n, FILE *)
+CRT_FCLOSE = 0x00561994    # fclose(FILE *)
+CRT_FWRITE = 0x00561F5F    # fwrite(buf, size, count, FILE *) (the campaign progress file 0x0041B8A0)
+CRT_FREAD = 0x00561CA1     # fread(buf, size, count, FILE *) (the campaign progress file 0x0041B680)
+CRT_FSEEK = 0x00561EA4     # fseek(FILE *, offset, whence) (0x0041B680, an older progress file)
+CRT_LSEEK = 0x005662E3     # _lseek(fd, offset, whence) -> new position (mission1.pak records, 0x004CE480)
 CRT_NEW = 0x00561A1D       # operator new(n)
 CRT_DELETE = 0x00561A2B    # operator delete(p)
 CRT_MALLOC = 0x00561B68    # malloc(n)
@@ -48,6 +55,8 @@ SIM_ALLOCATORS = {
     0x004D4720: 'empire route path (route rebuild at load)',
     0x004D0A40: 'type-0x4A queue records: their arrays (0x004F6700), restored at load',
     0x00451A70: 'static constructor: arrays of 20 for shipwright queues 0-4 (kept by a load that fits)',
+    0x0041C740: 'file list buffers (names, offsets): the scenario / mission list 0x00704C00 and the family list '
+                '0x00EADFA8, whose names choose the city to start (core/newgame/flow2.c)',
 }
 
 # The modal message box 0x00538CD0 runs a Win32 message loop until the player presses a button.
@@ -65,6 +74,11 @@ class Game(Pharaoh):
     def __init__(self, exe=None):
         super().__init__(exe)
         self.files = {}   # virtual files: lower-case name -> bytes
+        self.names = {}   # lower-case name -> the name as the game (or a test) wrote it, for listings
+        self.finds = {}   # FindFirstFileA handle -> [names, next index]
+        self.handlers['FindFirstFileA'] = (2, self._find_first)
+        self.handlers['FindNextFileA'] = (2, self._find_next)
+        self.handlers['FindClose'] = (1, lambda e, h: 1 if self.finds.pop(h, None) is not None else 0)
         self.fds = {}     # fd -> [data, position]
         self.log = []
         self.hook(CRT_OPEN, self._open)
@@ -72,6 +86,14 @@ class Game(Pharaoh):
         self.hook(CRT_WRITE, self._write)
         self.hook(CRT_CLOSE, lambda e: 0 if self.fds.pop(e.arg(0), None) is not None else -1)
         self.hook(CRT_CHDIR, lambda e: 0)
+        self.hook(CRT_LSEEK, self._lseek)
+        self.streams = {}  # FILE * -> [data, position]
+        self.hook(CRT_FOPEN, self._fopen)
+        self.hook(CRT_FGETS, self._fgets)
+        self.hook(CRT_FCLOSE, lambda e: 0 if self.streams.pop(e.arg(0), None) is not None else -1)
+        self.hook(CRT_FWRITE, self._fwrite)
+        self.hook(CRT_FREAD, self._fread)
+        self.hook(CRT_FSEEK, self._fseek)
         self.hook(CRT_FILELENGTH, lambda e: len(self.fds[e.arg(0)][0]) if e.arg(0) in self.fds else -1)
         self.hook(CRT_NEW, lambda e: e.alloc(e.arg(0), self._sim_caller()))
         self.hook(CRT_DELETE, self._free)
@@ -108,7 +130,7 @@ class Game(Pharaoh):
         name, flags = e.cstr(e.arg(0)), e.arg(1)
         if flags & 0x0300:  # _O_CREAT | _O_TRUNC: a new file, kept in self.files when closed
             data = bytearray()
-            self.files[name.replace('\\', '/').lower()] = data
+            self.add_file(name, data)
         else:
             data = self._file(name)
             if data is None:
@@ -144,6 +166,146 @@ class Game(Pharaoh):
             return 0
         e.write(e.arg(1), data[e.arg(2):])
         return 1
+
+    def _fopen(self, e):
+        """read streams and binary write streams (the CRT's stdio tables are set up by the
+        initialiser table, which is not run); a FILE * is a 32-byte block of the other heap, used
+        only as a key. A "wb" stream is a new file of self.files (lower-case name, '/')."""
+        mode = e.cstr(e.arg(1))
+        if mode == 'wb':
+            data = bytearray()
+            self.add_file(e.cstr(e.arg(0)), data)
+            fp = e.alloc(32)
+            self.streams[fp] = [data, 0]
+            return fp
+        if 'r' not in mode or '+' in mode:
+            return 0
+        data = self._file(e.cstr(e.arg(0)))
+        if data is None:
+            return 0
+        if 'b' not in mode:  # text mode: CR LF -> LF, ^Z ends the file
+            data = data.split(b'\x1a')[0].replace(b'\r\n', b'\n')
+        fp = e.alloc(32)
+        self.streams[fp] = [data, 0]
+        return fp
+
+    def _fgets(self, e):
+        f = self.streams.get(e.arg(2))
+        n = struct.unpack('<i', struct.pack('<I', e.arg(1)))[0]
+        if f is None or n < 1:
+            return 0
+        data, pos = f
+        if pos >= len(data):
+            return 0
+        end = data.find(b'\n', pos, pos + n - 1)
+        end = pos + n - 1 if end < 0 else end + 1
+        chunk = data[pos:min(end, len(data))]
+        e.write(e.arg(0), chunk + b'\0')
+        f[1] = pos + len(chunk)
+        return e.arg(0)
+
+    def _fwrite(self, e):
+        """fwrite on a write stream: the bytes appended; the number of whole items written"""
+        f = self.streams.get(e.arg(3))
+        if f is None or not isinstance(f[0], bytearray) or e.arg(1) == 0:
+            return 0
+        chunk = e.read(e.arg(0), e.arg(1) * e.arg(2))
+        f[0][f[1]:f[1] + len(chunk)] = chunk
+        f[1] += len(chunk)
+        return e.arg(2)
+
+    def _fread(self, e):
+        """fread on a read stream: the bytes up to the end of the file copied (a short file fills the
+        buffer as far as it goes); the number of whole items read"""
+        f = self.streams.get(e.arg(3))
+        size, count = e.arg(1), e.arg(2)
+        if f is None or size == 0 or count == 0:
+            return 0
+        data, pos = f
+        chunk = bytes(data[pos:pos + size * count])
+        e.write(e.arg(0), chunk)
+        f[1] = pos + len(chunk)
+        return len(chunk) // size
+
+    def _fseek(self, e):
+        f = self.streams.get(e.arg(0))
+        if f is None:
+            return -1
+        offset = struct.unpack('<i', struct.pack('<I', e.arg(1)))[0]
+        base = {0: 0, 1: f[1], 2: len(f[0])}.get(e.arg(2))
+        if base is None or base + offset < 0:
+            return -1
+        f[1] = base + offset
+        return 0
+
+    def add_file(self, name, data):
+        """a player file (a test's, or one the game creates): kept in self.files, its name as given"""
+        key = name.replace('\\', '/').lower()
+        self.files[key] = data
+        self.names[key] = name.replace('\\', '/')
+
+    # --- directory listings (FindFirstFileA / FindNextFileA / FindClose) ------------------------
+    # The game lists maps\*.map, Save\*.dat and save\<family>\*.sav (0x0041C8F0). The entries: the
+    # files of self.files in that directory (and the directories they imply), then those of the game
+    # directory, names compared case-insensitively; in the order of NTFS (by name, upper-cased: the
+    # order of Windows' listings on the GOG install's file system, assumed), as build/state_replay's
+    # platform_file_list lists them.
+    def listing(self, pattern):
+        import fnmatch
+        path = pattern.replace('\\', '/')
+        folder, _, mask = path.rpartition('/')
+        folder = folder.lower().strip('/')
+        found = {}
+        for key, data in self.files.items():
+            name = self.names.get(key, key)
+            parts = name.split('/')
+            for depth in range(len(parts)):
+                if '/'.join(parts[:depth]).lower() == folder:
+                    found.setdefault(parts[depth].lower(), parts[depth])
+        d = GAME_DIR
+        for part in [p for p in folder.split('/') if p]:
+            match = [f for f in os.listdir(d) if f.lower() == part] if os.path.isdir(d) else []
+            d = os.path.join(d, match[0] if match else part)
+        if os.path.isdir(d):
+            for f in os.listdir(d):
+                found.setdefault(f.lower(), f)
+        upper = mask.upper()
+        names = [n for n in found.values() if fnmatch.fnmatchcase(n.upper(), upper)]
+        return sorted(names, key=lambda n: n.encode('latin-1').upper())
+
+    def _find_data(self, p, name):
+        """WIN32_FIND_DATAA: attributes, times, size, reserved, cFileName[260], cAlternateFileName[14]"""
+        self.write(p, struct.pack('<I', 0x80) + bytes(0x28) + name.encode('latin-1')[:259] + b'\0')
+
+    def _find_first(self, e, pattern, data):
+        names = self.listing(e.cstr(pattern))
+        if not names:
+            return 0xFFFFFFFF
+        h = 0x100
+        while h in self.finds:
+            h += 1
+        self.finds[h] = [names, 1]
+        self._find_data(data, names[0])
+        return h
+
+    def _find_next(self, e, h, data):
+        f = self.finds.get(h)
+        if f is None or f[1] >= len(f[0]):
+            return 0
+        self._find_data(data, f[0][f[1]])
+        f[1] += 1
+        return 1
+
+    def _lseek(self, e):
+        f = self.fds.get(e.arg(0))
+        if f is None:
+            return -1
+        offset = struct.unpack('<i', struct.pack('<I', e.arg(1)))[0]
+        base = {0: 0, 1: f[1], 2: len(f[0])}.get(e.arg(2))
+        if base is None or base + offset < 0:
+            return -1
+        f[1] = base + offset
+        return f[1]
 
     def _sim_caller(self):
         """A function of SIM_ALLOCATORS is on the call stack of this new / malloc."""
@@ -208,7 +370,7 @@ class Game(Pharaoh):
         (0x004E6590, (), 0x006DE548), (0x005456A0, (), 0x006F9320), (0x00558B40, (), 0x006F5648),
         (0x00555DE0, (), 0x006DE9E0), (0x0054F3D0, (), 0x006E9188), (0x00541D50, (), None),
         (0x004DEE10, (), None), ('globals2', (), None), (0x0051E930, (), None), ('globals3', (), None),
-        (0x004CF8E0, (), None),
+        (0x004CF8E0, (), None), ('video', (), None),
     ]
 
     def boot(self, trace=False):
@@ -238,6 +400,11 @@ class Game(Pharaoh):
                 continue
             if addr == 'cd':  # 0x004268C0 looks for the CD drive; WinMain stores its letter
                 self.write(0x00E38E62, b'D')
+                continue
+            if addr == 'video':  # the Bink player's object, made by the DirectDraw set-up 0x004CF960
+                p = self.alloc(0x1C)
+                self.call(0x004133D0, self.u32(0x00E39140), ecx=p)
+                self.set_u32(0x006FDC54, p)
                 continue
             if True:
                 ptrs = []
@@ -287,6 +454,8 @@ class Game(Pharaoh):
         self.write(self.STATE_BASE, data[:n])
         used, = struct.unpack_from('<I', data, n)
         self.write(HEAP_BASE, data[n + 4:n + 4 + used])
+        if self.heap > HEAP_BASE + used:  # blocks allocated after this state: zero, as never used
+            self.write(HEAP_BASE + used, bytes(self.heap - HEAP_BASE - used))
         self.heap = HEAP_BASE + used
         count, = struct.unpack_from('<I', data, n + 4 + used)
         self.sizes = {p: s for p, s in self.sizes.items() if not HEAP_BASE <= p < HEAP_BASE + 0x08000000}

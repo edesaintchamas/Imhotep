@@ -1,4 +1,4 @@
-/* Imhotep - what the simulation asks of the platform: videos and sounds.
+/* Imhotep - what the simulation asks of the platform: videos, sounds, files.
  * Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0.
  *
  * The original's tick calls its video player and sound functions directly. They write only
@@ -41,10 +41,29 @@ typedef struct sim_platform {
     void (*video_close)(void *ctx);
     /* releases a handle from pixels_load */
     void (*pixels_free)(void *ctx, uint32_t handle);
+    /* a player file (the campaign progress Save\\<family>.dat, ...), by the path the game builds,
+     * created or replaced with these bytes; returns the number of bytes written, or -1 */
+    int32_t (*file_write)(void *ctx, const char *path, const uint8_t *data, uint32_t size);
+    /* a directory listing (FindFirstFileA / FindNextFileA): the index-th entry (0, 1, ...) whose name
+     * matches `pattern` (the path the game builds, e.g. "maps\\*.map": a directory relative to the
+     * game's directory, case-insensitive, then a last part with '*' and '?'), in the order the
+     * file system lists them (Windows NTFS: by name, upper-cased; assumed, docs/oracle.md), the player's files included; its
+     * name (without the directory) copied into name (size bytes, NUL-terminated). Returns the name's
+     * length, or -1 when there is no such entry */
+    int32_t (*file_list)(void *ctx, const char *pattern, int32_t index, char *name, uint32_t size);
+    /* a Bink video (the period videos) played to its end in the game's window at the offsets x, y
+     * (the original's arguments); the sound streams are stopped first. 1 when it played, 0 when it
+     * cannot be opened */
+    int (*video_modal)(void *ctx, const char *name, int32_t x, int32_t y);
 } sim_platform;
 
 /* @bin 0x00538E30 the video player (Smacker): returns 1 when the video plays */
 int32_t platform_video_play(game_state *st, uint32_t name, int32_t a, int32_t b, int32_t c);
+/* @bin 0x00413580 the Bink video player (thiscall on its object [0x006FDC54], an object of the
+ * platform's: the Bink handle, the old window id): plays the video `name` (a state string) to its end
+ * at x, y; returns 1 when it played, 0 when it cannot be opened (no platform: as the original does
+ * when BinkOpen fails). The window id and the redraw flag are left as the original leaves them */
+int32_t platform_video_bink(game_state *st, uint32_t self, uint32_t name, int32_t x, int32_t y);
 /* @bin 0x00539170 the player ends the video (a key or click in the video window): nothing when
  * none plays (0x00F54054, the video player's state: tools/oracle/excluded.py) */
 void platform_video_close(game_state *st);
@@ -70,6 +89,17 @@ int32_t platform_message_box(game_state *st, uint32_t title, uint32_t text, int3
  * bytes from `offset` into buf; returns the file's size, or -1 when the file cannot be read
  * (no platform, or no such file) */
 int32_t platform_file_read(game_state *st, const char *path, uint32_t offset, uint8_t *buf, uint32_t size);
+
+/* @bin 0x0041C8F0 the game's directory listings (FindFirstFileA, FindNextFileA, FindClose): the
+ * index-th name matching `pattern` ("maps\\*.map", "Save\\*.dat", "save\\<family>\\*.sav") into
+ * name (size bytes), in the order the original's FindNextFileA gives them; returns its length, or -1
+ * when there is none (no platform, no such directory, or index past the last match) */
+int32_t platform_file_list(game_state *st, const char *pattern, int32_t index, char *name, uint32_t size);
+
+/* @bin 0x0041B8A0 the game's file writes (CRT fopen "wb", fwrite, fclose): the platform creates or
+ * replaces the player file `path` with `size` bytes; returns the number of bytes written, or -1
+ * when the file cannot be written (no platform, or an error) */
+int32_t platform_file_write(game_state *st, const char *path, const uint8_t *data, uint32_t size);
 
 /* @bin 0x0053F660 a graphics slot's pixels ("data\\" name ".555", from `skip` on) loaded by the
  * platform: the previous buffer at `out` is released, the new handle stored at `out`; returns the

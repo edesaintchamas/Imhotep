@@ -52,6 +52,11 @@ MAPADD_TYPES = [t for t in range(0x0A, 0xED) if t not in (
     not 0x74 <= t <= 0x87 and t not in (0xB7, 0xCF, 0xD0, 0xD5, 0xDE, 0xE1, 0xE3, 0xE4, 0xE5, 0xE6, 0xEA, 0xEB, 0xEC)]
 
 # name: (calls, fills, skip states with type-0x88 buildings). Calls: (address, args).
+# package loader: a saved game by its path from the game directory, in the map name buffer 0x00E37078
+LOADER_SAVE = os.path.join(ROOT, 'local', 'saves', 'downloaded', '1564', 'CaesarAlan-Iken.sav')
+LOADER_SAVE_PATH = [(0x00E37078 + i, 1, c) for i, c in enumerate(os.path.relpath(
+    LOADER_SAVE, os.environ.get('IMHOTEP_GAME_DIR', os.path.join(ROOT, 'local', 'game', 'app'))).replace(os.sep, '\\').encode() + b'\0')]
+
 TESTS = {
     'trade refusal message box': ([(0x00559A60, []), (0x00559B50, [])], [(0x0060598C, 1, 1)], False),
     'trade refusal message box 2': ([(0x00559B50, []), (0x00559A60, [])], [(0x0060598C, 1, 5)], False),
@@ -383,6 +388,189 @@ TESTS = {
                                  [(0x00E39080, 4, 0), (0x00E39080, 1, d), (0x00705EA4, 0x2508, 0x77),
                                   (0x0070CDCC, 0x6E0, 0x77), (0x007083AC, 0x2530, 0x66), (0x00EA1384, 0x478, 0x55)], False)
        for d in (0, 3)},
+    # package initfig (core/newgame/figures.c, graphics.c): the figures and graphics slots of a map start
+    'initfig herds': ([(0x004BB3F0, [])], [], False),
+    'initfig points': ([(0x004BBC10, []), (0x004BBD40, [40, 50, 0])], [], False),
+    'initfig flotsam': ([(0x004BBD40, [60, 30, 1])], [(0x00784CB1, 1, 1)], False),
+    'initfig editor': ([(0x004BB3F0, []), (0x004BBC10, []), (0x004BBD40, [60, 30, 1])],
+                       [(0x00605A3C, 4, 0), (0x00605A3C, 1, 1)], False),
+    **{'initfig monument slots %d' % m: ([(0x004F4520, [])], [(0x00784CBC, 1, m)], False) for m in range(6)},
+    **{'initfig tomb slots m%X' % m: ([(0x004F4520, [])], [(0x00784CBC, 1, 2), (0x00E38EA8, 1, m)], False)
+       for m in (0x26, 0x27, 0x28, 0x29)},
+    **{'initfig extra slot %d' % e: ([(0x0053D8E0, []), (0x0053D970, [])],
+                                     [(0x00784914, 1, 0x78), (0x00784915, 1, 0), (0x00784DE0, 4, 0), (0x00784DE2, 1, e)],
+                                     False) for e in (21, 22, 24, 25, 28)},
+    'initfig extra slot ptolemy': ([(0x0053D970, [])], [(0x00784914 + i, 1, c) for i, c in enumerate(b'The Glory of Ptolemy\0')] +
+                                   [(0x00784DE0, 4, 0), (0x00784DE2, 1, 25)], False),
+    # package mapload (core/newgame/map_load.c, setup.c): the custom-map load and scenario setup
+    'mapload empire': ([(0x00444A80, []), (0x00444720, []), (0x00444B10, []), (0x00442800, [])], [], False),
+    'mapload empire helpers': ([(0x00444950, [r]) for r in (-1, 0, 1, 2, 7, 49, 50)] +
+                               [(0x00444A00, [j, g]) for j in (0, 1, 2, 5, 30, 199) for g in (1, 5, 17, 35)] +
+                               [(0x00444A40, [j, g, v]) for j in (0, 1, 3) for g in (2, 9) for v in (-1, 0, 7)], [], False),
+    'mapload scroll clamp': ([(0x00442800, [])], [(0x00775910, 4, 0xFF), (0x0077590C, 4, 0x7F)], False),
+    'mapload upgrades': ([(a, []) for a in (0x004D17E0, 0x004D32D0, 0x004D3D80, 0x004D40C0, 0x004D19E0, 0x004D4080,
+                                            0x004D40A0, 0x004D1A70)], [], False),
+    'mapload grids': ([(0x004D5980, []), (0x0046D480, []), (0x004D4040, [])], [], False),
+    'mapload file names': ([(0x004CE3C0, [0x00E37078]), (0x004CE3A0, [0x00E37078]), (0x004CE3C0, [0x00E37078])],
+                           [(0x00E37078 + i, 1, c) for i, c in enumerate(b'Kyrene.xyz\0')] +
+                           [(0x00E38AEC + i, 1, c) for i, c in enumerate(b'map')], False),
+    **{'mapload file %d' % p: ([(0x004D5820, [0x00E37078, p])],
+                               [(0x00E37078 + i, 1, c) for i, c in enumerate(b'maps\\Kyrene.map\0')], False) for p in (0, 1)},
+    'mapload file missing': ([(0x004D5820, [0x00E37078, 0])],
+                             [(0x00E37078 + i, 1, c) for i, c in enumerate(b'maps\\Nowhere.map\0')], False),
+    **{'mapload setup %s' % m: ([(0x004DE820, [])], [(0x00E37078 + i, 1, c) for i, c in enumerate(m.encode() + b'\0')], False)
+       for m in ('Default', 'Bridges', 'Warfare')},
+    # package loader (core/state/loader.c, scenario_start.c): the save loader, campaign records, the
+    # scenario start 0x004D52A0 and its steps; files through the platform (game directory)
+    'loader scenario start': ([(0x004D52A0, [])], [], False),
+    'loader scenario steps': ([(a, []) for a in (0x004771C0, 0x004E59A0, 0x00485F70, 0x00489840, 0x004B32C0, 0x00417E70,
+                                                 0x00476750, 0x004BCA90, 0x00442660, 0x004426C0, 0x0046F190, 0x004D5AD0,
+                                                 0x004D5BC0, 0x004A3560, 0x004BD330, 0x004BD360)], [], False),
+    **{'loader campaign record %d' % m: ([(0x004D58B0, [0, 0])], [(0x00E38EA8, 1, m)], False) for m in (0, 21, 52)},
+    'loader campaign preview': ([(0x004D58B0, [0, 1])], [(0x00E38EA8, 1, 9)], False),
+    'loader campaign no record': ([(0x004D58B0, [0, 0]), (0x004D58B0, [0, 0])], [(0x00E38EA8, 1, 0x7F)], False),
+    'loader campaign empty slot': ([(0x004D58B0, [0, 0])], [(0x00E38EA8, 1, 55)], False),
+    'loader file read at': ([(0x004CE480, [0x005E1B98, 0x00E37078, 16, 0xF0]), (0x004CE480, [0x005E1B98, 0x00E37078, 8, 0])],
+                            [(0x00E37078, 65, 0)], False),
+    'loader save': ([(0x004D5100, [0x00E37078])], LOADER_SAVE_PATH, False),
+    'loader save keep difficulty': ([(0x004D51B0, [0x00E37078])], LOADER_SAVE_PATH + [(0x00E39080, 4, 0)], False),
+    # 0x00422A90 on building 10 made a monument part (+0x60 key 2, +0x64 set, +0x68 work kind, +0x88 > 0),
+    # the kind's three records (+0x12 := 0), figure 5 of type 0x6C (taken), figure 6 of type 0x51 (not)
+    **{'loader monument part kind %d' % k: (
+        [(0x00422A90, [10, 5]), (0x00422A90, [10, 6]), (0x00422A90, [11, 5])],
+        [(0x0079A488, 12, 0), (0x0079A488, 1, 2), (0x0079A48C, 1, 1), (0x0079A490, 1, k), (0x0079A4B0, 1, 5),
+         (0x00BCDD96, 1, 0x6C), (0x00BCDF1A, 1, 0x51)] + [(r + 0x12, 2, 0) for r in records], False)
+       for k, records in ((0, (0x005C1878, 0x005C1890, 0x005C18A8)), (0x1A, (0x005C1DD0, 0x005C1DE8, 0x005C1E00)),
+                          (0x11, ()))},
+    'loader save missing': ([(0x004D5100, [0x00E37078]), (0x004D51B0, [0x00E37078])],
+                            [(0x00E37078 + i, 1, c) for i, c in enumerate(b'no such file.sav\0')], False),
+    # package start (core/newgame/start.c): the new-game entry's own steps and the menu handlers; the
+    # whole start runs in tests/differential/oracle_newgame_check.py
+    'start resets': ([(0x004DE140, []), (0x004E1770, []), (0x004E1830, []), (0x00489B40, [])],
+                     [(0x00E94DD8, 0x30, 0x55), (0x00E95070, 0xBD50, 0x66), (0x00BCA840, 0xDD0, 0x77)], False),
+    'start campaign step': ([(0x0041B9D0, [m]) for m in (0, 5, 0x27, 52, 127, -1, 0x1C8)], [], False),
+    'start map file exists': ([(0x005409D0, [0x00E37078]), (0x004CE3F0, [0x00E37078])],
+                              [(0x00E37078 + i, 1, c) for i, c in enumerate(b'maps\\Default.xyz\0')], False),
+    'start map file missing': ([(0x005409D0, [0x00E37078]), (0x004CE3F0, [0x00E37078])],
+                               [(0x00E37078 + i, 1, c) for i, c in enumerate(b'maps\\Nowhere\0')], False),
+    'start file cd retry': ([(0x004CE330, [0x00E37078]), (0x004CBEC0, [0x00E38AEC]), (0x004CE100, [0x00E37078]),
+                             (0x004CE3F0, [0x00E37078])],
+                            [(0x00E37078 + i, 1, c) for i, c in enumerate(b'Audio\\none.wav\0')], False),
+    **{'start mission buildings m%d' % m: ([(0x00418BF0, [])], [(0x00E38EA8, 1, m)], False) for m in (0, 37, 44)},
+    **{'start mission buildings carried m%d' % m: (
+        [(0x00418BF0, [])], [(0x00E38EA8, 1, m), (0x006FDCB8, 1, 0x40)] +
+        [(a + i, 1, c) for a, v in ((0x0070278C, b'\x30\x00\x30\x00\x50\x00\x50\x00\x20\x00\x60\x00'),
+                                    (0x00702798, b'\x36\x00\x7a\x00\x47\x00\x69\x00\x5e\x00\x28\x00'))
+         for i, c in enumerate(v)], False) for m in (40, 44, 51)},
+    'start carry over': ([(0x004188F0, [])], [(0x00E38EA8, 1, 39)], False),
+    'start next mission': ([(0x00418640, [])], [(0x00E38EBC, 4, 0), (0x00E38EA8, 1, 3), (0x00E38EAB, 1, 3),
+                                                (0x00E38EA9, 1, 1), (0x007027B4, 1, 1)], False),
+    'start next mission choice': ([(0x00418640, [])], [(0x00E38EBC, 4, 0), (0x00E38EA8, 1, 5), (0x00E38EAB, 1, 5),
+                                                       (0x00E38EA9, 1, 1), (0x007027B4, 1, 1)], False),
+    'start next mission period': ([(0x00418640, [])], [(0x00E38EBC, 4, 0), (0x00E38EA8, 1, 2), (0x00E38EAB, 1, 2),
+                                                       (0x00E38EA9, 1, 0), (0x007027B4, 1, 1)], False),
+    'start next mission custom': ([(0x00418640, [])], [(0x00E38EBC, 4, 0), (0x00E38EBC, 1, 2)], False),
+    'start replay briefing': ([(0x00418510, [])], [(0x00E38EBC, 4, 0), (0x007027B4, 1, 2)], False),
+    # package flow (core/newgame/flow.c): the campaign table, the progress file, the briefing, the main menu
+    # and the scenario / mission list; whole flows in tests/differential/oracle_newgame_check.py
+    'flow progress file': ([(0x00516A20, []), (0x005169C0, []), (0x0041B8A0, [0x00EADDA0])], [], False),
+    'flow next step': ([(0x0041B920, [p, s, c]) for p in (0, 1, 4, 5, 8, 9) for s in (-1, 0, 3, 5, 11, 33, 55, 56, 99)
+                        for c in (0, 1)], [], False),
+    'flow periods': ([(0x0041BA20, [p]) for p in range(-1, 10)] + [(0x0041BAB0, [])], [], False),
+    'flow periods won': ([(0x0041BA20, [p]) for p in range(-1, 10)] + [(0x0041BAB0, [])],
+                         [(0x006FDD08 + 0x40 * i + 0x3C, 1, 1) for i in range(0, 56, 3)], False),
+    **{'flow briefing %s' % k: ([(0x00418140, []), (0x004181E0, []), (0x0041AA20, [7, 0x35, 1000])],
+                                [(0x00E38EBC, 4, 0), (0x00E38EBC, 1, c), (0x00E38EAB, 1, s), (0x00E38EA8, 1, m),
+                                 (0x00E39088, 1, o)], False)
+       for k, c, s, m, o in (('step', 0, 4, 4, 0), ('step option', 0, 50, 49, 1), ('no step', 0, 0xFF, 7, 1),
+                             ('custom', 2, 4, 0x7F, 0), ('custom mission', 2, 4, 12, 1))},
+    'flow main menu': ([(0x004CB6A0, [])], [], False),
+    'flow main menu last save': ([(0x004CB6A0, [])], [(0x00700998 + i, 1, c) for i, c in enumerate(b'campaign.txt\0')],
+                                 False),
+    **{'flow list %s' % k: ([(0x0041F870, [])] + [(a, [r]) for a in (0x0041DFE0, 0x0041E010, 0x0041DFC0)
+                                                  for r in (-1, 0, 5, 52, 53, 200)],
+                            [(0x00704DB0, 4, 0), (0x00704DB0, 1, m)], False) for k, m in (('maps', 0), ('missions', 1))},
+    'flow file list': ([(0x0041C740, [0x00576260, 0]), (0x0041DF70, [0x00576260, 0])], [(0x00704DB0, 4, 0)], False),
+    # campaign.txt read again; the emulator's stack is cleared first: the step being read is a local that
+    # 0x0041AC00 leaves partly uninitialised, and the table gets those bytes (flow.c campaign_load)
+    'flow campaign.txt': ([(0x0041AE40, [0x00E37078])], [(0x00E37078 + i, 1, c) for i, c in enumerate(b'campaign.txt\0')] +
+                          [(0x7DF00000, 0xFFF00, 0)], False),
+    'flow campaign.txt missing': ([(0x0041AE40, [0x00E37078])],
+                                  [(0x00E37078 + i, 1, c) for i, c in enumerate(b'nothing.txt\0')], False),
+    # package flow2 (core/newgame/flow2.c): the progress file read, file lists, families, the period and
+    # mission choices; whole flows in tests/differential/oracle_newgame_check.py (cases flow2)
+    **{'flow2 progress read %s' % k: ([(0x0041B680, [0x00E37078])], [(0x00E37078 + i, 1, c) for i, c in enumerate(f + b'\0')],
+                                      False)
+       for k, f in (('missing', b'Save\\nobody.dat'), ('empty', b'Pharaoh.inf'), ('short', b'campaign.txt'),
+                    ('full', b'Pharaoh_MM.eng'))},
+    **{'flow2 trim %d' % k: ([(0x0041ACD0, [0x00E37078])], [(0x00E37078 + i, 1, c) for i, c in enumerate(t + b'\0')], False)
+       for k, t in enumerate((b'  Ramses II \t ', b'\x01\x20x', b'abc', b'', b'   ', b'a b\x7f\x80 c\x05', b' \xa0z '))},
+    'flow2 file lists': ([(0x0041C740, [0x00576260, 0]), (0x0041C740, [0x00576260, 1]), (0x0041CA10, [0x00562370]),
+                          (0x0041C740, [0x00576260, 0])],
+                         [(0x00704DB0, 4, 0)], False),
+    'flow2 file list small': ([(0x0041C740, [0x00576260, 1])],
+                              [(0x00704C04, 4, 0), (0x00704C08, 4, 0), (0x00704C0C, 4, 0), (0x00704C10, 4, 0),
+                               (0x00704C14, 4, 0), (0x00704C18, 4, 0)], False),
+    'flow2 families': ([(0x00516BB0, []), (0x00516990, []), (0x00516B50, [0x005F80F0]), (0x00516AB0, []),
+                        (0x00516C10, [])], [], False),
+    # (the stack cleared: campaign.txt is read again into a step that 0x0041AC00 leaves partly uninitialised)
+    'flow2 new family': ([(0x00516C80, [])], [(0x00E38E74 + i, 1, c) for i, c in enumerate(b' Seti  \0')] +
+                         [(0x7DF00000, 0xFFF00, 0)], False),
+    'flow2 new family empty': ([(0x00516C80, [])], [(0x00E38E74, 32, 0x20), (0x00E38E93, 1, 0)], False),
+    'flow2 period first': ([(0x00417DD0, [p]) for p in (-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0x105)], [], False),
+    **{'flow2 period start %d %d' % (p, k): ([(0x0041BB70, [])], [(0x006FDC98, 4, 0), (0x006FDC98, 1, k),
+                                                               (0x007027AC, 4, 0), (0x007027AC, 1, p),
+                                                               (0x007027B0, 4, 0), (0x007027B0, 1, p)], False)
+       for p, k in ((0, 0), (2, 0), (4, 0), (5, 0), (7, 1), (3, 1))},
+    'flow2 period start closed': ([(0x0041BB70, [])], [(0x006FDC98, 4, 0), (0x007027AC, 4, 0), (0x007027B0, 4, 1)], False),
+    **{'flow2 continue %x' % w: ([(0x00418220, [])], [(0x00E38DDA, 1, w), (0x007027A4, 1, 0)], False)
+       for w in (0x35, 0x34, 0x01, 0x2F)},
+    'flow2 continue choice': ([(0x00418220, [])], [(0x00E38DDA, 1, 0x34), (0x007027A4, 1, 1), (0x00E38EAB, 1, 5),
+                                                   (0x00E38EA9, 1, 1)], False),
+    **{'flow2 text box %d' % k: ([(0x004CC500, [b]), (0x004CC3E0, []), (0x004CC3C0, [])],
+                                 [(0x00E208F0 + 4 * b, 4, 0), (0x00E208F0 + 4 * b, 1, m & 0xFF), (0x00E208F3 + 4 * b, 1, m >> 24),
+                                  (0x00E2079C + 4 * b, 4, 0), (0x00E2079C + 4 * b, 1, 0x78), (0x00E2079D + 4 * b, 1, 0x70),
+                                  (0x00E2079E + 4 * b, 1, 0xE3)] + [(0x00E37078 + i, 1, c) for i, c in enumerate(b'Ramses\0')], False)
+       for k, (b, m) in enumerate(((1, 30), (2, 3), (0, 0), (3, 0xFF0000FF), (4, 6)))},
+    'flow2 music fade': ([(0x0053B690, [c]) for c in (0, 1, 2)], [(0x00E92DD0, 12, 1)], False),
+    # sprintf's %s (0x00561A36): formats in 0x00EADDA0 (32 bytes each), strings from 0x00EADEA4, out to 0x00E37078
+    'flow2 sprintf': ([(0x00561A36, [0x00E37078, 0x00EADDA0 + 32 * k] + a) for k, a in enumerate((
+        [0x00EADEA4], [0x00EADEA4], [0x00EADEA4], [0x00EADEA4], [0x00EADEA4], [7, 2, 0x00EADEA4], [-9, 0x00EADEA4, 42],
+        [0, 5, 0x00EADEB0]))] + [(0x00561A36, [0x00E37078, 0x0057C064, 0x0057C258, 3, 7]),
+                                 (0x00561A36, [0x00E37078, 0x00EADDA0 + 32 * 4, 0])],
+                      [(0x00EADDA0 + 32 * k + i, 1, c) for k, f in enumerate((
+                          b'%s|', b'[%8s]', b'[%-8s]', b'[%08s]', b'[%.3s]', b'[%*.*s]', b'[%-*s]%d', b'%s m%d %%%5.1s'))
+                       for i, c in enumerate(f + b'\0')] +
+                      [(0x00EADEA4 + i, 1, c) for i, c in enumerate(b'Pharaoh\0Nile\0')], False),
+    # package reset (core/newgame/reset.c): the new-game reset 0x00540A10 and its record clears; the map
+    # load 0x004DE820 under it (package mapload) is replayed (map name: the save's own, not a .map file)
+    'reset clears': ([(a, []) for a in (0x004E7D10, 0x004E7E10, 0x004E7E20, 0x004E9EE0, 0x0040F250, 0x0041D730,
+                                        0x0041DF60, 0x00404330, 0x0046A230, 0x0046B0E0, 0x0046EFB0, 0x0046F120,
+                                        0x0046A260, 0x004B4760, 0x004B8C90, 0x004B58D0, 0x004B8290, 0x004B32A0,
+                                        0x0046A080, 0x00451BE0, 0x004CDD60, 0x004E2AB0)], [], False),
+    **{'reset view %s w%d' % (k, w): ([(0x00540B50, [])], [(0x00F53F78, 4, 0), (0x00F53F78, 1, k == 'a'),
+                                                         (0x00E38DB0, 1, w & 0xFF), (0x00E38DB1, 1, w >> 8),
+                                                         (0x00E38DB2, 2, 0)], False)
+       for k in ('a', 'b') for w in (640, 800, 1024, 0x133)},
+    'reset geometry': ([(0x004303A0, [0xE4, 0xE4, 0, 0x1E, 8, 0x1F, 0x3A, 0x1E]),
+                        (0x004303A0, [-7, 3, -5, 11, -13, -2, -9, 0x7FFFFFFF]),
+                        (0x004CC560, [3, 0x00E37078, 1, 2, 0x1FF, -4])], [], False),
+    'reset': ([(0x00540A10, [0x00E37078])], [], False),
+    **{'reset difficulty %d' % d: ([(0x00540A10, [0x00E37078])], [(0x00E39080, 4, 0), (0x00E39080, 1, d)], False)
+       for d in (0, 4)},
+    # package start2 (core/newgame/start2.c): the map refresh's terrain passes 0x00478420 / 0x00487450 (whole
+    # map; a block of rows zeroed, or set to 0x01, with a line of 0x10000-only tiles) and 0x0046D480's mark rectangles
+    'start2 terrain': ([(0x00478420, [])], [], False),
+    'start2 terrain 0x01': ([(0x00478420, [])], [(0x00B0BBCC, 4560, 1)], False),
+    'start2 terrain spread': ([(0x00478420, [])], [(0x00B0BBCC, 4560, 0)] +
+                              [(0x00B0BBCC + 2 * 912 + 4 * c + 2, 1, 1) for c in range(40, 51)] +
+                              [(0x00B0BBCC + 912 + 4 * 45 + 2, 1, 1)], False),
+    **{'start2 marks mode %d' % m: ([(0x00487450, [0, 0, 300, 300]), (0x00487450, [-5, -5, 40, 50])],
+                                    [(0x00784CB0, 1, m), (0x00A509BC, 60000, 0)], False) for m in (0, 1, 2)},
+    'start2 marks': ([(0x00487450, [10, 20, 80, 90])], [], False),
+    'start2 mark rects': ([(a, args) for a in (0x00482A90, 0x00482B50) for args in
+                           ([50, 60, 3, 2], [-3, -2, 5, 2], [200, 190, 10, 6], [10, 10, 0, 0], [30, 40, 1, 0],
+                            [5, 70, 4, -3])], [], False),
 }
 
 
@@ -394,6 +582,8 @@ def main():
             path = os.path.join(ROOT, path)
             g = harness.oracle_state(path, 0)
             snap = g.state_bytes()
+            other_mark = g.other_heap  # the non-simulation heap (graphics, UI) after the load
+            files, names = dict(g.files), dict(g.names)
             has88 = 'Iken' in path
             for name, (calls, fills, skip88) in TESTS.items():
                 if only and not any(a in only for a, _ in calls):
@@ -401,6 +591,16 @@ def main():
                 if skip88 and has88:
                     continue
                 g.load_state(snap)
+                # the non-simulation heap back to its mark: earlier entries' graphics loads would fill
+                # it (256 MB); the blocks above the mark are zeroed, as never used
+                if g.other_heap > other_mark:
+                    g.write(other_mark, bytes(g.other_heap - other_mark))
+                    g.sizes = {p: n for p, n in g.sizes.items() if not other_mark <= p < g.other_heap}
+                    g.other_heap = other_mark
+                # the player's files as loaded: those an earlier entry wrote are gone on both sides (the
+                # oracle's Game.files, the port's IMHOTEP_PLAYER_FILES directory, empty for each entry)
+                g.files, g.names = {k: bytes(v) for k, v in files.items()}, dict(names)
+                os.environ['IMHOTEP_PLAYER_FILES'] = tempfile.mkdtemp(dir=tmp)
                 for a, n, v in fills:
                     g.write(a, bytes([v]) * n)
                 try:

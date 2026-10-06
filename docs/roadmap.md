@@ -172,9 +172,37 @@ own handler functions, whose inputs are globals of the state that the platform s
 
 ## Phase 6: new games
 
-- [ ] 6.1 Scenario start from `.map` files and campaign missions (scenario setup `0x004DE820`,
-      terrain rebuild (done), initial buildings and figures). Check: state after start equals the
-      oracle's for every campaign mission and bundled map.
+- [x] 6.1 Scenario start from `.map` files and campaign missions (docs/newgame.md): every new city
+      starts in `0x005405B0`. Ported: the start and its start-only steps, the reset `0x00540A10`,
+      the custom-scenario setup `0x004DE820` and map load `0x004DE600` / `0x004D5820` /
+      `0x004D4AE0`, the initial figures and graphics slots, the campaign record load
+      `0x004D58B0` and saved-game loads `0x004D5100` / `0x004D51B0` as registered ports, the
+      scenario start `0x004D52A0` and its steps, and the campaign flow (mission list, briefing,
+      next mission and carry-over, replay, families and the progress file, main menu, period
+      choice, campaign.txt). Game files come from the platform (file reads, writes, listings).
+      Check: state after start equals the oracle's for every campaign mission and bundled map.
+
+      Result (2026-10-06): 1,861 functions ported in all (docs/provenance/ported.md).
+      `oracle_newgame_check.py`: 160 / 160 starts equal to the original — the 33 bundled maps,
+      the 53 mission1.pak records, difficulties 0 and 4, the mission-list path, carry-over, starts
+      from a running city, and the campaign flow cases — each followed by a day of identical ticks
+      (`--ticks 51`); across every start only platform requests are replayed.
+      `oracle_state_check.py`: 31 / 31 saved games load equal. The 12-month lockstep on the 8
+      corpus cities still has 0 differences; `make test` passes (now failing on any failed check:
+      `pipefail`).
+
+      Oracle changes: CRT `_lseek`, `fopen` / `fgets` / `fread` / `fseek` / `fwrite` / `fclose`,
+      `FindFirstFileA` / `FindNextFileA`, `QueryPerformanceFrequency` (0), the Bink object at boot;
+      the boot now reads campaign.txt and Pharaoh.inf as the real game does; the deep recorder
+      records writes made by the Python file hooks; `Pharaoh_MM.eng` is mapped like the text file.
+
+      Carried over:
+      - played videos (Bink `0x00413580`, Smacker): the display-mode switch and window handling
+        around a playing video are the platform's (phase 7); no video plays in the oracle;
+      - uninitialised stack bytes reaching the campaign table and old-size progress files
+        (docs/unverified.md UNINIT-41AE40, UNINIT-41B680);
+      - file-system edge cases: the CD-drive retries, `CreateDirectoryA`, 8.3 short-name matches;
+      - the map editor's paths (`0x00605A3C`): out of scope.
 
 ## Phase 7: platform (playable)
 

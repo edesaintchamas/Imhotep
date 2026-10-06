@@ -2,7 +2,8 @@
 
 Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0.
 
-  local/venv/bin/python tools/oracle/lockstep.py SAVE [--ticks N] [--chained]
+  local/venv/bin/python tools/oracle/lockstep.py SAVE | --start map:NAME[@D] | --start mission:N[@D]
+        [--ticks N] [--chained]
         [--replay-all | --replay ADDR,...] [--commands FILE] [--report] [-v]
 
 The reference game boots in the emulator and loads SAVE. For each tick, the original runs
@@ -18,6 +19,8 @@ By default every tick starts from the original's state (differences do not accum
 function but the tick). Prints, per tick with differences, where they are, and at the end the
 share of the original's writes that ran natively; --report lists the replayed functions with their
 calls and bytes written (the porting to-do list).
+--start begins from a new game instead of a save: the booted game starts the scenario or mission
+(tools/oracle/newgame.py; the start itself is checked by tests/differential/oracle_newgame_check.py).
 --commands FILE applies player commands between ticks (phase 5, docs/commands.md). One per line:
   TICK ADDR[@THIS][:ARG,...] [SET ...]      SET = ADDR=HEXBYTES, written into both states first;
                                             hover=X,Y sets the hovered tile (0x00BCA300 offset,
@@ -122,7 +125,7 @@ def run_port(tool, paths, start, replay, extra):
 
 
 def options(argv):
-    o = {'commands': {}, 'ticks': 51, 'chained': False, 'verbose': False, 'replay': None, 'all': False, 'report': False}
+    o = {'start': None, 'commands': {}, 'ticks': 51, 'chained': False, 'verbose': False, 'replay': None, 'all': False, 'report': False}
     i = 0
     rest = []
     while i < len(argv):
@@ -135,6 +138,9 @@ def options(argv):
             i += 1
         elif a == '--replay-all':
             o['all'] = True
+        elif a == '--start':
+            o['start'] = argv[i + 1]
+            i += 1
         elif a == '--commands':
             o['commands'] = read_commands(argv[i + 1])
             i += 1
@@ -150,7 +156,7 @@ def options(argv):
 
 def main():
     o, rest = options(sys.argv[1:])
-    save = rest[0]
+    save = rest[0] if rest else None
     table = ported_table()
     native = {a for a, t in table.items() if not t[4]}
     extra = []
@@ -162,7 +168,12 @@ def main():
         extra = ['--replay', ','.join('%X' % a for a in o['replay'])]
     g = Game()
     g.boot()
-    if g.load_save(open(save, 'rb').read()) != 0:
+    if o['start']:
+        import newgame
+        what, _, difficulty = o['start'].partition('@')
+        addr, args = newgame.inputs(g, what, int(difficulty) if difficulty else None)
+        g.call(addr, *args)
+    elif g.load_save(open(save, 'rb').read()) != 0:
         print('the original cannot load %s' % save)
         return 2
     rec = DeepRecorder(g, native)

@@ -72,6 +72,20 @@ class DeepRecorder:
                 g.uc.hook_add(UC_HOOK_CODE, self.on_entry, begin=a, end=a)
         self.write_hooks = None  # installed only while a call is being recorded (they are costly)
         g.uc.ctl_flush_tb()  # code translated before (boot, load) would not see the new hooks
+        # writes made by Python hooks (CRT _read, file_read_at, ... in game.py) go through
+        # uc.mem_write, which UC_HOOK_MEM_WRITE does not see: record them here
+        plain_write = g.write
+
+        def write(addr, data):
+            plain_write(addr, data)
+            p = self.pending
+            if p is None or not data:
+                return
+            if STATE_BASE <= addr < STATE_END:
+                self.writes.append((addr, len(data)))
+            elif p[2] + ARG_AREA <= addr < STACK_TOP:
+                p[6] = 1  # into a caller's frame
+        g.write = write
 
     # --- hooks ---------------------------------------------------------------------------------
     def on_entry(self, uc, addr, size, _):
@@ -167,6 +181,8 @@ class DeepRecorder:
 
 TEXT_POINTER = 0x00E36C70  # the text buffer of Pharaoh_Text.eng from byte 0x1F5C (loader 0x004CEC40)
 TEXT_SKIP = 0x1F5C
+MM_POINTER = 0x00E36C74    # the text buffer of Pharaoh_MM.eng (messages, their video names) from byte 0x13898
+MM_SKIP = 0x13898
 
 
 def external_maps(g, tmp):
@@ -174,12 +190,16 @@ def external_maps(g, tmp):
     the game directory for the files the ports read through the platform (platform_file_read:
     the .sg3 indexes of 0x0053DFF0), the same files the original reads here (game.py)"""
     from game import GAME_DIR
-    base = g.u32(TEXT_POINTER)
-    path = os.path.join(tmp, 'text.bin')
-    if base and not os.path.exists(path):
-        size = os.path.getsize(os.path.join(GAME_DIR, 'Pharaoh_Text.eng')) - TEXT_SKIP
-        open(path, 'wb').write(g.read(base, size))
-    return (['--map', '%08X:%s' % (base, path)] if base else []) + ['--map', 'files=' + GAME_DIR]
+    out = []
+    for pointer, name, skip, file in ((TEXT_POINTER, 'Pharaoh_Text.eng', TEXT_SKIP, 'text.bin'),
+                                      (MM_POINTER, 'Pharaoh_MM.eng', MM_SKIP, 'mm.bin')):
+        base = g.u32(pointer)
+        path = os.path.join(tmp, file)
+        if base and not os.path.exists(path):
+            open(path, 'wb').write(g.read(base, os.path.getsize(os.path.join(GAME_DIR, name)) - skip))
+        if base:
+            out += ['--map', '%08X:%s' % (base, path)]
+    return out + ['--map', 'files=' + GAME_DIR]
 
 
 def eax_signed(v):

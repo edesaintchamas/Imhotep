@@ -507,9 +507,9 @@ static void state_swap(game_state *st, uint32_t a, uint32_t b, uint32_t width)
         return;
     }
     for (uint32_t i = 0; i < width; i++) {
-        uint8_t t = U8(st, a + i);
-        U8(st, a + i) = U8(st, b + i);
-        U8(st, b + i) = t;
+        uint8_t t = P8(st, a + i); /* arrays in the segments or the simulation heap */
+        P8(st, a + i) = P8(st, b + i);
+        P8(st, b + i) = t;
     }
 }
 

@@ -150,4 +150,7 @@ When unsure, stop and write down the question in `docs/unverified.md` rather tha
       settings and orders, military), 203 command sequences equal to the original in lockstep
       (docs/commands.md, docs/roadmap.md 5.3)
 
-Next steps: `docs/roadmap.md` (phase 6: new games; carried-over items under 4.8 and 5.3).
+- [x] New games (phase 6): campaign missions, bundled maps and the campaign flow start equal to the
+      original (160 / 160 starts, docs/newgame.md, docs/roadmap.md 6.1)
+
+Next steps: `docs/roadmap.md` (phase 7: platform; carried-over items under 4.8, 5.3 and 6.1).

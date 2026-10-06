@@ -351,6 +351,18 @@ PORTED_TABLE(menu_ports)
 PORTED_TABLE(hover_ports)
 PORTED_TABLE(advisor_ports)
 PORTED_TABLE(models_ports)
+PORTED_TABLE(newgame_start_ports)
+PORTED_TABLE(newgame_flow_ports)
+PORTED_TABLE(newgame_flow2_ports)
+PORTED_TABLE(newgame_figures_ports)
+PORTED_TABLE(newgame_graphics_ports)
+PORTED_TABLE(reset_ports)
+PORTED_TABLE(loader_ports)
+PORTED_TABLE(scenario_ports)
+PORTED_TABLE(monument_need_ports)
+PORTED_TABLE(newgame_map_load_ports)
+PORTED_TABLE(newgame_setup_ports)
+PORTED_TABLE(newgame_start2_ports)
 static const struct {
     const ported_function *table;
     const int *count;
@@ -479,6 +491,18 @@ static const struct {
     {hover_ports, &hover_ports_count},
     {advisor_ports, &advisor_ports_count},
     {models_ports, &models_ports_count},
+    {newgame_start_ports, &newgame_start_ports_count},
+    {newgame_flow_ports, &newgame_flow_ports_count},
+    {newgame_flow2_ports, &newgame_flow2_ports_count},
+    {newgame_figures_ports, &newgame_figures_ports_count},
+    {newgame_graphics_ports, &newgame_graphics_ports_count},
+    {reset_ports, &reset_ports_count},
+    {loader_ports, &loader_ports_count},
+    {scenario_ports, &scenario_ports_count},
+    {monument_need_ports, &monument_need_ports_count},
+    {newgame_map_load_ports, &newgame_map_load_ports_count},
+    {newgame_setup_ports, &newgame_setup_ports_count},
+    {newgame_start2_ports, &newgame_start2_ports_count},
 };
 #define NMODULES ((int) (sizeof(ported_modules) / sizeof(ported_modules[0])))
 

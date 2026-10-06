@@ -13,16 +13,22 @@
  * readable at ADDR (state_map_external: game data the original keeps outside its segments);
  * --map files=DIR serves the game's file reads (platform_file_read, core/sim/platform.h) and the
  * pixel loads (platform_pixels_load: the handle is the original's buffer address, from the record)
- * from the game directory DIR, names matched case-insensitively as tools/oracle/game.py does.
+ * from the game directory DIR, names matched case-insensitively as tools/oracle/game.py does; the
+ * player's files (platform_file_read, platform_file_write) from the directory IMHOTEP_PLAYER_FILES
+ * first when it is set (written files go there; "file_write PATH SIZE" is printed); directory
+ * listings (platform_file_list) merge the two directories, names compared case-insensitively, in
+ * NTFS order (by name, upper-cased), as tools/oracle/game.py lists them for the original.
  * Prints "return N" per top-level call, "replay ADDR" / "native ADDR" / "fallback ADDR" per
  * recorded call, "args ADDR i original port" when a replayed call's arguments differ.
  * Exit: 0, 4 on a call sequence mismatch, 5 when a replayed call wrote its caller's stack (an
  * output buffer: it needs a port), 2 on errors. */
+#include <ctype.h>
 #include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <sys/stat.h>
 
 #include "sim/call.h"
 #include "sim/platform.h"
@@ -175,11 +181,11 @@ static uint32_t pixels_load(void *ctx, const char *path, uint32_t skip, uint32_t
     return 0;
 }
 
-static int32_t file_read(void *ctx, const char *path, uint32_t offset, uint8_t *buf, uint32_t size)
+/* DIR + the game's relative path, '\\' as '/', each part matched case-insensitively (a part that
+ * matches nothing is kept as it is; with mkdirs, missing directories are created) */
+static void resolve(const char *dir, const char *path, char *full, size_t cap, int mkdirs)
 {
-    /* DIR + the game's relative path, '\\' as '/', each part matched case-insensitively */
-    char full[4096];
-    snprintf(full, sizeof(full), "%s", (const char *) ctx);
+    snprintf(full, cap, "%s", dir);
     for (const char *p = path; *p;) {
         char part[256];
         size_t n = 0;
@@ -200,12 +206,53 @@ static int32_t file_read(void *ctx, const char *path, uint32_t offset, uint8_t *
             }
         }
         size_t l = strlen(full);
-        snprintf(full + l, sizeof(full) - l, "/%s", match);
+        snprintf(full + l, cap - l, "/%s", match);
         if (d) {
             closedir(d);
         }
+        if (mkdirs && *p) {
+            mkdir(full, 0755);
+        }
     }
-    FILE *f = fopen(full, "rb");
+}
+
+/* the player's files (saved games, the campaign progress): the directory IMHOTEP_PLAYER_FILES when
+ * set, looked in before the game's; file writes go there (or are only counted without it) */
+static const char *player_dir(void)
+{
+    const char *d = getenv("IMHOTEP_PLAYER_FILES");
+    return d && *d ? d : NULL;
+}
+
+static int32_t file_write(void *ctx, const char *path, const uint8_t *data, uint32_t size)
+{
+    (void) ctx;
+    printf("file_write %s %u\n", path, size);
+    if (!player_dir()) {
+        return (int32_t) size;
+    }
+    char full[4096];
+    resolve(player_dir(), path, full, sizeof(full), 1);
+    FILE *f = fopen(full, "wb");
+    if (!f) {
+        return -1;
+    }
+    size_t n = fwrite(data, 1, size, f);
+    return fclose(f) == 0 && n == size ? (int32_t) size : -1;
+}
+
+static int32_t file_read(void *ctx, const char *path, uint32_t offset, uint8_t *buf, uint32_t size)
+{
+    char full[4096];
+    FILE *f = NULL;
+    if (player_dir()) {
+        resolve(player_dir(), path, full, sizeof(full), 0);
+        f = fopen(full, "rb");
+    }
+    if (!f) {
+        resolve((const char *) ctx, path, full, sizeof(full), 0);
+        f = fopen(full, "rb");
+    }
     if (!f) {
         return -1;
     }
@@ -220,6 +267,94 @@ static int32_t file_read(void *ctx, const char *path, uint32_t offset, uint8_t *
     }
     fclose(f);
     return (int32_t) n;
+}
+
+/* '*' and '?' of a FindFirstFileA pattern, ASCII letters in any case */
+static int wild(const char *m, const char *n)
+{
+    if (*m == 0) {
+        return *n == 0;
+    }
+    if (*m == '*') {
+        for (;; n++) {
+            if (wild(m + 1, n)) {
+                return 1;
+            }
+            if (*n == 0) {
+                return 0;
+            }
+        }
+    }
+    if (*n == 0) {
+        return 0;
+    }
+    if (*m != '?' && toupper((unsigned char) *m) != toupper((unsigned char) *n)) {
+        return 0;
+    }
+    return wild(m + 1, n + 1);
+}
+
+/* NTFS order: by name, upper-cased (ASCII), byte by byte */
+static int ntfs_cmp(const void *a, const void *b)
+{
+    const unsigned char *x = *(const unsigned char *const *) a, *y = *(const unsigned char *const *) b;
+    for (;; x++, y++) {
+        int u = toupper(*x), v = toupper(*y);
+        if (u != v || u == 0) {
+            return u - v;
+        }
+    }
+}
+
+static int32_t file_list(void *ctx, const char *pattern, int32_t index, char *name, uint32_t size)
+{
+    char folder[1024], full[4096];
+    const char *slash = NULL;
+    for (const char *p = pattern; *p; p++) {
+        if (*p == '\\' || *p == '/') {
+            slash = p;
+        }
+    }
+    size_t n = slash ? (size_t) (slash - pattern) : 0;
+    if (n >= sizeof(folder)) {
+        return -1;
+    }
+    memcpy(folder, pattern, n);
+    folder[n] = 0;
+    const char *mask = slash ? slash + 1 : pattern;
+    char *names[4096];
+    int count = 0;
+    const char *dirs[2] = {player_dir(), (const char *) ctx};
+    for (int k = 0; k < 2; k++) {
+        if (!dirs[k]) {
+            continue;
+        }
+        resolve(dirs[k], folder, full, sizeof(full), 0);
+        DIR *d = opendir(full);
+        struct dirent *e;
+        while (d && (e = readdir(d)) != NULL && count < 4096) {
+            int seen = strcmp(e->d_name, ".") == 0 || strcmp(e->d_name, "..") == 0 || !wild(mask, e->d_name);
+            for (int i = 0; i < count && !seen; i++) {
+                seen = strcasecmp(names[i], e->d_name) == 0;
+            }
+            if (!seen) {
+                names[count++] = strdup(e->d_name);
+            }
+        }
+        if (d) {
+            closedir(d);
+        }
+    }
+    qsort(names, (size_t) count, sizeof(names[0]), ntfs_cmp);
+    int32_t len = -1;
+    if (index >= 0 && index < count) {
+        snprintf(name, size, "%s", names[index]);
+        len = (int32_t) strlen(names[index]);
+    }
+    for (int i = 0; i < count; i++) {
+        free(names[i]);
+    }
+    return len;
 }
 
 static int parse(replay_ctx *c, const uint8_t *data, size_t len)
@@ -302,6 +437,8 @@ int main(int argc, char **argv)
         if (strncmp(argv[i + 1], "files=", 6) == 0) {
             files.ctx = argv[i + 1] + 6;
             files.file_read = file_read;
+            files.file_write = file_write;
+            files.file_list = file_list;
             files.pixels_load = pixels_load;
             st.platform = &files;
             continue;

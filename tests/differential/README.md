@@ -118,12 +118,19 @@ good, goods lists, post-load links, pre-load clear. The terrain rebuild `0x004DE
 sub-passes) and the floodplain build `0x004BE160` are checked the same way with
 `harness.py 004DEA50`, `harness.py 004BE160:0,0,300,300`: 15 / 15 states equal.
 
-## oracle_state_check (core/state/load_game.c)
+## oracle_state_check (core/state/loader.c, saved-game load)
 
-The whole state after our load (`game_load_save`) against the original's, both starting from the
-original's booted state. Each difference is listed under the step of `0x004D5100` / scenario start
-that last wrote it in the original; only bytes on pages the tick reads count as failures
-(docs/formats/state.md). The remaining steps are tick functions listed in docs/roadmap.md (2.2).
+From the booted game, the original loads each save with 0x004D5100 and the port runs its port of
+it from the same state (harness compare); every byte must be equal. Downloaded saves and the
+generated corpus saves m00 / m06 / m12: 31 / 31 equal.
+
+## oracle_newgame_check (core/newgame/, new games)
+
+From the booted game, the original starts each bundled map (`map:NAME`) and each mission1.pak
+record (`mission:N`) with 0x005405B0, and the port runs its port from the same state; every byte
+must be equal. Variants: difficulties, the mission-list path (`list:N`), a hand-set carry-over
+block (`+carry`), a start from a running city (`+save=PATH`); `--ticks N` adds a chained lockstep
+after the start.
 
 ## oracle_save_check (core/state/save_game.c)
 

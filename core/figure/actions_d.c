@@ -1436,13 +1436,14 @@ static int32_t run_level_next(game_state *st, const int32_t *a)
     return pyramid_level_next(a[0]);
 }
 
-/* @bin 0x00561A36 sprintf(buffer, format, ...): the C runtime's, as far as its ported callers
- * use it (literal text and %d). A buffer outside the state (a caller's frame, passed as 0 by the
- * ports) is not written: only the length is returned. */
+/* @bin 0x00561A36 sprintf(buffer, format, ...): the C runtime's (_output 0x00564BC6), as far as its
+ * ported callers use it: literal text, %%, %d, and %s with its flags, width and precision. A buffer
+ * outside the state (a caller's frame, passed as 0 by the ports) is not written: only the length is
+ * returned. */
 static int32_t run_sprintf(game_state *st, const int32_t *a)
 {
     const uint8_t *fmt = state_ptr(st, (uint32_t) a[1], 1);
-    char out[256];
+    char out[1024];
     int32_t n = 0, arg = 2;
     if (!fmt) {
         state_unported(st, 0x00561A36u);
@@ -1461,12 +1462,134 @@ static int32_t run_sprintf(game_state *st, const int32_t *a)
             out[n++] = (char) *c;
             continue;
         }
-        const uint8_t *d = state_ptr(st, (uint32_t) a[1] + i + 1, 1);
-        if (!d || *d != 'd' || arg >= 16) {
+        /* @bin 0x00564BC6 the conversion: flags ' ' '+' '-' '0' '#', width (digits or '*': a negative one
+         * is '-'), precision ('.' then digits or '*': negative is none), size 'h' / 'l' / 'w', type */
+        uint32_t flags = 0;
+        int32_t width = 0, precision = -1;
+        const uint8_t *d;
+        for (;;) {
+            d = state_ptr(st, (uint32_t) a[1] + ++i, 1);
+            if (!d) {
+                state_unported(st, 0x00561A36u);
+                return 0;
+            }
+            if (*d == ' ') {
+                flags |= 2;
+            } else if (*d == '+') {
+                flags |= 1;
+            } else if (*d == '-') {
+                flags |= 4;
+            } else if (*d == '0') {
+                flags |= 8;
+            } else if (*d == '#') {
+                flags |= 0x80;
+            } else {
+                break;
+            }
+        }
+        if (*d == '*') {
+            if (arg >= 15) {
+                state_unported(st, 0x00561A36u);
+                return 0;
+            }
+            width = a[arg++];
+            if (width < 0) {
+                flags |= 4;
+                width = -width;
+            }
+            d = state_ptr(st, (uint32_t) a[1] + ++i, 1);
+        } else {
+            while (d && *d >= '0' && *d <= '9') {
+                width = width * 10 + (*d - '0');
+                d = state_ptr(st, (uint32_t) a[1] + ++i, 1);
+            }
+        }
+        if (d && *d == '.') {
+            precision = 0;
+            d = state_ptr(st, (uint32_t) a[1] + ++i, 1);
+            if (d && *d == '*') {
+                if (arg >= 15) {
+                    state_unported(st, 0x00561A36u);
+                    return 0;
+                }
+                precision = a[arg++];
+                if (precision < 0) {
+                    precision = -1;
+                }
+                d = state_ptr(st, (uint32_t) a[1] + ++i, 1);
+            } else {
+                while (d && *d >= '0' && *d <= '9') {
+                    precision = precision * 10 + (*d - '0');
+                    d = state_ptr(st, (uint32_t) a[1] + ++i, 1);
+                }
+            }
+        }
+        int narrow_size = 0;
+        while (d && *d == 'h') { /* 'h': a narrow string, as without a size */
+            narrow_size = 1;
+            d = state_ptr(st, (uint32_t) a[1] + ++i, 1);
+        }
+        if (!d || arg >= 15) {
+            state_unported(st, 0x00561A36u);
+            return 0;
+        }
+        if (*d == '%' && flags == 0 && width == 0 && precision < 0 && !narrow_size) {
+            out[n++] = '%';
+            continue;
+        }
+        if (*d == 's') {
+            /* @bin 0x00564DF3 the string (NULL: "(null)", 0x0057075C) up to the precision (none:
+             * 0x7FFFFFFF); @bin 0x00565208 padded to the width: spaces before (no '-' nor '0'), zeros
+             * before ('0' without '-'), or spaces after ('-') */
+            uint32_t sa = (uint32_t) a[arg++];
+            const char *text = "(null)";
+            uint32_t limit = precision < 0 ? 0x7FFFFFFFu : (uint32_t) precision;
+            int32_t len = 0;
+            if (sa != 0) {
+                text = NULL;
+            }
+            for (;; len++) {
+                if ((uint32_t) len >= limit) {
+                    break;
+                }
+                const uint8_t *ch = text ? (const uint8_t *) text + len : state_ptr(st, sa + (uint32_t) len, 1);
+                if (!ch) {
+                    state_unported(st, 0x00561A36u); /* a string the port cannot see */
+                    return 0;
+                }
+                if (*ch == 0) {
+                    break;
+                }
+            }
+            int32_t pad = width - len;
+            if (n + len + (pad > 0 ? pad : 0) >= (int32_t) sizeof(out) - 12) {
+                state_unported(st, 0x00561A36u);
+                return 0;
+            }
+            if ((flags & 0xC) == 0) {
+                for (int32_t k = 0; k < pad; k++) {
+                    out[n++] = ' ';
+                }
+            }
+            if ((flags & 8) && !(flags & 4)) {
+                for (int32_t k = 0; k < pad; k++) {
+                    out[n++] = '0';
+                }
+            }
+            for (int32_t k = 0; k < len; k++) {
+                out[n++] = text ? text[k] : (char) *state_ptr(st, sa + (uint32_t) k, 1);
+            }
+            if (flags & 4) {
+                for (int32_t k = 0; k < pad; k++) {
+                    out[n++] = ' ';
+                }
+            }
+            continue;
+        }
+        if (*d != 'd' || flags != 0 || width != 0 || precision >= 0 || narrow_size) {
             state_unported(st, 0x00561A36u); /* other conversions: not ported */
             return 0;
         }
-        i++;
         int64_t v = a[arg++];
         char digits[12];
         int k = 0;
@@ -1580,6 +1703,17 @@ const ported_function figd_ports[] = {
     {0x004F3370u, "pyramid_block_slot", 4, 8, 0, NULL, 0},
     /* partial: the formats of its ported callers only */
     {0x00561A36u, "crt_sprintf", 2, 32, 0, run_sprintf, 1},
+    /* the CRT's formatter and its helpers, inside crt_sprintf (on a string stream: no flush) */
+    {0x00564BC6u, "CRT _output (crt_sprintf)", 3, 32, 0, NULL, 0},
+    {0x00565307u, "CRT _output write_char (crt_sprintf)", 3, 0, 0, NULL, 0},
+    {0x0056533Cu, "CRT _output write_multi_char (crt_sprintf)", 4, 0, 0, NULL, 0},
+    {0x0056536Du, "CRT _output write_string (crt_sprintf)", 4, 0, 0, NULL, 0},
+    {0x005653A5u, "CRT _output get_int_arg (crt_sprintf)", 1, 32, 0, NULL, 0},
+    {0x005653B2u, "CRT _output get_int64_arg (crt_sprintf)", 1, 32, 0, NULL, 0},
+    {0x005653C2u, "CRT _output get_short_arg (crt_sprintf)", 1, 16, 0, NULL, 0},
+    {0x00563380u, "CRT strlen (crt_sprintf)", 1, 32, 0, NULL, 0},
+    {0x00569250u, "CRT _aulldiv (crt_sprintf %d)", 4, 32, 0, NULL, 0},
+    {0x005692C0u, "CRT _aullrem (crt_sprintf %d)", 4, 32, 0, NULL, 0},
     {0x004AB980u, "figure_action_56", 0, 0, 0, run_56, 0},
     {0x004ABD50u, "figure_action_57", 0, 0, 0, run_57, 0},
     {0x004ABE40u, "figure_action_58", 0, 0, 0, run_58, 0},

@@ -314,7 +314,7 @@ STUBS = {
     'GetTickCount': (0, lambda e: 0),
     'SetCurrentDirectoryA': (1, lambda e, p: 1),
     'CreateDirectoryA': (2, lambda e, p, a: 0),
-    'FindFirstFileA': (2, lambda e, p, d: 0xFFFFFFFF),
+    'FindFirstFileA': (2, lambda e, p, d: 0xFFFFFFFF),  # nothing found; game.py Game lists its files
     'FindClose': (1, lambda e, h: 1),
     'GetLastError': (0, lambda e: 0),
     'SetLastError': (1, lambda e, v: 0),
@@ -323,4 +323,7 @@ STUBS = {
     'GetSystemMetrics': (1, lambda e, i: {0: 1024, 1: 768}.get(i, 0)),
     'GetCurrentDirectoryA': (2, lambda e, n, p: (e.write(p, b'C:\\\0'), 3)[1]),
     'timeGetTime': (0, lambda e: 0),
+    # the profiler's timer (0x00489B40): no performance counter, as on hardware without one
+    'QueryPerformanceFrequency': (1, lambda e, p: (e.write(p, bytes(8)), 0)[1]),
+    'QueryPerformanceCounter': (1, lambda e, p: (e.write(p, bytes(8)), 0)[1]),
 }

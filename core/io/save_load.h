@@ -47,4 +47,9 @@ int save_file_load(save_file *s, save_load_env *env, save_load_stats *stats);
  * Returns 0. */
 int save_file_load_state(game_state *st, save_file *s, save_load_env *env, save_load_stats *stats);
 
+/* @bin 0x004D4720 (this = an empire route of chunk 143) the route's point count and endpoints on
+ * the game state (the points themselves, x87 display data, are not computed: docs/formats/state.md).
+ * Returns 1, or 0 when the route has more points than estimated. */
+int save_route_rebuild_state(game_state *gs, uint32_t route, save_load_env *env);
+
 #endif
