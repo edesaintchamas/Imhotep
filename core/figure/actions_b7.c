@@ -7,6 +7,7 @@
 #include "random/crt_rand.h"
 #include "random/random.h"
 #include "sim/call.h"
+#include "sim/platform.h"
 
 void figb_follow(game_state *st, int32_t id, int32_t leader, int32_t steps)
 {
@@ -514,8 +515,8 @@ int32_t figb_animal_flee(game_state *st, int32_t id)
     /* @bin 0x004EB000 an animal (0x004EA9A0) looks around: a type 0x5E4DF0 figure in action 0x10
      * nearby -> it flees too (0x10, near that one's destination) or starts (0xF); hunters
      * (0x005E4DD0 types, map_search_rings) -> it flees (0x10 by 0x004EABF0) or keeps watching
-     * (0xE, 0xF, back to 8 after 20 ticks). The CRT rand is reseeded with timeGetTime(), a wall
-     * clock read as 0 (docs/porting.md §3). */
+     * (0xE, 0xF, back to 8 after 20 ticks). The CRT rand is reseeded with timeGetTime(), the wall
+     * clock (core/sim/platform.h). */
     uint32_t f = FIGURE_ADDR(id);
     if ((int8_t) GAME_CALL(st, 0x004EA9A0u, U8(st, f + 0x0A)) == 0) {
         return 0;
@@ -530,7 +531,7 @@ int32_t figb_animal_flee(game_state *st, int32_t id)
     if (a == 0x10 || a == 0x11) {
         return 1;
     }
-    crt_srand(st, 0); /* @bin 0x004EB063 srand(timeGetTime()) */
+    crt_srand(st, platform_clock_ms(st)); /* @bin 0x004EB063 srand(timeGetTime()) */
     int32_t ox, oy;
     int32_t r = figb_ring_search(st, S16(st, f + 0x14), S16(st, f + 0x16), 3, 0x005E4DF0u, 0, &ox, &oy, 1, id, 0x10);
     if (r != 0) {

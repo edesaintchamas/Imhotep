@@ -9,6 +9,7 @@
 #include "random/crt_rand.h"
 #include "random/random.h"
 #include "sim/call.h"
+#include "sim/platform.h"
 #include "state/ported.h"
 #include "state/records.h"
 
@@ -2265,8 +2266,8 @@ int32_t animal_seek_prey(game_state *st, int32_t id)
     }
     int32_t rings = S32(st, rec + 4);
     U8(st, f + 0x6B) = 0;
-    /* @bin 0x004EAF6B srand(timeGetTime()): the wall clock is read as 0 (docs/porting.md §3) */
-    crt_srand(st, 0);
+    /* @bin 0x004EAF6B srand(timeGetTime()): the wall clock (core/sim/platform.h) */
+    crt_srand(st, platform_clock_ms(st));
     int32_t px, py;
     int32_t k = ring_search(st, S16(st, f + 0x14), S16(st, f + 0x16), &px, &py, rings, id);
     if (k == 0) {

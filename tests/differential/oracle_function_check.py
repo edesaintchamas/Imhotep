@@ -571,6 +571,47 @@ TESTS = {
     'start2 mark rects': ([(a, args) for a in (0x00482A90, 0x00482B50) for args in
                            ([50, 60, 3, 2], [-3, -2, 5, 2], [200, 190, 10, 6], [10, 10, 0, 0], [30, 40, 1, 0],
                             [5, 70, 4, -3])], [], False),
+    # package blit (present/draw): the drawing primitives that write no pixels, so they run without a
+    # display (the ones that draw are in tests/differential/oracle_draw_check.py, which boots with one):
+    # the clip on images set in the blitter globals 0x00D3B5BC..0x00D3B5E0, the line set-up, the number
+    # buffer, glyph and word widths, the edit field's caret and string
+    **{'blit clip %d,%d' % (x, y): ([(0x005370D0, []), (0x004CDAD0, []), (0x004CDB80, []), (0x004CDC30, [x, y])],
+                                     [(0x00D3B5E0, 4, x & 0xFF), (0x00D3B5E1, 3, 0xFF if x < 0 else 0),
+                                      (0x00D3B5DC, 4, y & 0xFF), (0x00D3B5DD, 3, 0xFF if y < 0 else 0),
+                                      (0x00D3B5BE, 1, 40), (0x00D3B5BF, 1, 0), (0x00D3B5BC, 1, 30), (0x00D3B5BD, 1, 0)],
+                                     False)
+       for x in (-50, -10, 0, 100, 620, 639, 700) for y in (-40, -5, 0, 200, 470, 479, 500)},
+    'blit line setup': ([(0x004CD3E0, list(l)) for l in ((1, 2, 30, 4), (30, 4, 1, 2), (5, 5, 5, 60), (9, 80, 3, 1))] +
+                        [(0x004CD490, [k]) for k in (0, 1, 1, 0)], [(0x00D3B4BC, 4, 0xFE)], False),
+    'blit number format': ([(0x004CC5C0, [v & 0xFFFFFFFF, p, q]) for v in (0, 9, 10, -7, 123456789, 999999999, 1000000000,
+                                                                          -2147483648) for p, q in ((0, 0), (5, 1))], [], False),
+    'blit glyph widths': ([(0x004CC020, [c, f]) for c in (0, 0x20, 0x41, 0x61, 0x7A, 0xC7, 0xFF) for f in (18765, 19435, 19569)] +
+                          [(0x004CC6C0, [g, i, f]) for g, i in ((147, 0), (20, 1), (162, 0)) for f in (18765, 19435)], [], False),
+    'blit edit field': ([(0x004CC250, [c]) for c in (0x41, 0x2C, 0x20, 0x7A, 0x1F, 0x2D)] +
+                        [(a, []) for a in (0x004CC370, 0x004CC330, 0x004CC390, 0x004CC350, 0x004CC360)] +
+                        [(0x004CC250, [0x31]), (0x004CC400, [0x32]), (0x004CC1B0, []), (0x004CC320, []), (0x004CC540, [])],
+                        [(0x00E3439C, 6, 0x61), (0x00E343A2, 1, 0), (0x00E20990, 1, 1), (0x00E2079C + 4, 1, 0x9C),
+                         (0x00E2079C + 5, 1, 0x43), (0x00E2079C + 6, 1, 0xE3), (0x00E207EC + 4, 1, 2), (0x00E208A0 + 4, 1, 6),
+                         (0x00E208F0 + 4, 1, 12), (0x00E20850 + 4, 1, 120), (0x00E20940 + 4, 1, 0x4D),
+                         (0x00E20940 + 5, 1, 0x49)], False),
+    # package play (present/play/play.c, core/frame/display.c, core/city/route_points.c): the functions of
+    # a play session that do not draw (the drawing ones, the frame and the window messages are in
+    # tests/differential/oracle_frame_check.py, play-*): the next available advisor, the empire editor's
+    # arrow keys, the build menus' counts, the resolution globals, DirectDraw's release, the options
+    # saved at the end (Pharaoh.inf, Pharaohmap.inf), the resolution confirmation
+    **{'play advisor next %d' % i: ([(0x004179A0, [0x00E38EA4])],
+                                    [(0x006FDC88, 15, 0), (0x006FDC88 + j, 1, 1), (0x00E38EA4, 1, i), (0x00E38EA5, 3, 0)], False)
+       for i, j in ((1, 1), (3, 9), (14, 2), (5, 5))},
+    **{'play editor city move %d' % label: ([(0x00407C10, [d, 5]) for d in (0, 2, 4, 6, 1)],
+                                            [(0x00E38DDA, 1, 0x15), (0x00775928, 1, 2), (0x00775929, 3, 0),
+                                             (0x0077591C, 1, 1), (0x0077591D, 3, 0), (0x00784CB4, 4, label)], False)
+       for label in (0, 1)},
+    'play build counts': ([(0x00417A70, []), (0x00417AA0, [])], [], False),
+    'play build counts new': ([(0x00417AA0, [])], [(0x006FDC58, 48, 0)], False),
+    'play resolution': ([(0x004CFD60, [m]) for m in (2, 3, 7, 1)], [], False),
+    'play directdraw release': ([(0x00426EE0, [0]), (0x004D01E0, [1]), (0x00426EE0, [1])], [], False),
+    'play settings save': ([(0x00414750, [])], [], False),
+    'play resolution check': ([(0x00402DA0, [])], [(0x00E38E68, 1, 3), (0x00E38EE4, 1, 1)], False),
 }
 
 

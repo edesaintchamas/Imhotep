@@ -38,6 +38,10 @@ typedef struct {
     extern const ported_function name[]; \
     extern const int name##_count;
 
+/* Adds a table of ports from outside core (the presentation code, present/: present_register()),
+ * so that sim_call dispatches to them like core's own; 0, or -1 when too many tables. */
+int ported_add_table(const ported_function *table, const int *count);
+
 /* The port of the original function at `address`, or NULL. */
 const ported_function *ported_find(uint32_t address);
 

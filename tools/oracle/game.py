@@ -46,6 +46,11 @@ PRESENTATION = {
     0x004D0280: 'screen fade / present (writes only its counters 0x00E92E08, 0x00E38DC8)',
 }
 
+# with a display (Game(display=...)) these run as the original: the present blits the back buffer to the
+# emulated primary surface (Game.blits) and writes its counters; the loading screen's text goes to
+# Game.text (TextOutA)
+DISPLAY_RUNS = {0x004CF7B0, 0x004D0280}
+
 # Allocations made while one of these functions is on the call stack hold simulation records:
 # they go to the simulation heap, which is part of the state (core/state/state.h). Found by
 # logging the callers of new / malloc during loads and ticks; every other allocation (graphics,
@@ -57,6 +62,16 @@ SIM_ALLOCATORS = {
     0x00451A70: 'static constructor: arrays of 20 for shipwright queues 0-4 (kept by a load that fits)',
     0x0041C740: 'file list buffers (names, offsets): the scenario / mission list 0x00704C00 and the family list '
                 '0x00EADFA8, whose names choose the city to start (core/newgame/flow2.c)',
+    0x004D4E20: 'the saver: its route buffer rebuild after writing (autosave, last.sav; core/frame/autosave.c)',
+    0x004D8310: 'the input dispatcher: window 0x15 (empire editor) grows a route path buffer (chunk 143)',
+    0x004DD930: 'window 0x15: a route waypoint deleted, the route path rebuilt (chunk 143)',
+}
+
+# ... except while one of these is on the call stack (nearer than the simulation allocator): their blocks
+# hold no simulation data, whoever calls them (package finish)
+NOT_SIM_ALLOCATORS = {
+    0x00414BD0: 'the spare screen made again after a display mode change (0x00413690: the 640 x 480 switch around '
+                'a period video, inside a mission start); the port\'s is platform memory (core/frame/display.c)',
 }
 
 # The modal message box 0x00538CD0 runs a Win32 message loop until the player presses a button.
@@ -66,19 +81,99 @@ SIM_ALLOCATORS = {
 MESSAGE_BOX = 0x00538CD0
 MESSAGE_BOX_RESULTS = {0: 1, 1: 1, 2: 3, 3: 6, 4: 6, 5: 4}  # first button's code (0x00538940)
 MESSAGE_BOX_BUTTONS = {0: 1, 1: 2, 2: 3, 3: 3, 4: 2, 5: 2}
+MESSAGE_BOX_CODES = {0: (1,), 1: (1, 2), 2: (3, 4, 5), 3: (6, 7, 2), 4: (6, 7), 5: (4, 2)}  # each button's (0x00538940)
 
 SPARE_SCREEN = 0x00E92E1C  # 100,000-byte work buffer the model loader reads into
 
 
+# --- display (roadmap phase 7, docs/presentation.md 4.1) -------------------------------------------
+# Game(display=(width, height, format)) boots with WinMain's DirectDraw set-up 0x004CF960 run on
+# emulated DirectDraw objects: the back buffer is then a block of the other heap whose address the game
+# keeps in 0x00E92E18 (pitch 0x00E38D94), and the drawing code (the frame 0x004D6B60) runs. Without it
+# (display=None, the default) the boot skips 0x004CF960 as before: the resolution globals, the sidebar
+# x 0x00F53F64 and the city viewport 0x0070E430.. stay 0 (docs/oracle.md "Display").
+# IMHOTEP_ORACLE_DISPLAY=WxHxFORMAT (e.g. 1024x768x565) makes it the default of Game().
+RESOLUTIONS = {(640, 480): 1, (800, 600): 2, (1024, 768): 3}  # 0x00E38E68 (@bin 0x004CF960)
+FORMAT_MASKS = {565: (0xF800, 0x07E0, 0x001F), 555: (0x7C00, 0x03E0, 0x001F)}
+BACK_BUFFER = 0x00E92E18   # u32: lpSurface of the back buffer (@bin 0x00427257)
+PITCH = 0x00E38D94         # i32: bytes per row (@bin 0x004CF960)
+SCREEN_W, SCREEN_H = 0x00E38DB0, 0x00E38DAC  # i32 width, height (@bin 0x004CF960)
+PIXEL_FORMAT = 0x00E92DFC  # 0: 555, 2: 565 (@bin 0x004D0060)
+WNDPROC = 0x00414CD0       # the window procedure (stdcall hwnd, msg, wparam, lparam)
+WM_MOVE, WM_SIZE = 0x0003, 0x0005
+DISPLAY_ENV = 'IMHOTEP_ORACLE_DISPLAY'
+_DEFAULT = object()
+
+# --- sound (roadmap phase 7, docs/oracle.md "Sound") ------------------------------------------------
+# Game(sound=True) boots with WinMain's sound start-up 0x005394F0 (after 0x0044EFA0, dis 0x00414167) on
+# a working stand-in for Miles (tools/oracle/sound.py FakeMiles): the sound flag 0x00F55B88 is 1 and the
+# sound tables are built from the game's files. Every AIL_* call is in Game.ail_log. Without it (the
+# default) the start-up is skipped and the game plays nothing, as before. IMHOTEP_ORACLE_SOUND=1 makes
+# it the default of Game().
+SOUND_ENV = 'IMHOTEP_ORACLE_SOUND'
+SOUND_START = 0x005394F0
+_FILE_CACHE = {}  # game files read (path -> bytes): the sound start-up opens ~1300 audio files
+
+
+def parse_display(text):
+    """'1024x768x565' -> (1024, 768, 565); '', 'none', None -> None"""
+    if not text or text.lower() in ('none', '0', 'off'):
+        return None
+    w, h, f = (int(x) for x in text.lower().split('x'))
+    if (w, h) not in RESOLUTIONS or f not in FORMAT_MASKS:
+        raise ValueError('display %s: one of 640x480, 800x600, 1024x768 and 555 / 565' % text)
+    return w, h, f
+
+
+def display_name(display):
+    return 'nodisplay' if display is None else '%dx%dx%d' % display
+
+
 class Game(Pharaoh):
-    def __init__(self, exe=None):
+    def __init__(self, exe=None, display=_DEFAULT, sound=_DEFAULT):
         super().__init__(exe)
+        if display is _DEFAULT:
+            display = parse_display(os.environ.get(DISPLAY_ENV))
+        elif isinstance(display, str):
+            display = parse_display(display)
+        self.display = display
+        if sound is _DEFAULT:
+            sound = os.environ.get(SOUND_ENV, '') not in ('', '0', 'off', 'none')
+        self.sound = bool(sound)
+        self.miles = None
+        if self.sound:
+            from sound import FakeMiles
+            self.miles = FakeMiles(self)
+            # the sound start-up 0x0055E6C4 asks the Windows version (NT 4 and older: no sound)
+            self.handlers['GetVersionExA'] = (1, self._version)
+        # frame inputs (tools/oracle/framestep.py): the clock of timeGetTime / GetTickCount (0 by
+        # default, as before), the cursor of GetCursorPos, the keys of GetAsyncKeyState
+        self.clock = 0
+        self.cursor = (0, 0)
+        self.keys_down = set()
+        self.keys_pressed = set()
+        self.handlers['timeGetTime'] = (0, lambda e: self.clock)
+        self.handlers['GetTickCount'] = (0, lambda e: self.clock)
+        # the Bink player (BINKW32): BinkOpen fails (0) unless a test sets self.bink = (width, height):
+        # it then opens a video of that size with no frame, so that 0x00413690 skips its frame loop and
+        # makes only its state effects (the 640 x 480 switch in fullscreen, the window id, the redraw)
+        self.bink = None
+        self.handlers['_BinkOpen@8'] = (2, self._bink_open)
         self.files = {}   # virtual files: lower-case name -> bytes
         self.names = {}   # lower-case name -> the name as the game (or a test) wrote it, for listings
         self.finds = {}   # FindFirstFileA handle -> [names, next index]
         self.handlers['FindFirstFileA'] = (2, self._find_first)
         self.handlers['FindNextFileA'] = (2, self._find_next)
         self.handlers['FindClose'] = (1, lambda e, h: 1 if self.finds.pop(h, None) is not None else 0)
+        # deleting player files (CRT remove 0x00562BB5 -> DeleteFileA, the family deletion 0x00516DD0 ->
+        # RemoveDirectoryA): a file of self.files is removed (logged in self.deleted); any other fails
+        # with ERROR_FILE_NOT_FOUND (2, for GetLastError); a directory is removed when no file of
+        # self.files is left in it (directories are implied by the files), else ERROR_DIR_NOT_EMPTY
+        self.deleted = []
+        self.last_error = 0
+        self.handlers['DeleteFileA'] = (1, self._delete_file)
+        self.handlers['RemoveDirectoryA'] = (1, self._remove_directory)
+        self.handlers['GetLastError'] = (0, lambda e: self.last_error)
         self.fds = {}     # fd -> [data, position]
         self.log = []
         self.hook(CRT_OPEN, self._open)
@@ -90,7 +185,7 @@ class Game(Pharaoh):
         self.streams = {}  # FILE * -> [data, position]
         self.hook(CRT_FOPEN, self._fopen)
         self.hook(CRT_FGETS, self._fgets)
-        self.hook(CRT_FCLOSE, lambda e: 0 if self.streams.pop(e.arg(0), None) is not None else -1)
+        self.hook(CRT_FCLOSE, self._fclose)
         self.hook(CRT_FWRITE, self._fwrite)
         self.hook(CRT_FREAD, self._fread)
         self.hook(CRT_FSEEK, self._fseek)
@@ -107,9 +202,168 @@ class Game(Pharaoh):
         self.hook(FILE_READ_AT, self._file_read_at)
         self.hook(FILE_SIZE, lambda e: len(self._file(e.cstr(e.arg(0))) or b''))
         for addr in PRESENTATION:
-            self.hook(addr, lambda e: 0)
+            if self.display is None or addr not in DISPLAY_RUNS:
+                self.hook(addr, lambda e: 0)
         self.hook(MESSAGE_BOX, self._message_box)
         self.set_u32(SPARE_SCREEN, self.alloc(100000))
+        if self.display is not None:
+            self._display_stubs()
+
+    # --- display: window calls and DirectDraw ---------------------------------------------------
+    HWND, HDC = 0x4000, 0x1234
+
+    def _display_stubs(self):
+        w, h, _ = self.display
+        self.surfaces = {}   # surface object -> [buffer, width, height, pitch]
+        self.blits = []      # (kind, destination, source) of Blt / BltFast
+        self.posted = []     # posted messages and quit requests (PostMessageA, PostQuitMessage)
+        self.text = []       # (x, y, text) of TextOutA (the loading screen 0x004CF7B0, when it runs)
+        self.window_calls = []
+
+        def ok(n, r=1):
+            return (n, lambda e, *a: r)
+
+        def rect(r, a, b, c, d):
+            self.write(r, struct.pack('<4i', a, b, c, d))
+            return 1
+        stubs = {
+            'GetDC': ok(1, self.HDC), 'ReleaseDC': ok(2),
+            'GetDeviceCaps': (2, lambda e, dc, i: {0x0C: 16, 0x0E: 1, 0x18: 16}.get(i, 0)),  # BITSPIXEL, PLANES
+            'CoInitialize': ok(1, 0), 'FindWindowA': ok(2, 0), 'LoadIconA': ok(2, 0x50),
+            'GetStockObject': ok(1, 0x60), 'RegisterClassA': ok(1, 0xC001), 'LoadCursorA': ok(2, 0x70),
+            'CreateWindowExA': ok(12, self.HWND), 'UpdateWindow': ok(1), 'SetFocus': ok(1, 0),
+            'GetWindowLongA': ok(2, 0), 'SetWindowLongA': ok(3, 0),
+            'SetRect': (5, lambda e, r, a, b, c, d: rect(r, a, b, c, d)),
+            'AdjustWindowRectEx': ok(4), 'GetMenu': ok(1, 0), 'SetWindowPos': ok(7),
+            'SystemParametersInfoA': ok(4), 'GetWindowRect': (2, lambda e, wnd, r: rect(r, 0, 0, w, h)),
+            'GetClientRect': (2, lambda e, wnd, r: rect(r, 0, 0, w, h)), 'ClientToScreen': ok(2),
+            'GetPaletteEntries': ok(4, 0), 'ShowCursor': ok(1, 0), 'SetCursor': ok(1, 0),
+            'PeekMessageA': ok(5, 0), 'InvalidateRect': ok(3), 'GetForegroundWindow': ok(0, self.HWND),
+            # WM_PAINT, Alt+X (a posted Esc) and quitting: logged in self.posted, nothing else happens
+            'BeginPaint': (2, lambda e, w, ps: self.write(ps, bytes(64)) or 0x0DC0),
+            'EndPaint': ok(2),
+            'PostMessageA': (4, lambda e, w, m, a, b: self.posted.append(('post', m, a, b)) or 1),
+            'PostQuitMessage': (1, lambda e, c: self.posted.append(('quit', c)) or 0),
+            # ShellExecuteA(window, verb, file, parameters, directory, show): the main menu's web site
+            'ShellExecuteA': (6, lambda e, w, verb, f, a, d, show: self.posted.append(('url', e.cstr(f))) or 42),
+            'SetActiveWindow': ok(1, 0), 'ShowWindow': ok(2), 'SetForegroundWindow': ok(1),
+            'SetBkColor': ok(2, 0), 'SetTextColor': ok(2, 0), 'SetBkMode': ok(2, 0),
+            'DefWindowProcA': ok(4, 0), 'IsIconic': ok(1, 0),
+            'GetTextExtentPointA': (4, lambda e, dc, p, n, sz: self.write(sz, struct.pack('<ii', 8 * n, 16)) or 1),
+            'TextOutA': (5, self._text_out),
+            'DirectDrawCreate': (3, self._dd_create),
+            'GetCursorPos': (1, lambda e, p: self.write(p, struct.pack('<ii', *self.cursor)) or 1),
+            'GetAsyncKeyState': (1, self._async_key),
+            'GetSystemMetrics': (1, lambda e, i: {0: w, 1: h}.get(i, 0)),  # fullscreen: the display mode
+        }
+        self.handlers.update(stubs)
+        # IDirectDraw, IDirectDrawSurface, IDirectDrawClipper: the methods 0x004CF960 and the present
+        # call (vtable offsets of the DirectDraw 1 interfaces)
+        self.dd = self.com_object({0x08: (1, 0), 0x10: (4, self._create_clipper), 0x18: (4, self._create_surface),
+                                   0x50: (3, 0), 0x54: (4, 0)}, 'IDirectDraw')
+        self.clipper_methods = {0x08: (1, 0), 0x20: (3, 0)}
+        self.surface_methods = {0x08: (1, 0), 0x14: (6, self._blt), 0x1C: (6, self._blt_fast), 0x2C: (3, 0),
+                                0x54: (2, self._pixel_format), 0x58: (2, self._surface_desc), 0x60: (1, 0),
+                                0x64: (5, self._lock), 0x6C: (1, 0), 0x70: (2, 0), 0x80: (2, 0)}
+
+    def _text_out(self, e, dc, x, y, p, n):
+        self.text.append((x, y, self.read(p, n).decode('latin-1')))
+        return 1
+
+    def _async_key(self, e, vk):
+        """bit 15: the key is down; bit 0: pressed since the last call for it"""
+        r = 0x8000 if vk in self.keys_down else 0
+        if vk in self.keys_pressed:
+            self.keys_pressed.discard(vk)
+            r |= 1
+        return r
+
+    def _dd_create(self, e, guid, out, outer):
+        self.set_u32(out, self.dd)
+        return 0
+
+    def _create_clipper(self, e, this, flags, out, outer):
+        self.set_u32(out, self.com_object(self.clipper_methods, 'IDirectDrawClipper'))
+        return 0
+
+    def _create_surface(self, e, this, desc, out, outer):
+        """DDSURFACEDESC: flags +4, height +8, width +0xC; no DDSD_HEIGHT (2): the primary surface, of
+        the screen's size. The memory is a block of the other heap, rows of 2 * width bytes."""
+        flags, h, w = struct.unpack('<3I', self.read(desc + 4, 12))
+        if not flags & 2:
+            w, h = self.display[0], self.display[1]
+        pitch = 2 * w
+        buf = self.alloc(pitch * h)
+        s = self.com_object(self.surface_methods, 'IDirectDrawSurface')
+        self.surfaces[s] = [buf, w, h, pitch]
+        self.set_u32(out, s)
+        return 0
+
+    def _pf(self, p):
+        """DDPIXELFORMAT: size, DDPF_RGB, fourCC, 16 bits, the masks of the chosen format"""
+        self.write(p, struct.pack('<8I', 32, 0x40, 0, 16, *FORMAT_MASKS[self.display[2]], 0))
+
+    def _pixel_format(self, e, this, p):
+        self._pf(p)
+        return 0
+
+    def _surface_desc(self, e, this, d):
+        """DDSURFACEDESC: flags, height, width, pitch +0x10, lpSurface +0x24, pixel format +0x48"""
+        buf, w, h, pitch = self.surfaces[this]
+        self.write(d + 4, struct.pack('<4I', 0x100F, h, w, pitch))
+        self.set_u32(d + 0x24, buf)
+        self._pf(d + 0x48)
+        return 0
+
+    def _lock(self, e, this, r, d, flags, event):
+        return self._surface_desc(e, this, d)
+
+    def _blt(self, e, this, dst_rect, src, src_rect, flags, fx):
+        """the whole source copied (the present's copies are of the whole screen); DDBLT_COLORFILL
+        (0x400): the whole surface filled with the 16-bit colour DDBLTFX.dwFillColor (+0x50; the
+        clearing 0x00426F60, whole surfaces, colour 0)"""
+        self.blits.append(('Blt', this, src))
+        if flags & 0x400 and this in self.surfaces and fx:
+            a = self.surfaces[this]
+            self.write(a[0], struct.pack('<H', self.u32(fx + 0x50) & 0xFFFF) * (a[3] * a[2] // 2))
+            return 0
+        if src in self.surfaces and this in self.surfaces:
+            a, b = self.surfaces[this], self.surfaces[src]
+            self.write(a[0], self.read(b[0], min(a[3] * a[2], b[3] * b[2])))
+        return 0
+
+    def _blt_fast(self, e, this, x, y, src, r, trans):
+        self.blits.append(('BltFast', this, src))
+        return self._blt(e, this, 0, src, r, 0, 0)
+
+    # --- display: the back buffer -----------------------------------------------------------------
+    def screen_info(self):
+        """(address, width, height, pitch, format) of the back buffer, or None without a display"""
+        if self.display is None or not self.u32(BACK_BUFFER):
+            return None
+        return (self.u32(BACK_BUFFER), self.i32(SCREEN_W), self.i32(SCREEN_H), self.i32(PITCH), self.display[2])
+
+    def screen(self):
+        """the back buffer's bytes (pitch * height; the drawing writes through 0x00E92E18 with the
+        pitch 0x00E38D94), or None without a display"""
+        info = self.screen_info()
+        return None if info is None else self.read(info[0], info[3] * info[2])
+
+    def set_screen(self, data):
+        info = self.screen_info()
+        self.write(info[0], data)
+
+    def screen_png(self, path):
+        """the back buffer as a PNG, for debugging (game output: write it under local/, never into the
+        repository)"""
+        import screen
+        _, w, h, pitch, fmt = self.screen_info()
+        screen.write_png(path, self.screen(), w, h, pitch, fmt)
+
+    def message(self, msg, wparam=0, lparam=0):
+        """a window message delivered to the original's window procedure 0x00414CD0 (its input
+        globals: docs/presentation.md 5); returns its result"""
+        return self.call(WNDPROC, self.HWND, msg, wparam, lparam)
 
     # --- files ---------------------------------------------------------------------------------
     def _file(self, name):
@@ -122,9 +376,19 @@ class Game(Pharaoh):
             if os.path.isdir(d):
                 match = [f for f in os.listdir(d) if f.lower() == base.lower()]
                 path = os.path.join(d, match[0]) if match else path
+        if path in _FILE_CACHE:
+            return _FILE_CACHE[path]
         if os.path.isfile(path):
-            return open(path, 'rb').read()
+            data = open(path, 'rb').read()
+            if len(_FILE_CACHE) < 4096:
+                _FILE_CACHE[path] = data
+            return data
         return None
+
+    def _version(self, e, p):
+        # OSVERSIONINFOA: Windows XP (5.1.2600, VER_PLATFORM_WIN32_NT)
+        e.write(p + 4, struct.pack('<4I', 5, 1, 2600, 2))
+        return 1
 
     def _open(self, e):
         name, flags = e.cstr(e.arg(0)), e.arg(1)
@@ -177,17 +441,36 @@ class Game(Pharaoh):
             self.add_file(e.cstr(e.arg(0)), data)
             fp = e.alloc(32)
             self.streams[fp] = [data, 0]
+            self._stream_fd(fp, data)
             return fp
         if 'r' not in mode or '+' in mode:
             return 0
         data = self._file(e.cstr(e.arg(0)))
         if data is None:
             return 0
+        raw = data
         if 'b' not in mode:  # text mode: CR LF -> LF, ^Z ends the file
             data = data.split(b'\x1a')[0].replace(b'\r\n', b'\n')
         fp = e.alloc(32)
         self.streams[fp] = [data, 0]
+        self._stream_fd(fp, raw)
         return fp
+
+    def _fclose(self, e):
+        fp = e.arg(0)
+        if self.streams.pop(fp, None) is None:
+            return -1
+        self.fds.pop(self.u32(fp + 0x10), None)
+        return 0
+
+    def _stream_fd(self, fp, raw):
+        """FILE._file (+0x10): a descriptor of the open file, as the CRT's fopen leaves it, so that
+        _filelength(fp->_file) gives the file's size (0x004CBA60 sizes EVENTMSG.TXT that way)"""
+        fd = 3
+        while fd in self.fds:
+            fd += 1
+        self.fds[fd] = [raw, 0]
+        self.set_u32(fp + 0x10, fd)
 
     def _fgets(self, e):
         f = self.streams.get(e.arg(2))
@@ -237,6 +520,26 @@ class Game(Pharaoh):
             return -1
         f[1] = base + offset
         return 0
+
+    def _delete_file(self, e, p):
+        name = e.cstr(p)
+        key = name.replace('\\', '/').lower()
+        self.deleted.append(('file', name))
+        if key in self.files:
+            del self.files[key]
+            self.names.pop(key, None)
+            return 1
+        self.last_error = 2
+        return 0
+
+    def _remove_directory(self, e, p):
+        name = e.cstr(p)
+        key = name.replace('\\', '/').lower().rstrip('/')
+        self.deleted.append(('directory', name))
+        if any(k.startswith(key + '/') for k in self.files):
+            self.last_error = 145
+            return 0
+        return 1
 
     def add_file(self, name, data):
         """a player file (a test's, or one the game creates): kept in self.files, its name as given"""
@@ -313,8 +616,12 @@ class Game(Pharaoh):
         esp = self.uc.reg_read(UC_X86_REG_ESP)
         top = min(0x800, 0x7E000000 - esp)
         for v in struct.unpack('<%dI' % (top // 4), self.read(esp, top - top % 4)):
-            if 0x00401000 <= v < 0x0056F000 and function_start(v) in SIM_ALLOCATORS:
-                return True
+            if 0x00401000 <= v < 0x0056F000:
+                f = function_start(v)
+                if f in NOT_SIM_ALLOCATORS:
+                    return False
+                if f in SIM_ALLOCATORS:
+                    return True
         return False
 
     def _free(self, e):
@@ -344,13 +651,19 @@ class Game(Pharaoh):
         return p
 
     def _message_box(self, e):
+        """the box answered at once: with the next of self.box_answers (a test's: the button's index,
+        0 the first), else the first button"""
         k = e.arg(2) & 0xF
         k = k if k <= 5 else 0
+        answers = getattr(self, 'box_answers', None)
+        pressed = answers.pop(0) if answers else 0
+        if not 0 <= pressed < MESSAGE_BOX_BUTTONS[k]:
+            pressed = 0
         self.write(0x00F535C8, struct.pack('<i', MESSAGE_BOX_BUTTONS[k]))
         self.write(0x00F535C0, b'\x01')
-        self.write(0x00F535C4, struct.pack('<i', 0))
+        self.write(0x00F535C4, struct.pack('<i', pressed))
         self.write(0x00E38DCA, b'\x01')
-        return MESSAGE_BOX_RESULTS[k]
+        return MESSAGE_BOX_CODES[k][pressed]
 
     def _log(self, e):
         self.log.append(e.cstr(e.arg(0)) if e.arg(0) else '')
@@ -373,8 +686,44 @@ class Game(Pharaoh):
         (0x004CF8E0, (), None), ('video', (), None),
     ]
 
+    def boot_steps(self):
+        """BOOT, or with a display: 0x004CF960 after the settings read, and no 'video' step; with sound:
+        the sound start-up 0x005394F0 after 0x0044EFA0"""
+        steps = []
+        for step in self.BOOT:
+            if step[0] == 'video' and self.display is not None:
+                continue
+            steps.append(step)
+            if step[0] == 0x004149D0 and self.display is not None:
+                steps.append(('display', (), None))
+            if step[0] == 0x0044EFA0 and self.sound:
+                steps.append((SOUND_START, (), None))
+        return steps
+
+    def _bink_open(self, e, name, flags):
+        """BinkOpen(name, flags): the BINK structure (+0 width, +4 height, +0x10 frames, +0x14 the current
+        frame, 1-based in Bink; 0 frames here) of the video self.bink describes, or 0"""
+        if not self.bink:
+            return 0
+        p = e.alloc(0x40)
+        e.write(p, struct.pack('<6I', self.bink[0], self.bink[1], 0, 0, 0, 0) + bytes(0x28))
+        return p
+
+    def display_options(self):
+        """With a display: the options file the settings read at boot (0x004147F0 reads Pharaoh.inf over
+        0x00E38E58, core/boot/settings.c), as a player who chose this resolution left it: its first 0x14
+        bytes (the original reads whatever length the file has), the settings' defaults (@bin
+        0x00414802..0x004148B1: depth 0x10, 0x00E38E60..0x00E38E65 0, 0, 'D', 1, 1, 1; 0x00E38E66/67 are 0,
+        nothing sets them before) with fullscreen 0x00E38E5C 1 and the resolution 0x00E38E68 of the
+        display (1 640x480, 2 800x600, 3 1024x768). A test's own Pharaoh.inf (Game.files) is kept."""
+        if self.display is None or 'pharaoh.inf' in self.files:
+            return
+        self.add_file('Pharaoh.inf', struct.pack('<ii8Bi', 0x10, 1, 0, 0, 0x44, 1, 1, 1, 0, 0,
+                                                 RESOLUTIONS[self.display[:2]]))
+
     def boot(self, trace=False):
-        for addr, args, this in self.BOOT:
+        self.display_options()
+        for addr, args, this in self.boot_steps():
             if addr == 'initializers':
                 # CRT _cinit (0x005646C0): the C table (0x00576080, CRT internals) is replaced by
                 # its one effect on the simulation, the x87 precision (0x005640EC: 53-bit); the C++
@@ -383,6 +732,10 @@ class Game(Pharaoh):
                 for p in range(0x00576000, 0x0057607C, 4):
                     if self.u32(p):
                         self.call(self.u32(p))
+                # WinMain's first stores (dis 0x00413F02..0x00413F1F): 0x44 dwords at 0x006FDB38
+                # cleared, 0x00E38DD6 := 0
+                self.write(0x006FDB38, bytes(0x44 * 4))
+                self.write(0x00E38DD6, b'\0')
                 continue
             if addr == 'globals':
                 for a, v in ((0x00605A3C, 0), (0x00605A38, 0), (0x00605A34, 2), (0x00605A30, 0),
@@ -401,6 +754,20 @@ class Game(Pharaoh):
             if addr == 'cd':  # 0x004268C0 looks for the CD drive; WinMain stores its letter
                 self.write(0x00E38E62, b'D')
                 continue
+            if addr == 'display':
+                # WinMain's DirectDraw set-up 0x004CF960 (after the settings read 0x004149D0), at the
+                # resolution (0x00E38E68) and fullscreen (0x00E38E5C) the settings read from Pharaoh.inf
+                # (display_options); it also makes the Bink player's object (the 'video' step)
+                result = self.call(0x004CF960, 0x00400000)
+                if trace:
+                    print('boot 0x004CF960 -> %d' % result)
+                # the window is shown: Windows sends WM_SIZE and WM_MOVE (assumed: the order of the
+                # messages of ShowWindow is not observed), whose handler (dis 0x00414E8C..0x00414EF9)
+                # sets the client rectangle 0x00E39130 (in fullscreen: 0, 0 and the screen size), which
+                # scales the cursor (0x004CF210), and presents
+                self.message(WM_SIZE, 0, self.display[1] << 16 | self.display[0])
+                self.message(WM_MOVE, 0, 0)
+                continue
             if addr == 'video':  # the Bink player's object, made by the DirectDraw set-up 0x004CF960
                 p = self.alloc(0x1C)
                 self.call(0x004133D0, self.u32(0x00E39140), ecx=p)
@@ -413,6 +780,8 @@ class Game(Pharaoh):
                     self.write(p, a.encode() + b'\0')
                     ptrs.append(p)
                 result = self.call(addr, *ptrs, ecx=this)
+                if addr == 0x004CF8E0:  # dis 0x0041424B: WinMain's store after it
+                    self.write(0x00E38DD6, b'\x01')
             if trace:
                 print('boot 0x%08X -> %d' % (addr, result))
 
@@ -446,6 +815,98 @@ class Game(Pharaoh):
         return (self.read(self.STATE_BASE, self.STATE_END - self.STATE_BASE) + struct.pack('<I', used) +
                 self.read(HEAP_BASE, used) + struct.pack('<I', len(blocks)) +
                 b''.join(struct.pack('<II', o, n) for o, n in blocks))
+
+    @classmethod
+    def booted(cls, **kw):
+        """A booted game (Game(**kw).boot()), from a snapshot when one is cached
+        (local/oracle/cache/boot_*.snap, keyed by the arguments and the oracle's code)."""
+        return cls.cached('boot', lambda g: None, **kw)
+
+    @classmethod
+    def cached(cls, name, setup, **kw):
+        """Game(**kw), booted, then setup(g); the result is snapshotted under `name` (with the
+        arguments and a hash of the oracle's code in the key) and restored next time (0.3 s
+        instead of the boot and the setup). setup must be deterministic for a given name."""
+        import hashlib
+        here = os.path.dirname(os.path.abspath(__file__))
+        code = hashlib.sha1()
+        for f in ('emu.py', 'game.py', 'sound.py'):
+            if os.path.exists(os.path.join(here, f)):
+                code.update(open(os.path.join(here, f), 'rb').read())
+        g = cls(**kw)  # the key holds the settings in effect (defaults come from the environment)
+        settings = (g.display, bool(getattr(g, 'sound', False)), sorted(k for k in kw if k not in ('display', 'sound')))
+        key = hashlib.sha1(repr((name, settings, code.hexdigest())).encode()).hexdigest()[:20]
+        cache = os.path.join(os.path.dirname(os.path.dirname(here)), 'local', 'oracle', 'cache')
+        path = os.path.join(cache, 'snap_%s.snap' % key)
+        if os.path.exists(path):
+            try:
+                g.restore(path)
+                return g
+            except Exception:  # an unreadable or old snapshot: build it again
+                g = cls(**kw)
+        g.boot()
+        setup(g)
+        try:
+            os.makedirs(cache, exist_ok=True)
+            g.snapshot(path)
+        except Exception:  # something cannot be saved (e.g. a sound driver object): no cache
+            pass
+        return g
+
+    # --- snapshots: the whole emulated game, to skip a boot and a load next time ----------------
+    # Not saved: what the constructor rebuilds the same way (the Unicorn engine and its hooks, the
+    # Python handlers of the imports); the COM handlers the boot created are rebuilt from their names.
+    SNAPSHOT_SKIP = {'uc', 'hooks', 'handlers', 'surface_methods', 'deep_recorder'}
+    SNAPSHOT_VERSION = 1
+
+    def snapshot(self, path):
+        """Write the whole emulated game to path: every mapped region (the heaps up to their use),
+        the CPU context (x87 included), the Python-side state. Raises if something cannot be saved."""
+        import pickle
+        from emu import HEAP_BASE, OTHER_HEAP_BASE
+        regions = []
+        for lo, hi, _ in self.uc.mem_regions():
+            end = hi + 1
+            if lo == HEAP_BASE:
+                end = self.heap
+            elif lo == OTHER_HEAP_BASE:
+                end = self.other_heap
+            regions.append((lo, hi + 1, bytes(self.uc.mem_read(lo, end - lo))))
+        attrs = {k: v for k, v in self.__dict__.items() if k not in self.SNAPSHOT_SKIP}
+        blob = pickle.dumps({'version': self.SNAPSHOT_VERSION, 'regions': regions,
+                             'context': self.uc.context_save(), 'attrs': attrs}, protocol=5)
+        tmp = path + '.%d' % os.getpid()
+        with open(tmp, 'wb') as f:
+            f.write(blob)
+        os.replace(tmp, path)
+
+    def restore(self, path):
+        """Replace this game (constructed with the same arguments, not booted) by a snapshot."""
+        import pickle
+        with open(path, 'rb') as f:
+            snap = pickle.load(f)
+        if snap.get('version') != self.SNAPSHOT_VERSION:
+            raise ValueError('old snapshot format')
+        mapped = {(lo, hi + 1) for lo, hi, _ in self.uc.mem_regions()}
+        for lo, end, data in snap['regions']:
+            if (lo, end) not in mapped:
+                raise ValueError('snapshot region 0x%08X not mapped here' % lo)
+            self.uc.mem_write(lo, data)
+            if lo + len(data) < end:  # the unused rest of a heap: zero, as never used
+                self.uc.mem_write(lo + len(data), bytes(end - lo - len(data)))
+        self.uc.context_restore(snap['context'])
+        self.__dict__.update(snap['attrs'])
+        tables = {'IDirectDrawClipper': getattr(self, 'clipper_methods', {}),
+                  'IDirectDrawSurface': getattr(self, 'surface_methods', {})}
+        for name in self.imports.values():
+            if name.startswith('COM!') and name[4:] not in self.handlers:
+                label, _, off = name[4:].rpartition('+')
+                n, fn = self.com_method(tables.get(label, {}), label, int(off, 16))
+                if not callable(fn):
+                    value = fn
+                    fn = lambda e, *a, value=value: value  # noqa: E731
+                self.handlers[name[4:]] = (n, fn)
+        self.uc.ctl_flush_tb()
 
     def load_state(self, data):
         """Replace the game state by a state file's (data segments, simulation heap, blocks)."""

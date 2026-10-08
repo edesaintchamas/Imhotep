@@ -4,6 +4,7 @@
 
 #include "building/day_access.h"
 #include "sim/call.h"
+#include "sim/platform.h"
 #include "state/ported.h"
 #include "state/records.h"
 
@@ -171,10 +172,9 @@ void day_totals_45e6e0(game_state *st, int32_t player)
 void sound_stop_stream(game_state *st, uint32_t self, int32_t channel)
 {
     /* @bin 0x0055F561 with the sound system on (+0x200 == 0) the stream +0x1D8 + 4 * channel is
-     * closed (AIL_close_stream: platform, not simulated here) and its handle cleared */
-    if (P32(st, self + 0x200) == 0) {
-        P32(st, self + 0x1D8 + 4 * (uint32_t) channel) = 0;
-    }
+     * closed (AIL_close_stream: the platform's request, core/sim/platform.c) and its handle cleared */
+    (void) self; /* the sound object 0x00E92BF8 */
+    platform_stream_stop(st, channel);
 }
 
 void map_grid_decay_978d9c(game_state *st)

@@ -119,6 +119,11 @@ Method and conventions: docs/porting.md.
       unported paths the game never takes (0x0051CAE0 outside the angles the game passes,
       0x00496640's endless-loop path). `make test` passes; provenance 100 % confirmed.
 
+      Scope (found in phase 7, docs/presentation.md): this lockstep runs ticks only, as the
+      original does with no frame drawn. In play each frame also writes state the simulation reads
+      (the CRT rand seed, building and water animation frames in the grids, goods flags, autosave):
+      phase 7.1 moves those frame-side writes into core and checks frame by frame.
+
       Carried over (not reached by the tick on the corpus, or file input):
       - 0x0053DFF0, the `.sg3` reader under the graphics loader: done in phase 5 (core/graphics/sg3.c;
         the file bytes come from the platform, the `.555` pixel load is a platform request).
@@ -206,8 +211,64 @@ own handler functions, whose inputs are globals of the state that the platform s
 
 ## Phase 7: platform (playable)
 
-- [ ] 7.1 SDL renderer: city view (sprite readers done), terrain and buildings, figures, overlays.
-- [ ] 7.2 UI: menus, sidebar, info panels, advisors, messages (text groups done).
-- [ ] 7.3 Input, sound and music; videos where a free decoder exists.
-- [ ] 7.4 Check: screenshots against the original's frames for the same state (renderer run in the
-      oracle on the off-screen buffer, if feasible).
+Survey: docs/presentation.md. The original's own drawing runs headless in the oracle into its
+back buffer (pointer 0x00E92E18, pitch 0x00E38D94): the renderer and the UI are ported from the
+binary into `present/` (deterministic, drawing into a pixel buffer) and checked pixel by pixel;
+`platform/` holds the SDL window, events, clock, audio and video.
+
+- [x] 7.0 Oracle and checks: display boot (fake DirectDraw), back buffer in the comparisons, pixel
+      data mapped on the port's side, frame lockstep with a scripted clock and input
+      (`tools/oracle/framestep.py`, `harness.py --display`, docs/oracle.md: Display, Snapshots).
+- [x] 7.1 Frame skeleton in core (`core/frame`): pacing, tick loop, autosave, per-frame rand draws,
+      animation timers, the frame-side state writes, the window procedure; 12 months of frames
+      equal to the original's.
+- [x] 7.2 Drawing primitives (blitters, fills) and text (sprite fonts), `present/draw`:
+      `oracle_draw_check.py` 1,968 / 1,968 cases equal (several displays and saves).
+- [x] 7.3 City view (`present/city`): terrain, buildings, figures, overlays, construction ghosts,
+      animations, camera (`oracle_cityview_check.py`).
+- [x] 7.4 Sidebar, top bar, minimap, tooltips (`present/sidebar`).
+- [x] 7.5 Windows (`present/ui`): the window machinery and dispatchers, menus, advisors, info panels,
+      messages and the empire map, dialogs, the front end (`oracle_info_check.py`,
+      `oracle_msgempire_check.py` 31 / 31, `oracle_frontend_check.py`).
+- [x] 7.6 Input: the window procedure `0x00414CD0` ported (`core/frame/wndproc.c`): keys, mouse,
+      scrolling, rotation, hotkeys, resolution keys F6–F9, window messages; the platform answers
+      cursor, key and message requests.
+- [x] 7.7 Sound and music logic (requests checked against the original's driver calls,
+      `oracle_sound_check.py` 7 / 7); video: Bink through FFmpeg (`platform/media.c`), with the
+      original's 640 x 480 switch around a video (`oracle_video_check.py` 24 / 24).
+- [x] 7.8 SDL platform (`platform/`, `make game` → `build/imhotep`): window, events, clock, audio,
+      video, files; the original's start-up ported (`core/boot`, `oracle_boot_check.py` 7 / 7), so
+      playing needs only the game files.
+- [x] 7.9 Check: every frame of a scripted session equal to the original's, state and pixels.
+
+      Result (2026-10-08): 2,848 functions ported in all (987 in this phase; 794 in `present/`,
+      ~40,000 lines). Scripted SDL sessions (`build/imhotep --hidden --det-clock --script --dump
+      --msglog`, then the same clock, window messages and cursor given to the original's frame
+      `0x004D6B60` and window procedure in the oracle) are equal frame by frame, state and pixels:
+      - from the port's own boot (`core/boot`, as `make game` plays), `oracle_play_check.py` (in
+        `make present-check`, session `tests/differential/play/session.txt`): 1,042 / 1,042 frames (a
+        new family, a mission start, building, scrolling, an info panel, the overlays menu); the only
+        bytes set aside are the boot check's known ones (the import table, the stack bytes the
+        original leaves in the monument objects and the campaign steps) and platform values (the
+        window, DirectDraw and cursor handles, and pointers into memory the two sides allocate at
+        different addresses);
+      - from the original's booted state: 1,190 frames (also File > Save then Load, F7 to 640 x
+        480), and a 565 session (F8 with its confirmation, F9).
+      Both sides run without video: in the oracle `BinkOpen` fails (no video device) and the
+      original skips the video, while the port plays it (the player's state effects, the 640 x 480
+      switch and back included, are checked with a video that opens: `oracle_video_check.py` 24 / 24).
+      `make test` passes: `oracle_frame_check.py` 190 / 190 cases (every package's frame cases),
+      `oracle_draw_check.py` 1,968 / 1,968, `oracle_boot_check.py` 7 / 7, and phases 1–6's checks
+      (functions 1,029 / 1,029, commands 203 / 203, new games 160 / 160, saves loaded 31 / 31,
+      hover 175 / 175). The 12-month lockstep on the 8 corpus cities: 9,792
+      ticks each, 0 with differences.
+
+      Carried over:
+      - the windowed mode's window styles and clipper (the boot stops there as unported; the game
+        runs fullscreen-style in an SDL window);
+      - a video's frames: the oracle cannot decode Bink, so the frames FFmpeg shows are not compared
+        (the player's state effects are);
+      - Smacker videos (logo, intro, credits: not played), and the CD-drive and 8.3 file-system edge cases (6.1);
+      - 0x004179A0 loops forever in the original when no advisor is available from index 0; the
+        port reproduces it;
+      - the map editor (out of scope).

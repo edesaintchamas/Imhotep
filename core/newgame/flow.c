@@ -617,9 +617,8 @@ int32_t campaign_load(game_state *st, uint32_t self, uint32_t path)
 
 void fade_start(game_state *st, int32_t a, int32_t next, int32_t ms)
 {
-    /* @bin 0x0041AA20 the fade's start time is timeGetTime(): the wall clock, an input, 0 in core as
-     * in the oracle (docs/porting.md 3) */
-    uint32_t now = 0;
+    /* @bin 0x0041AA20 the fade's start time is timeGetTime(): the wall clock (core/sim/platform.h) */
+    uint32_t now = platform_clock_ms(st);
     S32(st, 0x006FDCB0u) = a;
     U32(st, 0x006FDCACu) = now;
     U32(st, 0x006FDCA8u) = now + (uint32_t) ms;

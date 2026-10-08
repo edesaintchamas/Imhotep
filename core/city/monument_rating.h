@@ -15,4 +15,12 @@ int monument_rating_value(game_state *st, int32_t planned, x87_val *out);
 void pyramid_status(game_state *st, int32_t b, int32_t *out); /* @bin 0x004F1310 out: 0x1C i32 */
 void monument_rating_update(game_state *st); /* @bin 0x0046EF50 */
 
+/* the progress (percent) of the other monuments, thiscall on their managers; out (NULL: none) the
+ * caller's record of up to 14 dwords (layouts in monument_rating.c) */
+int32_t monument_progress_401540(game_state *st, int32_t b, int32_t *out);                     /* @bin 0x00401540 */
+int32_t monument_progress_40d940(game_state *st, uint32_t self, int32_t b, int32_t *out);      /* @bin 0x0040D940 */
+int32_t monument_progress_417050(game_state *st, uint32_t self, int32_t b, int32_t *out);      /* @bin 0x00417050 */
+int32_t monument_progress_4e6710(game_state *st, uint32_t self, int32_t b, int32_t *out);      /* @bin 0x004E6710 */
+int32_t monument_progress_parts(game_state *st, uint32_t self, int32_t b, int32_t n, int32_t *out); /* @bin 0x00546790 */
+
 #endif

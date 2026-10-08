@@ -68,9 +68,8 @@ void newgame_message_timer_reset(game_state *st)
     /* @bin 0x004E1830 */
     U32(st, 0x00E951D8u) = 0;
     U32(st, 0x00E951D4u) = 0;
-    /* @bin 0x004E183C timeGetTime() - 10000: the wall clock is an input, 0 in core as in the
-     * oracle (docs/oracle.md "Known differences", docs/porting.md 3) */
-    U32(st, 0x00E951D0u) = 0u - 0x2710u;
+    /* @bin 0x004E183C timeGetTime() - 10000: the wall clock (core/sim/platform.h) */
+    U32(st, 0x00E951D0u) = platform_clock_ms(st) - 0x2710u;
 }
 
 void newgame_messages_reset(game_state *st)

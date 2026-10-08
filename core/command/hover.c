@@ -333,19 +333,12 @@ static int32_t run_bridge(game_state *st, const int32_t *a) { return bridge_meas
 static int32_t run_edge(game_state *st, const int32_t *a) { return edge_neighbours_with(st, a[0], (uint32_t) a[1]); }
 static int32_t run_corner(game_state *st, const int32_t *a) { return corner_neighbours_with(st, a[0], (uint32_t) a[1]); }
 
-static int32_t run_ferry_hover(game_state *st, const int32_t *a)
-{
-    (void) a;
-    ferry_hover(st);
-    return 0;
-}
-
 const ported_function hover_ports[] = {
     {0x0047F3E0u, "ferry_reach", 3, 32, 0, run_reach, 0},
     {0x0047F200u, "bridge_measure", 3, 0, 0, run_bridge, 0}, /* the third argument is not read */
     {0x0047EC80u, "edge_neighbours_with", 2, 32, 0, run_edge, 0},
     {0x0047ECC0u, "corner_neighbours_with", 2, 32, 0, run_corner, 0},
-    /* the rule part only: the original's run also draws (PORT_PLATFORM: presentation left out) */
-    {0x0043D300u, "ferry_hover", 0, 0, 0, run_ferry_hover, PORT_PLATFORM},
+    /* 0x0043D300 itself (the ferry ghost, drawing included) is present/city/ghost_ferry.c's; ferry_hover
+     * above is its rule part, for callers that need the landing validity without drawing */
 };
 const int hover_ports_count = sizeof(hover_ports) / sizeof(hover_ports[0]);

@@ -4,7 +4,7 @@ One entry per `@unverified` tag in `core/`. Remove the entry when the rule is co
 
 | ID | Location | Question | Leads |
 |---|---|---|---|
-| _(none yet)_ | | | |
+| CURSOR-WINDOWED | core/frame/input.c (GetCursorPos in 0x004D6B60, 0x00414CD0) | without a platform cursor, the cursor is taken as the last mouse message's point (0x00E38E0A / 0x00E38E08). In the fullscreen game GetCursorPos returns the same point; in a windowed game it is in screen coordinates. The SDL platform gives the cursor (platform_cursor_pos) | how the original behaves windowed (it offers windowed mode: 0x00E38E5C) |
 
 ## Open questions on the method (not tied to a tag)
 
@@ -22,3 +22,5 @@ One entry per `@unverified` tag in `core/`. Remove the entry when the rule is co
 | UNINIT-4405C0 | core/command/place_ent.c (inline 0x004405C0) | when the venue orientation is not 0/1 or the view not 0/2/4/6, the original reads unset outputs; the port stops (`state_unported`) | not reachable from the menus |
 | UNINIT-41AE40 | core/newgame/flow.c (0x0041AE40) | the campaign.txt parser leaves bytes +2..+6, +0x2B, +0x37 and +0x3D..+0x3F of each campaign step unset; they come from its stack frame and reach the progress file (0x0041B8A0). The port writes 0; the tests clear the emulator's stack first | what the boot's previous calls leave in that frame |
 | UNINIT-41B680 | core/newgame/flow2.c (0x0041B680) | reading a progress file of the older size (0x4A6C bytes), the original copies 24 bytes of its own stack frame into the table (+0x4A6C..+0x4A84); the port writes 0. The tests clear the stack first | what the callers' frames leave there; only old progress files reach it |
+| UNINIT-417B40 | present/ui/cityframe.c (0x00417B40, tutorial message 0x83) | the 30-byte message block the original passes is a buffer of its own frame, 24 bytes of it never written: the port stops there (`state_unported`) and the rest of the function is ported | what the frame holds there in play; only the tutorial mission reaches it |
+| CRT-REMOVE-ERRNO | present/ui/frontend/files.c (0x00562BB5 remove) | a failed platform delete is mapped to Win32 error 2 (file not found): the platform does not give the error code | add an error code to platform_file_delete if a caller tells errors apart |

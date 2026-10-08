@@ -12,6 +12,7 @@
 #ifndef IMHOTEP_NEWGAME_FLOW2_H
 #define IMHOTEP_NEWGAME_FLOW2_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 #include "state/state.h"
@@ -30,6 +31,9 @@ void file_list_sort(game_state *st, uint32_t self, uint32_t cmp);
 /* the number of files matching `pattern` (a C string), as the main menu counts them with a file list on
  * its stack (0x004CB711: 0x0041C6D0, 0x0041C740, 0x0041C710) */
 int32_t file_list_count(game_state *st, const char *pattern);
+/* the same list's names (NUL-separated, in the list's order, as far as `size` holds them) copied to
+ * `out` before the list is destroyed; returns their number (the family deletion 0x00516DD0) */
+int32_t file_list_names(game_state *st, const char *pattern, char *out, size_t size);
 
 /* @bin 0x0041ACD0 the blanks (bytes <= 0x20) around the state string at `s` removed */
 void name_trim(game_state *st, uint32_t s);

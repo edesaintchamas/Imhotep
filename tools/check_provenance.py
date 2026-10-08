@@ -21,7 +21,9 @@ NON_LOGIC = re.compile(r"^\s*($|//|/\*|\*|#include|#pragma|[{}]\s*;?$)")
 
 
 def source_files():
-    return [p for p in CORE.rglob("*") if p.suffix in SRC_EXT]
+    """core/ and present/ (the ported presentation code follows the same rules)"""
+    present = CORE.parent / "present"
+    return [p for d in (CORE, present) if d.is_dir() for p in d.rglob("*") if p.suffix in SRC_EXT]
 
 
 def report() -> int:

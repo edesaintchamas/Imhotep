@@ -101,3 +101,74 @@ and a dozen small steps (`0x00468860`, `0x00404350`, `0x00443330`, `0x004677C0`,
   comparisons exclude them (`tools/oracle/excluded.py`). The video returns 0 (not played) without a
   platform, as the original does without a video device (under the oracle it then retries every
   tick).
+- **Drawing buffers and pixel data** (phase 7, docs/presentation.md §2; `tools/oracle` with a
+  display, docs/oracle.md "Display"). The drawing writes 16-bit pixels through the back buffer's
+  address `u32 0x00E92E18` (rows of `i32 0x00E38D94` bytes, `0x00E38DB0` × `0x00E38DAC` pixels, 565
+  when `0x00E92DFC` = 2, else 555) and reads image pixels through pointers the state holds (slot
+  `+0xCC24` from `0x0053F660`, the image entries `+0` derived from it, `0x00D3B5F4`) and through the
+  spare screen `u32 0x00E92E1C` (100,000 bytes, where `0x004CE480` reads external images). None of
+  these buffers is part of the state; their addresses are. Scheme for the comparisons
+  (`build/state_replay`):
+  - the back buffer is given with `--screen W,H,PITCH,FORMAT,IN,OUT` and the spare screen with
+    `--rw ADDR,IN,OUT`: the original's bytes before the call, mapped **writable** at the original's
+    address with `state_map_external` (so a port writes `P16(st, U32(st, 0x00E92E18) + y·pitch + 2x)`
+    exactly as the original does), written back to OUT after the call; the back buffer is compared
+    with the original's (the spare screen is a work buffer: the ports of the file readers use their
+    own buffers, so it is not compared); the unported calls' writes into them are recorded (`tools/oracle/replay.py`, page
+    protection) and replayed like state writes;
+  - all other pixel data: the oracle's whole other heap (0x68000000 up to its allocation top: the
+    `.555` buffers of every graphics slot, the 565 conversions, the fonts, the group list nodes) after
+    the original's run, mapped **read-only** at the same addresses (`--map 68000000:FILE`). Image
+    buffers do not change once loaded, so their contents after the call are what the port's reads see
+    (buffers loaded during the call are loaded by recorded calls before the port reads them). Mutable
+    data in that heap other than the two buffers above (UI objects) must not be read by ports through
+    this map; a port that needs one gets it added as a `--rw` buffer.
+  - The mappings are tried in order (`state_ptr`): the writable buffers first (they lie inside the
+    other heap). `game_state.external` holds 16 mappings.
+  In the game, the platform owns these buffers: it allocates the back buffer and stores its address
+  in `0x00E92E18` (as the original's `0x00427480` / Lock does), and loads the pixel data
+  (`platform_pixels_load`).
+
+## The booted state (`game_boot`, core/boot: WinMain's start-up)
+
+A state made from the exe's sections (`platform/exe_image.c`) becomes the booted game with
+`game_boot(st, host, display, sound)` (core/boot/boot.h): the C++ static constructors (the CRT's table
+`0x00576000` .. `0x0057607C`, read from the state as `_initterm` reads it), then WinMain's (`0x00413ED0`)
+steps in its order, the same steps as `tools/oracle/game.py` `Game.boot_steps` (`boot_step(k)` runs one):
+the settings `0x004147F0` (Pharaoh.ini, Pharaoh.inf), the text files `0x004CEC40`, the CD letter, the
+default names `0x004149D0`, the display set-up `0x004CF960` (display boots), the graphics slots and
+loading screen `0x00414420`, the model files, campaign.txt, trade_recommends.txt `0x00541310`, the
+reason phrases `0x0044EFA0`, the sound start-up `0x005394F0` (sound boots), the view reset, the
+monument objects' layout, `0x00541D50`, `0x004DEE10`, `0x004CF8E0`, the Bink object.
+
+- **Files** come from the platform (`platform_file_read`): an `fopen` that only tests a file is a size
+  query. The CRT's C initialisers are not run: their effects are the CRT's own data (stdio tables, the
+  x87 precision 53 bits, which core's integer arithmetic reproduces where the game uses x87).
+- **Memory outside the state** (the text files' strings, the spare screen `0x00E92E1C`, the event
+  phrases, the sound registry and voices, the DirectDraw surfaces, the Bink object, the pixel data)
+  comes from the boot's host (`boot_host.alloc` with the original's call site, `surface`; pixel loads
+  from `platform_pixels_load`): core reads and writes it through `state_ptr`, the host maps it.
+  `boot_arena` is such a host: one region at `0x68000000` bumped in 16-byte steps, like the oracle's
+  other heap. The text files are read into these blocks by core (`Pharaoh_Text.eng` from byte 0x1F5C,
+  `Pharaoh_MM.eng` from 0x13898): a game's platform maps nothing else for them.
+- **Handles** of the window system, DirectDraw and Miles (window, cursors, DirectDraw objects, the
+  sound driver and its sample handles) and the current directory and GDI text extents are the host's
+  answers (`boot_host.handle`, `cwd`, `text_extent`); the state keeps them as the original does.
+- **Constants kept as code.** The eight monument objects' constructors (72 KB of stores, one CRT
+  `rand() % 5` per part) and the sound tables' builders are run by `tools/gen/gen_boot_data.py` (an
+  interpreter of their instructions) into `core/boot/boot_data.c`: the objects' final bytes, the part
+  rectangles, the rand bytes in call order, the builders' call lists.
+
+Checked by `tests/differential/oracle_boot_check.py` (the port's boot against `Game.boot`, no display,
+each display mode, with and without sound; the allocations outside the state get the original's
+addresses by call site; downstream: a save loaded, two new games, ticks and frames started from the
+port's booted state). Bytes that differ for a known reason (the check lists them):
+
+| Bytes | Why |
+|---|---|
+| import address table `0x0056F000` (PE directory 12) | the Windows loader writes the DLLs' entry points (the oracle its stubs); core calls no DLL |
+| the base part of each monument object, +0x1C .. +0x3F | `0x004E5140` copies 9 dwords of `0x004E5210`'s stack temporary that nothing initialised (stack contents) |
+| campaign steps +2..+6, +0x2B, +0x37, +0x3D..+0x3F | `0x0041AE40` copies a stack record that `0x0041AC00` leaves partly uninitialised |
+| `0x00E38DD6` | WinMain sets it to 1 after `0x004CF8E0` (dis `0x0041424B`); `game.py` does not |
+| `0x00784F28` and the phrases' pointer array | EVENTMSG.TXT: the oracle's `fopen` FILE block has `_fileno` 0, so `_filelength` fails and `0x004CBA60` reads nothing; the port reads the file as the game does |
+| `tools/oracle/excluded.py` ranges | the CRT strtok position, the file path buffer |

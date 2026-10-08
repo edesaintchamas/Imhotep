@@ -35,6 +35,15 @@ RANGES = [
     (0x012663C8, 0x4, 'CRT strtok position (0x00561DB1)'),
     # the message box's button table 0x005F8910 (3 x 0x1C): the drawing 0x00538940 writes the
     # rectangles (first 8 bytes of each); read only by the button handling of the box
+    # DirectDraw's COM objects (package finish): the object 0x00E39148, the clipper, back and primary
+    # surfaces 0x00E39170..0x00E3917B, the lock object's surfaces and primary memory 0x006DE518 +0x1C..+0x27
+    # (0x004D0480). Read only as `this` of DirectDraw calls (0x00413470, 0x004143C0, 0x00426B40..0x00427480,
+    # 0x004CF960, 0x004CFFE0, 0x004D0060, 0x004D03F0, 0x00538FA0; the lock object's constructor 0x00413E80):
+    # the platform's handles in the port (core/frame/display.c); the back buffer's memory 0x00E92E18 and
+    # the lock object's +0x28 stay compared
+    (0x00E39148, 0x4, 'DirectDraw object (platform handle, 0x00426B40)'),
+    (0x00E39170, 0xC, 'DirectDraw clipper, back and primary surfaces (platform handles, 0x00426FF0)'),
+    (0x006DE534, 0xC, 'lock object: surfaces and primary memory (platform handles, 0x004D0480)'),
     (0x005F8910, 8, 'message box button rectangle (0x00538940)'),
     (0x005F892C, 8, 'message box button rectangle (0x00538940)'),
     (0x005F8948, 8, 'message box button rectangle (0x00538940)'),

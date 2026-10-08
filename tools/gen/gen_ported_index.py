@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Imhotep - write docs/provenance/ported.md: every ported function of Pharaoh.exe, from the port
-tables (build/state_run --list) and the source (the file holding its table entry).
+tables (build/state_run --list) and the source in core/ and present/ (the file holding its table entry).
 
 Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0.
 
@@ -20,7 +20,7 @@ def main():
     out = subprocess.run([os.path.join(build, 'state_run'), '--list'], capture_output=True, text=True,
                          check=True).stdout
     where = {}
-    for d, _, files in os.walk(os.path.join(ROOT, 'core')):
+    for d, _, files in [w for top in ('core', 'present') for w in os.walk(os.path.join(ROOT, top))]:
         for f in files:
             if not f.endswith('.c'):
                 continue

@@ -79,6 +79,7 @@ class Pharaoh:
         self.uc.hook_add(UC_HOOK_CODE, self._on_hook, begin=HOOK_BASE, end=HOOK_BASE + 0x10000)
         self.handlers = dict(STUBS)
         self.stub_log = []
+        self.ail_log = []  # MSS32 calls: (name, args, result, return address, caller's frame args, recorded call)
         self.fault = None
         self.hooks = {}
 
@@ -186,6 +187,19 @@ class Pharaoh:
             self.fault = e
             uc.emu_stop()
             return
+        if name.startswith('MSS32.DLL!'):
+            # the sound driver's calls (docs/oracle.md "Sound"): name, arguments, result, the caller's
+            # return address and the first three stack arguments of the calling function's frame (the
+            # Miles wrappers 0x0055F32F..0x0055F639 keep ebp frames: their channel is there)
+            ebp = uc.reg_read(UC_X86_REG_EBP)
+            try:
+                frame = tuple(self.u32(ebp + 8 + 4 * i) for i in range(3))
+            except UcError:
+                frame = (0, 0, 0)
+            rec = getattr(self, 'deep_recorder', None)  # replay.py: the recorded call it is made in
+            scope = rec.pending[0] if rec is not None and rec.pending is not None else None
+            self.ail_log.append((fname.split('@')[0].lstrip('_'), tuple(args), (result or 0) & 0xFFFFFFFF, ret, frame,
+                                 scope))
         uc.reg_write(UC_X86_REG_EAX, (result or 0) & 0xFFFFFFFF)
         uc.reg_write(UC_X86_REG_ESP, esp + 4 + 4 * nargs)  # stdcall: callee pops
         uc.reg_write(UC_X86_REG_EIP, ret)
@@ -193,6 +207,42 @@ class Pharaoh:
     def _on_unmapped(self, uc, access, addr, size, value, _):
         self.fault = MemoryError('unmapped access at 0x%08X (eip 0x%08X)' % (addr, uc.reg_read(UC_X86_REG_EIP)))
         return False
+
+    def stub(self, nargs, fn, name):
+        """A new stdcall stub past the imports (a COM method, ...): its address. fn(emu, *args) ->
+        eax, or a constant. Calls are logged in stub_log under `name`."""
+        slot = len(self.imports)
+        addr = STUB_BASE + 16 * slot
+        if slot >= 0x10000 // 16:
+            raise MemoryError('no stub slot left')
+        self.uc.mem_write(addr, b'\xC3')
+        self.imports[addr] = 'COM!' + name
+        if not callable(fn):
+            value = fn
+            fn = lambda e, *a: value  # noqa: E731
+        self.handlers[name] = (nargs, fn)
+        return addr
+
+    @staticmethod
+    def com_method(methods, label, off):
+        """(argument count, handler) of the vtable entry `off` of a COM object (com_object)"""
+        if off in methods:
+            return methods[off]
+
+        def fn(e, *a):
+            raise RuntimeError('%s: method +0x%X is not emulated' % (label, off))
+        return 1, fn
+
+    def com_object(self, methods, label):
+        """An emulated COM object: a pointer to a vtable of 64 stdcall stubs. methods: {vtable
+        offset: (argument count with `this`, handler or constant)}; any other method stops the run."""
+        table = self.alloc(0x100)
+        for off in range(0, 0x100, 4):
+            n, fn = self.com_method(methods, label, off)
+            self.set_u32(table + off, self.stub(n, fn, '%s+%X' % (label, off)))
+        obj = self.alloc(16)
+        self.set_u32(obj, table)
+        return obj
 
     # --- memory --------------------------------------------------------------------------------
     def read(self, addr, n):
@@ -324,6 +374,7 @@ STUBS = {
     'GetCurrentDirectoryA': (2, lambda e, n, p: (e.write(p, b'C:\\\0'), 3)[1]),
     'timeGetTime': (0, lambda e: 0),
     # the profiler's timer (0x00489B40): no performance counter, as on hardware without one
+    'CoUninitialize': (0, lambda e: 0),  # COM shut down at quit (0x004CFF50)
     'QueryPerformanceFrequency': (1, lambda e, p: (e.write(p, bytes(8)), 0)[1]),
     'QueryPerformanceCounter': (1, lambda e, p: (e.write(p, bytes(8)), 0)[1]),
 }

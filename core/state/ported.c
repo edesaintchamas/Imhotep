@@ -228,6 +228,8 @@ const int state_ports_count = sizeof(state_ports) / sizeof(state_ports[0]);
 /* the modules' tables (core/state/ported.h) */
 PORTED_TABLE(state_ports)
 PORTED_TABLE(platform_ports)
+PORTED_TABLE(frame_sound_ports)
+PORTED_TABLE(frame_view_ports)
 PORTED_TABLE(text_ports)
 PORTED_TABLE(random_ports)
 PORTED_TABLE(figure_ports)
@@ -363,12 +365,25 @@ PORTED_TABLE(monument_need_ports)
 PORTED_TABLE(newgame_map_load_ports)
 PORTED_TABLE(newgame_setup_ports)
 PORTED_TABLE(newgame_start2_ports)
+PORTED_TABLE(frame_ports)
+PORTED_TABLE(frame_autosave_ports)
+PORTED_TABLE(frame_wndproc_ports)
+PORTED_TABLE(boot_settings_ports)
+PORTED_TABLE(boot_ctor_ports)
+PORTED_TABLE(boot_monument_ports)
+PORTED_TABLE(boot_step_ports)
+PORTED_TABLE(boot_ports)
+PORTED_TABLE(boot_sound_ports)
+PORTED_TABLE(route_points_ports)
+PORTED_TABLE(display_ports)
 static const struct {
     const ported_function *table;
     const int *count;
 } ported_modules[] = {
     {state_ports, &state_ports_count},
     {platform_ports, &platform_ports_count},
+    {frame_sound_ports, &frame_sound_ports_count},
+    {frame_view_ports, &frame_view_ports_count},
     {text_ports, &text_ports_count},
     {random_ports, &random_ports_count},
     {figure_ports, &figure_ports_count},
@@ -503,14 +518,58 @@ static const struct {
     {newgame_map_load_ports, &newgame_map_load_ports_count},
     {newgame_setup_ports, &newgame_setup_ports_count},
     {newgame_start2_ports, &newgame_start2_ports_count},
+    {frame_ports, &frame_ports_count},
+    {frame_autosave_ports, &frame_autosave_ports_count},
+    {frame_wndproc_ports, &frame_wndproc_ports_count},
+    {boot_settings_ports, &boot_settings_ports_count},
+    {boot_ctor_ports, &boot_ctor_ports_count},
+    {boot_monument_ports, &boot_monument_ports_count},
+    {boot_step_ports, &boot_step_ports_count},
+    {boot_ports, &boot_ports_count},
+    {boot_sound_ports, &boot_sound_ports_count},
+    {route_points_ports, &route_points_ports_count},
+    {display_ports, &display_ports_count},
 };
 #define NMODULES ((int) (sizeof(ported_modules) / sizeof(ported_modules[0])))
+
+/* tables added at start-up by code outside core (present/: present_register) */
+#define MAX_EXTRA 512
+static struct {
+    const ported_function *table;
+    const int *count;
+} extra_modules[MAX_EXTRA];
+static int nextra;
+
+/* open-addressing index of every port by address, built on first use */
+#define INDEX_SIZE 16384
+static const ported_function *index_table[INDEX_SIZE];
+static int index_built;
+
+int ported_add_table(const ported_function *table, const int *count)
+{
+    if (nextra == MAX_EXTRA) {
+        return -1;
+    }
+    extra_modules[nextra].table = table;
+    extra_modules[nextra].count = count;
+    nextra++;
+    if (index_built) { /* rebuilt with the new table on the next lookup */
+        for (int i = 0; i < INDEX_SIZE; i++) {
+            index_table[i] = NULL;
+        }
+        index_built = 0;
+    }
+    return 0;
+}
 
 int ported_count(void)
 {
     int n = 0;
     for (int m = 0; m < NMODULES; m++) {
         n += *ported_modules[m].count;
+    }
+    for (int m = 0; m < nextra; m++) {
+        n += *extra_modules[m].count;
     }
     return n;
 }
@@ -523,13 +582,14 @@ const ported_function *ported_at(int i)
         }
         i -= *ported_modules[m].count;
     }
+    for (int m = 0; m < nextra; m++) {
+        if (i < *extra_modules[m].count) {
+            return &extra_modules[m].table[i];
+        }
+        i -= *extra_modules[m].count;
+    }
     return NULL;
 }
-
-/* open-addressing index of every port by address, built on first use (constant afterwards) */
-#define INDEX_SIZE 8192
-static const ported_function *index_table[INDEX_SIZE];
-static int index_built;
 
 static void build_index(void)
 {

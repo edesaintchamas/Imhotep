@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "sim/call.h"
+#include "sim/platform.h"
 #include "state/ported.h"
 #include "state/records.h"
 
@@ -23,9 +24,9 @@
 
 void figure_profile_start(game_state *st, int32_t type)
 {
-    /* @bin 0x00489A50 GetTickCount(): a wall clock, read as 0 (docs/porting.md §3) */
+    /* @bin 0x00489A50 GetTickCount(): the wall clock (core/sim/platform.h) */
     S32(st, PROF_TYPE) = type;
-    S32(st, PROF_START) = 0;
+    S32(st, PROF_START) = (int32_t) platform_clock_ms(st);
     if (U8(st, PROF_PRECISE)) {
         state_unported(st, 0x00489A50u); /* QueryPerformanceCounter */
     }
@@ -38,7 +39,7 @@ void figure_profile_end(game_state *st)
         state_unported(st, 0x00489A80u); /* QueryPerformanceCounter, x87 statistics */
         return;
     }
-    S32(st, PROF_END) = 0; /* GetTickCount() */
+    S32(st, PROF_END) = (int32_t) platform_clock_ms(st); /* GetTickCount() */
     int32_t elapsed = S32(st, PROF_END) - S32(st, PROF_START);
     uint32_t s = PROF_STATS + 32u * U32(st, PROF_TYPE);
     S32(st, s) += 1;

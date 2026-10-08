@@ -1,0 +1,52 @@
+wait 40
+click 512 400
+wait 30
+click 512 256
+wait 30
+text Imhotep
+wait 5
+key Return
+wait 30
+click 512 285
+wait 60
+click 800 595
+wait 160
+click 785 583
+wait 60
+rclick 512 400
+wait 30
+click 894 291
+wait 10
+down 300 300
+wait 3
+move 400 350
+wait 3
+up 450 375
+wait 10
+click 857 291
+wait 10
+down 330 330
+wait 3
+move 380 360
+wait 3
+up 400 370
+wait 10
+rclick 600 600
+wait 200
+key Left
+wait 20
+key Up
+wait 20
+click 864 183
+wait 30
+rclick 512 400
+wait 20
+rclick 360 360
+wait 30
+rclick 512 400
+wait 20
+click 20 8
+wait 20
+rclick 512 400
+wait 5
+quit

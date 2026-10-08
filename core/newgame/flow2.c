@@ -269,6 +269,35 @@ int32_t file_list_count(game_state *st, const char *pattern)
     return n;
 }
 
+int32_t file_list_names(game_state *st, const char *pattern, char *out, size_t size)
+{
+    /* @bin 0x0041C6D0 the list constructed empty, filled (0x0041C740), its names read (offset +4[i]
+     * into the names +0x10), destroyed (0x0041C710) */
+    flist l = {st, 0, {0x0056F548u, 0, 0, 0, 0, 0, 0}};
+    fill(&l, pattern, 0);
+    int32_t n = fl_get(&l, 8);
+    size_t at = 0;
+    for (int32_t i = 0; i < n; i++) {
+        uint32_t s = P32(st, (uint32_t) fl_get(&l, 4) + 4u * (uint32_t) i) + (uint32_t) fl_get(&l, 0x10);
+        for (uint32_t k = 0;; k++) {
+            uint8_t c = P8(st, s + k);
+            if (at < size) {
+                out[at++] = (char) c;
+            }
+            if (c == 0) {
+                break;
+            }
+        }
+    }
+    if (fl_get(&l, 0x10) != 0) {
+        state_dealloc(st, (uint32_t) fl_get(&l, 0x10));
+    }
+    if (fl_get(&l, 4) != 0) {
+        state_dealloc(st, (uint32_t) fl_get(&l, 4));
+    }
+    return n;
+}
+
 static int compare_offsets(game_state *st, int32_t a, int32_t b);
 
 void file_list_sort(game_state *st, uint32_t self, uint32_t cmp)
@@ -634,19 +663,15 @@ void music_fade_out(game_state *st, int32_t channel)
 
 /* @bin 0x0055F5F4 a stream's volume (AIL_stream_volume, 0x0056F28C), @bin 0x0055F639 set it
  * (AIL_set_stream_volume, 0x0056F29C): both only call the sound library (thiscall on 0x00E92BF8, they
- * read the stream handles, write nothing); the platform's, which core has no request for: no stream
- * plays without a platform (0x0055F5A1), so the volume is 0 and setting it does nothing */
+ * read the stream handles, write nothing): the platform's requests (core/sim/platform.c) */
 static int32_t run_stream_volume(game_state *st, const int32_t *a)
 {
-    (void) st;
-    (void) a;
-    return 0;
+    return platform_stream_volume(st, a[0]);
 }
 
 static int32_t run_stream_set_volume(game_state *st, const int32_t *a)
 {
-    (void) st;
-    (void) a;
+    platform_stream_set_volume(st, a[0], a[1]);
     return 0;
 }
 

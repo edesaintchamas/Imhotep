@@ -5,12 +5,16 @@ edit. Every entry is checked against the original by the function harness and th
 lockstep (docs/porting.md, tests/differential/README.md). Hand-written notes on the
 functions read so far: README.md.
 
-1861 functions.
+2848 functions.
 
 | Address | Port | File | Notes |
 |---|---|---|---|
+| 0x00401030 | `monument_ctor_401030 (boot)` | core/boot/monuments.c | this = 0x006DE650, inside its caller |
+| 0x004013F0 | `monument_setup_4013f0` | core/boot/monuments.c | this = 0x006DE650 |
 | 0x00401400 | `monument_e6_fits` | core/command/place_misc.c | this = 0x006DE650 |
+| 0x00401420 | `ghost_monument_e6` | present/city/ghost_monument.c |  |
 | 0x00401430 | `monument_e6_exists` | core/command/place_misc.c | this = 0x006DE650 |
+| 0x00401440 | `monument_part_tile_ok_e6` | present/city/ghost_monument.c |  |
 | 0x00401540 | `monument_progress_401540` | core/city/monument_rating.c | this = 0x006DE650 |
 | 0x004015A0 | `monument_add_4015a0` | core/building/map_add_monument.c | this = 0x006DE650 |
 | 0x004017A0 | `monument_redraw_4017a0` | core/building/rest_monument.c |  |
@@ -23,18 +27,48 @@ functions read so far: README.md.
 | 0x00401ED0 | `monument_take_0xe6` | core/building/monument.c |  |
 | 0x00401F30 | `monument_take_0xe6 (0)` | core/building/monument.c | inside its caller |
 | 0x00401F50 | `monument_work_401f50` | core/figure/actions_c.c |  |
+| 0x00401F70 | `cv_part_e6` | present/city/parts.c | this = 0x006DE650 |
 | 0x004021D0 | `clear_confirm_monument` | core/command/clear.c |  |
 | 0x00402210 | `clear_confirm_temple` | core/command/clear.c |  |
 | 0x00402250 | `clear_confirm_fort` | core/command/clear.c |  |
 | 0x00402290 | `clear_confirm_bridge` | core/command/clear.c |  |
 | 0x004022D0 | `cmd_trade_open_route` | core/command/trade.c |  |
 | 0x00402340 | `cmd_request_confirmed` | core/command/kingdom.c |  |
+| 0x00402450 | `load_dialog_open` | present/ui/frontend/files.c |  |
+| 0x00402540 | `save_dialog_open` | present/ui/frontend/files.c |  |
+| 0x00402630 | `delete_dialog_open` | present/ui/frontend/files.c |  |
+| 0x00402720 | `file_dialog_ok` | present/ui/frontend/files.c |  |
+| 0x00402980 | `file_dialog_arrows` | present/ui/frontend/files.c |  |
+| 0x004029D0 | `file_dialog_drag` | present/ui/frontend/files.c |  |
+| 0x00402A80 | `file_dialog_row_click` | present/ui/frontend/files.c |  |
+| 0x00402BB0 | `fe_back_to_menu` | present/ui/frontend/family.c |  |
+| 0x00402C10 | `display_fullscreen_click` | present/ui/frontend/options.c |  |
+| 0x00402C40 | `display_resolution_click` | present/ui/frontend/options.c |  |
 | 0x00402CC0 | `cmd_message_options` | core/command/orders.c |  |
+| 0x00402DA0 | `display_resolution_check` | core/frame/display.c |  |
+| 0x00402DE0 | `resolution_revert` | present/ui/frontend/screens.c |  |
+| 0x00402E10 | `resolution_keep` | present/ui/frontend/screens.c |  |
 | 0x00402E50 | `cmd_difficulty` | core/command/orders.c |  |
+| 0x00402F70 | `sound_cancel_click` | present/ui/frontend/options.c |  |
+| 0x00403060 | `sound_switch_click` | present/ui/frontend/options.c |  |
+| 0x00403130 | `music_volume_click` | present/ui/frontend/options.c |  |
+| 0x004031A0 | `speech_volume_click` | present/ui/frontend/options.c |  |
+| 0x00403210 | `effects_volume_click` | present/ui/frontend/options.c |  |
+| 0x00403270 | `city_volume_click` | present/ui/frontend/options.c |  |
+| 0x004032F0 | `speed_cancel_click` | present/ui/frontend/options.c |  |
+| 0x00403320 | `speed_change` | core/frame/wndproc.c |  |
+| 0x00403390 | `scroll_speed_click` | present/ui/frontend/options.c |  |
+| 0x004035A0 | `numpad_digit` | present/ui/frontend/numpad.c |  |
+| 0x004035F0 | `numpad_ok` | present/ui/frontend/numpad.c |  |
+| 0x00403770 | `numpad_cancel` | present/ui/frontend/numpad.c |  |
+| 0x00403D70 | `sidebar_build_click` | present/sidebar/input.c |  |
+| 0x00403E00 | `build_menu_input` | present/ui/windows.c |  |
 | 0x00403EF0 | `menu_cheat_gate` | core/command/menu.c |  |
+| 0x00403F10 | `build_menu_next_item` | present/ui/cityframe.c |  |
 | 0x00404120 | `build_menu_count` | core/command/menu.c |  |
 | 0x00404330 | `build_menu_enable_all` | core/newgame/reset.c |  |
 | 0x00404350 | `build_menu_update` | core/command/menu.c |  |
+| 0x00405170 | `build_menu_items` | present/ui/cityframe.c |  |
 | 0x004051A0 | `build_buttons_update` | core/command/trade.c |  |
 | 0x00405200 | `construction_choose_building` | core/command/construction_ui.c |  |
 | 0x00405B40 | `terrain_pred_405b40` | core/command/construction_ui.c |  |
@@ -44,11 +78,21 @@ functions read so far: README.md.
 | 0x00405C20 | `construction_mouse_down` | core/command/construction_ui.c |  |
 | 0x00405D90 | `construction_drag` | core/command/construction_ui.c |  |
 | 0x00405E90 | `construction_mouse_up` | core/command/construction_ui.c |  |
+| 0x00405F60 | `hover_place_0xB7` | core/frame/frame.c |  |
+| 0x00405F80 | `frame_hover_tile` | core/frame/frame.c |  |
 | 0x00406010 | `construction_undo_button` | core/command/construction_ui.c |  |
+| 0x00406020 | `sidebar_messages_click` | present/sidebar/input.c |  |
+| 0x00406030 | `sidebar_next_message_click` | present/sidebar/input.c |  |
+| 0x00406190 | `minimap_hover` | present/sidebar/input.c |  |
+| 0x004061E0 | `minimap_click` | present/sidebar/input.c |  |
+| 0x00406250 | `topbar_hover` | present/sidebar/input.c |  |
+| 0x004062D0 | `info_toggle_distribution` | present/ui/info/info.c |  |
+| 0x004062F0 | `info_show_orders` | present/ui/info/info.c |  |
 | 0x00406300 | `cmd_storage_cycle` | core/command/orders_storage.c |  |
 | 0x00406460 | `cmd_storage_limit` | core/command/orders_storage.c |  |
 | 0x00406620 | `cmd_storage_all` | core/command/orders_storage.c |  |
 | 0x00406680 | `cmd_storage_special` | core/command/orders_storage.c |  |
+| 0x00406700 | `info_select_figure` | present/ui/info/info.c |  |
 | 0x00406720 | `legion_order` | core/command/military.c |  |
 | 0x004069E0 | `dock_battle_value` | core/figure/actions_c2.c |  |
 | 0x00406A30 | `best_dock` | core/figure/actions_c2.c |  |
@@ -59,22 +103,46 @@ functions read so far: README.md.
 | 0x00406FB0 | `legion_return_to_fort` | core/command/military.c |  |
 | 0x00407110 | `legion_toggle_0x77` | core/command/military.c |  |
 | 0x004071C0 | `legion_window_close` | core/command/military.c |  |
+| 0x00407290 | `advisor_help_click` | present/ui/advisors/ports.c |  |
+| 0x004072C0 | `topbar_help` | present/sidebar/input.c |  |
+| 0x00407320 | `sidebar_help_click` | present/sidebar/input.c |  |
+| 0x00407C10 | `play_editor_city_move` | present/play/play.c |  |
+| 0x00407F90 | `route_find_cities` | core/city/route_points.c |  |
+| 0x00409530 | `advisor_open_empire` | present/ui/advisors/ports.c |  |
+| 0x004099B0 | `map_dialog_ok (map save: state_unported)` | present/ui/frontend/files.c | inside its caller |
+| 0x00409D10 | `sidebar_collapse_click` | present/sidebar/input.c |  |
+| 0x00409D40 | `sidebar_overlays_click` | present/sidebar/input.c |  |
+| 0x00409E40 | `overlays_menu_hover` | present/ui/windows.c |  |
 | 0x00409EB0 | `cmd_rotate_map` | core/command/orders.c |  |
+| 0x00409FA0 | `empire_window_open` | ? |  |
 | 0x0040A0E0 | `advisor_open` | core/command/advisor.c |  |
 | 0x0040A160 | `advisors_refresh` | core/command/advisor.c |  |
 | 0x0040A1D0 | `cmd_wages` | core/command/orders.c |  |
 | 0x0040A260 | `cmd_tax_rate` | core/command/orders.c |  |
+| 0x0040A2F0 | `advisor_legion_go_to` | present/ui/advisors/ports.c |  |
 | 0x0040A350 | `advisor_legion_return` | core/command/military.c |  |
 | 0x0040A390 | `advisor_legion_service` | core/command/military.c |  |
 | 0x0040A450 | `advisor_dispatch_troops` | core/command/military.c |  |
 | 0x0040A550 | `advisor_dispatch_troops_thunk` | core/command/military.c |  |
+| 0x0040A560 | `advisor_ship_go_to` | present/ui/advisors/ports.c |  |
 | 0x0040A5C0 | `advisor_warship_return` | core/command/military.c |  |
 | 0x0040A600 | `advisor_warship_service` | core/command/military.c |  |
+| 0x0040A6C0 | `advisor_labour_row` | present/ui/advisors/ports.c |  |
 | 0x0040A730 | `cmd_labour_priority` | core/command/orders.c |  |
+| 0x0040A8A0 | `advisor_population_graph` | present/ui/advisors/ports.c |  |
+| 0x0040AA50 | `advisor_festival_open` | present/ui/advisors/ports.c |  |
+| 0x0040AAC0 | `advisor_festival_help` | present/ui/advisors/ports.c |  |
+| 0x0040AAE0 | `advisor_festival_close` | present/ui/advisors/ports.c |  |
 | 0x0040AB00 | `cmd_festival_hold` | core/command/orders.c |  |
 | 0x0040AC50 | `cmd_festival_god` | core/command/orders.c |  |
 | 0x0040AC80 | `cmd_festival_size` | core/command/orders.c |  |
+| 0x0040ACE0 | `advisor_set_4430` | present/ui/advisors/ports.c |  |
+| 0x0040AD00 | `advisor_donation_open` | present/ui/advisors/ports.c |  |
+| 0x0040AD30 | `advisor_salary_open` | present/ui/advisors/ports.c |  |
+| 0x0040AD90 | `advisor_gift_open` | present/ui/advisors/ports.c |  |
 | 0x0040AE00 | `grave_goods_window` | core/command/kingdom.c |  |
+| 0x0040AE10 | `advisor_request_row` | present/ui/advisors/ports.c |  |
+| 0x0040AF00 | `advisor_salary_close` | present/ui/advisors/ports.c |  |
 | 0x0040AF30 | `cmd_salary` | core/command/orders.c |  |
 | 0x0040AF90 | `cmd_donate` | core/command/orders.c |  |
 | 0x0040AFF0 | `cmd_donation_amount` | core/command/orders.c |  |
@@ -86,6 +154,9 @@ functions read so far: README.md.
 | 0x0040B3B0 | `cmd_grave_goods_max` | core/command/kingdom.c |  |
 | 0x0040B420 | `cmd_grave_goods_more` | core/command/kingdom.c |  |
 | 0x0040B4B0 | `cmd_grave_goods_less` | core/command/kingdom.c |  |
+| 0x0040B4E0 | `advisor_tab_click` | present/ui/advisors/ports.c |  |
+| 0x0040B520 | `sidebar_advisors_click` | present/sidebar/input.c |  |
+| 0x0040B590 | `sidebar_empire_click` | present/sidebar/input.c |  |
 | 0x0040B5E0 | `formation_has_action_0x12` | core/figure/formation.c |  |
 | 0x0040B630 | `city_click_legion` | core/command/military.c |  |
 | 0x0040B6D0 | `city_click_warship` | core/command/military.c |  |
@@ -97,11 +168,19 @@ functions read so far: README.md.
 | 0x0040C440 | `legion_click_target` | core/command/military.c |  |
 | 0x0040C570 | `legion_click_target_0x49` | core/command/military.c |  |
 | 0x0040C630 | `cmd_storage_toggle_dc` | core/command/orders_storage.c |  |
+| 0x0040C890 | `name_entry_back` | present/ui/frontend/family.c |  |
 | 0x0040CC40 | `grave_goods_count` | core/command/kingdom.c |  |
 | 0x0040CD30 | `grave_goods_row` | core/command/kingdom.c |  |
 | 0x0040CD70 | `cmd_grave_goods_choose` | core/command/kingdom.c |  |
+| 0x0040CF20 | `advisor_monument_go_to` | present/ui/advisors/ports.c |  |
+| 0x0040D130 | `advisor_rating_explain` | present/ui/advisors/ports.c |  |
+| 0x0040D1A0 | `advisor_ratings_open` | present/ui/advisors/ports.c |  |
+| 0x0040D1B0 | `info_storage_scroll` | present/ui/info/info.c |  |
+| 0x0040D280 | `monument_ctor_40d280 (boot)` | core/boot/monuments.c | this = 0x006FD5D8, inside its caller |
+| 0x0040D7E0 | `monument_setup_40d7e0` | core/boot/monuments.c | this = 0x006FD5D8 |
 | 0x0040D7F0 | `monument_complete_40d7f0` | core/newgame/start.c | this = 0x006FD5D8 |
 | 0x0040D850 | `monument_e1_fits` | core/command/place_misc.c | this = 0x006FD5D8 |
+| 0x0040D870 | `ghost_monument_e1` | present/city/ghost_monument.c |  |
 | 0x0040D880 | `monument_e1_exists` | core/command/place_misc.c | this = 0x006FD5D8 |
 | 0x0040D940 | `monument_progress_40d940` | core/city/monument_rating.c | this = 0x006FD5D8 |
 | 0x0040DA90 | `monument_add_40da90` | core/building/map_add_monument.c | this = 0x006FD5D8 |
@@ -114,12 +193,67 @@ functions read so far: README.md.
 | 0x0040F070 | `monument_take_0xe1` | core/building/monument.c |  |
 | 0x0040F0D0 | `obelisk_build (method +0x30)` | core/building/monument.c | inside its caller |
 | 0x0040F250 | `rec_605a6c_clear` | core/newgame/reset.c |  |
+| 0x0040F270 | `frame_timers` | core/frame/frame.c |  |
+| 0x0040F2C0 | `building_anim_frame` | present/city/anim.c |  |
 | 0x0040F820 | `game_copy` | core/city/message.c |  |
 | 0x0040F860 | `copy_bytes` | core/building/pyramid_terr.c |  |
 | 0x0040F8F0 | `fill_bytes` | core/state/ported.c |  |
 | 0x0040F920 | `place_and_bytes` | core/command/place.c |  |
+| 0x0040F9A0 | `block_to_screen` | present/draw/ports.c |  |
+| 0x0040F9F0 | `block_from_screen` | present/draw/ports.c |  |
+| 0x0040FA40 | `pixel_put` | present/draw/ports.c |  |
+| 0x0040FA70 | `pixel_and` | present/draw/ports.c |  |
+| 0x0040FAA0 | `pixel_get_masked` | present/draw/ports.c |  |
+| 0x0040FAE0 | `pixel_or` | present/draw/ports.c |  |
+| 0x0040FB10 | `pixel_put_checked` | present/draw/ports.c |  |
+| 0x0040FB60 | `blit_opaque` | present/draw/ports.c |  |
+| 0x0040FBE0 | `pixels_put2` | present/draw/ports.c |  |
+| 0x0040FC10 | `pixels_put2_value` | present/draw/ports.c |  |
+| 0x0040FC40 | `blit_rle_mirrored` | present/draw/ports.c |  |
+| 0x0040FCF0 | `blit_rle_mirrored_right` | present/draw/ports.c |  |
+| 0x0040FDD0 | `blit_rle_mirrored_left` | present/draw/ports.c |  |
+| 0x0040FED0 | `blit_plain_mirrored` | present/draw/ports.c |  |
+| 0x0040FF50 | `blit_plain_mirrored_clipped` | present/draw/ports.c |  |
+| 0x0040FFD0 | `blit_plain` | present/draw/ports.c |  |
+| 0x00410090 | `blit_plain_clipped` | present/draw/ports.c |  |
+| 0x004100F0 | `blit_plain_mask` | present/draw/ports.c |  |
+| 0x004101C0 | `blit_plain_mask_clipped` | present/draw/ports.c |  |
+| 0x00410230 | `blit_rle` | present/draw/ports.c |  |
+| 0x004105C0 | `blit_rle_left` | present/draw/ports.c |  |
+| 0x00410660 | `blit_rle_right` | present/draw/ports.c |  |
+| 0x00410700 | `blit_rle_mask` | present/draw/ports.c |  |
+| 0x004109D0 | `blit_rle_mask_left` | present/draw/ports.c |  |
+| 0x00410A70 | `blit_rle_mask_right` | present/draw/ports.c |  |
+| 0x00410B10 | `blit_glyph` | present/draw/ports.c |  |
+| 0x00410DE0 | `blit_glyph_left` | present/draw/ports.c |  |
+| 0x00410E80 | `blit_glyph_right` | present/draw/ports.c |  |
+| 0x00410F20 | `rle_skip_rows` | present/draw/ports.c |  |
+| 0x00410F70 | `blit_type2` | present/draw/ports.c |  |
+| 0x00410FB0 | `blit_16x16` | present/draw/ports.c |  |
+| 0x004114A0 | `blit_24x24` | present/draw/ports.c |  |
+| 0x00411FD0 | `blit_32x32` | present/draw/ports.c |  |
+| 0x004133D0 | `boot_bink_object (Bink object constructor)` | core/boot/boot.c | inside its caller |
+| 0x004133F0 | `bink_close` | core/frame/display.c |  |
 | 0x00413580 | `platform_video_bink` | core/sim/platform.c | platform request |
+| 0x00413ED0 | `WinMain initialisation (game_boot)` | core/boot/boot.c | inside its caller |
+| 0x00414420 | `boot_graphics` | core/boot/boot.c |  |
+| 0x00414750 | `display_settings_save` | core/frame/display.c |  |
+| 0x004147F0 | `boot_settings` | core/boot/settings.c | partial |
+| 0x004149D0 | `boot_names` | core/boot/settings.c |  |
+| 0x00414A90 | `boot_ini_read` | core/boot/settings.c | partial |
+| 0x00414BD0 | `display_buffers_layout (platform memory)` | core/frame/display.c | partial, inside its caller |
+| 0x00414C40 | `notice_panel_draw` | present/ui/cityframe.c |  |
+| 0x00414CD0 | `frame_wndproc` | core/frame/wndproc.c |  |
+| 0x004168E0 | `wndproc_overlay_key` | core/frame/wndproc.c |  |
+| 0x00416990 | `wndproc_advisor_key` | core/frame/wndproc.c |  |
+| 0x00416A20 | `wndproc_legion_next` | core/frame/wndproc.c |  |
+| 0x00416AC0 | `wndproc_bookmark_go` | core/frame/wndproc.c |  |
+| 0x00416B10 | `wndproc_bookmark_set` | core/frame/wndproc.c |  |
+| 0x00416BA0 | `wndproc_speed_key` | core/frame/wndproc.c |  |
+| 0x00416C20 | `monument_ctor_416c20 (boot)` | core/boot/monuments.c | this = 0x006FD368, inside its caller |
+| 0x00416F60 | `monument_setup_416f60` | core/boot/monuments.c | this = 0x006FD368 |
 | 0x00416F70 | `monument_e3_fits` | core/command/place_misc.c | this = 0x006FD368 |
+| 0x00416F90 | `ghost_monument_e3` | present/city/ghost_monument.c |  |
 | 0x00416FA0 | `monument_e3_exists` | core/command/place_misc.c | this = 0x006FD368 |
 | 0x00417050 | `monument_progress_417050` | core/city/monument_rating.c | this = 0x006FD368 |
 | 0x00417180 | `monument_add_417180` | core/building/map_add_monument.c | this = 0x006FD368 |
@@ -130,18 +264,42 @@ functions read so far: README.md.
 | 0x004176A0 | `monument_0xe3_take (method +0x2C)` | core/building/monument.c | inside its caller |
 | 0x004178E0 | `monument_take_0xe3` | core/building/monument.c |  |
 | 0x00417940 | `monument_work_417940` | core/figure/actions_c.c |  |
+| 0x004179A0 | `play_advisor_next` | present/play/play.c |  |
 | 0x004179F0 | `tutorial_menu_flags` | core/city/month.c |  |
+| 0x00417A70 | `play_build_counts_keep` | present/play/play.c |  |
+| 0x00417AA0 | `play_build_counts_mark` | present/play/play.c |  |
 | 0x00417AE0 | `tutorial_step` | core/city/month.c |  |
+| 0x00417B40 | `tutorial_checks (the message 0x83: state_unported)` | present/ui/cityframe.c | partial, inside its caller |
 | 0x00417DD0 | `campaign_period_first` | core/newgame/flow2.c |  |
 | 0x00417E70 | `flag_7027a8_set` | core/state/scenario_start.c |  |
+| 0x00417E80 | `picture_37_draw` | present/ui/empire/mission.c |  |
+| 0x00417EB0 | `picture_38_draw` | present/ui/empire/mission.c |  |
+| 0x00417EE0 | `picture_39_draw` | present/ui/empire/mission.c |  |
+| 0x00417F10 | `picture_3a_draw` | present/ui/empire/mission.c |  |
+| 0x00417FF0 | `main_menu_click` | present/ui/frontend/menu.c |  |
+| 0x004180C0 | `main_menu_frame` | present/ui/frontend/menu.c |  |
 | 0x00418140 | `briefing_text_id` | core/newgame/flow.c |  |
+| 0x004181A0 | `mission_victory_text` | present/ui/frontend/highscore.c |  |
 | 0x004181E0 | `briefing_open` | core/newgame/flow.c |  |
 | 0x00418220 | `flow_continue` | core/newgame/flow2.c |  |
+| 0x00418390 | `sidebar_mission_click` | present/sidebar/input.c |  |
 | 0x00418510 | `newgame_replay` | core/newgame/start.c |  |
 | 0x00418640 | `newgame_next_mission` | core/newgame/start.c |  |
 | 0x004188F0 | `newgame_carry_over` | core/newgame/start.c |  |
 | 0x00418BF0 | `newgame_mission_buildings` | core/newgame/start.c |  |
+| 0x00418F70 | `mission_briefing_frame` | present/ui/empire/mission.c |  |
+| 0x00418FE0 | `play_briefing_input` | present/play/play.c |  |
+| 0x00419090 | `mission_choice_click` | present/ui/empire/mission.c |  |
+| 0x00419140 | `mission_choice_marks` | present/ui/empire/mission.c |  |
+| 0x004191F0 | `window43_draw` | present/ui/windows.c |  |
+| 0x004192B0 | `victory_monuments_draw` | present/ui/frontend/highscore.c |  |
+| 0x004194C0 | `mission_end_draw` | present/ui/frontend/victory.c |  |
+| 0x00419DB0 | `mission_end_frame` | present/ui/frontend/victory.c |  |
+| 0x0041A180 | `mission_briefing_draw` | present/ui/empire/mission.c |  |
+| 0x0041A850 | `mission_picture_draw` | present/ui/empire/mission.c |  |
 | 0x0041AA20 | `fade_start` | core/newgame/flow.c |  |
+| 0x0041AA60 | `mission_picture_input` | present/ui/empire/mission.c |  |
+| 0x0041AAA0 | `mission_choice_draw` | present/ui/empire/mission.c |  |
 | 0x0041AC00 | `campaign_entry_init` | core/newgame/flow.c |  |
 | 0x0041AC50 | `campaign table constructor (campaign_progress_read)` | core/newgame/flow2.c | inside its caller |
 | 0x0041AC90 | `campaign add step (campaign_load)` | core/newgame/flow.c | inside its caller |
@@ -153,11 +311,23 @@ functions read so far: README.md.
 | 0x0041AE40 | `campaign_load (campaign.txt)` | core/newgame/flow.c | this = 0x006FDD08, inside its caller |
 | 0x0041B680 | `campaign_progress_read` | core/newgame/flow2.c | this = 0x006FDD08 |
 | 0x0041B8A0 | `campaign_progress_write (platform_file_write)` | core/newgame/flow.c | platform request, this = 0x006FDD08, inside its caller |
+| 0x0041B8F0 | `campaign_step_has_choice` | present/ui/empire/mission.c | this = 0x006FDD08 |
 | 0x0041B920 | `campaign_next_step` | core/newgame/flow.c | this = 0x006FDD08 |
 | 0x0041B9D0 | `campaign_step_of_mission` | core/newgame/start.c | this = 0x006FDD08 |
+| 0x0041BA00 | `period_valid` | present/ui/frontend/campaign.c | this = 0x006FDD08 |
 | 0x0041BA20 | `campaign_period_done` | core/newgame/flow.c | this = 0x006FDD08 |
+| 0x0041BA80 | `campaign_any_won` | present/ui/frontend/family.c | this = 0x006FDD08 |
 | 0x0041BAB0 | `campaign_any_period_done` | core/newgame/flow.c | this = 0x006FDD08 |
+| 0x0041BAD0 | `period_flag` | present/ui/frontend/campaign.c | this = 0x006FDD08 |
+| 0x0041BB10 | `period_click` | present/ui/frontend/campaign.c |  |
+| 0x0041BB30 | `period_buttons_count` | present/ui/frontend/campaign.c |  |
 | 0x0041BB70 | `campaign_period_start` | core/newgame/flow2.c |  |
+| 0x0041BE10 | `period_screen_frame` | present/ui/frontend/campaign.c |  |
+| 0x0041C2D0 | `period_screen_draw` | present/ui/frontend/campaign.c |  |
+| 0x0041C310 | `period_missions_tab` | present/ui/frontend/campaign.c |  |
+| 0x0041C350 | `period_periods_tab` | present/ui/frontend/campaign.c |  |
+| 0x0041C380 | `victory_score` | present/ui/frontend/highscore.c |  |
+| 0x0041C600 | `campaign_best_record` | present/ui/frontend/highscore.c |  |
 | 0x0041C6D0 | `file list constructor (file_list_count)` | core/newgame/flow2.c | inside its caller |
 | 0x0041C710 | `file list destructor (file_list_count)` | core/newgame/flow2.c | inside its caller |
 | 0x0041C740 | `file_list_fill` | core/newgame/flow2.c | this = 0x00704C00 |
@@ -196,16 +366,43 @@ functions read so far: README.md.
 | 0x0041CFC0 | `cheat_tomb` | core/command/cheats.c |  |
 | 0x0041CFD0 | `cheat_treasure` | core/command/cheats.c |  |
 | 0x0041D010 | `cheat_run` | core/command/cheats.c |  |
+| 0x0041D050 | `cheat_lookup` | present/ui/cityframe.c |  |
+| 0x0041D110 | `wndproc_hot_keys` | core/frame/wndproc.c |  |
+| 0x0041D210 | `cheat_window_draw` | present/ui/cityframe.c |  |
+| 0x0041D310 | `cheat_window_input` | present/ui/cityframe.c |  |
+| 0x0041D3F0 | `cheat_enter` | present/ui/cityframe.c |  |
+| 0x0041D410 | `ambient_building` | core/frame/sound.c |  |
+| 0x0041D560 | `ambient_step` | core/frame/sound.c |  |
+| 0x0041D6F0 | `ambient_slots_scroll` | present/city/camera.c |  |
 | 0x0041D730 | `ambient_slots_reset` | core/newgame/reset.c |  |
 | 0x0041DF60 | `ambient_clear_f0` | core/newgame/reset.c |  |
 | 0x0041DF70 | `list_fill` | core/newgame/flow.c | this = 0x00704C00 |
 | 0x0041DFC0 | `list_row_mission` | core/newgame/flow.c | this = 0x00704C00 |
 | 0x0041DFE0 | `list_row_kind` | core/newgame/flow.c | this = 0x00704C00 |
 | 0x0041E010 | `list_row_name` | core/newgame/flow.c | this = 0x00704C00 |
+| 0x0041E100 | `list_buttons` | present/ui/frontend/scenario.c |  |
+| 0x0041E120 | `list_tab` | present/ui/frontend/scenario.c |  |
+| 0x0041E130 | `list_extra_button` | present/ui/frontend/scenario.c |  |
+| 0x0041E140 | `list_has_extra` | present/ui/frontend/scenario.c |  |
+| 0x0041E170 | `list_button_count` | present/ui/frontend/scenario.c |  |
+| 0x0041E190 | `list_rows_table` | present/ui/frontend/scenario.c |  |
+| 0x0041E1B0 | `list_thumb` | present/ui/frontend/scenario.c |  |
+| 0x0041E270 | `event_mark_chain` | present/ui/frontend/scenario.c |  |
+| 0x0041E3B0 | `events_unchained` | present/ui/frontend/scenario.c |  |
+| 0x0041E470 | `scenario_rating` | present/ui/frontend/scenario.c |  |
+| 0x0041E5C0 | `scenario_list_draw` | present/ui/frontend/scenario.c |  |
+| 0x0041F210 | `list_rows_count` | present/ui/frontend/scenario.c |  |
+| 0x0041F220 | `list_rows_draw` | present/ui/frontend/scenario.c |  |
+| 0x0041F4D0 | `list_scroll_drag` | present/ui/frontend/scenario.c |  |
 | 0x0041F5C0 | `newgame_list_start` | core/newgame/start.c |  |
+| 0x0041F650 | `list_back_click` | present/ui/frontend/campaign.c |  |
 | 0x0041F670 | `newgame_list_row` | core/newgame/start.c |  |
 | 0x0041F810 | `list_load` | core/newgame/flow.c |  |
 | 0x0041F870 | `list_open` | core/newgame/flow.c |  |
+| 0x0041F8B0 | `cv_part_set_odd` | present/city/parts.c |  |
+| 0x0041F8C0 | `cv_part_set_select` | present/city/parts.c |  |
+| 0x0041F910 | `cv_part_pos` | present/city/parts.c |  |
+| 0x0041FAD0 | `cv_part_pos_dir` | present/city/parts.c |  |
 | 0x0041FCA0 | `anim_restart` | core/city/day_anim.c |  |
 | 0x0041FD80 | `anim_object_figure` | core/building/monument.c |  |
 | 0x0041FDB0 | `anim_step` | core/city/day_anim.c |  |
@@ -214,6 +411,8 @@ functions read so far: README.md.
 | 0x0041FF60 | `anim_step_all` | core/city/day_anim.c |  |
 | 0x0041FF90 | `anim_list_reset_41ff90` | core/building/map_add.c |  |
 | 0x0041FFC0 | `anim_list_reset_41ffc0` | core/building/map_add.c |  |
+| 0x0041FFF0 | `cv_parts_41fff0` | present/city/parts.c |  |
+| 0x00420050 | `cv_parts_420050` | present/city/parts.c |  |
 | 0x004200B0 | `city_monument_check` | core/building/monument.c |  |
 | 0x004200F0 | `sun_temple_check` | core/building/monument.c |  |
 | 0x00420130 | `city_monument_work` | core/building/monument.c |  |
@@ -221,35 +420,81 @@ functions read so far: README.md.
 | 0x00420350 | `monument_0x00420350` | core/building/monument.c |  |
 | 0x00420430 | `sun_temple_needs_worker` | core/building/monument_take.c |  |
 | 0x004204A0 | `monument_count_kind` | core/city/day2_monument.c |  |
+| 0x004204D0 | `info_sphinx_works` | present/ui/info/monument.c |  |
+| 0x00420600 | `info_sphinx_progress` | present/ui/info/monument.c |  |
 | 0x004206A0 | `anim_list_reset_4206a0` | core/building/map_add.c |  |
 | 0x004206D0 | `anim_list_4206d0` | core/city/day_anim.c |  |
+| 0x004206F0 | `cv_parts_4206f0` | present/city/parts.c |  |
 | 0x00420770 | `obelisk_stage_check` | core/building/monument.c |  |
 | 0x004207E0 | `obelisk_work` | core/building/monument.c |  |
 | 0x00420910 | `obelisk_job` | core/building/monument.c |  |
 | 0x004209E0 | `anim_list_reset_4209e0` | core/building/map_add.c |  |
 | 0x00420A10 | `anim_list_420a10` | core/city/day_anim.c |  |
+| 0x00420A30 | `cv_parts_420a30` | present/city/parts.c |  |
 | 0x00420A90 | `monument_e6_done` | core/building/monument.c |  |
 | 0x00420B10 | `monument_e6_work` | core/building/monument.c |  |
 | 0x00420C40 | `monument_needs_worker` | core/building/monument_take.c |  |
 | 0x00420D10 | `anim_list_reset_420d10` | core/building/map_add.c |  |
 | 0x00420D40 | `anim_list_420d40` | core/city/day_anim.c |  |
+| 0x00420D60 | `cv_parts_420d60` | present/city/parts.c |  |
 | 0x00420DC0 | `monument_e3_done` | core/building/monument.c |  |
 | 0x00420E20 | `monument_e3_work` | core/building/monument.c |  |
 | 0x00420F50 | `monument_0xe3_job` | core/building/monument.c |  |
 | 0x00421010 | `anim_list_reset_421010` | core/building/map_add.c |  |
 | 0x00421040 | `anim_list_421040` | core/city/day_anim.c |  |
+| 0x00421060 | `cv_parts_421060` | present/city/parts.c |  |
 | 0x004210C0 | `monument_e4_done` | core/building/monument.c |  |
 | 0x00421120 | `monument_e4_work` | core/building/monument.c |  |
 | 0x00421230 | `monument_0xe4_job` | core/building/monument.c |  |
 | 0x004212F0 | `anim_lists_reset_4212f0` | core/building/map_add.c |  |
 | 0x004216D0 | `anim_list_4216d0` | core/city/day_anim.c |  |
+| 0x00421920 | `cv_parts_421920` | present/city/parts.c |  |
 | 0x00422A90 | `monument_part_takes` | core/building/monument_need.c |  |
+| 0x00425330 | `menubar_draw` | present/sidebar/sidebar.c |  |
+| 0x00425430 | `menu_draw` | present/ui/windows.c |  |
+| 0x00425570 | `popup_draw` | present/ui/windows.c |  |
+| 0x00425640 | `popup_draw_buttons` | present/ui/windows.c |  |
+| 0x004256A0 | `editor_buttons_draw` | present/ui/windows.c |  |
+| 0x00425730 | `buttons_draw` | present/sidebar/sidebar.c |  |
+| 0x00425840 | `menubar_button_click` | present/sidebar/input.c |  |
+| 0x00425900 | `menubar_draw_button` | present/sidebar/sidebar.c |  |
+| 0x00425990 | `buttons_click` | present/sidebar/input.c |  |
+| 0x00425B50 | `buttons_release_toggles` | present/sidebar/input.c |  |
+| 0x00425B80 | `buttons_count_down` | present/sidebar/input.c |  |
+| 0x00425BC0 | `buttons_hover` | present/sidebar/input.c |  |
+| 0x00425C40 | `buttons_editor_click` | present/sidebar/input.c |  |
+| 0x00425E80 | `editor_buttons_hover` | present/ui/windows.c |  |
+| 0x00425F20 | `menu_input` | present/ui/windows.c |  |
+| 0x00426030 | `menubar_click` | present/sidebar/input.c |  |
+| 0x00426090 | `menu_close` | present/ui/windows.c |  |
+| 0x004260D0 | `menu_forget` | present/ui/windows.c |  |
+| 0x00426100 | `menubar_hover` | present/sidebar/input.c |  |
+| 0x00426150 | `menu_item_at` | present/ui/windows.c |  |
+| 0x004261D0 | `buttons_rect_click` | present/sidebar/input.c |  |
+| 0x00426450 | `buttons_hovered` | present/ui/messages/list.c |  |
 | 0x004264D0 | `popup_confirm_open` | core/command/clear.c |  |
+| 0x00426530 | `popup_input` | present/ui/windows.c |  |
 | 0x004269B0 | `rating_0x4269b0` | core/city/month_ratings.c |  |
 | 0x00426A00 | `rating_lowest` | core/city/month_ratings.c |  |
 | 0x00426A80 | `rating_bonus` | core/city/month_ratings.c |  |
 | 0x00426B00 | `advisor_rating_flag` | core/command/advisor.c |  |
 | 0x00426B30 | `kinds_count_426b30` | core/building/map_add_monument.c |  |
+| 0x00426B40 | `dd_create (in 0x004D0060)` | core/frame/display.c | inside its caller |
+| 0x00426EE0 | `display_surfaces_release` | core/frame/display.c |  |
+| 0x00426F60 | `display_clear` | core/frame/display.c |  |
+| 0x00426FF0 | `dd_surfaces (in 0x004D0060)` | core/frame/display.c | inside its caller |
+| 0x00427480 | `dd_surface_back (in 0x004D0060)` | core/frame/display.c | inside its caller |
+| 0x00427A20 | `footprint_tile` | present/draw/ports.c |  |
+| 0x00428C00 | `footprint_tile_tinted` | present/draw/ports.c |  |
+| 0x0042A160 | `footprint_tile_left` | present/draw/ports.c |  |
+| 0x0042AA00 | `footprint_tile_left_tinted` | present/draw/ports.c |  |
+| 0x0042B440 | `footprint_tile_right` | present/draw/ports.c |  |
+| 0x0042BCF0 | `footprint_tile_right_tinted` | present/draw/ports.c |  |
+| 0x0042C740 | `footprint_2x2` | present/draw/ports.c |  |
+| 0x0042C9A0 | `footprint_3x3` | present/draw/ports.c |  |
+| 0x0042CEE0 | `footprint_4x4` | present/draw/ports.c |  |
+| 0x0042D810 | `footprint_5x5` | present/draw/ports.c |  |
+| 0x0042E680 | `footprint_6x6` | present/draw/ports.c |  |
 | 0x0042FB30 | `house_empty` | core/city/month_mood.c |  |
 | 0x0042FBB0 | `city_riot_roll` | core/city/month_mood.c |  |
 | 0x0042FCA0 | `house_most_0xfc` | core/city/month_mood.c |  |
@@ -264,15 +509,133 @@ functions read so far: README.md.
 | 0x00430480 | `view_table_clear` | core/command/rotate.c |  |
 | 0x004304C0 | `view_find` | core/command/rotate.c |  |
 | 0x00430530 | `view_table_build` | core/command/rotate.c |  |
+| 0x00430790 | `frame_screen_to_tile` | core/frame/frame.c |  |
+| 0x00430960 | `view_screen_to_tile` | core/frame/view.c |  |
 | 0x00430B20 | `rotate_view_cw` | core/command/rotate.c |  |
 | 0x00430BE0 | `rotate_view_ccw` | core/command/rotate.c |  |
 | 0x00430CA0 | `view_height` | core/command/rotate.c |  |
 | 0x00430CB0 | `view_width` | core/command/rotate.c |  |
-| 0x0043D300 | `ferry_hover` | core/command/hover.c | platform request |
+| 0x00430CC0 | `cityview_pixel_width` | present/sidebar/sidebar.c |  |
+| 0x00430CD0 | `camera_go_to` | present/city/camera.c |  |
+| 0x00430D30 | `city_view_draw` | present/city/view.c |  |
+| 0x00430EF0 | `city_ground_draw` | present/city/ground.c |  |
+| 0x00431690 | `city_overlay_shows` | present/city/overlay_columns.c |  |
+| 0x004316F0 | `city_overlay_ground_draw` | present/city/overlay.c |  |
+| 0x00431CE0 | `city_overlay_water_tile` | present/city/overlay_tiles.c |  |
+| 0x004321A0 | `city_overlay_water_ground` | present/city/overlay_tiles.c |  |
+| 0x00432320 | `city_overlay_water_top` | present/city/overlay_tiles.c |  |
+| 0x00432620 | `city_overlay_flood_tile` | present/city/overlay_tiles.c |  |
+| 0x00432820 | `city_overlay_flood_top` | present/city/overlay_tiles.c |  |
+| 0x00432920 | `city_building_problems` | present/city/overlay_problems.c |  |
+| 0x00432D30 | `city_overlay_hidden_building` | present/city/overlay_tiles.c |  |
+| 0x00433760 | `city_overlay_desirability_tile` | present/city/overlay_tiles.c |  |
+| 0x00433980 | `city_overlay_draw_433980` | present/city/overlay_tiles.c |  |
+| 0x004339A0 | `city_overlay_draw_top_4339a0` | present/city/overlay_tiles.c |  |
+| 0x004339C0 | `city_overlay_desirability_top` | present/city/overlay_tiles.c |  |
+| 0x004339E0 | `overlay_level_entertainment` | present/sidebar/overlay_level.c |  |
+| 0x00433A60 | `overlay_level_desirability` | present/sidebar/overlay_level.c |  |
+| 0x00433AE0 | `overlay_level_resource` | present/sidebar/overlay_level.c |  |
+| 0x00433C80 | `overlay_level_one` | present/sidebar/overlay_level.c |  |
+| 0x00433C90 | `overlay_level_crime` | present/sidebar/overlay_level.c |  |
+| 0x00433D30 | `overlay_level_tile_word` | present/sidebar/overlay_level.c |  |
+| 0x00433D50 | `overlay_level_damage` | present/sidebar/overlay_level.c |  |
+| 0x00433E00 | `overlay_level_0xFC` | present/sidebar/overlay_level.c |  |
+| 0x00433E40 | `overlay_level_0xE8` | present/sidebar/overlay_level.c |  |
+| 0x00433E80 | `overlay_level_0xE4` | present/sidebar/overlay_level.c |  |
+| 0x00433ED0 | `overlay_level_religion` | present/sidebar/overlay_level.c |  |
+| 0x00434060 | `overlay_level_0x81` | present/sidebar/overlay_level.c |  |
+| 0x004340E0 | `overlay_level_0x6C` | present/sidebar/overlay_level.c |  |
+| 0x00434150 | `overlay_level_0x6D` | present/sidebar/overlay_level.c |  |
+| 0x004341D0 | `overlay_level_0x6F` | present/sidebar/overlay_level.c |  |
+| 0x00434250 | `overlay_level_0x71` | present/sidebar/overlay_level.c |  |
+| 0x004342C0 | `overlay_level_stock` | present/sidebar/overlay_level.c |  |
+| 0x004343A0 | `overlay_level_0x77` | present/sidebar/overlay_level.c |  |
+| 0x00434400 | `overlay_level_health` | present/sidebar/overlay_level.c |  |
+| 0x00434510 | `overlay_level_0x72` | present/sidebar/overlay_level.c |  |
+| 0x00434570 | `overlay_level_0x73` | present/sidebar/overlay_level.c |  |
+| 0x004345D0 | `overlay_level_0x75` | present/sidebar/overlay_level.c |  |
+| 0x00434630 | `overlay_level_0x6E` | present/sidebar/overlay_level.c |  |
+| 0x00434690 | `overlay_level_0x76` | present/sidebar/overlay_level.c |  |
+| 0x004346F0 | `overlay_level_0x78` | present/sidebar/overlay_level.c |  |
+| 0x00434750 | `overlay_level_0x70` | present/sidebar/overlay_level.c |  |
+| 0x004347B0 | `overlay_level_0x46F1C0` | present/sidebar/overlay_level.c |  |
+| 0x00434820 | `overlay_level_problems` | present/sidebar/overlay_level.c |  |
+| 0x00434A10 | `overlay_level_0x18` | present/sidebar/overlay_level.c |  |
+| 0x00434A60 | `overlay_level_listed` | present/sidebar/overlay_level.c |  |
+| 0x00434AA0 | `overlay_level_draw` | present/ui/cityframe.c |  |
+| 0x00434E10 | `city_overlay_level_tile` | present/city/overlay_tiles.c |  |
+| 0x00435050 | `city_overlay_level_top` | present/city/overlay_tiles.c |  |
+| 0x00435290 | `overlay_column_08` | present/city/overlay_columns.c |  |
+| 0x004353A0 | `overlay_column_09` | present/city/overlay_columns.c |  |
+| 0x004354B0 | `overlay_column_2b` | present/city/overlay_columns.c |  |
+| 0x00435510 | `overlay_column_30` | present/city/overlay_columns.c |  |
+| 0x00435570 | `overlay_column_0a` | present/city/overlay_columns.c |  |
+| 0x004355D0 | `overlay_column_0b` | present/city/overlay_columns.c |  |
+| 0x00435630 | `overlay_column_11` | present/city/overlay_columns.c |  |
+| 0x004356A0 | `overlay_column_0c` | present/city/overlay_columns.c |  |
+| 0x00435700 | `overlay_column_0d` | present/city/overlay_columns.c |  |
+| 0x00435760 | `overlay_column_0e` | present/city/overlay_columns.c |  |
+| 0x004357C0 | `overlay_column_0f` | present/city/overlay_columns.c |  |
+| 0x00435820 | `overlay_column_10` | present/city/overlay_columns.c |  |
+| 0x00435880 | `overlay_column_1a` | present/city/overlay_columns.c |  |
+| 0x00435A10 | `overlay_column_2d` | present/city/overlay_columns.c |  |
+| 0x00435A70 | `overlay_column_04` | present/city/overlay_columns.c |  |
+| 0x00435AC0 | `overlay_column_12` | present/city/overlay_columns.c |  |
+| 0x00435B20 | `overlay_column_13` | present/city/overlay_columns.c |  |
+| 0x00435B80 | `overlay_column_15` | present/city/overlay_columns.c |  |
+| 0x00435BE0 | `overlay_column_16` | present/city/overlay_columns.c |  |
+| 0x00435C40 | `overlay_column_17` | present/city/overlay_columns.c |  |
+| 0x00435CA0 | `overlay_column_18` | present/city/overlay_columns.c |  |
+| 0x00435D00 | `overlay_column_32` | present/city/overlay_columns.c |  |
+| 0x00435D60 | `overlay_column_19` | present/city/overlay_columns.c |  |
+| 0x00435DE0 | `overlay_coins` | present/city/overlay_columns.c |  |
+| 0x00435E70 | `city_overlay_problems_column` | present/city/overlay_problems.c |  |
+| 0x004360A0 | `overlay_column_2c` | present/city/overlay_columns.c |  |
+| 0x00436140 | `overlay_column_1d` | present/city/overlay_columns.c |  |
+| 0x00436180 | `city_overlay_column_436180` | present/city/overlay_columns.c |  |
+| 0x004361A0 | `city_overlay_column` | present/city/overlay_columns.c |  |
+| 0x00436310 | `building_levels_draw` | present/city/levels.c |  |
+| 0x00436B60 | `city_upper_draw` | present/city/upper.c |  |
+| 0x00438180 | `cv_image_entry` | present/city/common.c | this = 0x00F55BB0 |
+| 0x004381A0 | `cv_group_base` | present/city/common.c | this = 0x00F55BB0 |
+| 0x004381B0 | `cv_image_draw_offset` | present/city/common.c |  |
+| 0x00438210 | `cv_anim_4a` | present/city/parts.c |  |
+| 0x00438350 | `cv_anim_4c` | present/city/parts.c |  |
+| 0x00438470 | `cv_anim_a1` | present/city/parts.c |  |
+| 0x004384D0 | `cv_anim_6a` | present/city/parts.c |  |
+| 0x00438590 | `cv_anim_1e` | present/city/parts.c |  |
+| 0x00438650 | `cv_anim_22` | present/city/parts.c |  |
+| 0x004386B0 | `cv_anim_1f` | present/city/parts.c |  |
+| 0x00438710 | `cv_anim_21` | present/city/parts.c |  |
+| 0x00438770 | `cv_anim_23` | present/city/parts.c |  |
+| 0x004387D0 | `figure_in_overlay` | present/city/figures.c |  |
+| 0x00438E50 | `figure_draw` | present/city/figures.c |  |
+| 0x00439740 | `city_figures_on_top` | present/city/marks.c |  |
+| 0x00439980 | `minimap_draw_building` | present/sidebar/minimap.c |  |
+| 0x00439F10 | `city_overlay_tops_draw` | present/city/overlay.c |  |
+| 0x0043B630 | `ghost_draw` | present/city/ghost.c |  |
+| 0x0043D010 | `ghost_43d010` | present/city/ghost_ferry.c |  |
+| 0x0043D030 | `ghost_ferry_routes` | present/city/ghost_ferry.c |  |
+| 0x0043D300 | `ghost_ferry` | present/city/ghost_ferry.c |  |
+| 0x0043D720 | `ghost_fort` | present/city/ghost_big.c |  |
+| 0x0043DD70 | `ghost_43dd70` | present/city/ghost.c |  |
+| 0x0043DF10 | `ghost_43df10` | present/city/ghost.c |  |
+| 0x0043E090 | `ghost_43e090` | present/city/ghost.c |  |
+| 0x0043E1A0 | `city_cost_draw` | present/ui/cityframe.c |  |
+| 0x0043E300 | `city_debug_values` | present/city/marks.c |  |
+| 0x0043E420 | `city_debug_value` | present/city/marks.c |  |
+| 0x0043E670 | `minimap_first_tile` | present/sidebar/minimap.c |  |
+| 0x0043E770 | `minimap_building_colour` | present/sidebar/minimap.c |  |
+| 0x0043E790 | `minimap_figure_shown` | present/sidebar/minimap.c |  |
+| 0x0043E810 | `minimap_draw` | present/sidebar/minimap.c |  |
+| 0x0043EE10 | `minimap_figure_soldier` | present/sidebar/minimap.c |  |
+| 0x0043EEB0 | `minimap_figure_animal` | present/sidebar/minimap.c |  |
+| 0x0043EF10 | `minimap_tile_at_mouse` | present/sidebar/input.c |  |
 | 0x0043F060 | `building_link_path` | core/building/building_link.c |  |
 | 0x0043F250 | `road_crossing_250` | core/command/place_ent.c |  |
 | 0x0043F3A0 | `road_cell_3a0` | core/command/place_ent.c |  |
 | 0x0043F410 | `ent_fits_43f410` | core/command/place_ent.c |  |
+| 0x0043F5B0 | `ghost_venue` | present/city/ghost_big.c |  |
 | 0x0043FD00 | `building_clear_area` | core/building/day2_destroy.c |  |
 | 0x00440060 | `building_area_redraw_440060` | core/building/rest_redraw.c |  |
 | 0x00440540 | `building_redraw_440540` | core/building/rest_redraw.c |  |
@@ -284,9 +647,13 @@ functions read so far: README.md.
 | 0x00441040 | `free_spots_041040 (writes its caller's stack)` | core/command/place_ent.c | inside its caller |
 | 0x00441130 | `ent_spot_441130 (writes its caller's stack)` | core/command/place_ent.c | inside its caller |
 | 0x004413B0 | `ent_roads_4413b0` | core/command/place_ent.c |  |
+| 0x00441490 | `ghost_441490` | present/city/ghost_big.c |  |
+| 0x00441F80 | `ghost_statue` | present/city/ghost_big.c |  |
+| 0x00442280 | `storage_draw` | present/city/storage.c |  |
 | 0x004425C0 | `empire_object_image` | core/city/events_handlers.c |  |
 | 0x00442660 | `empire_objects_images` | core/state/scenario_start.c |  |
 | 0x004426C0 | `empire_objects_sizes` | core/state/scenario_start.c |  |
+| 0x00442730 | `empire_scroll_key` | present/ui/empire/empire.c |  |
 | 0x00442800 | `empire_scroll_clamp` | core/newgame/setup.c |  |
 | 0x00443000 | `empire_object_sells` | core/city/events_handlers.c |  |
 | 0x00443040 | `empire_object_buys` | core/city/events_handlers.c |  |
@@ -303,6 +670,7 @@ functions read so far: README.md.
 | 0x00443D90 | `goods_chain_d90` | core/state/ported.c |  |
 | 0x00444720 | `empire_cities_setup` | core/newgame/setup.c |  |
 | 0x004448E0 | `month_0x004448E0` | core/city/month.c |  |
+| 0x00444920 | `empire_city_of_object` | present/ui/empire/empire.c |  |
 | 0x00444950 | `empire_route_is_kind2` | core/newgame/setup.c |  |
 | 0x00444980 | `empire_city_open` | core/city/month_events.c |  |
 | 0x004449D0 | `empire_city_index` | core/city/month_events.c |  |
@@ -319,6 +687,7 @@ functions read so far: README.md.
 | 0x00445670 | `storage_find_13` | core/figure/helpers_xb.c |  |
 | 0x00445980 | `storage_take_from_trader` | core/figure/helpers_xb.c |  |
 | 0x00445AC0 | `storage_find_24` | core/figure/helpers_xb.c |  |
+| 0x00445D10 | `route_segment_points` | core/city/route_points.c |  |
 | 0x00445E50 | `figure_unload_to_works` | core/figure/last_figure.c |  |
 | 0x004460B0 | `day_step_0x04` | core/city/day_city.c |  |
 | 0x00446260 | `event_troops_sent` | core/city/events_military.c |  |
@@ -326,6 +695,7 @@ functions read so far: README.md.
 | 0x004464F0 | `month_0x004464F0` | core/city/month.c |  |
 | 0x00446530 | `cheat_mock_attack_1` | core/command/cheats.c |  |
 | 0x004465A0 | `cheat_mock_attack_2` | core/command/cheats.c |  |
+| 0x00446610 | `events_any_pending` | present/ui/advisors/ports.c |  |
 | 0x00446650 | `figure_init_military` | core/city/events_troops.c |  |
 | 0x004467A0 | `spiral_free_water` | core/figure/actions_c2.c |  |
 | 0x00446A30 | `event_troops` | core/city/events_troops.c |  |
@@ -334,6 +704,9 @@ functions read so far: README.md.
 | 0x00447530 | `place_food_ratio_447530` | core/command/place_misc.c |  |
 | 0x00447790 | `empire_city_trades` | core/state/ported.c |  |
 | 0x004477D0 | `army_travel_months` | core/city/events_military.c |  |
+| 0x00447840 | `advisor_king_name` | ? |  |
+| 0x00448330 | `message_text_expand` | present/ui/messages/expand.c |  |
+| 0x00448370 | `fe_text_expand` | present/ui/frontend/family.c |  |
 | 0x004487F0 | `event_range_pick (in month_events.c)` | core/city/month_events.c | inside its caller |
 | 0x004489C0 | `event_init` | core/city/events.c |  |
 | 0x00448A60 | `event_fields_clear` | core/newgame/reset.c |  |
@@ -348,7 +721,12 @@ functions read so far: README.md.
 | 0x00449440 | `event_good_ok_type1` | core/city/events.c |  |
 | 0x00449530 | `event_good_ok_type23 (in events.c)` | core/city/events.c | inside its caller |
 | 0x00449550 | `event_good_allowed` | core/city/events.c |  |
+| 0x004495F0 | `event_true` | present/ui/frontend/scenario.c |  |
+| 0x00449600 | `event_is_small_request` | present/ui/frontend/scenario.c |  |
+| 0x004496B0 | `event_is_request` | present/ui/frontend/scenario.c |  |
 | 0x004496D0 | `event_link_active (in month_events.c)` | core/city/month_events.c | inside its caller |
+| 0x00449750 | `army_progress (output in the caller's stack, in empire.c)` | present/ui/empire/empire.c | inside its caller |
+| 0x0044BA20 | `events_ctor (boot ctors)` | core/boot/ctors.c | inside its caller |
 | 0x0044BA90 | `events_month` | core/city/month.c | this = 0x00785D70 |
 | 0x0044BAF0 | `events_next_active` | core/city/day_city.c | this = 0x00785D70 |
 | 0x0044BB40 | `enemy_group` | core/figure/enemies.c | this = 0x00785D70 |
@@ -359,6 +737,7 @@ functions read so far: README.md.
 | 0x0044BD50 | `event_tile_hit` | core/city/day2_events.c |  |
 | 0x0044BE30 | `event_move_step` | core/city/day2_events.c |  |
 | 0x0044C0D0 | `event_at` | core/city/month_events.c |  |
+| 0x0044C100 | `advisor_event_months` | ? |  |
 | 0x0044C110 | `event_army_months` | core/city/events_military.c |  |
 | 0x0044C1A0 | `request_dispatch` | core/command/kingdom.c |  |
 | 0x0044C430 | `events_started_later` | core/city/events.c |  |
@@ -404,6 +783,7 @@ functions read so far: README.md.
 | 0x0044EEF0 | `cmd_event_reply_2` | core/command/orders_messages.c |  |
 | 0x0044EF60 | `event_linked_flag` | core/city/events.c |  |
 | 0x0044EF90 | `event_stop` | core/city/day_city.c |  |
+| 0x0044EFA0 | `reason_phrases_read` | core/boot/steps.c |  |
 | 0x0044F120 | `event_outcome_row` | core/city/events.c |  |
 | 0x0044F170 | `event_outcome_row0` | core/city/events.c |  |
 | 0x0044F360 | `event_outcome_row1` | core/city/events.c |  |
@@ -418,6 +798,7 @@ functions read so far: README.md.
 | 0x0044FD30 | `event_outcome_message` | core/city/events.c |  |
 | 0x0044FEC0 | `event_message_id` | core/city/events.c |  |
 | 0x00451540 | `event_request_month` | core/city/events.c |  |
+| 0x00451A70 | `shipwright_queues_ctor (boot ctors)` | core/boot/ctors.c | inside its caller |
 | 0x00451B10 | `city_0x451b10` | core/city/month_ratings.c |  |
 | 0x00451BC0 | `image_group_451bc0` | core/building/map_add.c |  |
 | 0x00451BE0 | `date_reset` | core/newgame/reset.c |  |
@@ -452,6 +833,7 @@ functions read so far: README.md.
 | 0x004539E0 | `buildings_water_level` | core/city/day_buildings.c |  |
 | 0x00453AF0 | `house_desirability_trend` | core/building/day_houses.c |  |
 | 0x00453B40 | `house_can_evolve` | core/building/day_houses.c |  |
+| 0x00454190 | `city_house_evolve_reason` | present/city/overlay_problems.c |  |
 | 0x00454B40 | `house_consume` | core/building/day_houses.c |  |
 | 0x00454D70 | `houses_counters_clear` | core/building/day_houses.c |  |
 | 0x00454E20 | `house_service_decay` | core/building/house.c |  |
@@ -504,6 +886,7 @@ functions read so far: README.md.
 | 0x00459E50 | `month_0x00459E50` | core/city/month.c |  |
 | 0x00459EF0 | `building_type_0x459ef0` | core/figure/helpers_xb.c |  |
 | 0x00459FA0 | `place_any_building_459ef0` | core/command/place.c |  |
+| 0x00459FF0 | `city_building_0x459ff0` | present/city/overlay_problems.c |  |
 | 0x0045A0A0 | `share_by_weight` | core/city/day_buildings.c |  |
 | 0x0045A140 | `building_service_share` | core/city/day_buildings.c |  |
 | 0x0045A2E0 | `month_0x0045A2E0` | core/city/month.c |  |
@@ -544,6 +927,7 @@ functions read so far: README.md.
 | 0x0045D370 | `storage_next_good_13` | core/figure/helpers_xb.c |  |
 | 0x0045D4D0 | `city_good_value_move` | core/figure/helpers_xb.c |  |
 | 0x0045D510 | `building_parts_stock` | core/building/building_spawn.c |  |
+| 0x0045D570 | `info_yard_fullness` | present/ui/info/info.c |  |
 | 0x0045D5D0 | `day_step_0x11` | core/city/day_buildings.c |  |
 | 0x0045D630 | `day_totals_45d630` | core/city/day_buildings.c |  |
 | 0x0045D9E0 | `cart_storage_with_room` | core/figure/actions_a.c |  |
@@ -654,6 +1038,7 @@ functions read so far: README.md.
 | 0x0046F120 | `rec_9784d8_clear` | core/newgame/reset.c |  |
 | 0x0046F140 | `figure_group_new` | core/building/building_misc.c |  |
 | 0x0046F190 | `buildings_count_b6` | core/state/scenario_start.c |  |
+| 0x0046F1C0 | `building_0x46f1c0` | present/city/overlay_columns.c |  |
 | 0x0046F200 | `day_monuments_46f200` | core/building/day_road.c |  |
 | 0x0046F7B0 | `map_row_ranges` | core/state/ported.c |  |
 | 0x0046F8D0 | `rings_1x1_build` | core/map/terrain_rings.c |  |
@@ -699,6 +1084,7 @@ functions read so far: README.md.
 | 0x004776F0 | `flag_0x40000_rect` | core/map/terrain_veg.c |  |
 | 0x004777C0 | `floodplain_pass` | core/map/terrain_flood.c |  |
 | 0x00477890 | `rubble_rect` | core/map/terrain_veg.c |  |
+| 0x00477D40 | `ghost_477d40` | present/city/ghost.c |  |
 | 0x00477DD0 | `terrain_0x00477dd0` | core/newgame/start2.c |  |
 | 0x00477EB0 | `terrain_0x00477eb0` | core/newgame/start2.c |  |
 | 0x00477F60 | `terrain_0x00477f60` | core/newgame/start2.c |  |
@@ -772,6 +1158,9 @@ functions read so far: README.md.
 | 0x0047EB60 | `canal_link` | core/map/terrain_roads.c |  |
 | 0x0047EC80 | `edge_neighbours_with` | core/command/hover.c |  |
 | 0x0047ECC0 | `corner_neighbours_with` | core/command/hover.c |  |
+| 0x0047ED00 | `ghost_47ed00` | present/city/ghost.c |  |
+| 0x0047ED30 | `ghost_47ed30` | present/city/ghost.c |  |
+| 0x0047ED60 | `ghost_47ed60` | present/city/ghost.c |  |
 | 0x0047EDA0 | `water_lift_drag` | core/command/construction_lift.c |  |
 | 0x0047F190 | `water_lift_at` | core/command/construction_lift.c |  |
 | 0x0047F200 | `bridge_measure` | core/command/hover.c |  |
@@ -781,6 +1170,7 @@ functions read so far: README.md.
 | 0x0047F9B0 | `bridge_figures` | core/command/clear.c |  |
 | 0x0047FB70 | `bridge_sprites_rotate` | core/command/rotate.c |  |
 | 0x0047FC40 | `map_mark_buildings_around` | core/building/day_access.c |  |
+| 0x0047FD30 | `building_area_state` | present/city/anim.c |  |
 | 0x0047FE60 | `building_road_within` | core/building/day_access.c |  |
 | 0x0047FEB0 | `building_road_in_ring` | core/building/day_access.c |  |
 | 0x00480060 | `map_free_tile_near` | core/figure/helpers_xb.c |  |
@@ -907,6 +1297,7 @@ functions read so far: README.md.
 | 0x00489470 | `map_area_test_489470` | core/building/day_access.c |  |
 | 0x004894A0 | `building_area_test_3x3` | core/building/day_access.c | this = 0x00BCA350 |
 | 0x004894D0 | `building_area_test_4894d0` | core/city/day_buildings.c | this = 0x00BCA350 |
+| 0x00489500 | `cv_nothing_489500` | present/city/common.c | this = 0x00BCA350 |
 | 0x00489510 | `farm_flood_notice` | core/city/day2_farm.c | this = 0x00BCA350 |
 | 0x00489840 | `buildings_scale_0x54` | core/state/scenario_start.c |  |
 | 0x00489880 | `place_type_farm_489880` | core/command/place_misc.c | this = 0x00BCA350 |
@@ -1162,6 +1553,7 @@ functions read so far: README.md.
 | 0x004B52F0 | `figure_tile_list_add` | core/city/day_basic.c |  |
 | 0x004B53B0 | `figure_count_on_tile` | core/figure/actions_a.c |  |
 | 0x004B5420 | `figure_tile_list_remove` | core/figure/actions_a.c |  |
+| 0x004B54F0 | `tile_figure_count` | present/city/marks.c |  |
 | 0x004B5520 | `tile_soldier_formation` | core/command/military.c |  |
 | 0x004B5570 | `tile_transport` | core/command/military.c |  |
 | 0x004B55B0 | `tile_warship` | core/command/military.c |  |
@@ -1181,11 +1573,13 @@ functions read so far: README.md.
 | 0x004B6FF0 | `formation_create_0x4b6ff0` | core/figure/helpers_xa.c |  |
 | 0x004B70C0 | `building_recruit` | core/building/building_extra.c |  |
 | 0x004B7400 | `building_send_0x2a` | core/building/building_extra.c |  |
+| 0x004B7590 | `info_any_legion_ready` | present/ui/info/info.c |  |
 | 0x004B75C0 | `formation_nearest_trainer` | core/building/building_extra.c |  |
 | 0x004B76B0 | `building_formation_size` | core/building/building_misc.c |  |
 | 0x004B7790 | `formations_daily` | core/figure/formation.c |  |
 | 0x004B77D0 | `formations_count` | core/figure/formation.c |  |
 | 0x004B78B0 | `player_legion_by_row` | core/command/military.c |  |
+| 0x004B78F0 | `legions_count` | ? |  |
 | 0x004B7920 | `formations_soldier_counters` | core/figure/formation.c |  |
 | 0x004B7960 | `month_0x004B7960` | core/city/month.c |  |
 | 0x004B79F0 | `formations_morale_days` | core/figure/formation.c |  |
@@ -1273,14 +1667,20 @@ functions read so far: README.md.
 | 0x004BF9D0 | `labor_wanted_anywhere` | core/figure/actions_d.c | this = 0x00D05720 |
 | 0x004BFA50 | `gatehouse_ghost` | core/command/construction_checks.c |  |
 | 0x004BFB30 | `building_redraw_4bfb30` | core/building/rest_redraw.c |  |
+| 0x004BFCD0 | `ghost_gatehouse` | present/city/ghost_gate.c |  |
 | 0x004BFEE0 | `building_clear_tiles_4bfee0` | core/building/day_state.c |  |
 | 0x004BFF60 | `place_gatehouse_fits` | core/command/place_misc.c |  |
+| 0x004C0040 | `ghost_gatehouse_red` | present/city/ghost_gate.c |  |
+| 0x004C0160 | `cv_part_ca` | present/city/parts.c |  |
 | 0x004C04A0 | `building_rubble_parts_0x004c04a0` | core/building/rest_destroy.c |  |
 | 0x004C06E0 | `god_building_type` | core/city/day_city.c |  |
 | 0x004C0860 | `tile_redraw_4c0860` | core/building/rest_redraw.c |  |
 | 0x004C0920 | `building_area_clear_0x004c0920` | core/building/rest_destroy.c |  |
 | 0x004C0BE0 | `building_area_redraw_4c0be0` | core/building/rest_redraw.c |  |
 | 0x004C0D50 | `building_redraw_4c0d50` | core/building/rest_redraw.c |  |
+| 0x004C0ED0 | `ghost_4c0ed0` | present/city/ghost.c |  |
+| 0x004C0F30 | `ghost_temple_complex` | present/city/ghost_gate.c |  |
+| 0x004C2F50 | `ghost_complex_addition` | present/city/ghost_gate.c |  |
 | 0x004C3420 | `temple_complex_add_4c3420` | core/building/map_add.c |  |
 | 0x004C3730 | `place_temple_complex_fits` | core/command/place_misc.c |  |
 | 0x004C38F0 | `city_0x4c38f0` | core/city/month_health.c |  |
@@ -1302,25 +1702,127 @@ functions read so far: README.md.
 | 0x004C5300 | `month_0x004C5300` | core/city/month.c |  |
 | 0x004C5340 | `trade_tax_4c5340` | core/city/day_buildings.c |  |
 | 0x004C53D0 | `god_index_4c53d0` | core/building/rest_redraw.c |  |
+| 0x004C5450 | `highscore_thumb_draw` | present/ui/frontend/highscore.c |  |
+| 0x004C54C0 | `highscore_rows_draw` | present/ui/frontend/highscore.c |  |
+| 0x004C5660 | `highscore_draw` | present/ui/frontend/highscore.c |  |
+| 0x004C57D0 | `highscore_drag` | present/ui/frontend/highscore.c |  |
+| 0x004C5880 | `highscore_read` | present/ui/frontend/highscore.c | this = 0x00D38708 |
+| 0x004C58D0 | `highscore_write` | present/ui/frontend/highscore.c | this = 0x00D38708 |
+| 0x004C5920 | `highscore_open` | present/ui/frontend/highscore.c |  |
+| 0x004C5970 | `highscore_record` | present/ui/frontend/highscore.c |  |
+| 0x004C5A40 | `highscore_update` | present/ui/frontend/highscore.c |  |
 | 0x004C5BF0 | `message_window_open` | core/command/orders_messages.c |  |
+| 0x004C5CC0 | `message_window_redraw` | present/ui/windows.c |  |
+| 0x004C5CE0 | `message_reply_buttons` | present/ui/messages/window.c |  |
+| 0x004C5E60 | `message_window_draw` | present/ui/messages/window.c |  |
+| 0x004C6C70 | `message_window_draw_video` | present/ui/messages/window.c |  |
+| 0x004C72B0 | `message_scroll_thumb` | present/ui/messages/window.c |  |
+| 0x004C7340 | `message_window_frame` | present/ui/msgwin.c |  |
+| 0x004C7770 | `message_window_input` | present/ui/msgwin.c |  |
+| 0x004C7DB0 | `message_window_scroll_drag` | present/ui/msgwin.c |  |
 | 0x004C7F30 | `message_window_close` | core/command/orders_messages.c |  |
+| 0x004C7F70 | `message_window_link_at` | present/ui/msgwin.c |  |
+| 0x004C7FD0 | `rich_link_add` | present/ui/messages/richtext.c |  |
 | 0x004C8040 | `message_window_lines_clear` | core/command/orders_messages.c |  |
+| 0x004C8070 | `rich_text_draw` | present/ui/messages/richtext.c |  |
+| 0x004C8480 | `rich_word_width` | present/ui/messages/richtext.c |  |
+| 0x004C8590 | `rich_line_draw` | present/ui/messages/richtext.c |  |
+| 0x004C8680 | `rich_glyph_draw` | present/ui/messages/richtext.c |  |
+| 0x004C8750 | `tooltip_update` | present/sidebar/tooltip.c |  |
+| 0x004C92A0 | `tooltip_family_hover` | present/sidebar/tooltip.c |  |
+| 0x004C9340 | `tooltip_empire_city_goods` | present/sidebar/tooltip.c |  |
+| 0x004C95D0 | `tooltip_trade_city_goods` | present/sidebar/tooltip.c |  |
+| 0x004C9750 | `tooltip_overlay_text` | present/sidebar/tooltip_text.c |  |
+| 0x004CA3D0 | `tooltip_text_stock` | present/sidebar/tooltip_text.c |  |
+| 0x004CA600 | `tooltip_text_0xE8` | present/sidebar/tooltip_text.c |  |
+| 0x004CA6D0 | `tooltip_text_0xFC` | present/sidebar/tooltip_text.c |  |
+| 0x004CA770 | `tooltip_text_problems` | present/sidebar/tooltip_text.c |  |
+| 0x004CA930 | `tooltip_end` | present/sidebar/tooltip.c |  |
+| 0x004CA980 | `message_popup_clock` | present/ui/messages/popup.c |  |
+| 0x004CA9A0 | `tooltip_draw_figure` | present/sidebar/tooltip_draw.c |  |
+| 0x004CABD0 | `tooltip_draw` | present/sidebar/tooltip_draw.c |  |
+| 0x004CAF10 | `tooltip_draw_overlay` | present/sidebar/tooltip_draw.c |  |
+| 0x004CB0B0 | `tooltip_draw_ratings` | present/sidebar/tooltip_draw.c |  |
+| 0x004CB300 | `tooltip_draw_routes` | present/sidebar/tooltip_draw.c |  |
+| 0x004CB4D0 | `family_menu_draw` | present/ui/frontend/family.c |  |
+| 0x004CB5A0 | `family_menu_frame` | present/ui/frontend/family.c |  |
 | 0x004CB6A0 | `main_menu_open` | core/newgame/flow.c |  |
+| 0x004CB800 | `family_continue_click` | present/ui/frontend/family.c |  |
+| 0x004CB860 | `family_cleopatra_click` | present/ui/frontend/family.c |  |
+| 0x004CB910 | `family_load_click` | present/ui/frontend/family.c |  |
+| 0x004CB940 | `family_custom_click` | present/ui/frontend/family.c |  |
+| 0x004CB970 | `family_change_click` | present/ui/frontend/family.c |  |
+| 0x004CB980 | `text_expand` | present/ui/messages/expand.c |  |
+| 0x004CBA60 | `event_phrases_read (boot ctors)` | core/boot/ctors.c | inside its caller |
+| 0x004CBDB0 | `strings_entry` | present/ui/messages/expand.c |  |
 | 0x004CBDD0 | `text_find_string` | core/command/models.c |  |
 | 0x004CBE30 | `text_find_char` | core/command/models.c |  |
 | 0x004CBE60 | `text_compare` | core/command/models.c |  |
 | 0x004CBEA0 | `text_copy` | core/city/text_lookup.c |  |
 | 0x004CBEC0 | `text_upper_case` | core/newgame/start.c |  |
+| 0x004CBEE0 | `string_delete_at` | present/draw/ports.c |  |
+| 0x004CBF10 | `string_open_at` | present/draw/ports.c |  |
 | 0x004CBF30 | `text_width` | core/city/text_lookup.c |  |
 | 0x004CC000 | `text_length` | core/city/text_lookup.c |  |
+| 0x004CC020 | `glyph_width` | present/draw/ports.c |  |
 | 0x004CC070 | `text_atoi` | core/command/models.c |  |
 | 0x004CC0E0 | `text_skip_to_number` | core/command/models.c |  |
 | 0x004CC110 | `text_seek` | core/city/text_lookup.c |  |
 | 0x004CC160 | `text_seek2` | core/command/trade.c |  |
+| 0x004CC1B0 | `field_check` | present/draw/ports.c |  |
+| 0x004CC250 | `field_type` | present/draw/ports.c |  |
+| 0x004CC320 | `field_done` | present/draw/ports.c |  |
+| 0x004CC330 | `field_backspace` | present/draw/ports.c |  |
+| 0x004CC350 | `field_delete_key` | present/draw/ports.c |  |
+| 0x004CC360 | `field_toggle_insert` | present/draw/ports.c |  |
+| 0x004CC370 | `field_left` | present/draw/ports.c |  |
+| 0x004CC390 | `field_right` | present/draw/ports.c |  |
 | 0x004CC3C0 | `text_box_cursor_start` | core/newgame/flow2.c |  |
 | 0x004CC3E0 | `text_box_cursor_end` | core/newgame/flow2.c |  |
+| 0x004CC400 | `field_insert` | present/draw/ports.c |  |
+| 0x004CC4C0 | `field_delete` | present/draw/ports.c |  |
 | 0x004CC500 | `text_box_focus` | core/newgame/flow2.c |  |
+| 0x004CC540 | `text_run_reset` | present/draw/ports.c |  |
 | 0x004CC560 | `text_box_set` | core/newgame/reset.c |  |
+| 0x004CC5C0 | `number_format` | present/draw/ports.c |  |
+| 0x004CC6C0 | `text_group_width` | present/draw/ports.c |  |
+| 0x004CC720 | `text_draw_centred` | present/draw/ports.c |  |
+| 0x004CC770 | `text_draw` | present/draw/ports.c |  |
+| 0x004CCA60 | `text_glyph_draw` | present/draw/ports.c |  |
+| 0x004CCB00 | `text_edit_next` | present/draw/ports.c |  |
+| 0x004CCB30 | `text_group_draw_centred` | present/draw/ports.c |  |
+| 0x004CCBB0 | `text_group_draw` | present/draw/ports.c |  |
+| 0x004CCC30 | `text_count_draw` | present/draw/ports.c |  |
+| 0x004CCCB0 | `text_money_draw` | present/draw/ports.c |  |
+| 0x004CCD60 | `text_pair_draw_centred` | present/draw/ports.c |  |
+| 0x004CCE00 | `number_draw` | present/draw/ports.c |  |
+| 0x004CCE90 | `number_draw_centred` | present/draw/ports.c |  |
+| 0x004CCF20 | `number_draw_between` | present/draw/ports.c |  |
+| 0x004CCFD0 | `text_group_draw_lines` | present/draw/ports.c |  |
+| 0x004CD010 | `text_draw_lines` | present/draw/ports.c |  |
+| 0x004CD120 | `word_width` | present/draw/ports.c |  |
+| 0x004CD1A0 | `layout_panel` | present/draw/ports.c |  |
+| 0x004CD1F0 | `layout_text_group` | present/draw/ports.c |  |
+| 0x004CD240 | `layout_text_group_centred` | present/draw/ports.c |  |
+| 0x004CD290 | `layout_number` | present/draw/ports.c |  |
+| 0x004CD2E0 | `layout_number_centred` | present/draw/ports.c |  |
+| 0x004CD340 | `layout_money` | present/draw/ports.c |  |
+| 0x004CD390 | `layout_text` | present/draw/ports.c |  |
+| 0x004CD3E0 | `line_setup` | present/draw/ports.c |  |
+| 0x004CD490 | `line_error_step` | present/draw/ports.c |  |
+| 0x004CD4E0 | `pixel_put_screen` | present/draw/ports.c |  |
+| 0x004CD510 | `line_draw` | present/draw/ports.c |  |
+| 0x004CD680 | `rect_draw` | present/draw/ports.c |  |
+| 0x004CD710 | `rect_marching` | present/draw/ports.c |  |
+| 0x004CD810 | `march_step_start` | present/draw/ports.c |  |
+| 0x004CD850 | `march_step` | present/draw/ports.c |  |
+| 0x004CD890 | `rect_draw_sunken` | present/draw/ports.c |  |
+| 0x004CD930 | `rect_draw_raised` | present/draw/ports.c |  |
+| 0x004CD9D0 | `rect_fill` | present/draw/ports.c |  |
+| 0x004CDA40 | `rect_fill_and` | present/draw/ports.c |  |
+| 0x004CDAD0 | `clip_horizontal` | present/draw/ports.c |  |
+| 0x004CDB80 | `clip_vertical` | present/draw/ports.c |  |
+| 0x004CDC30 | `clip_contains` | present/draw/ports.c |  |
 | 0x004CDC70 | `anim_counters` | core/state/ported.c |  |
 | 0x004CDD60 | `random_warm_up` | core/newgame/reset.c |  |
 | 0x004CDE40 | `calc_percentage` | core/city/labour.c |  |
@@ -1328,17 +1830,45 @@ functions read so far: README.md.
 | 0x004CDE80 | `div_round_up` | core/building/building_extra.c |  |
 | 0x004CDEB0 | `rle_555_to_565` | core/graphics/sg3.c |  |
 | 0x004CDF20 | `pixels_555_to_565` | core/graphics/sg3.c |  |
+| 0x004CDFF0 | `file_dialog_list` | present/ui/frontend/files.c |  |
 | 0x004CE100 | `file_cd_retry` | core/newgame/start.c |  |
 | 0x004CE2D0 | `working_directory (the platform's)` | core/newgame/map_load.c | inside its caller |
+| 0x004CE310 | `path_set_extension` | present/draw/ports.c |  |
 | 0x004CE330 | `file_ext_of_path` | core/newgame/start.c |  |
+| 0x004CE370 | `path_replace_extension` | present/draw/ports.c |  |
 | 0x004CE3A0 | `file_name_strip_extension` | core/newgame/map_load.c |  |
 | 0x004CE3C0 | `file_name_add_extension` | core/newgame/map_load.c |  |
 | 0x004CE3F0 | `file_exists` | core/newgame/start.c |  |
 | 0x004CE480 | `loader_file_read_at (platform_file_read)` | core/state/loader.c | inside its caller |
 | 0x004CE6E0 | `platform_log` | core/sim/platform.c | platform request |
+| 0x004CEB10 | `boot_file_read` | core/boot/settings.c |  |
 | 0x004CEB60 | `file_read_at (platform_file_read)` | core/graphics/sg3.c | inside its caller |
+| 0x004CEC40 | `boot_text_load (boot)` | core/boot/settings.c | inside its caller |
 | 0x004CED50 | `file_length` | core/command/models.c |  |
+| 0x004CED90 | `file_write_whole` | core/frame/display.c |  |
+| 0x004CF090 | `rect_grey` | present/draw/ports.c |  |
 | 0x004CF1C0 | `screen_buffer_clear` | core/city/day2_misc.c |  |
+| 0x004CF1F0 | `frame_clear_keys` | core/frame/frame.c |  |
+| 0x004CF210 | `frame_mouse` | core/frame/frame.c |  |
+| 0x004CF460 | `frame_cursor` | core/frame/frame.c |  |
+| 0x004CF620 | `mouse_in` | present/sidebar/tooltip.c |  |
+| 0x004CF660 | `scroll_direction` | present/ui/cityframe.c |  |
+| 0x004CF7B0 | `boot_graphics loading_text` | core/boot/boot.c |  |
+| 0x004CF8E0 | `boot_4cf8e0` | core/boot/steps.c |  |
+| 0x004CF960 | `boot_display_setup display_create` | core/boot/boot.c |  |
+| 0x004CFD60 | `display_resolution_set` | core/frame/display.c |  |
+| 0x004CFDC0 | `display_mode_set` | core/frame/display.c |  |
+| 0x004CFF50 | `display_bink_release` | core/frame/display.c |  |
+| 0x004CFF90 | `window_paused` | core/frame/display.c |  |
+| 0x004CFFC0 | `window_active_check` | core/frame/display.c |  |
+| 0x004CFFE0 | `surfaces_restore` | core/frame/display.c |  |
+| 0x004D0040 | `present_elapsed` | core/frame/frame.c |  |
+| 0x004D0060 | `display_setup (platform: set_display)` | core/frame/display.c | partial, inside its caller |
+| 0x004D01E0 | `display_end` | core/frame/display.c |  |
+| 0x004D0220 | `display_begin` | core/frame/display.c |  |
+| 0x004D0280 | `frame_present` | core/frame/frame.c |  |
+| 0x004D03F0 | `present_copy (platform)` | core/frame/frame.c | platform request, inside its caller |
+| 0x004D0480 | `dd_lock_object (in 0x004D0060)` | core/frame/display.c | inside its caller |
 | 0x004D0A40 | `shipwright queues from chunk 140 (save_load.c)` | core/state/loader.c | inside its caller |
 | 0x004D0E10 | `chunk_read (file read: map_stream)` | core/newgame/map_load.c | inside its caller |
 | 0x004D17E0 | `upgrade_empire_object_kinds` | core/newgame/map_load.c |  |
@@ -1371,6 +1901,8 @@ functions read so far: README.md.
 | 0x004D41E0 | `loader (loader_read: save_file.c, save_load.c)` | core/state/loader.c | inside its caller |
 | 0x004D4720 | `empire_route_rebuild (save_load.c)` | core/state/loader.c | inside its caller |
 | 0x004D4AE0 | `map_read_chunks (file read: map_stream)` | core/newgame/map_load.c | inside its caller |
+| 0x004D4D80 | `saved_game_delete` | present/ui/frontend/files.c |  |
+| 0x004D4E20 | `frame_save_game` | core/frame/autosave.c |  |
 | 0x004D5100 | `loader_load_save` | core/state/loader.c |  |
 | 0x004D51B0 | `loader_load_save_keep_difficulty` | core/state/loader.c |  |
 | 0x004D52A0 | `scenario_start` | core/state/scenario_start.c |  |
@@ -1379,7 +1911,50 @@ functions read so far: README.md.
 | 0x004D5980 | `map_setup_grids` | core/newgame/map_load.c |  |
 | 0x004D5AD0 | `storage_yards_check` | core/state/scenario_start.c |  |
 | 0x004D5BC0 | `city_building_d1_position` | core/state/scenario_start.c |  |
+| 0x004D5C30 | `frame_autosave` | core/frame/autosave.c |  |
+| 0x004D5D70 | `layout_window_key` | present/draw/ports.c |  |
+| 0x004D5D90 | `play_layout_fill` | present/play/play.c |  |
+| 0x004D5DD0 | `play_menu_widths` | present/play/play.c |  |
+| 0x004D5E70 | `play_menu_bar_width` | present/play/play.c |  |
+| 0x004D5ED0 | `layout_panel_left` | present/ui/windows.c |  |
+| 0x004D5EE0 | `layout_panel_width` | present/ui/windows.c |  |
+| 0x004D5EF0 | `layout_text_group_width` | present/ui/windows.c |  |
+| 0x004D5F60 | `layout_menu_width` | present/ui/windows.c |  |
+| 0x004D5F80 | `play_texts_widest` | present/play/play.c |  |
+| 0x004D5FE0 | `layout_find` | present/draw/ports.c |  |
+| 0x004D6050 | `layout_mode_panel` | present/draw/ports.c |  |
+| 0x004D6070 | `frame_redraw_check` | core/frame/frame.c |  |
+| 0x004D6090 | `layout_highlight` | present/draw/ports.c |  |
+| 0x004D6160 | `layout_group_lines` | present/draw/ports.c |  |
+| 0x004D6200 | `layout_group_at` | present/ui/advisors/ports.c |  |
+| 0x004D6250 | `layout_group_centred` | present/draw/ports.c |  |
+| 0x004D62F0 | `layout_group` | present/draw/ports.c |  |
+| 0x004D6380 | `layout_text_group_rect` | present/ui/frontend/options.c |  |
+| 0x004D63D0 | `layout_frame` | present/draw/ports.c |  |
+| 0x004D6480 | `layout_small_button` | present/ui/frontend/options.c |  |
+| 0x004D65B0 | `layout_inner_panel` | present/draw/ports.c |  |
+| 0x004D66F0 | `rect_layout_apply` | present/ui/dispatch.c |  |
+| 0x004D6740 | `rect_highlight` | present/ui/dispatch.c |  |
+| 0x004D6860 | `layout_number_at` | present/draw/ports.c |  |
+| 0x004D6900 | `play_layout_list_read (in 0x004D69B0)` | present/play/play.c | inside its caller |
+| 0x004D69B0 | `play_layout_file_read` | present/play/play.c |  |
+| 0x004D6AA0 | `cursor_attack_target` | core/frame/frame.c |  |
+| 0x004D6B00 | `cursor_move_target` | core/frame/frame.c |  |
+| 0x004D6B60 | `frame_run` | core/frame/frame.c |  |
 | 0x004D7090 | `game_tick` | core/state/ported.c |  |
+| 0x004D71C0 | `ui_redraw` | present/ui/dispatch.c |  |
+| 0x004D75D0 | `ui_draw_frame` | present/ui/dispatch.c |  |
+| 0x004D8310 | `ui_input` | present/ui/dispatch.c |  |
+| 0x004DD8D0 | `route_last_waypoint` | present/ui/empire_editor.c |  |
+| 0x004DD8E0 | `route_clear` | present/ui/empire_editor.c |  |
+| 0x004DD900 | `route_set_flag` | present/ui/empire_editor.c |  |
+| 0x004DD910 | `route_start` | present/ui/empire_editor.c |  |
+| 0x004DD920 | `route_end` | present/ui/empire_editor.c |  |
+| 0x004DDBD0 | `route_hit` | present/ui/empire_editor.c |  |
+| 0x004DDCB0 | `frame_pacing` | core/frame/frame.c |  |
+| 0x004DDD60 | `scroll_due` | present/ui/cityframe.c |  |
+| 0x004DDDC0 | `city_view_draw_current` | present/city/camera.c |  |
+| 0x004DDDE0 | `camera_scroll` | present/city/camera.c |  |
 | 0x004DDEA0 | `view_height (thunk)` | core/command/rotate.c | inside its caller |
 | 0x004DDEB0 | `view_width (thunk)` | core/command/rotate.c | inside its caller |
 | 0x004DDEC0 | `view_geometry_a` | core/newgame/reset.c |  |
@@ -1390,7 +1965,9 @@ functions read so far: README.md.
 | 0x004DE600 | `scenario_map_load` | core/newgame/setup.c |  |
 | 0x004DE820 | `scenario_setup` | core/newgame/setup.c |  |
 | 0x004DEA50 | `terrain_rebuild` | core/state/ported.c |  |
+| 0x004DEBE0 | `ghost_monument_de` | present/city/ghost_monument.c |  |
 | 0x004DED50 | `monument_part_layout_4ded50` | core/building/rest_redraw.c |  |
+| 0x004DEE10 | `boot_4dee10` | core/boot/steps.c |  |
 | 0x004DEF00 | `place_monument_de_fits` | core/command/place_misc.c |  |
 | 0x004DF040 | `monument_de_status` | core/city/day2_monument.c |  |
 | 0x004DF2C0 | `monument_parts_complete_4df2c0` | core/newgame/start.c |  |
@@ -1407,15 +1984,23 @@ functions read so far: README.md.
 | 0x004E0CC0 | `figb_tile_4e0cc0` | core/figure/actions_b.c |  |
 | 0x004E0CF0 | `message_post` | core/city/month_message.c |  |
 | 0x004E0F90 | `message_allowed` | core/city/month_message.c |  |
+| 0x004E1320 | `message_popup` | present/ui/messages/popup.c |  |
 | 0x004E14B0 | `message_kind` | core/city/month_message.c |  |
+| 0x004E1620 | `messages_open` | present/sidebar/input.c |  |
 | 0x004E1640 | `message_sort` | core/city/message.c |  |
 | 0x004E1750 | `message_free_slot` | core/city/month_message.c |  |
 | 0x004E1770 | `newgame_messages_reset` | core/newgame/start.c |  |
 | 0x004E1830 | `newgame_message_timer_reset` | core/newgame/start.c |  |
 | 0x004E1850 | `month_0x004E1850` | core/city/month.c |  |
+| 0x004E1870 | `msglist_redraw` | present/ui/messages/list.c |  |
+| 0x004E1A50 | `msglist_draw` | present/ui/messages/list.c |  |
+| 0x004E1E10 | `msglist_input` | present/ui/messages/list.c |  |
+| 0x004E2090 | `msglist_scroll_drag` | present/ui/messages/list.c |  |
 | 0x004E21D0 | `cmd_message_open` | core/command/orders_messages.c |  |
 | 0x004E2290 | `cmd_messages_delete_read` | core/command/orders_messages.c |  |
 | 0x004E2300 | `cmd_message_delete` | core/command/orders_messages.c |  |
+| 0x004E2530 | `mission_goal_hint` | present/ui/empire/mission.c |  |
+| 0x004E2720 | `play_screen_messages` | present/play/play.c |  |
 | 0x004E2970 | `notice_add_4e2970` | core/city/rest_notice.c |  |
 | 0x004E2AB0 | `view_rows_reset` | core/newgame/reset.c |  |
 | 0x004E2B10 | `notice_access_4e2b10` | core/command/place_notices.c |  |
@@ -1452,7 +2037,12 @@ functions read so far: README.md.
 | 0x004E4E10 | `notice_4e4e10` | core/command/place_notices.c |  |
 | 0x004E4ED0 | `notice_4e4ed0` | core/command/place_notices.c |  |
 | 0x004E5070 | `notice_4e5070` | core/command/place_notices.c |  |
+| 0x004E5190 | `monument_part_layout` | core/boot/monuments.c |  |
+| 0x004E5210 | `monument_base_ctor (boot)` | core/boot/monuments.c | inside its caller |
+| 0x004E52B0 | `monument_parts_layout` | core/boot/monuments.c |  |
+| 0x004E5310 | `monument_part_tile_ok_plain` | present/city/ghost_monument.c |  |
 | 0x004E5330 | `place_monument_fits` | core/command/place_misc.c |  |
+| 0x004E5490 | `ghost_monument_parts` | present/city/ghost_monument.c |  |
 | 0x004E5790 | `place_monument_exists` | core/command/place_misc.c |  |
 | 0x004E57F0 | `obelisk_add_4e57f0` | core/building/map_add_monument.c |  |
 | 0x004E5830 | `building_0x004e5830` | core/building/rest_destroy.c |  |
@@ -1467,8 +2057,16 @@ functions read so far: README.md.
 | 0x004E5B90 | `obelisk_anims_4e5b90` | core/building/map_add_monument.c |  |
 | 0x004E5C00 | `monument_0x004E5C00` | core/building/monument.c |  |
 | 0x004E5D10 | `monument_list_work` | core/building/monument.c |  |
+| 0x004E5E90 | `cv_part_cf` | present/city/parts.c |  |
+| 0x004E6070 | `info_resource_works` | present/ui/info/monument.c |  |
+| 0x004E61F0 | `anim_debug_step` | present/ui/cityframe.c |  |
+| 0x004E63B0 | `display_quit_cleanup` | core/frame/display.c |  |
+| 0x004E6400 | `monument_ctor_4e6400 (boot)` | core/boot/monuments.c | this = 0x006DE548, inside its caller |
+| 0x004E6590 | `monument_setup_4e6590` | core/boot/monuments.c | this = 0x006DE548 |
 | 0x004E65A0 | `monument_complete_4e65a0` | core/newgame/start.c | this = 0x006DE548 |
 | 0x004E65F0 | `monument_e4_fits` | core/command/place_misc.c | this = 0x006DE548 |
+| 0x004E6610 | `ghost_monument_e4` | present/city/ghost_monument.c |  |
+| 0x004E6620 | `monument_part_tile_ok_e4` | present/city/ghost_monument.c |  |
 | 0x004E6650 | `monument_e4_exists` | core/command/place_misc.c | this = 0x006DE548 |
 | 0x004E6710 | `monument_progress_4e6710` | core/city/monument_rating.c | this = 0x006DE548 |
 | 0x004E6840 | `monument_add_4e6840` | core/building/map_add_monument.c | this = 0x006DE548 |
@@ -1488,6 +2086,7 @@ functions read so far: README.md.
 | 0x004E7AC0 | `plague_tomb_robbers` | core/city/events_actions.c |  |
 | 0x004E7C90 | `building_monument_reachable` | core/city/events_actions.c |  |
 | 0x004E7D10 | `city_records_init` | core/newgame/reset.c |  |
+| 0x004E7DB0 | `advisor_gift_amounts` | ? |  |
 | 0x004E7E10 | `city_flag_clear` | core/newgame/reset.c |  |
 | 0x004E7E20 | `city_flag_set` | core/newgame/reset.c |  |
 | 0x004E7E40 | `countdown_0x00ea89dc` | core/state/ported.c |  |
@@ -1520,6 +2119,8 @@ functions read so far: README.md.
 | 0x004E9680 | `place_spend` | core/command/place.c |  |
 | 0x004E96C0 | `city_add_0x42d8` | core/city/month.c |  |
 | 0x004E9700 | `month_0x004E9700` | core/city/month.c |  |
+| 0x004E9760 | `population_history_at` | ? |  |
+| 0x004E97C0 | `population_history_dates` | ? |  |
 | 0x004E9890 | `gods_update_4e9890` | core/city/day_city.c |  |
 | 0x004E9EE0 | `city_records_init_9ee0` | core/newgame/reset.c |  |
 | 0x004E9F50 | `gods_most_angry` | core/city/day_city.c |  |
@@ -1527,9 +2128,12 @@ functions read so far: README.md.
 | 0x004EA280 | `houses_at_least` | core/city/day_goals.c |  |
 | 0x004EA2C0 | `goals_check` | core/city/day_goals.c |  |
 | 0x004EA740 | `month_0x004EA740` | core/city/month.c |  |
+| 0x004EA760 | `fe_close_to_city` | present/ui/frontend/options.c |  |
 | 0x004EA770 | `cmd_keep_governing` | core/command/orders.c |  |
 | 0x004EA7F0 | `cmd_stop_governing` | core/command/orders.c |  |
 | 0x004EA840 | `cmd_difficulty_lower` | core/command/orders.c |  |
+| 0x004EA880 | `mission_end_kind` | present/ui/frontend/victory.c |  |
+| 0x004EA8D0 | `mission_end_buttons` | present/ui/frontend/victory.c |  |
 | 0x004EA920 | `goals_4ea920` | core/city/day_goals.c |  |
 | 0x004EA930 | `goals_counters_met` | core/city/day_goals.c |  |
 | 0x004EA9A0 | `figure_type_is_0x44_0x46` | core/figure/formation.c |  |
@@ -1556,6 +2160,7 @@ functions read so far: README.md.
 | 0x004ECEA0 | `pyramid_kind_ok` | core/map/terrain_land.c |  |
 | 0x004ECEC0 | `place_pyramid_fits` | core/command/place.c |  |
 | 0x004ED360 | `ramp_walk` | core/city/events_actions.c |  |
+| 0x004EDBB0 | `ghost_pyramid` | present/city/ghost_monument.c |  |
 | 0x004EDF50 | `pyramid_part_redraw` | core/building/pyramid_terr.c |  |
 | 0x004EE4A0 | `mastaba_redraw_4ee4a0` | core/building/rest_redraw.c |  |
 | 0x004EE560 | `mastabas_redraw_4ee560` | core/building/rest_redraw.c |  |
@@ -1570,6 +2175,7 @@ functions read so far: README.md.
 | 0x004EF200 | `pyramid_part_advance` | core/building/monument.c |  |
 | 0x004EF3A0 | `worker_at_b7` | core/figure/actions_c.c |  |
 | 0x004EF450 | `pyramid_level_parts` | core/city/monument_rating.c |  |
+| 0x004EF550 | `cv_part_b7` | present/city/parts.c |  |
 | 0x004EFD90 | `pyramid_part_unfinished` | core/city/monument_rating.c |  |
 | 0x004EFE30 | `pyramid_assign` | core/building/monument.c |  |
 | 0x004F0190 | `pyramid_assign (mode 1)` | core/building/monument.c | inside its caller |
@@ -1577,6 +2183,10 @@ functions read so far: README.md.
 | 0x004F01E0 | `pyramid_take_worker` | core/building/monument.c |  |
 | 0x004F02F0 | `figure_pyramid_target` | core/building/monument.c |  |
 | 0x004F04D0 | `figure_pyramid_work` | core/building/monument.c |  |
+| 0x004F08C0 | `building_work_offset` | present/city/figures.c |  |
+| 0x004F0AB0 | `view_cell_tile` | core/frame/view.c |  |
+| 0x004F0BA0 | `view_tile_to_screen` | core/frame/view.c |  |
+| 0x004F0D30 | `figure_work_position` | present/city/figures.c |  |
 | 0x004F0EF0 | `figure_pyramid_choose` | core/building/monument.c |  |
 | 0x004F1310 | `pyramid_status (writes its caller's stack, in monument_rating.c)` | core/city/monument_rating.c | inside its caller |
 | 0x004F1CB0 | `worker_start_job` | core/figure/actions_c.c |  |
@@ -1624,9 +2234,17 @@ functions read so far: README.md.
 | 0x004F5340 | `pyramid_progress_4f5340` | core/city/rest_gods.c |  |
 | 0x004F53D0 | `pyramid_part_done` | core/city/monument_rating.c |  |
 | 0x004F5470 | `monument_menu_open` | core/command/menu.c |  |
+| 0x004F5580 | `info_slot_needs` | present/ui/info/monument.c |  |
+| 0x004F56A0 | `info_slot_has_good` | present/ui/info/monument.c |  |
+| 0x004F56D0 | `info_slot_goods_wanted` | present/ui/info/monument.c |  |
+| 0x004F5770 | `info_goods_check` | present/ui/info/monument.c |  |
 | 0x004F57B0 | `monument_goods_needed` | core/city/day2_monument.c |  |
+| 0x004F5BD0 | `info_monument_wants` | present/ui/info/monument.c |  |
+| 0x004F5D10 | `info_pyramid_parts_ready` | present/ui/info/monument.c |  |
+| 0x004F5D90 | `info_pyramid_of_part` | present/ui/info/info.c |  |
 | 0x004F5E70 | `pyramid_chapel_mark` | core/building/pyramid_terr.c |  |
 | 0x004F5F10 | `pyramid_ramp_4f5f10` | core/building/map_add_monument.c |  |
+| 0x004F6000 | `info_building_part_of` | present/ui/info/info.c |  |
 | 0x004F6020 | `pyramid_ramp_blocked` | core/city/day2_misc.c |  |
 | 0x004F60D0 | `pyramid_register` | core/map/terrain_land.c |  |
 | 0x004F6130 | `pyramids_redraw` | core/map/terrain_land.c |  |
@@ -1649,9 +2267,175 @@ functions read so far: README.md.
 | 0x004F68F0 | `battle_add_boat` | core/figure/actions_c2.c |  |
 | 0x004F6A10 | `ring_wrap` | core/sim/queue.c |  |
 | 0x004F6AD0 | `advisor_houses_count` | core/command/advisor.c |  |
+| 0x004F6AF0 | `advisor_ratings_draw` | ? |  |
+| 0x004F7720 | `ratings_frame` | ? |  |
+| 0x004F77E0 | `ratings_column` | ? |  |
 | 0x004F78A0 | `monument_rating_value (x87 result, in monument_rating.c)` | core/city/monument_rating.c | inside its caller |
+| 0x004F7E50 | `info_open` | present/ui/info/info.c |  |
+| 0x004F8960 | `info_panel_size` | present/ui/info/info.c |  |
+| 0x004F8E60 | `info_draw` | present/ui/info/info.c |  |
+| 0x004F94A0 | `info_frame` | present/ui/info/info.c |  |
+| 0x004F96E0 | `info_input` | present/ui/info/info.c |  |
+| 0x004FA330 | `info_figure_thumbnail` | present/ui/info/figure.c |  |
+| 0x004FA3C0 | `info_figure_thumbnails` | present/ui/info/figure.c |  |
+| 0x004FA4A0 | `info_panel_none` | present/ui/info/figure.c |  |
+| 0x004FA530 | `info_panel_terrain` | present/ui/info/figure.c |  |
+| 0x004FA780 | `info_figure_list` | present/ui/info/figure.c |  |
+| 0x004FA8C0 | `info_figure_portrait` | present/ui/info/figure.c |  |
+| 0x004FAB20 | `info_figure_panel` | present/ui/info/figure.c |  |
+| 0x004FBF00 | `info_figure_draw_resource` | present/ui/info/figure.c |  |
+| 0x004FBF30 | `info_figure_draw_loads` | present/ui/info/figure.c |  |
+| 0x004FC040 | `info_figure_draw_loads_held` | present/ui/info/figure.c |  |
+| 0x004FC150 | `info_house_people` | present/ui/info/house.c |  |
+| 0x004FC2D0 | `info_house_tax` | present/ui/info/house.c |  |
+| 0x004FC3B0 | `info_house_happiness` | present/ui/info/house.c |  |
+| 0x004FC4F0 | `info_workers_line_or_closed` | present/ui/info/info.c |  |
+| 0x004FC5C0 | `info_workers_line` | present/ui/info/info.c |  |
+| 0x004FC820 | `info_panel_d1` | present/ui/info/industry.c |  |
+| 0x004FC8E0 | `info_panel_1e` | present/ui/info/industry.c |  |
+| 0x004FCC90 | `info_panel_1f` | present/ui/info/industry.c |  |
+| 0x004FCF10 | `info_panel_20` | present/ui/info/industry.c |  |
+| 0x004FD120 | `info_panel_e2` | present/ui/info/industry.c |  |
+| 0x004FD4B0 | `info_panel_21` | present/ui/info/industry.c |  |
+| 0x004FDA00 | `info_panel_22` | present/ui/info/industry.c |  |
+| 0x004FDC40 | `info_panel_23` | present/ui/info/industry.c |  |
+| 0x004FDE80 | `info_panel_24` | present/ui/info/industry.c |  |
+| 0x004FE0C0 | `info_panel_25` | present/ui/info/industry.c |  |
+| 0x004FE300 | `info_panel_park` | present/ui/info/figure.c |  |
+| 0x004FE3C0 | `info_panel_wall` | present/ui/info/figure.c |  |
+| 0x004FE490 | `info_panel_wall_0x17` | present/ui/info/figure.c |  |
+| 0x004FE560 | `info_panel_wall_0x18` | present/ui/info/figure.c |  |
+| 0x004FE630 | `info_panel_canal` | present/ui/info/figure.c |  |
+| 0x004FE730 | `info_panel_plaza` | present/ui/info/figure.c |  |
+| 0x004FE800 | `info_panel_statue` | present/ui/info/figure.c |  |
+| 0x004FE8D0 | `info_panel_statue_0x38` | present/ui/info/figure.c |  |
+| 0x004FE9A0 | `info_panel_2e` | present/ui/info/industry.c |  |
+| 0x004FEB00 | `info_panel_2f` | present/ui/info/industry.c |  |
+| 0x004FED40 | `info_panel_ce` | present/ui/info/industry.c |  |
+| 0x004FEEA0 | `info_panel_31` | present/ui/info/industry.c |  |
+| 0x004FF000 | `info_panel_33` | present/ui/info/industry.c |  |
+| 0x004FF200 | `info_panel_35` | present/ui/info/industry.c |  |
+| 0x004FF400 | `info_panel_37` | present/ui/info/industry.c |  |
+| 0x004FF740 | `info_panel_a7` | present/ui/info/industry.c |  |
+| 0x004FFA20 | `info_panel_39` | present/ui/info/industry.c |  |
+| 0x004FFB30 | `info_panel_3a` | present/ui/info/industry.c |  |
+| 0x004FFBF0 | `info_panel_aa` | present/ui/info/industry.c |  |
+| 0x004FFCC0 | `info_panel_ab` | present/ui/info/industry.c |  |
+| 0x004FFD90 | `info_panel_8a` | present/ui/info/industry.c |  |
+| 0x004FFE60 | `info_panel_3b` | present/ui/info/industry.c |  |
+| 0x00500000 | `info_panel_ac` | present/ui/info/industry.c |  |
+| 0x005001A0 | `info_panel_ad` | present/ui/info/industry.c |  |
+| 0x00500380 | `info_panel_5e` | present/ui/info/industry.c |  |
+| 0x00500530 | `info_panel_5f` | present/ui/info/industry.c |  |
+| 0x00500A40 | `info_bazaar` | present/ui/info/storage.c |  |
+| 0x00501140 | `info_bazaar_frame` | present/ui/info/storage.c |  |
+| 0x005011D0 | `info_bazaar_orders_frame` | present/ui/info/storage.c |  |
 | 0x005013A0 | `storage_kind (in goods.c)` | core/state/ported.c | inside its caller |
+| 0x005013E0 | `info_bazaar_orders` | present/ui/info/storage.c |  |
+| 0x005014A0 | `info_granary` | present/ui/info/storage.c |  |
+| 0x00501A40 | `info_granary_frame` | present/ui/info/storage.c |  |
+| 0x00501AD0 | `info_granary_orders` | present/ui/info/storage.c |  |
+| 0x00501B60 | `info_granary_orders_frame` | present/ui/info/storage.c |  |
+| 0x00501FD0 | `info_storage_yard` | present/ui/info/storage.c |  |
+| 0x005026F0 | `info_storage_yard_frame` | present/ui/info/storage.c |  |
 | 0x00502780 | `storage_rows_visible` | core/command/orders_storage.c |  |
+| 0x00502840 | `info_storage_yard_thumb` | present/ui/info/storage.c |  |
+| 0x005028F0 | `info_storage_yard_orders` | present/ui/info/storage.c |  |
+| 0x00502990 | `info_storage_yard_orders_frame` | present/ui/info/storage.c |  |
+| 0x00502F70 | `info_shipyard` | present/ui/info/service.c |  |
+| 0x00503360 | `info_dock` | present/ui/info/service.c |  |
+| 0x005035F0 | `info_fishing_wharf` | present/ui/info/service.c |  |
+| 0x00503940 | `info_wharf_b5` | present/ui/info/service.c |  |
+| 0x00503AA0 | `info_wharf_b6` | present/ui/info/service.c |  |
+| 0x00503C00 | `info_panel_88` | present/ui/info/service.c |  |
+| 0x00503E10 | `info_palace_frame` | present/ui/info/service.c |  |
+| 0x00503F00 | `info_palace` | present/ui/info/service.c |  |
+| 0x00504070 | `info_engineer_post` | present/ui/info/service.c |  |
+| 0x00504300 | `info_mission_post` | present/ui/info/service.c |  |
+| 0x005043C0 | `info_panel_58` | present/ui/info/service.c |  |
+| 0x00504490 | `info_panel_59` | present/ui/info/service.c |  |
+| 0x00504560 | `info_panel_5d` | present/ui/info/service.c |  |
+| 0x00504630 | `info_tax_frame` | present/ui/info/service.c |  |
+| 0x00504680 | `info_senate` | present/ui/info/service.c |  |
+| 0x005048D0 | `info_panel_b8` | present/ui/info/service.c |  |
+| 0x00504C20 | `info_forum` | present/ui/info/service.c |  |
+| 0x00505050 | `info_waterwheel` | present/ui/info/service.c |  |
+| 0x005051E0 | `info_fountain` | present/ui/info/service.c |  |
+| 0x00505320 | `info_well` | present/ui/info/service.c |  |
+| 0x00505460 | `info_panel_62` | present/ui/info/service.c |  |
+| 0x00505560 | `info_temple` | present/ui/info/service.c |  |
+| 0x005057F0 | `info_ruin` | present/ui/info/service.c |  |
+| 0x005058F0 | `info_panel_rubble` | present/ui/info/figure.c |  |
+| 0x00505A00 | `info_theatre` | present/ui/info/service.c |  |
+| 0x00505C40 | `info_farm_lines` | present/ui/info/service2.c |  |
+| 0x00505DC0 | `info_farm_00505DC0` | present/ui/info/service2.c |  |
+| 0x00506250 | `info_farm_00506250` | present/ui/info/service2.c |  |
+| 0x005066C0 | `info_farm_005066C0` | present/ui/info/service2.c |  |
+| 0x00506B30 | `info_farm_00506B30` | present/ui/info/service2.c |  |
+| 0x00506FC0 | `info_farm_00506FC0` | present/ui/info/service2.c |  |
+| 0x00507430 | `info_farm_00507430` | present/ui/info/service2.c |  |
+| 0x005078A0 | `info_farm_005078A0` | present/ui/info/service2.c |  |
+| 0x00507D30 | `info_0x00507D30` | present/ui/info/service2.c |  |
+| 0x00508120 | `info_farm_00508120` | present/ui/info/service2.c |  |
+| 0x005085B0 | `info_0x005085B0` | present/ui/info/service2.c |  |
+| 0x00508A60 | `info_raw_00508A60` | present/ui/info/service2.c |  |
+| 0x00508E00 | `info_raw_00508E00` | present/ui/info/service2.c |  |
+| 0x005091C0 | `info_raw_005091C0` | present/ui/info/service2.c |  |
+| 0x00509570 | `info_raw_00509570` | present/ui/info/service2.c |  |
+| 0x00509920 | `info_raw_00509920` | present/ui/info/service2.c |  |
+| 0x00509CD0 | `info_panel_type6c` | present/ui/info/service3.c |  |
+| 0x0050A060 | `info_panel_type6d` | present/ui/info/service3.c |  |
+| 0x0050A400 | `info_panel_type6e` | present/ui/info/service3.c |  |
+| 0x0050A870 | `info_panel_type6f` | present/ui/info/service3.c |  |
+| 0x0050ACE0 | `info_panel_typecb` | present/ui/info/service3.c |  |
+| 0x0050B160 | `info_panel_typee8` | present/ui/info/service3.c |  |
+| 0x0050B6D0 | `info_panel_typee9` | present/ui/info/service3.c |  |
+| 0x0050BB50 | `info_panel_typecd` | present/ui/info/service3.c |  |
+| 0x0050BFD0 | `info_panel_typecc` | present/ui/info/service3.c |  |
+| 0x0050C540 | `info_panel_type70` | present/ui/info/service3.c |  |
+| 0x0050C9B0 | `info_panel_type71` | present/ui/info/service3.c |  |
+| 0x0050CE20 | `info_panel_type72` | present/ui/info/service3.c |  |
+| 0x0050D290 | `info_panel_typeb1` | present/ui/info/service3.c |  |
+| 0x0050D6C0 | `info_panel_typeb2` | present/ui/info/service3.c |  |
+| 0x0050D930 | `info_panel_typeb3` | present/ui/info/service3.c |  |
+| 0x0050DBE0 | `info_panel_typee7` | present/ui/info/service3.c |  |
+| 0x0050E030 | `info_panel_type73` | present/ui/info/service3.c |  |
+| 0x0050E3C0 | `info_house_needs` | present/ui/info/house.c |  |
+| 0x0050E570 | `info_house` | present/ui/info/house.c |  |
+| 0x0050EFB0 | `info_house_vacant` | present/ui/info/house.c |  |
+| 0x0050F0F0 | `info_house_worst_neighbour` | present/ui/info/info.c |  |
+| 0x0050F320 | `info_transport` | present/ui/info/military.c |  |
+| 0x0050F890 | `info_transport_orders` | present/ui/info/military.c |  |
+| 0x0050FC10 | `ship_health_text` | ? |  |
+| 0x0050FC70 | `ship_state_text` | ? |  |
+| 0x0050FCA0 | `info_warship` | present/ui/info/military.c |  |
+| 0x0050FE50 | `info_warship_orders` | present/ui/info/military.c |  |
+| 0x005101B0 | `info_legion` | present/ui/info/military.c |  |
+| 0x00510B00 | `info_legion_frame` | present/ui/info/military.c |  |
+| 0x00511040 | `info_pyramid` | present/ui/info/monument.c |  |
+| 0x00511C50 | `info_help` | present/ui/info/info.c |  |
+| 0x00511C80 | `info_sphinx` | present/ui/info/monument.c |  |
+| 0x00512140 | `info_monument_cf` | present/ui/info/monument.c |  |
+| 0x005124A0 | `info_sun_temple` | present/ui/info/monument.c |  |
+| 0x00512BE0 | `info_monument_e1` | present/ui/info/monument.c |  |
+| 0x005132A0 | `info_monument_e6` | present/ui/info/monument.c |  |
+| 0x005135E0 | `info_monument_e3` | present/ui/info/monument.c |  |
+| 0x00513D40 | `info_tomb` | present/ui/info/monument.c |  |
+| 0x00514400 | `info_monument_e4` | present/ui/info/monument.c |  |
+| 0x00514A40 | `info_mausoleum` | present/ui/info/monument.c |  |
+| 0x005150A0 | `info_house_advisor` | present/ui/info/info.c |  |
+| 0x00515130 | `info_advisors_of_building` | present/ui/info/info.c |  |
+| 0x00515BF0 | `play_info_order_buttons` | present/play/play.c |  |
+| 0x00515C60 | `info_advisor_buttons` | present/ui/info/info.c |  |
+| 0x00515D10 | `info_culture_ratings` | present/ui/info/industry.c |  |
+| 0x00516020 | `info_kingdom_highlight` | present/ui/info/info.c |  |
+| 0x00516080 | `festival_dialog_draw_building` | ? |  |
+| 0x005165B0 | `fe_two` | present/ui/frontend/family.c |  |
+| 0x005165C0 | `family_scroll_thumb` | present/ui/frontend/family.c |  |
+| 0x00516630 | `family_list_draw` | present/ui/frontend/family.c |  |
+| 0x00516720 | `family_rows_draw` | present/ui/frontend/family.c |  |
+| 0x00516890 | `family_scroll_click` | present/ui/frontend/family.c |  |
+| 0x005168E0 | `family_scroll_drag` | present/ui/frontend/family.c |  |
 | 0x00516990 | `family_done` | core/newgame/flow2.c |  |
 | 0x005169C0 | `family_dir_path` | core/newgame/flow.c |  |
 | 0x00516A20 | `campaign_progress_path` | core/newgame/flow.c |  |
@@ -1659,7 +2443,9 @@ functions read so far: README.md.
 | 0x00516B50 | `family_list_load` | core/newgame/flow2.c |  |
 | 0x00516BB0 | `family_list_open` | core/newgame/flow2.c |  |
 | 0x00516C10 | `family_name_open` | core/newgame/flow2.c |  |
+| 0x00516C60 | `family_delete_click` | present/ui/frontend/family.c |  |
 | 0x00516C80 | `family_create` | core/newgame/flow2.c |  |
+| 0x00516DD0 | `family_delete` | present/ui/frontend/family.c |  |
 | 0x00516F90 | `routing_fill_ee0c50` | core/state/ported.c |  |
 | 0x00517370 | `routing_rebuild_ee0c50` | core/state/ported.c |  |
 | 0x005173A0 | `routing_fill_ec7630` | core/state/ported.c |  |
@@ -1695,6 +2481,7 @@ functions read so far: README.md.
 | 0x0051B680 | `drag_path_fill` | core/command/construction_path.c |  |
 | 0x0051BC60 | `place_path_fill` | core/command/place_drag.c |  |
 | 0x0051C390 | `bridge_passable` | core/command/construction_path.c |  |
+| 0x0051C460 | `ghost_51c460` | present/city/ghost.c |  |
 | 0x0051C510 | `ramp_passable` | core/command/construction_path.c |  |
 | 0x0051C5F0 | `grass_index` | core/map/terrain_land.c |  |
 | 0x0051C620 | `floodplain_canal_image` | core/map/terrain_roads.c |  |
@@ -1713,25 +2500,168 @@ functions read so far: README.md.
 | 0x0051DC10 | `route_path_ties` | core/map/route_x.c |  |
 | 0x0051DE70 | `route_distances_wide` | core/map/route_path.c |  |
 | 0x0051E720 | `route_path` | core/map/route_path.c |  |
+| 0x0051E930 | `sidebar_set_x` | present/sidebar/sidebar.c |  |
+| 0x0051E990 | `sidebar_draw` | present/sidebar/sidebar.c |  |
+| 0x0051EC90 | `sidebar_draw_buttons` | present/sidebar/sidebar.c |  |
+| 0x0051ED30 | `sidebar_draw_overlay_name` | present/sidebar/sidebar.c |  |
+| 0x0051EDD0 | `sidebar_draw_build_title` | present/sidebar/sidebar.c |  |
+| 0x0051EFB0 | `sidebar_draw_minimap` | present/sidebar/sidebar.c |  |
+| 0x0051F0A0 | `topbar_draw` | present/sidebar/sidebar.c |  |
+| 0x0051F680 | `sidebar_draw_messages` | present/sidebar/sidebar.c |  |
 | 0x0051F780 | `nothing` | core/state/ported.c |  |
+| 0x0051F790 | `sidebar_draw_city_texts` | present/sidebar/sidebar.c |  |
+| 0x0051FD60 | `sidebar_slide` | present/sidebar/sidebar.c |  |
+| 0x0051FFD0 | `build_menu_redraw` | present/ui/windows.c |  |
+| 0x00520000 | `build_menu_draw` | present/ui/windows.c |  |
+| 0x005208C0 | `overlays_menu_redraw` | present/ui/windows.c |  |
+| 0x005208F0 | `overlays_menu_draw` | present/ui/windows.c |  |
+| 0x00520AB0 | `main_menu_draw` | present/ui/frontend/menu.c |  |
+| 0x00520AF0 | `loading_last` | present/boot/loading.c |  |
+| 0x00520B20 | `loading_picture` | present/boot/loading.c |  |
+| 0x00520B60 | `name_entry_draw` | present/ui/frontend/family.c |  |
+| 0x00520B90 | `name_entry_frame` | present/ui/frontend/family.c |  |
+| 0x00520D00 | `choice_window_draw` | present/ui/frontend/highscore.c |  |
+| 0x00520E00 | `title_screen_draw` | present/ui/frontend/screens.c |  |
+| 0x00520EA0 | `advisors_draw` | present/ui/advisors/ports.c |  |
+| 0x00520F40 | `advisors_draw_hall` | present/ui/advisors/ports.c |  |
+| 0x00521080 | `advisor_labour_draw` | ? |  |
+| 0x005215D0 | `advisor_labour_rows_draw` | ? |  |
+| 0x00521800 | `advisor_labour_priority_draw` | ? |  |
 | 0x00521A60 | `military_requests_open` | core/command/military.c |  |
 | 0x00521AA0 | `military_requests` | core/command/military.c |  |
+| 0x00521B50 | `advisor_military_draw` | ? |  |
+| 0x00522D80 | `ship_at_wharf` | ? |  |
+| 0x00522E10 | `advisor_fleet_draw` | ? |  |
+| 0x00523EA0 | `advisor_kingdom_draw` | ? |  |
+| 0x00524E20 | `advisor_salary_draw` | ? |  |
+| 0x005250F0 | `advisor_donation_draw` | ? |  |
+| 0x005255A0 | `advisor_gift_draw` | ? |  |
+| 0x00525B90 | `advisor_open_route_draw` | ? |  |
+| 0x00525CB0 | `advisor_population_draw` | ? |  |
+| 0x00527360 | `population_graph_history` | ? |  |
+| 0x00527710 | `population_graph_census` | ? |  |
+| 0x005278E0 | `population_graph_society` | ? |  |
+| 0x00527AD0 | `population_graph_scale` | ? |  |
+| 0x00527BF0 | `advisor_draw_page8` | ? |  |
+| 0x00528360 | `advisor_draw_page9` | ? |  |
+| 0x00528950 | `advisor_draw_page10` | ? |  |
+| 0x00528F10 | `advisor_draw_festival_panel` | ? |  |
+| 0x005292B0 | `advisor_draw_festival_button` | ? |  |
+| 0x00529320 | `festival_dialog_draw` | ? |  |
+| 0x00529530 | `festival_dialog_draw_sizes` | ? |  |
+| 0x005298E0 | `advisor_religion_draw` | ? |  |
+| 0x0052A250 | `advisors_draw_page12` | ? |  |
+| 0x0052B520 | `advisor_monuments_draw` | ? |  |
+| 0x0052C570 | `advisors_draw_page13` | ? |  |
+| 0x0052D4D0 | `empire_draw` | present/ui/empire/empire.c |  |
+| 0x0052D4E0 | `editor_empire_draw` | present/ui/empire/editor.c |  |
+| 0x0052D630 | `empire_frame_draw` | present/ui/empire/empire.c |  |
+| 0x0052D940 | `empire_title_draw` | present/ui/empire/empire.c |  |
+| 0x0052DA40 | `empire_panel_draw` | present/ui/empire/empire.c |  |
+| 0x0052DAC0 | `empire_city_trades_both` | present/ui/empire/empire.c |  |
+| 0x0052DB10 | `empire_city_panel_draw` | present/ui/empire/empire.c |  |
+| 0x0052E610 | `empire_army_panel_draw` | present/ui/empire/empire.c |  |
+| 0x0052E6F0 | `editor_modes_draw` | present/ui/empire/editor.c |  |
+| 0x0052E8C0 | `editor_route_panel_draw` | present/ui/empire/editor.c |  |
+| 0x0052EC50 | `editor_panel_draw` | present/ui/empire/editor.c |  |
+| 0x0052F790 | `image_anim_step` | present/ui/empire/empire.c |  |
+| 0x0052F850 | `editor_hint_draw` | present/ui/empire/editor.c |  |
+| 0x0052F8B0 | `empire_map_draw` | present/ui/empire/empire.c |  |
+| 0x005305E0 | `editor_number_dialog_draw` | present/ui/empire/editor.c |  |
+| 0x005309B0 | `numpad_draw` | present/ui/frontend/numpad.c |  |
+| 0x00530D70 | `popup_list_draw` | present/ui/frontend/numpad.c |  |
+| 0x00531190 | `display_options_draw` | present/ui/frontend/options.c |  |
+| 0x00531BE0 | `difficulty_dialog_draw` | present/ui/frontend/options.c |  |
+| 0x00531CC0 | `speed_options_draw` | present/ui/frontend/options.c |  |
+| 0x00531EF0 | `sound_options_draw` | present/ui/frontend/options.c |  |
+| 0x00532340 | `file_dialog_draw` | present/ui/frontend/files.c |  |
+| 0x005325F0 | `map_dialog_draw` | present/ui/frontend/files.c |  |
+| 0x00532830 | `file_dialog_thumb` | present/ui/frontend/files.c |  |
+| 0x00534540 | `resolution_check_draw` | present/ui/frontend/screens.c |  |
+| 0x005345A0 | `resolution_check_frame` | present/ui/frontend/screens.c |  |
+| 0x00534610 | `debug_city_panel` | present/ui/debug_panels.c |  |
+| 0x00534DF0 | `debug_evolve_panel` | present/ui/debug_panels.c |  |
+| 0x00535080 | `debug_building_panel` | present/ui/debug_panels.c |  |
+| 0x00536120 | `debug_figure_panel` | present/ui/debug_panels.c |  |
+| 0x00536620 | `play_network_info` | present/play/play.c |  |
+| 0x00536670 | `topbar_draw_background` | present/sidebar/sidebar.c |  |
+| 0x00536710 | `fe_button_draw` | present/ui/frontend/menu.c |  |
+| 0x00536820 | `panel_draw` | present/sidebar/sidebar.c |  |
+| 0x00536990 | `panel_draw_pattern` | present/ui/messages/window.c |  |
+| 0x00536A30 | `panel_draw_inner` | present/draw/ports.c |  |
+| 0x00536BA0 | `advisors_draw_strip` | ? |  |
+| 0x00536C30 | `panel_draw_frame` | present/draw/ports.c |  |
+| 0x00536DC0 | `play_button_panel` | present/play/play.c |  |
+| 0x00536FD0 | `play_button_pulse` | present/play/play.c |  |
+| 0x00537000 | `fe_small_button` | present/ui/frontend/options.c |  |
+| 0x005370D0 | `clip_reset` | present/draw/ports.c |  |
+| 0x00537100 | `sidebar_draw_edge_800` | present/sidebar/sidebar.c |  |
+| 0x00537120 | `sidebar_draw_edge_1024` | present/sidebar/sidebar.c |  |
+| 0x00537140 | `text_caret_draw` | present/ui/frontend/family.c |  |
+| 0x00537260 | `hotkeys_draw` | present/ui/frontend/options.c |  |
+| 0x00537940 | `advisors_draw_grave_goods` | present/ui/advisors/ports.c |  |
+| 0x00538050 | `advisor_explain_draw` | ? |  |
+| 0x00538850 | `advisors_draw_rating_info` | present/ui/advisors/ports.c |  |
 | 0x00538CD0 | `platform_message_box` | core/sim/platform.c | platform request |
 | 0x00538DC0 | `ui_video_open` | core/city/day_goals.c |  |
 | 0x00538E30 | `platform_video_play` | core/sim/platform.c | platform request |
 | 0x00539170 | `platform_video_close` | core/sim/platform.c | platform request |
-| 0x0053B090 | `platform_ui_sound` | core/sim/platform.c | platform request |
-| 0x0053B4A0 | `platform_figure_sound` | core/sim/platform.c | platform request |
+| 0x005391E0 | `display_video_stop` | core/frame/display.c |  |
+| 0x00539250 | `music_read` | core/boot/boot.c | this = 0x00E39180 |
+| 0x005394F0 | `boot_sound_start` | core/boot/boot.c |  |
+| 0x00539550 | `music_tables_ctor (boot ctors)` | core/boot/ctors.c | inside its caller |
+| 0x005395E0 | `tune_add` | core/boot/boot.c | this = 0x00E39180 |
+| 0x00539730 | `music_window` | core/frame/sound.c | this = 0x00E39180 |
+| 0x00539820 | `music_step` | core/frame/sound.c | this = 0x00E39180 |
+| 0x00539A40 | `boot_sound_start music_mode` | core/boot/boot.c | this = 0x00E39180 |
+| 0x00539A50 | `music_set_window` | core/frame/sound.c | this = 0x00E39180 |
+| 0x00539A70 | `info_play_speech` | present/ui/info/phrase.c |  |
+| 0x00539B20 | `mission_speech_play` | present/ui/empire/mission.c |  |
+| 0x00539C60 | `sound_register` | core/boot/sound.c |  |
+| 0x00539CF0 | `building_sound` | core/boot/boot.c |  |
+| 0x00539D60 | `building_sounds` | core/boot/boot.c |  |
+| 0x0053ACF0 | `city_random_sound` | core/frame/sound.c |  |
+| 0x0053AF70 | `interface_sound` | core/boot/boot.c |  |
+| 0x0053AF90 | `interface_sounds` | core/boot/boot.c |  |
+| 0x0053B090 | `ui_sound` | core/sim/platform.c |  |
+| 0x0053B100 | `figure_sound` | core/boot/boot.c |  |
+| 0x0053B130 | `figure_sounds` | core/boot/boot.c |  |
+| 0x0053B4A0 | `figure_sound` | core/sim/platform.c |  |
+| 0x0053B670 | `ambient_counters_clear` | core/frame/sound.c |  |
 | 0x0053B690 | `music_fade_out` | core/newgame/flow2.c |  |
+| 0x0053B6F0 | `stream_fade_out` | core/frame/sound.c |  |
+| 0x0053B790 | `stream_fade_in` | core/frame/sound.c |  |
+| 0x0053B830 | `ambient_class` | core/frame/sound.c |  |
+| 0x0053B960 | `ambient_stream` | core/frame/sound.c |  |
+| 0x0053BC80 | `ambient_sound` | core/boot/boot.c |  |
+| 0x0053BCF0 | `ambient_sounds` | core/boot/boot.c |  |
+| 0x0053BFE0 | `info_speech_file` | present/ui/info/phrase.c |  |
+| 0x0053C060 | `info_phrase_mood_pick` | present/ui/info/phrase.c |  |
+| 0x0053C100 | `info_figure_phrase` | present/ui/info/phrase.c |  |
+| 0x0053D0B0 | `info_figure_speech` | present/ui/info/phrase.c |  |
+| 0x0053D280 | `figure_text_group` | present/ui/info/figure.c |  |
+| 0x0053D3A0 | `info_phrase_mood` | present/ui/info/phrase.c |  |
 | 0x0053D730 | `figure_order_select` | core/command/military.c |  |
 | 0x0053D820 | `sphinx_stage_up` | core/building/monument_obj.c |  |
 | 0x0053D850 | `sphinx_images_53d850` | core/building/map_add.c |  |
 | 0x0053D8E0 | `newgame_monument_kind2` | core/newgame/graphics.c |  |
 | 0x0053D930 | `mastaba_variant_53d930` | core/building/map_add_monument.c |  |
 | 0x0053D970 | `newgame_extra_slot` | core/newgame/graphics.c |  |
+| 0x0053DA90 | `graphics_object_ctor (boot ctors)` | core/boot/ctors.c | inside its caller |
+| 0x0053DB60 | `graphics_reset` | core/boot/ctors.c | this = 0x00F55BB0 |
+| 0x0053DD10 | `boot_graphics load_next` | core/boot/boot.c | this = 0x00F55BB0 |
+| 0x0053DD40 | `boot_graphics load_rest` | core/boot/boot.c | this = 0x00F55BB0 |
 | 0x0053DD90 | `graphics_load_slot` | core/graphics/last_graphics.c | this = 0x00F55BB0 |
 | 0x0053DFF0 | `sg3_load` | core/graphics/sg3.c |  |
+| 0x0053E530 | `image_size` | present/draw/ports.c | this = 0x00F55BB0 |
+| 0x0053E590 | `image_draw` | present/draw/ports.c | this = 0x00F55BB0 |
+| 0x0053F250 | `image_draw_top` | present/draw/ports.c | this = 0x00F55BB0 |
+| 0x0053F4A0 | `image_draw_pixel_pair` | present/draw/ports.c | this = 0x00F55BB0 |
+| 0x0053F4F0 | `image_draw_tinted` | present/draw/ports.c | this = 0x00F55BB0 |
 | 0x0053F660 | `platform_pixels_load` | core/sim/platform.c | platform request |
+| 0x0053F790 | `external_buffer_free` | present/draw/ports.c |  |
+| 0x0053F7D0 | `external_image_read` | present/draw/ports.c | this = 0x00F55BB0 |
+| 0x0053FA40 | `image_draw_flipped` | present/draw/ports.c | this = 0x00F55BB0 |
 | 0x005404B0 | `sg3 list push back` | core/graphics/sg3.c |  |
 | 0x00540540 | `sg3 list push front` | core/graphics/sg3.c |  |
 | 0x00540570 | `sg3 list find` | core/graphics/sg3.c |  |
@@ -1743,19 +2673,26 @@ functions read so far: README.md.
 | 0x00540C90 | `model_buildings_load` | core/command/models.c |  |
 | 0x00540ED0 | `model_figures_load` | core/command/models.c |  |
 | 0x00541160 | `model_tax_load` | core/command/models.c |  |
+| 0x00541310 | `trade_recommends_read` | core/boot/steps.c |  |
 | 0x005414B0 | `sun_temple_image` | core/building/monument_obj.c |  |
 | 0x005417B0 | `sun_temple_add_5417b0` | core/building/map_add_monument.c |  |
 | 0x00541920 | `sun_temple_redraw` | core/building/monument_obj.c |  |
 | 0x00541AB0 | `building_part_size` | core/building/day2_destroy.c |  |
 | 0x00541AE0 | `place_monument_d5_fits` | core/command/place_misc.c |  |
+| 0x00541C00 | `ghost_monument_d5` | present/city/ghost_monument.c |  |
+| 0x00541D50 | `boot_541d50` | core/boot/steps.c |  |
 | 0x00541DE0 | `sun_temple_work` | core/building/monument.c |  |
 | 0x00542110 | `monument_d5_worker_busy` | core/city/day2_monument.c |  |
 | 0x005421D0 | `sun_temple_take` | core/building/monument_take.c |  |
 | 0x00542A80 | `monument_take_0xd5` | core/building/monument.c |  |
 | 0x00542AD0 | `monument_d5_status` | core/city/day2_monument.c |  |
 | 0x00542DD0 | `sun_temple_stage_up` | core/building/monument_obj.c |  |
+| 0x00542E10 | `cv_part_d5` | present/city/parts.c |  |
 | 0x00542EE0 | `place_monument_d5_done` | core/command/place_misc.c |  |
+| 0x005430E0 | `monument_ctor_5430e0 (boot)` | core/boot/monuments.c | this = 0x006F9320, inside its caller |
+| 0x005456A0 | `monument_setup_5456a0` | core/boot/monuments.c | this = 0x006F9320 |
 | 0x005456C0 | `monument_e5_fits` | core/command/place_misc.c | this = 0x006F9320 |
+| 0x005456E0 | `ghost_monument_e5` | present/city/ghost_monument.c |  |
 | 0x00545700 | `monument_e5_exists` | core/command/place_misc.c | this = 0x006F9320 |
 | 0x00545740 | `monument_progress_parts 9` | core/city/monument_rating.c | this = 0x006F9320 |
 | 0x00545760 | `monument_image_545760` | core/building/rest_monument.c |  |
@@ -1764,7 +2701,9 @@ functions read so far: README.md.
 | 0x00545C30 | `tomb_add_545c30` | core/building/map_add_monument.c | this = 0x006F9320 |
 | 0x00545F60 | `tomb_kinds_545f60` | core/building/map_add_monument.c | this = 0x006F9320 |
 | 0x00545F70 | `const_0x00545f70` | core/newgame/start2.c |  |
+| 0x00545F80 | `monument_base2_ctor (boot)` | core/boot/monuments.c | inside its caller |
 | 0x00545FB0 | `goals_counters_met (thunk)` | core/building/rest_monument.c | inside its caller |
+| 0x00545FC0 | `ghost_monument_parts_big` | present/city/ghost_monument.c |  |
 | 0x005463E0 | `place_monument_fits_5463e0` | core/command/place_misc.c |  |
 | 0x00546790 | `monument_progress_parts` | core/city/monument_rating.c |  |
 | 0x005468D0 | `monument_redraw_5468d0` | core/building/rest_monument.c |  |
@@ -1772,7 +2711,11 @@ functions read so far: README.md.
 | 0x00547AD0 | `monument_complete_547ad0` | core/newgame/start.c |  |
 | 0x00547BA0 | `monument_parts_free_547ba0` | core/building/rest_monument.c |  |
 | 0x00547C10 | `monument_take_547c10` | core/building/monument_take.c |  |
+| 0x00547DE0 | `monument_part_tile_ok_big` | present/city/ghost_monument.c |  |
+| 0x005480E0 | `monument_ctor_5480e0 (boot)` | core/boot/monuments.c | this = 0x006E9188, inside its caller |
+| 0x0054F3D0 | `monument_setup_54f3d0` | core/boot/monuments.c | this = 0x006E9188 |
 | 0x0054F3F0 | `monument_ec_fits` | core/command/place_misc.c | this = 0x006E9188 |
+| 0x0054F410 | `ghost_monument_ec` | present/city/ghost_monument.c |  |
 | 0x0054F430 | `monument_ec_exists` | core/command/place_misc.c | this = 0x006E9188 |
 | 0x0054F470 | `monument_progress_parts 31` | core/city/monument_rating.c | this = 0x006E9188 |
 | 0x0054F490 | `monument_image_54f490` | core/building/rest_monument.c |  |
@@ -1780,7 +2723,10 @@ functions read so far: README.md.
 | 0x0054FB40 | `monument_take_0xec` | core/building/monument.c |  |
 | 0x0054FBA0 | `tomb_add_54fba0` | core/building/map_add_monument.c | this = 0x006E9188 |
 | 0x0054FED0 | `tomb_kinds_54fed0` | core/building/map_add_monument.c | this = 0x006E9188 |
+| 0x0054FEF0 | `monument_ctor_54fef0 (boot)` | core/boot/monuments.c | this = 0x006DE9E0, inside its caller |
+| 0x00555DE0 | `monument_setup_555de0` | core/boot/monuments.c | this = 0x006DE9E0 |
 | 0x00555E00 | `monument_eb_fits` | core/command/place_misc.c | this = 0x006DE9E0 |
+| 0x00555E20 | `ghost_monument_eb` | present/city/ghost_monument.c |  |
 | 0x00555E40 | `monument_eb_exists` | core/command/place_misc.c | this = 0x006DE9E0 |
 | 0x00555E80 | `monument_progress_parts 21` | core/city/monument_rating.c | this = 0x006DE9E0 |
 | 0x00555EA0 | `monument_image_555ea0` | core/building/rest_monument.c |  |
@@ -1789,7 +2735,10 @@ functions read so far: README.md.
 | 0x00556480 | `tomb_add_556480` | core/building/map_add_monument.c | this = 0x006DE9E0 |
 | 0x005567B0 | `tomb_kinds_5567b0` | core/building/map_add_monument.c | this = 0x006DE9E0 |
 | 0x005567C0 | `const_0x005567c0` | core/newgame/start2.c |  |
+| 0x005567D0 | `monument_ctor_5567d0 (boot)` | core/boot/monuments.c | this = 0x006F5648, inside its caller |
+| 0x00558B40 | `monument_setup_558b40` | core/boot/monuments.c | this = 0x006F5648 |
 | 0x00558B60 | `monument_ea_fits` | core/command/place_misc.c | this = 0x006F5648 |
+| 0x00558B80 | `ghost_monument_ea` | present/city/ghost_monument.c |  |
 | 0x00558BA0 | `monument_ea_exists` | core/command/place_misc.c | this = 0x006F5648 |
 | 0x00558BE0 | `monument_progress_parts 10` | core/city/monument_rating.c | this = 0x006F5648 |
 | 0x00558C00 | `monument_image_558c00` | core/building/rest_monument.c |  |
@@ -1800,6 +2749,9 @@ functions read so far: README.md.
 | 0x00559470 | `const_0x00559470` | core/newgame/start2.c |  |
 | 0x00559480 | `goods_event_list` | core/state/ported.c |  |
 | 0x005596D0 | `goods_available_update` | core/state/ported.c |  |
+| 0x00559820 | `trade_cb_select` | ? |  |
+| 0x00559860 | `trade_cb_toggle_prices` | ? |  |
+| 0x00559890 | `trade_cb_empire` | ? |  |
 | 0x005598A0 | `cmd_trade_industry` | core/command/trade.c |  |
 | 0x005598F0 | `cmd_trade_status` | core/command/trade.c |  |
 | 0x005599C0 | `trade_order_check` | core/city/events_handlers.c |  |
@@ -1808,10 +2760,26 @@ functions read so far: README.md.
 | 0x00559C60 | `value_cap` | core/city/day_city.c |  |
 | 0x00559CD0 | `cmd_trade_limit` | core/command/trade.c |  |
 | 0x00559D70 | `cmd_trade_stockpile` | core/command/trade.c |  |
+| 0x00559DE0 | `advisor_trade_help` | present/ui/advisors/ports.c |  |
+| 0x00559E00 | `trade_cb_close` | ? |  |
+| 0x00559E10 | `trade_advisor_draw` | ? |  |
 | 0x00559FC0 | `trade_open_routes_559fc0 (in day_city.c: its argument is a stack buffer)` | core/city/day_city.c | inside its caller |
+| 0x0055A060 | `trade_advisor_draw_scroll_thumb` | ? |  |
+| 0x0055A0E0 | `trade_advisor_draw_list` | ? |  |
+| 0x0055AD30 | `trade_dialog_draw` | ? |  |
+| 0x0055BB90 | `trade_advisor_scroll_input` | ? |  |
+| 0x0055BC50 | `compressed chunk write (frame_save_game)` | core/frame/autosave.c | inside its caller |
 | 0x0055BCF0 | `chunk_read_compressed (file read: map_stream)` | core/newgame/map_load.c | inside its caller |
+| 0x0055BF10 | `PKWARE implode wrapper (frame_save_game)` | core/frame/autosave.c | inside its caller |
 | 0x0055C000 | `explode wrapper (core/io/pkware.c, in chunk_read_compressed)` | core/newgame/map_load.c | inside its caller |
 | 0x0055C0F0 | `explode: output checksum (not computed: excluded workspace)` | core/newgame/map_load.c | inside its caller |
+| 0x0055C130 | `PKWARE implode (pkware_implode)` | core/frame/autosave.c | inside its caller |
+| 0x0055C2D0 | `PKWARE implode body (pkware_implode)` | core/frame/autosave.c | inside its caller |
+| 0x0055C650 | `PKWARE implode (pkware_implode)` | core/frame/autosave.c | inside its caller |
+| 0x0055C990 | `PKWARE implode (pkware_implode)` | core/frame/autosave.c | inside its caller |
+| 0x0055CA20 | `PKWARE implode (pkware_implode)` | core/frame/autosave.c | inside its caller |
+| 0x0055CA90 | `PKWARE implode (pkware_implode)` | core/frame/autosave.c | inside its caller |
+| 0x0055CB10 | `PKWARE implode (pkware_implode)` | core/frame/autosave.c | inside its caller |
 | 0x0055CBD0 | `explode (core/io/pkware.c)` | core/newgame/map_load.c | inside its caller |
 | 0x0055CD50 | `explode: decode (core/io/pkware.c)` | core/newgame/map_load.c | inside its caller |
 | 0x0055CE50 | `explode: literal / length (core/io/pkware.c)` | core/newgame/map_load.c | inside its caller |
@@ -1820,11 +2788,24 @@ functions read so far: README.md.
 | 0x0055D110 | `explode: tables (core/io/pkware.c)` | core/newgame/map_load.c | inside its caller |
 | 0x0055D150 | `explode: tables (core/io/pkware.c)` | core/newgame/map_load.c | inside its caller |
 | 0x0055D250 | `explode: tables (core/io/pkware.c)` | core/newgame/map_load.c | inside its caller |
+| 0x0055D960 | `object_delete` | core/frame/display.c |  |
+| 0x0055DC18 | `boot_sound_start registry_release` | core/boot/boot.c | this = 0x00E92BF8 |
+| 0x0055DC63 | `boot_sound_start registry_create` | core/boot/boot.c | this = 0x00E92BF8 |
+| 0x0055DD3F | `boot_sound_start registry_add` | core/boot/boot.c | this = 0x00E92BF8 |
+| 0x0055DEA2 | `boot_sound_start voices` | core/boot/boot.c | this = 0x00E92BF8 |
+| 0x0055E38B | `sound_object_ctor (boot ctors)` | core/boot/ctors.c | inside its caller |
+| 0x0055E5D2 | `boot_sound_start voice_reset` | core/boot/boot.c | this = 0x00E92BF8 |
+| 0x0055E6C4 | `boot_sound_start driver_open` | core/boot/boot.c | this = 0x00E92BF8 |
+| 0x0055F0E8 | `platform_sample_play` | core/sim/platform.c | platform request, this = 0x00E92BF8 |
+| 0x0055F32F | `platform_stream_volume_speech` | core/sim/platform.c | platform request, this = 0x00E92BF8 |
+| 0x0055F38D | `platform_stream_volume_music` | core/sim/platform.c | platform request, this = 0x00E92BF8 |
+| 0x0055F3EB | `platform_stream_volume_ambient` | core/sim/platform.c | platform request, this = 0x00E92BF8 |
 | 0x0055F449 | `platform_stream_play` | core/sim/platform.c | platform request, this = 0x00E92BF8 |
 | 0x0055F561 | `sound_stop_stream` | core/city/day_basic.c | this = 0x00E92BF8 |
 | 0x0055F5A1 | `platform_stream_playing` | core/sim/platform.c | platform request, this = 0x00E92BF8 |
 | 0x0055F5F4 | `platform stream volume (AIL)` | core/newgame/flow2.c | platform request, this = 0x00E92BF8, inside its caller |
 | 0x0055F639 | `platform stream volume set (AIL)` | core/newgame/flow2.c | platform request, this = 0x00E92BF8, inside its caller |
+| 0x00560280 | `boot_sound_start registry_entry` | core/boot/boot.c |  |
 | 0x0056133C | `__ftol (x87_ftol in city/day_x87.h)` | core/city/day_buildings.c | inside its caller |
 | 0x00561994 | `CRT fclose (platform)` | core/newgame/flow.c | inside its caller |
 | 0x00561A0A | `CRT fopen (platform_file_read / platform_file_write)` | core/newgame/flow.c | inside its caller |
@@ -1846,10 +2827,13 @@ functions read so far: README.md.
 | 0x00562069 | `crt_qsort` | core/city/rest_gods.c |  |
 | 0x005621BD | `crt_qsort_short (in rest_gods.c)` | core/city/rest_gods.c | inside its caller |
 | 0x0056220B | `crt_qsort_swap` | core/city/rest_gods.c |  |
+| 0x00562240 | `crt_strncpy` | present/ui/cityframe.c |  |
 | 0x0056233E | `crt_srand` | core/random/crt_rand.c |  |
 | 0x00562348 | `crt_rand` | core/random/crt_rand.c |  |
 | 0x00562370 | `crt_strcmpi` | core/graphics/last_graphics.c |  |
 | 0x00562880 | `memmove` | core/newgame/map_load.c |  |
+| 0x00562BB5 | `crt_remove` | present/ui/frontend/files.c |  |
+| 0x00562BDF | `crt_unlink (crt_remove)` | present/ui/frontend/files.c | inside its caller |
 | 0x00562D00 | `crt_asin (crt_asin in sim/x87_angle.c)` | core/sim/x87_angle.c | inside its caller |
 | 0x00562D1D | `crt_asin body (crt_asin)` | core/sim/x87_angle.c | inside its caller |
 | 0x00563380 | `CRT strlen (crt_sprintf)` | core/figure/actions_d.c | inside its caller |
@@ -1863,10 +2847,13 @@ functions read so far: README.md.
 | 0x005653C2 | `CRT _output get_short_arg (crt_sprintf)` | core/figure/actions_d.c | inside its caller |
 | 0x005660ED | `_read (CRT; map_stream / platform_file_read)` | core/newgame/map_load.c | inside its caller |
 | 0x005662E3 | `CRT _lseek (an offset of platform_file_read)` | core/state/loader.c | inside its caller |
+| 0x005664D5 | `_write (CRT; frame_save_game)` | core/frame/autosave.c | inside its caller |
+| 0x005672C8 | `crt_dosmaperr` | present/ui/frontend/files.c |  |
 | 0x005675E8 | `crt_asin exponent test (crt_asin)` | core/sim/x87_angle.c | inside its caller |
 | 0x005675FE | `crt_asin exit 2 (crt_asin)` | core/sim/x87_angle.c | inside its caller |
 | 0x0056760B | `crt_asin exit (crt_asin)` | core/sim/x87_angle.c | inside its caller |
 | 0x00568EAB | `_open (CRT; platform_file_read)` | core/newgame/map_load.c | inside its caller |
 | 0x00569250 | `CRT _aulldiv (crt_sprintf %d)` | core/figure/actions_d.c | inside its caller |
 | 0x005692C0 | `CRT _aullrem (crt_sprintf %d)` | core/figure/actions_d.c | inside its caller |
+| 0x0056B240 | `crt_strnicmp` | present/ui/messages/expand.c | partial |
 | 0x0056B2DD | `_chdir (CRT; the platform's)` | core/newgame/map_load.c | inside its caller |

@@ -79,7 +79,9 @@ confirms a rule.
 CLAUDE.md, README.md, CONTRIBUTING.md, CREDITS.md, LICENSE
 Makefile
 core/                 deterministic simulation, no platform dependency
-platform/             SDL rendering, input, audio, file system
+present/              ported drawing and UI (phase 7): deterministic, draws into the state's back
+                      buffer, same rules as core/ (tags, integers, no I/O); depends on core, not the reverse
+platform/             SDL window, input, clock, audio, video, file system
 docs/formats/         file format specs (confirmed / assumed fields)
 docs/provenance/      binary address -> engine function index
 docs/unverified.md    open questions, one entry per @unverified tag
@@ -107,6 +109,8 @@ make oracle-env    # local/venv with Unicorn + Capstone, for tools/oracle
 make corpus        # reference save corpus: player saves advanced 12 months by the original
 make check-files   # fail if game files are tracked by git
 make test          # all checks + unit tests + differential tests (when available)
+make game          # the game, build/imhotep (SDL2 + FFmpeg; needs only the game files)
+make present-check # the presentation port's full per-package matrices against the original (long)
 ```
 
 Environment: `IMHOTEP_GAME_DIR` (default `local/game/app`), `GHIDRA_HOME` and `JAVA_HOME` (default: Homebrew `ghidra` / `openjdk@21`), `PHARAOH_INSTALLER`.
@@ -153,4 +157,9 @@ When unsure, stop and write down the question in `docs/unverified.md` rather tha
 - [x] New games (phase 6): campaign missions, bundled maps and the campaign flow start equal to the
       original (160 / 160 starts, docs/newgame.md, docs/roadmap.md 6.1)
 
-Next steps: `docs/roadmap.md` (phase 7: platform; carried-over items under 4.8, 5.3 and 6.1).
+- [x] Platform, playable (phase 7): the frame loop, drawing, city view, sidebar, windows, input,
+      sound and the start-up ported (`core/frame`, `core/boot`, `present/`), the SDL platform in
+      `platform/` (`make game`); a 1,190-frame scripted session equal to the original, state and
+      pixels (docs/presentation.md, docs/roadmap.md 7.9)
+
+Next steps: `docs/roadmap.md` (carried-over items under 4.8, 5.3, 6.1 and 7.9).

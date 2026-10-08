@@ -166,16 +166,21 @@ def main():
     elif o['replay']:
         native -= set(o['replay'])
         extra = ['--replay', ','.join('%X' % a for a in o['replay'])]
-    g = Game()
-    g.boot()
     if o['start']:
         import newgame
         what, _, difficulty = o['start'].partition('@')
-        addr, args = newgame.inputs(g, what, int(difficulty) if difficulty else None)
-        g.call(addr, *args)
-    elif g.load_save(open(save, 'rb').read()) != 0:
-        print('the original cannot load %s' % save)
-        return 2
+
+        def start(g):
+            addr, args = newgame.inputs(g, what, int(difficulty) if difficulty else None)
+            g.call(addr, *args)
+        g = Game.cached('start ' + o['start'], start)  # boot + start, snapshotted (Game.cached)
+    else:
+        import harness
+        try:
+            g = harness.oracle_state(save, 0)  # boot + load, snapshotted
+        except RuntimeError:
+            print('the original cannot load %s' % save)
+            return 2
     rec = DeepRecorder(g, native)
     tool = os.path.join(ROOT, os.environ.get('IMHOTEP_BUILD', 'build'), 'state_replay')
     failed = 0

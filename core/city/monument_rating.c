@@ -497,9 +497,11 @@ void pyramid_status(game_state *st, int32_t b, int32_t *out)
 
 /* The progress of the other monuments (thiscall on their manager objects, the record of the
  * monument's first part b0 = b - its +0x12). Each asks the manager (its virtual function +0x24, on
- * b0) whether work is going on; then a working monument without its worker figure (+0x5C) is at 0
- * (the stage-counted ones). Only the percent is ported: with an output structure (their second
- * argument, in the original's caller stack) they are left to the original. */
+ * b0) whether work is going on; a working monument without its worker figure (+0x5C) is at 0 (the
+ * stage-counted ones). Their second argument `out` (NULL: none) is a record of up to 14 dwords the caller passes (the
+ * info panel's 0x00EADB38 in the state, the victory scoring's in its frame): filled with the stage, the workers by figure type (0x4F,
+ * 0x51, 0x51 with +0x40 = 0xA, 0x55; for the part-built ones counts of 0x51, 0x55, 0x6C), the time
+ * left and the percent, by each function's layout below. */
 
 static int32_t manager_busy(game_state *st, uint32_t self, int32_t b0)
 {
@@ -515,59 +517,139 @@ static int32_t pct_by_stage(game_state *st, int32_t v, uint32_t k)
     return x87_ftol(r);
 }
 
-int32_t monument_progress_401540(game_state *st, int32_t b)
+/* the worker of a busy stage-built monument (+0x5C of b0): its figure type +0x12 (0x00BCD602) sets
+ * f[0] (0x4F), f[1] (0x51), f[2] (0x51 with +0x40 = 0xA), f[3] (0x55); 0 when it has none */
+static int32_t stage_workers(game_state *st, uint32_t r, int32_t f[4])
 {
-    /* @bin 0x00401540 (stdcall, called as thiscall) the first part's +0x54 of 56 (0x0056F478) */
-    int32_t b0 = b - S16(st, BUILDING_ADDR(b) + 0x12);
-    int32_t v = S32(st, BUILDING_ADDR(b0) + 0x54);
-    return v == 0x38 ? 100 : pct_by_stage(st, v, 0x0056F478u);
+    int32_t w = S32(st, r + 0x5C);
+    if (w == 0) {
+        return 0;
+    }
+    uint32_t fig = (uint32_t) w * 0x184u;
+    switch (U8(st, 0x00BCD602u + fig)) {
+    case 0x4F: f[0] = 1; break;
+    case 0x51:
+        f[1] = 1;
+        if (U8(st, 0x00BCD630u + fig) == 0xA) {
+            f[2] = 1;
+        }
+        break;
+    case 0x55: f[3] = 1; break;
+    default: break;
+    }
+    return 1;
 }
 
-int32_t monument_progress_40d940(game_state *st, uint32_t self, int32_t b)
+/* @bin 0x0040DA28 the time left (i32 arithmetic): (k - stage terms) * 400, 0 when negative */
+static int32_t time_left(int32_t a)
+{
+    int32_t t = (int32_t) ((uint32_t) a * 400u);
+    return t < 0 ? 0 : t;
+}
+
+int32_t monument_progress_401540(game_state *st, int32_t b, int32_t *out)
+{
+    /* @bin 0x00401540 (stdcall, called as thiscall) the first part's +0x54 of 56 (0x0056F478);
+     * out: +0 the stage, +0xC the percent */
+    int32_t b0 = b - S16(st, BUILDING_ADDR(b) + 0x12);
+    int32_t v = S32(st, BUILDING_ADDR(b0) + 0x54);
+    int32_t p = v == 0x38 ? 100 : pct_by_stage(st, v, 0x0056F478u);
+    if (out != NULL) {
+        out[0] = v;
+        out[3] = p;
+    }
+    return p;
+}
+
+int32_t monument_progress_40d940(game_state *st, uint32_t self, int32_t b, int32_t *out)
 {
     /* @bin 0x0040D940 (thiscall) the stage +0x58 of 21 (0x0056F4C8); 0 when working without its
-     * worker */
+     * worker (out untouched); time left 0x3840 up to stage 3, then (0x24 - (stage - 3) * self +4) *
+     * 400; out: +0 stage, +0x1C / +0x20 / +0x24 / +0x28 the workers 0x51 / 0x51 at 0xA / 0x55 /
+     * 0x4F, +0x2C the time, +0x30 the percent, +0x34 0x3840 */
     int32_t b0 = b - S16(st, BUILDING_ADDR(b) + 0x12);
     uint32_t r = BUILDING_ADDR(b0);
     int32_t v = S32(st, r + 0x58);
     int32_t p = v == 0x15 ? 100 : pct_by_stage(st, v, 0x0056F4C8u);
-    if (manager_busy(st, self, b0) && S32(st, r + 0x5C) == 0) {
+    int32_t f[4] = {0, 0, 0, 0};
+    if (manager_busy(st, self, b0) && stage_workers(st, r, f) == 0) {
         return 0;
+    }
+    int32_t t = v > 3 ? time_left(0x24 - (int32_t) ((uint32_t) (v - 3) * U32(st, self + 4))) : 0x3840;
+    if (out != NULL) {
+        out[11] = t;
+        out[8] = f[2];
+        out[9] = f[3];
+        out[7] = f[1];
+        out[0] = v;
+        out[10] = f[0];
+        out[12] = p;
+        out[13] = 0x3840;
     }
     return p;
 }
 
-int32_t monument_progress_417050(game_state *st, uint32_t self, int32_t b)
+int32_t monument_progress_417050(game_state *st, uint32_t self, int32_t b, int32_t *out)
 {
-    /* @bin 0x00417050 (thiscall) stage +0x58: 19 is 100, else 5 per stage + 5 */
+    /* @bin 0x00417050 (thiscall) stage +0x58: 19 is 100, else 5 per stage + 5; time left (0x26 -
+     * self +4 * stage) * 400; out: +0 stage, +4 / +8 / +0xC / +0x10 the workers 0x51 / 0x51 at 0xA /
+     * 0x55 / 0x4F, +0x14 the time, +0x18 the percent, +0x1C 0x3B60 */
     int32_t b0 = b - S16(st, BUILDING_ADDR(b) + 0x12);
     uint32_t r = BUILDING_ADDR(b0);
     int32_t v = S32(st, r + 0x58);
     int32_t p = v == 0x13 ? 100 : (int32_t) ((uint32_t) v * 5u + 5u);
-    if (manager_busy(st, self, b0) && S32(st, r + 0x5C) == 0) {
+    int32_t f[4] = {0, 0, 0, 0};
+    if (manager_busy(st, self, b0) && stage_workers(st, r, f) == 0) {
         return 0;
+    }
+    int32_t t = time_left(0x26 - (int32_t) (U32(st, self + 4) * (uint32_t) v));
+    if (out != NULL) {
+        out[0] = v;
+        out[2] = f[2];
+        out[3] = f[3];
+        out[5] = t;
+        out[1] = f[1];
+        out[4] = f[0];
+        out[6] = p;
+        out[7] = 0x3B60;
     }
     return p;
 }
 
-int32_t monument_progress_4e6710(game_state *st, uint32_t self, int32_t b)
+int32_t monument_progress_4e6710(game_state *st, uint32_t self, int32_t b, int32_t *out)
 {
-    /* @bin 0x004E6710 (thiscall) stage +0x58: 9 is 100, else 10 per stage + 10 */
+    /* @bin 0x004E6710 (thiscall) stage +0x58: 9 is 100, else 10 per stage + 10; time left (9 -
+     * stage) * self +4 * 400; out: +0 stage, +4 / +8 / +0xC / +0x10 the workers 0x51 / 0x51 at 0xA /
+     * 0x55 / 0x4F, +0x14 the time, +0x18 the percent, +0x1C self +4 * 3600 */
     int32_t b0 = b - S16(st, BUILDING_ADDR(b) + 0x12);
     uint32_t r = BUILDING_ADDR(b0);
     int32_t v = S32(st, r + 0x58);
     int32_t p = v == 9 ? 100 : (int32_t) (((uint32_t) v * 5u + 5u) * 2u);
-    if (manager_busy(st, self, b0) && S32(st, r + 0x5C) == 0) {
+    int32_t f[4] = {0, 0, 0, 0};
+    if (manager_busy(st, self, b0) && stage_workers(st, r, f) == 0) {
         return 0;
+    }
+    int32_t t = time_left((int32_t) ((uint32_t) (9 - v) * U32(st, self + 4)));
+    if (out != NULL) {
+        out[0] = v;
+        out[1] = f[1];
+        out[2] = f[2];
+        out[3] = f[3];
+        out[4] = f[0];
+        out[5] = t;
+        out[6] = p;
+        out[7] = (int32_t) (U32(st, self + 4) * 3600u);
     }
     return p;
 }
 
-int32_t monument_progress_parts(game_state *st, uint32_t self, int32_t b, int32_t n)
+int32_t monument_progress_parts(game_state *st, uint32_t self, int32_t b, int32_t n, int32_t *out)
 {
     /* @bin 0x00546790 (thiscall, n parts) the work +0x60 of the n parts from b0: 100.0f / (n * 4.0f)
      * * sum (0x0056F6DC, 0x0056F550; fdivr, fimul), 100 above 99.9 (0x005701E0), else __ftol; the
-     * manager is asked once per part until a working part has no worker */
+     * manager is asked once per part (on b0) until a working part has no worker; the workers of the
+     * working parts counted by figure type 0x51, 0x55, 0x6C; out: +4 / +8 / +0x10 those counts, +0x14
+     * the percent, +0x18 b0's dword +0x98 */
     int32_t b0 = b - S16(st, BUILDING_ADDR(b) + 0x12);
     int32_t sum = 0;
     for (int32_t i = 0; i < n; i++) {
@@ -577,10 +659,28 @@ int32_t monument_progress_parts(game_state *st, uint32_t self, int32_t b, int32_
     t = x87_divv(x87_from_float(U32(st, 0x0056F6DCu)), t);
     t = x87_mul_int(t, sum);
     int32_t p = x87_cmp(t, x87_from_double(rd64(st, 0x005701E0u))) > 0 ? 100 : x87_ftol(t);
+    int32_t c51 = 0, c55 = 0, c6c = 0;
     for (int32_t i = 0; i < n; i++) {
-        if (manager_busy(st, self, b0) && S32(st, BUILDING_ADDR(b0 + i) + 0x5C) == 0) {
+        if (!manager_busy(st, self, b0)) {
+            continue;
+        }
+        int32_t w = S32(st, BUILDING_ADDR(b0 + i) + 0x5C);
+        if (w == 0) {
             break;
         }
+        switch (U8(st, 0x00BCD602u + (uint32_t) w * 0x184u)) {
+        case 0x51: c51++; break;
+        case 0x55: c55++; break;
+        case 0x6C: c6c++; break;
+        default: break;
+        }
+    }
+    if (out != NULL) {
+        out[5] = p;
+        out[1] = c51;
+        out[2] = c55;
+        out[4] = c6c;
+        out[6] = S32(st, BUILDING_ADDR(b0) + 0x98);
     }
     return p;
 }
@@ -624,14 +724,14 @@ static int monument_percent(game_state *st, int32_t b, int *unfinished, int32_t 
     }
     case 0xD5: *p = GAME_CALL(st, 0x00542AD0u, b, 0); break;
     case 0xDE: *p = GAME_CALL(st, 0x004DF040u, b, 0); break;
-    case 0xE1: *p = monument_progress_40d940(st, 0x006FD5D8u, b); break;
-    case 0xE3: *p = monument_progress_417050(st, 0x006FD368u, b); break;
-    case 0xE4: *p = monument_progress_4e6710(st, 0x006DE548u, b); break;
-    case 0xE5: *p = monument_progress_parts(st, 0x006F9320u, b, 9); break;      /* 0x00545740 */
-    case 0xE6: *p = monument_progress_401540(st, b); break;
-    case 0xEA: *p = monument_progress_parts(st, 0x006F5648u, b, 0xA); break;    /* 0x00558BE0 */
-    case 0xEB: *p = monument_progress_parts(st, 0x006DE9E0u, b, 0x15); break;   /* 0x00555E80 */
-    case 0xEC: *p = monument_progress_parts(st, 0x006E9188u, b, 0x1F); break;   /* 0x0054F470 */
+    case 0xE1: *p = monument_progress_40d940(st, 0x006FD5D8u, b, NULL); break;
+    case 0xE3: *p = monument_progress_417050(st, 0x006FD368u, b, NULL); break;
+    case 0xE4: *p = monument_progress_4e6710(st, 0x006DE548u, b, NULL); break;
+    case 0xE5: *p = monument_progress_parts(st, 0x006F9320u, b, 9, NULL); break;      /* 0x00545740 */
+    case 0xE6: *p = monument_progress_401540(st, b, NULL); break;
+    case 0xEA: *p = monument_progress_parts(st, 0x006F5648u, b, 0xA, NULL); break;    /* 0x00558BE0 */
+    case 0xEB: *p = monument_progress_parts(st, 0x006DE9E0u, b, 0x15, NULL); break;   /* 0x00555E80 */
+    case 0xEC: *p = monument_progress_parts(st, 0x006E9188u, b, 0x1F, NULL); break;   /* 0x0054F470 */
     default: return 0;
     }
     if (*p < 0x64) {
@@ -739,26 +839,42 @@ static int32_t run_works_on(game_state *st, const int32_t *a) { return figure_wo
 static int32_t run_part_done(game_state *st, const int32_t *a) { return pyramid_part_done(st, a[0]); }
 
 #define THIS_OBJ ((uint32_t) a[PORT_THIS_ARG])
-#define NO_OUTPUT(addr) \
-    if (a[1] != 0) { \
-        state_unported(st, addr); /* an output structure in the caller's stack */ \
-        return 0; \
+/* the output record at a state address (0: none), as the original's callers pass it */
+#define OUT_REC 14
+static int32_t *out_in(game_state *st, uint32_t a, int32_t *rec)
+{
+    if (a == 0) {
+        return NULL;
     }
-static int32_t run_p401540(game_state *st, const int32_t *a) { NO_OUTPUT(0x00401540u) return monument_progress_401540(st, a[0]); }
-static int32_t run_p40d940(game_state *st, const int32_t *a) { NO_OUTPUT(0x0040D940u) return monument_progress_40d940(st, THIS_OBJ, a[0]); }
-static int32_t run_p417050(game_state *st, const int32_t *a) { NO_OUTPUT(0x00417050u) return monument_progress_417050(st, THIS_OBJ, a[0]); }
-static int32_t run_p4e6710(game_state *st, const int32_t *a) { NO_OUTPUT(0x004E6710u) return monument_progress_4e6710(st, THIS_OBJ, a[0]); }
-static int32_t run_p545740(game_state *st, const int32_t *a) { NO_OUTPUT(0x00545740u) return monument_progress_parts(st, THIS_OBJ, a[0], 9); }
-static int32_t run_p558be0(game_state *st, const int32_t *a) { NO_OUTPUT(0x00558BE0u) return monument_progress_parts(st, THIS_OBJ, a[0], 0xA); }
-static int32_t run_p555e80(game_state *st, const int32_t *a) { NO_OUTPUT(0x00555E80u) return monument_progress_parts(st, THIS_OBJ, a[0], 0x15); }
-static int32_t run_p54f470(game_state *st, const int32_t *a) { NO_OUTPUT(0x0054F470u) return monument_progress_parts(st, THIS_OBJ, a[0], 0x1F); }
+    for (uint32_t i = 0; i < OUT_REC; i++) {
+        rec[i] = S32(st, a + 4 * i);
+    }
+    return rec;
+}
+static int32_t out_back(game_state *st, uint32_t a, const int32_t *rec, int32_t r)
+{
+    for (uint32_t i = 0; a != 0 && i < OUT_REC; i++) {
+        S32(st, a + 4 * i) = rec[i];
+    }
+    return r;
+}
+#define OUT_CALL(expr) \
+    int32_t rec[OUT_REC]; \
+    int32_t *out = out_in(st, (uint32_t) a[1], rec); \
+    return out_back(st, (uint32_t) a[1], rec, expr)
+static int32_t run_p401540(game_state *st, const int32_t *a) { OUT_CALL(monument_progress_401540(st, a[0], out)); }
+static int32_t run_p40d940(game_state *st, const int32_t *a) { OUT_CALL(monument_progress_40d940(st, THIS_OBJ, a[0], out)); }
+static int32_t run_p417050(game_state *st, const int32_t *a) { OUT_CALL(monument_progress_417050(st, THIS_OBJ, a[0], out)); }
+static int32_t run_p4e6710(game_state *st, const int32_t *a) { OUT_CALL(monument_progress_4e6710(st, THIS_OBJ, a[0], out)); }
+static int32_t run_p545740(game_state *st, const int32_t *a) { OUT_CALL(monument_progress_parts(st, THIS_OBJ, a[0], 9, out)); }
+static int32_t run_p558be0(game_state *st, const int32_t *a) { OUT_CALL(monument_progress_parts(st, THIS_OBJ, a[0], 0xA, out)); }
+static int32_t run_p555e80(game_state *st, const int32_t *a) { OUT_CALL(monument_progress_parts(st, THIS_OBJ, a[0], 0x15, out)); }
+static int32_t run_p54f470(game_state *st, const int32_t *a) { OUT_CALL(monument_progress_parts(st, THIS_OBJ, a[0], 0x1F, out)); }
 static int32_t run_p546790(game_state *st, const int32_t *a)
 {
-    if (a[2] != 0) {
-        state_unported(st, 0x00546790u);
-        return 0;
-    }
-    return monument_progress_parts(st, THIS_OBJ, a[0], a[1]);
+    int32_t rec[OUT_REC];
+    int32_t *out = out_in(st, (uint32_t) a[2], rec);
+    return out_back(st, (uint32_t) a[2], rec, monument_progress_parts(st, THIS_OBJ, a[0], a[1], out));
 }
 
 const ported_function month2_monument_ports[] = {

@@ -121,6 +121,12 @@ Several people (or agents) port at once in the same tree:
 - **Own build.** `make BUILD=build-<package> core build-<package>/state_run build-<package>/state_replay`
   and `IMHOTEP_BUILD=build-<package>` for the Python tools.
 
+Waiting for background jobs: never a hand-written `until grep ...; do sleep; done` loop (it runs
+forever when the job fails or prints something unexpected). Run checks in the foreground with a
+timeout, or wait with `tools/agent/wait_for.sh FILE PATTERN [MAX_SECONDS] [IDLE_SECONDS]`, which
+always stops (pattern, error line, no output growth, time limit); stop every background job and
+wait before reporting.
+
 ## 7. Documenting
 
 - docs/provenance/README.md: one row per ported function (address, port, test).

@@ -3,12 +3,29 @@
 An open-source reimplementation of the engine of **Pharaoh + Cleopatra** (Impressions Games, 1999-2000),
 aiming at faithful simulation and compatibility with original save files.
 
-> **Status: early development.** Nothing is playable yet.
+> **Status: playable.** The simulation, the player commands, new games, the drawing and the
+> interface are ported from the original executable and checked against it; a scripted session
+> of play is equal to the original frame by frame, state and pixels. See
+> [docs/roadmap.md](docs/roadmap.md) for what is left.
 
 ## Requirements
 
 Imhotep does not include any game content. You need a legitimate copy of
 **Pharaoh + Cleopatra** (the GOG release, version 2.1, is the reference version).
+
+## Playing
+
+You need a C compiler, SDL2 and FFmpeg (for the videos), e.g. `brew install sdl2 ffmpeg`.
+
+```
+make extract PHARAOH_INSTALLER=path/to/setup_pharaoh.exe   # or point IMHOTEP_GAME_DIR at an installation
+make game
+build/imhotep
+```
+
+The game files are read from `IMHOTEP_GAME_DIR` (default `local/game/app`) and checked against
+the reference version; saves and settings go to `IMHOTEP_PLAYER_DIR` (default `local/player`).
+Options: `--scale N` (window size), `--no-intro`, `--no-sound`, `--load SAVE`; `platform/main.c` lists them all.
 
 ## Method
 

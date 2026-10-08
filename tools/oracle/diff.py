@@ -160,9 +160,17 @@ def name_address(addr):
             if chunk in RECORDS:
                 return 'chunk %d: %s' % (chunk, field_of(fields, chunk, addr - base)[0])
             return 'chunk %d (%s) +0x%X' % (chunk, roles.get(chunk, '?')[:40], addr - base)
+    if SCREEN is not None and SCREEN[0] <= addr < SCREEN[0] + SCREEN[3] * SCREEN[2]:
+        o = addr - SCREEN[0]
+        return 'screen x %d y %d' % (o % SCREEN[3] // 2, o // SCREEN[3])
+    if addr >= 0x68000000:
+        return 'other heap 0x%08X' % addr
     if addr >= 0x60000000:
         return 'heap 0x%08X' % addr
     return 'global 0x%08X' % addr
+
+
+SCREEN = None  # (address, width, height, pitch) of the back buffer, set by the comparisons (harness.py)
 
 
 def diff_ranges(a, b, base, block=4096):

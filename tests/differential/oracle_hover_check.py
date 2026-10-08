@@ -8,11 +8,9 @@ core/command/hover.c computes, for the hovered tile, what the original's drawing
 each frame and the place step reads (docs/commands.md 2.1): the ferry reach 0x0047F3E0, the bridge
 measure 0x0047F200 (plain functions, also checked by tools/oracle/harness.py) and ferry_hover, the
 rule part of the ferry ghost draw 0x0043D300 (the landing validity 0x00BCA314). 0x0043D300 runs
-headless in the oracle; its port is registered at its address with PORT_PLATFORM (the drawing is
-left out), so it cannot go through harness.py (the original's draw calls are not made by the
-port): here the original runs 0x0043D300 and the port runs ferry_hover (build/state_run) from the
-same state, for shore tiles of several saves, first and second landings, and the whole states are
-compared except DRAW_GLOBALS. Exit status: 0 if all equal, 1 otherwise.
+headless in the oracle: the original runs 0x0043D300 and its whole port (present/city/ghost_ferry.c, ferry_hover's rules
+plus the drawing) runs from the same state with a display, for shore tiles of several saves, first and
+second landings; the whole states and the back buffers are compared (tools/oracle/harness.py compare). Exit status: 0 if all equal, 1 otherwise.
 """
 import os
 import random
@@ -85,41 +83,37 @@ def shore_tiles(state, n, seed):
     return out[:n]
 
 
+DISPLAY = (1024, 768, 565)
+
+
 def main():
+    """the original's 0x0043D300 and its port (present/city/ghost_ferry.c, which also draws) from the
+    same state, with a display: state and back buffer compared (harness.compare)"""
+    import harness
     verbose = '-v' in sys.argv
-    tool = os.path.join(ROOT, os.environ.get('IMHOTEP_BUILD', 'build'), 'state_run')
     failed = total = valid = 0
     with tempfile.TemporaryDirectory() as tmp:
-        pin, pout = os.path.join(tmp, 'in'), os.path.join(tmp, 'out')
         for k, (save, first, tiles, n) in enumerate(CASES):
-            g = Game()
-            g.boot()
-            g.load_save(open(os.path.join(ROOT, save), 'rb').read())
+            g = harness.oracle_state(os.path.join(ROOT, save), 0, DISPLAY)
             if first:
                 first_landing(g, *first)
             clean = g.state_bytes()
             for x, y in tiles + shore_tiles(clean, n, k):
                 g.load_state(clean)
                 g.write(HOVER, tile_bytes(g, x, y))
-                pre = g.state_bytes()
-                g.call(0x0043D300, timeout=10 ** 9)
-                post = g.state_bytes()
-                open(pin, 'wb').write(pre)
-                r = subprocess.run([tool, pin, pout, '0x0043D300'], capture_output=True, text=True)
                 total += 1
-                if r.returncode != 0:
+                try:
+                    _, ranges, bad_returns = harness.compare(g, [(0x0043D300, [])], tmp)
+                except RuntimeError as e:
                     failed += 1
-                    print('  %s %s (%d, %d): state_run exit %d %s' % (save, first, x, y, r.returncode, r.stderr[-200:]))
+                    print('  %s %s (%d, %d): %s' % (save, first, x, y, str(e)[:300]))
                     continue
-                ours = open(pout, 'rb').read()
-                bad = [(a, l) for a, l in diff.state_file_diff(post, ours)
-                       if not DRAW_GLOBALS[0] <= a < DRAW_GLOBALS[1]]
-                v = post[0x00BCA314 - STATE_BASE]
+                v = g.read(0x00BCA314, 1)[0]
                 valid += v
-                if bad:
+                if ranges or bad_returns:
                     failed += 1
-                    print('  %s %s (%d, %d): %d bytes differ: %s' % (save, first, x, y, sum(l for _, l in bad), ', '.join(
-                        diff.name_address(a) for a, _ in bad[:6])))
+                    print('  %s %s (%d, %d): %d bytes differ: %s' % (save, first, x, y, sum(l for _, l in ranges), ', '.join(
+                        diff.name_address(a) for a, _ in ranges[:6])))
                 elif verbose:
                     print('  %s %s (%d, %d): equal, valid %d' % (save, first, x, y, v))
     print('oracle_hover_check: %d / %d hovered tiles equal to the original (%d valid landings)' % (

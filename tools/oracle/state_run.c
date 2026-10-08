@@ -10,11 +10,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "present/present.h"
 #include "state/ported.h"
 #include "state/state.h"
 
 int main(int argc, char **argv)
 {
+    present_register(); /* the presentation code's ports (present/) */
     if (argc == 2 && strcmp(argv[1], "--list") == 0) {
         int dup = 0;
         for (int i = 0; i < ported_count(); i++) {

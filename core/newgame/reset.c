@@ -12,6 +12,7 @@
 #include "random/random.h"
 #include "sim/call.h"
 #include "sim/math.h"
+#include "sim/platform.h"
 #include "state/ported.h"
 
 #define CITY_INDEX 0x00EAAC28u  /* the current city record (0x00EA1870 + 0x49D8 * index) */
@@ -230,11 +231,10 @@ static const uint8_t AMBIENT_SOUND[63] = {
 
 void ambient_slots_reset(game_state *st)
 {
-    /* @bin 0x0041D730 0x007028FC := timeGetTime(): a wall clock read, 0 here as in the oracle
-     * (docs/porting.md 3); the 70 slots of 0x80 bytes at 0x00702900 (save record 92) cleared,
+    /* @bin 0x0041D730 0x007028FC := timeGetTime(), the wall clock (core/sim/platform.h); the 70 slots of 0x80 bytes at 0x00702900 (save record 92) cleared,
      * slots 1..69 +0x50 := that time, slots 1..63: +0x08 := 200, +0x24 := 1, +0x28 := sound,
      * +0x48 := 1, +0x54 := 30000 */
-    uint32_t now = 0;
+    uint32_t now = platform_clock_ms(st);
     U32(st, 0x007028FCu) = now;
     zero(st, 0x00702900u, 0x2300u);
     for (uint32_t a = 0x007029D0u; a < 0x00704C50u; a += 0x80u) {

@@ -50,7 +50,7 @@ typedef struct {
     struct {
         uint32_t address, size;
         const uint8_t *data;
-    } external[4]; /* read-only game data outside the segments (state_map_external); not copied */
+    } external[16]; /* game data outside the segments (state_map_external); not copied */
     int nexternal;
 } game_state;
 
@@ -73,7 +73,9 @@ uint8_t *state_ptr(const game_state *st, uint32_t address, uint32_t len);
 /* Make `size` bytes of game data that the original keeps outside its segments (the text file
  * Pharaoh_Text.eng from byte 0x1F5C, at the address the state's pointer 0x00E36C70 holds) readable
  * through state_ptr, read-only (writes through P8/P16/P32 there are not allowed). data must stay
- * valid. Returns 0, or -1 when the table is full. */
+ * valid. Returns 0, or -1 when the table is full. The first mapping that holds an address wins.
+ * Test tools also map the drawing buffers the original keeps outside the state (the back buffer at
+ * [0x00E92E18], tools/oracle/state_replay.c --screen): those the drawing ports write. */
 int state_map_external(game_state *st, uint32_t address, const uint8_t *data, uint32_t size);
 
 /* new / malloc: n zeroed bytes in the heap arena; returns their address, or 0 when the arena is

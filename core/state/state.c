@@ -184,9 +184,15 @@ uint8_t *state_ptr(const game_state *st, uint32_t address, uint32_t len)
     if (address >= STATE_HEAP_BASE && (uint64_t) address + len <= (uint64_t) STATE_HEAP_BASE + st->heap_used) {
         return st->heap + (address - STATE_HEAP_BASE);
     }
+    /* the first mapping that holds `address` decides (mappings may overlap: the back buffer is
+     * mapped writable inside the read-only copy of the pixel heap); an access running past its end
+     * is an error, not a read of an overlapping mapping */
     for (int i = 0; i < st->nexternal; i++) {
         uint32_t a = st->external[i].address;
-        if (address >= a && (uint64_t) address + len <= (uint64_t) a + st->external[i].size) {
+        if (address >= a && (uint64_t) address < (uint64_t) a + st->external[i].size) {
+            if ((uint64_t) address + len > (uint64_t) a + st->external[i].size) {
+                return NULL;
+            }
             return (uint8_t *) (uintptr_t) (st->external[i].data + (address - a));
         }
     }
