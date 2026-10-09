@@ -534,6 +534,38 @@ for _save, _d in (('actium', '1024x768x565'), ('iken', '800x600x565'), ('alexc',
     CASES['play-resolution-%s-%s' % (_save, _d)] = (_save, _d, 1, 0, PLAY_RESOLUTION)
 CASES['play-briefing-actium-1024x768x565'] = ('actium', '1024x768x565', 0x35, 0, PLAY_BRIEFING)
 
+# package p8ui (phase 8: present/ui/buttons.c, frames.c, info/queries.c): windows whose per-frame part
+# was ported in phase 8, entered directly (full redraw) with the cursor moved over their controls (the
+# hovered rectangle lights frames): 0x52 the festival from the festival square, 0x56 the message
+# options, 0x2A / 0x2D / 0x2E / 0x4C the dialogs over the advisors; the empire map's help and close
+# buttons (0x005C7CE8, 0x005C7D10); the advisor pages 2..7 through their tabs
+def p8ui_hover_script(display, points):
+    dx, dy = wincore_origin(display)
+    lines = ['1000 mouse=%d,%d buttons=-' % (dx + points[0][0], dy + points[0][1])]
+    for k, (x, y) in enumerate(points[1:]):
+        lines.append('%d mouse=%d,%d' % (1040 + 40 * k, dx + x, dy + y))
+    return lines + ['%d' % (1040 + 40 * len(points))]
+
+
+P8UI_HOVERS = {
+    0x52: [(0x84 + 40, 0xF6 + 10), (0x84 + 40, 0x114 + 10), (0x84 + 40, 0x132 + 10), (300, 300)],
+    0x56: [(0x80 + 5, 0x74 + 5), (0x80 + 5, 0x8C + 5), (0x80 + 5, 0x1AC + 5), (0x80 + 5, 0x1C4 + 5), (10, 10)],
+    0x2A: [(0xB2 + 5, 0xDD + 5), (0xD2 + 5, 0xDD + 5), (0xB4 + 20, 0x100 + 5), (10, 10)],
+    0x2D: [(0x80 + 5, 0xD8 + 5), (0x120 + 5, 0xD8 + 5), (0x150 + 5, 0x11B + 5), (0x90 + 5, 0x11B + 5)],
+    0x2E: [(0xE0 + 5, 0xDA + 5), (0xE0 + 5, 0xEE + 5), (0x80 + 5, 0x150 + 5), (400 + 5, 0x150 + 5)],
+    0x4C: [(0x152 + 5, 0xD5 + 5), (0x80 + 5, 0x150 + 5), (400 + 5, 0x150 + 5), (10, 10)],
+}
+for _w, _pts in P8UI_HOVERS.items():
+    for _save, _d in (('actium', '1024x768x565'), ('iken', '800x600x565'), ('alexc', '640x480x555')):
+        CASES['p8ui-window%02x-%s-%s' % (_w, _save, _d)] = (_save, _d, _w, 0, p8ui_hover_script(_d, _pts))
+for _save, _d in (('actium', '1024x768x565'), ('alexc', '640x480x555')):
+    _w, _h = (int(v) for v in _d.split('x')[:2])
+    CASES['p8ui-empire-buttons-%s-%s' % (_save, _d)] = (_save, _d, 1, 0, empire_click_script(
+        _d, (0, 0), [(0x14 + 10, _h - 0x2C + 10), (300, 300, 'R'), (_w - 0x2C + 10, _h - 0x2C + 10)]))
+for _save, _d in (('iken', '800x600x565'), ('alexc', '640x480x555')):
+    CASES['p8ui-advisors-pages-%s-%s' % (_save, _d)] = (_save, _d, 1, 0, advisor_click_script(_d, 'tabs'))
+
+
 def parse(case):
     if case in CASES:
         save, display, window, frames = CASES[case][:4]

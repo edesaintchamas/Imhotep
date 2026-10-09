@@ -173,26 +173,21 @@ def name_address(addr):
 SCREEN = None  # (address, width, height, pitch) of the back buffer, set by the comparisons (harness.py)
 
 
+_RUNS = None
+
+
 def diff_ranges(a, b, base, block=4096):
-    """[(address, length)] of the differing byte runs of two equal-length buffers."""
-    out = []
-    for o in range(0, len(a), block):
-        x, y = a[o:o + block], b[o:o + block]
-        if x == y:
-            continue
-        k = 0
-        while k < len(x):
-            if x[k] != y[k]:
-                s = k
-                while k < len(x) and x[k] != y[k]:
-                    k += 1
-                if out and out[-1][0] + out[-1][1] == base + o + s:
-                    out[-1] = (out[-1][0], out[-1][1] + k - s)
-                else:
-                    out.append((base + o + s, k - s))
-            else:
-                k += 1
-    return out
+    """[(address, length)] of the differing byte runs of two equal-length buffers (the runs of non-zero
+    bytes of a XOR b, found by a regular expression: both steps run in C)."""
+    global _RUNS
+    import re
+    if _RUNS is None:
+        _RUNS = re.compile(rb'[^\x00]+')
+    if a == b:
+        return []
+    n = len(a)
+    x = (int.from_bytes(a, 'little') ^ int.from_bytes(b, 'little')).to_bytes(n, 'little')
+    return [(base + m.start(), m.end() - m.start()) for m in _RUNS.finditer(x)]
 
 
 STATE_BASE, STATE_END, HEAP_BASE = 0x0056F000, 0x01267AA8, 0x60000000

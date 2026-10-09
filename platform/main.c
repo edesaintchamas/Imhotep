@@ -14,7 +14,12 @@
  *          click X Y | rclick X Y | down X Y | up X Y | key NAME (SDL key name) | text STRING |
  *          shot FILE.bmp (the back buffer) | answer N (the next modal message box, e.g. Esc's "quit
  *          the game?", is answered with its button N, 0 the first: OK / Yes, 1 the second: Cancel /
- *          No, without showing it) | quit
+ *          No, without showing it) | quit | peek ADDR LEN (hex, no frame: state bytes on stdout);
+ *          `--script -` reads the lines from stdin and prints "ready FRAME WINDOW" before each
+ *          [--dump-window N] (tests: wait while frame k-N's dump is still there: its reader deletes it)
+ *          [--dump-delta] (tests: frame_K.sdelta / .rdelta hold the 4 KB blocks of the state file / back
+ *          buffer that changed since the previous frame's: "IMDL", u32 size, (u32 offset, u32 length,
+ *          bytes)..., u32 0xFFFFFFFF)
  *   --hidden: no window shown; a message box with no scripted answer gets its first button, as the
  *          oracle's (tools/oracle/game.py), and is printed
  *
@@ -87,6 +92,8 @@
 #define WM_ACTIVATE 0x06
 #define WM_ACTIVATEAPP 0x1C
 #define WM_DISPLAYCHANGE 0x7E
+#define SCREEN_W 1024 /* the screen the game starts on (the desktop's mode): GetSystemMetrics */
+#define SCREEN_H 768
 #define WM_PAINT 0x0F
 #define WM_CLOSE 0x10
 #define WM_KEYDOWN 0x100
@@ -120,7 +127,10 @@ static struct {
     int mouse_x, mouse_y, buttons;
     uint8_t held[256], pressed[256];
     const char *game;
-    /* the unported functions reached */
+    /* the unported functions reached (roadmap 8.0): calls to a function without a port, answered 0,
+     * and stops inside a ported function at a path it does not port (state_unported); each new one
+     * is printed and appended to the player directory's gaps.log */
+    const char *player;
     uint32_t un_addr[4096];
     uint64_t un_count[4096];
     int nun;
@@ -137,11 +147,28 @@ static struct {
     /* the display: the window's scale, the back buffer this platform made (set_display) */
     int scale;
     uint32_t back;
+    /* the screen's mode as Windows would have it (what GetSystemMetrics answers): the desktop's (SCREEN_W x
+     * SCREEN_H) windowed, the game's mode fullscreen; WM_DISPLAYCHANGE is delivered when it changes */
+    int screen_w, screen_h;
 } app;
 
 /* ---- the unported calls ---- */
 
-static void count_unported(uint32_t address)
+static void gap_logged(uint32_t address, const char *kind)
+{
+    /* a gap met in play is seen, not silent: once per function, on stderr and in gaps.log */
+    fprintf(stderr, "imhotep: gap: 0x%08X %s (window %d, frame %d): the game goes on without it; "
+                    "logged in %s/gaps.log\n", address, kind, U8(&app.st, WINDOW_ID), app.frames, app.player);
+    char path[2048];
+    snprintf(path, sizeof(path), "%s/gaps.log", app.player);
+    FILE *f = fopen(path, "a");
+    if (f) {
+        fprintf(f, "0x%08X %s window %d frame %d\n", address, kind, U8(&app.st, WINDOW_ID), app.frames);
+        fclose(f);
+    }
+}
+
+static void count_unported_kind(uint32_t address, const char *kind)
 {
     for (int i = 0; i < app.nun; i++) {
         if (app.un_addr[i] == address) {
@@ -152,9 +179,21 @@ static void count_unported(uint32_t address)
     if (app.nun < 4096) {
         app.un_addr[app.nun] = address;
         app.un_count[app.nun++] = 1;
-        if (app.verbose) {
-            fprintf(stderr, "imhotep: unported 0x%08X (window %d)\n", address, U8(&app.st, WINDOW_ID));
-        }
+        gap_logged(address, kind);
+    }
+}
+
+static void count_unported(uint32_t address)
+{
+    count_unported_kind(address, "not ported, called");
+}
+
+static void check_stops(void)
+{
+    /* a ported function that stopped at a path it does not port (state_unported) */
+    if (app.st.unported != 0) {
+        count_unported_kind(app.st.unported, "path not ported");
+        app.st.unported = 0;
     }
 }
 
@@ -260,23 +299,96 @@ static int screenshot(const char *path)
     return r;
 }
 
+static FILE *msglog;
+static int dump_window; /* --dump-window N: at most N frames dumped ahead of their reader */
+
+static int dump_delta; /* --dump-delta: each frame's dump holds only the 4 KB blocks that changed */
+
+static void write_delta(const char *path, const uint8_t *buf, size_t len, uint8_t **prev, size_t *prev_len)
+{
+    /* "IMDL", u32 size, then (u32 offset, u32 length, bytes) for each 4 KB block that differs from the
+     * previous dump (all of them the first time), then u32 0xFFFFFFFF. Written to a temporary name
+     * and renamed: the reader sees whole files only */
+    char tmp[1300];
+    snprintf(tmp, sizeof(tmp), "%s.tmp", path);
+    FILE *f = fopen(tmp, "wb");
+    if (!f) {
+        return;
+    }
+    uint32_t n = (uint32_t) len, end = 0xFFFFFFFFu;
+    fwrite("IMDL", 1, 4, f);
+    fwrite(&n, 4, 1, f);
+    for (size_t o = 0; o < len; o += 4096) {
+        uint32_t k = (uint32_t) (len - o < 4096 ? len - o : 4096), off = (uint32_t) o;
+        if (*prev && *prev_len == len && memcmp(*prev + o, buf + o, k) == 0) {
+            continue;
+        }
+        fwrite(&off, 4, 1, f);
+        fwrite(&k, 4, 1, f);
+        fwrite(buf + o, 1, k, f);
+    }
+    fwrite(&end, 4, 1, f);
+    fclose(f);
+    rename(tmp, path);
+    if (*prev_len != len) {
+        free(*prev);
+        *prev = malloc(len);
+        *prev_len = *prev ? len : 0;
+    }
+    if (*prev) {
+        memcpy(*prev, buf, len);
+    }
+}
+
 static void dump_frame(void)
 {
     game_state *st = &app.st;
+    if (msglog) {
+        fflush(msglog); /* a reader of the dump also reads the messages of the frames it has */
+    }
     int h = S32(st, 0x00E38DACu), pitch = S32(st, 0x00E38D94u);
     const uint8_t *px = pmem_ptr(U32(st, 0x00E92E18u), (uint32_t) (pitch * h));
     char path[1200];
-    snprintf(path, sizeof(path), "%s/frame_%04d.raw", app.dump, app.frames);
-    FILE *f = px ? fopen(path, "wb") : NULL;
-    if (f) {
-        fwrite(px, 1, (size_t) (pitch * h), f);
-        fclose(f);
+    const char *ext = dump_delta ? "sdelta" : "state";
+    if (dump_delta) {
+        static uint8_t *prev_raw, *prev_state;
+        static size_t prev_raw_len, prev_state_len;
+        char *buf = NULL;
+        size_t len = 0;
+        if (px) {
+            snprintf(path, sizeof(path), "%s/frame_%04d.rdelta", app.dump, app.frames);
+            write_delta(path, px, (size_t) (pitch * h), &prev_raw, &prev_raw_len);
+        }
+        FILE *m = open_memstream(&buf, &len);
+        if (m) {
+            state_write_file(st, m);
+            fclose(m);
+            snprintf(path, sizeof(path), "%s/frame_%04d.sdelta", app.dump, app.frames);
+            write_delta(path, (const uint8_t *) buf, len, &prev_state, &prev_state_len);
+            free(buf);
+        }
+    } else {
+        snprintf(path, sizeof(path), "%s/frame_%04d.raw", app.dump, app.frames);
+        FILE *f = px ? fopen(path, "wb") : NULL;
+        if (f) {
+            fwrite(px, 1, (size_t) (pitch * h), f);
+            fclose(f);
+        }
+        snprintf(path, sizeof(path), "%s/frame_%04d.state", app.dump, app.frames);
+        f = fopen(path, "wb");
+        if (f) {
+            state_write_file(st, f);
+            fclose(f);
+        }
     }
-    snprintf(path, sizeof(path), "%s/frame_%04d.state", app.dump, app.frames);
-    f = fopen(path, "wb");
-    if (f) {
-        state_write_file(st, f);
-        fclose(f);
+    if (dump_window > 0 && app.frames > dump_window) {
+        /* tests (--dump-window): the reader deletes the frames it has compared; wait for it to be
+         * at most N frames behind (the clock is scripted, so waiting changes nothing in the game) */
+        struct stat sb;
+        snprintf(path, sizeof(path), "%s/frame_%04d.%s", app.dump, app.frames - dump_window, ext);
+        while (stat(path, &sb) == 0) {
+            SDL_Delay(2);
+        }
     }
 }
 
@@ -528,8 +640,6 @@ static void pump(void)
     }
 }
 
-static FILE *msglog;
-
 static void dispatch(message m)
 {
     game_state *st = &app.st;
@@ -547,6 +657,7 @@ static void dispatch(message m)
 
 static void after_message(void)
 {
+    check_stops();
     /* @bin 0x0041434E a quit request becomes WM_CLOSE (PostMessageA) */
     if (U8(&app.st, QUIT_REQUEST) == 1) {
         post(WM_CLOSE, 0, 0);
@@ -885,9 +996,16 @@ static uint32_t cb_set_display(void *ctx, int32_t width, int32_t height, int32_t
         pmem_free(app.back);
     }
     app.back = a;
-    /* Windows sends WM_DISPLAYCHANGE only when the mode changes (as the boot assumes:
-     * core/boot/display.c); the same mode set again (gfxBegin after WM_ACTIVATEAPP) sends none */
-    int changed = width != app.w || height != app.h;
+    /* Windows sends WM_DISPLAYCHANGE only when the screen's mode changes (as the boot assumes:
+     * core/boot/display.c): fullscreen, DirectDraw's SetDisplayMode sets the game's mode; windowed
+     * (0x00E38E5C == 0) the game sets no mode, and leaving the full screen (SetCooperativeLevel normal)
+     * gives the desktop's mode back (assumed: Windows' behaviour). The same mode set again (gfxBegin after
+     * WM_ACTIVATEAPP) sends none */
+    int full = S32(&app.st, 0x00E38E5Cu) != 0;
+    int sw = full ? width : SCREEN_W, sh = full ? height : SCREEN_H;
+    int changed = sw != app.screen_w || sh != app.screen_h;
+    app.screen_w = sw;
+    app.screen_h = sh;
     app.w = width;
     app.h = height;
     if (app.win) {
@@ -896,7 +1014,7 @@ static uint32_t cb_set_display(void *ctx, int32_t width, int32_t height, int32_t
     }
     fprintf(stderr, "imhotep: display %dx%d %s\n", width, height, rgb565 ? "565" : "555");
     if (changed) {
-        post(WM_DISPLAYCHANGE, 16, (uint32_t) (uint16_t) height << 16 | (uint16_t) width);
+        post(WM_DISPLAYCHANGE, 16, (uint32_t) (uint16_t) sh << 16 | (uint16_t) sw);
     }
     return a;
 }
@@ -1007,16 +1125,45 @@ static void script_step(void)
         return;
     }
     char line[512];
-    if (!fgets(line, sizeof(line), script)) {
-        fclose(script);
-        script = NULL;
-        return;
+    char cmd[32], arg[480];
+    int x, y;
+    for (;;) {
+        if (script == stdin) {
+            /* a driver on stdin (--script -, tests: tools/oracle/fuzz.py): before each line, the frame
+             * and the window it can choose from */
+            printf("ready %d %d\n", app.frames, U8(&app.st, WINDOW_ID));
+            fflush(stdout);
+        }
+        if (!fgets(line, sizeof(line), script)) {
+            if (script != stdin) {
+                fclose(script);
+            }
+            script = NULL;
+            return;
+        }
+        line[strcspn(line, "\r\n")] = 0;
+        memset(cmd, 0, sizeof(cmd));
+        memset(arg, 0, sizeof(arg));
+        x = y = 0;
+        sscanf(line, "%31s %479[^\n]", cmd, arg);
+        sscanf(arg, "%d %d", &x, &y);
+        if (strcmp(cmd, "peek") != 0 && cmd[0] != '#') {
+            break;
+        }
+        if (cmd[0] == 'p') {
+            /* peek ADDR LEN: state bytes in hex on stdout; takes no frame (a session reads the same
+             * with or without its peeks) */
+            unsigned a = 0, n = 0;
+            sscanf(arg, "%x %u", &a, &n);
+            printf("peek %08X ", a);
+            const uint8_t *q = n > 0 && n <= 65536 ? state_ptr(&app.st, a, n) : NULL;
+            for (unsigned i = 0; q && i < n; i++) {
+                printf("%02X", q[i]);
+            }
+            printf("\n");
+            fflush(stdout);
+        }
     }
-    line[strcspn(line, "\r\n")] = 0;
-    char cmd[32] = {0}, arg[480] = {0};
-    int x = 0, y = 0;
-    sscanf(line, "%31s %479[^\n]", cmd, arg);
-    sscanf(arg, "%d %d", &x, &y);
     if (app.verbose && cmd[0]) {
         fprintf(stderr, "imhotep: script: %s\n", line);
     }
@@ -1047,6 +1194,10 @@ static void script_step(void)
     } else if (strcmp(cmd, "answer") == 0) {
         if (app.nanswers < 16) {
             app.answers[app.nanswers++] = x;
+            if (msglog) { /* tests: the answer queued before that frame (not a message: 0xFFFFFFFF) */
+                fprintf(msglog, "%d 0xFFFFFFFF 0x%X 0x0 %d %d\n", app.frames + 1, (unsigned) x, app.mouse_x,
+                        app.mouse_y);
+            }
         }
     } else if (strcmp(cmd, "quit") == 0) {
         post(WM_CLOSE, 0, 0);
@@ -1115,7 +1266,7 @@ static int port_boot(int sound)
     /* the screen before the game sets its mode (GetSystemMetrics): 1024 x 768, the largest mode (the
      * window then takes the mode's size); 16-bit pixels in RGB 555. The mode is the game's
      * (Pharaoh.inf, read by the boot's settings: core/boot/settings.c) */
-    boot_display display = {.width = 1024, .height = 768, .format = 555};
+    boot_display display = {.width = SCREEN_W, .height = SCREEN_H, .format = 555};
     int n = boot_step_count(&display, sound), r = 0;
     for (int k = 0; k < n && r == 0; k++) {
         int before = app.nun;
@@ -1178,6 +1329,10 @@ int main(int argc, char **argv)
             fps = atoi(v), i++;
         } else if (strcmp(a, "--msglog") == 0 && v) {
             msglog = fopen(v, "w"), i++;
+        } else if (strcmp(a, "--dump-delta") == 0) {
+            dump_delta = 1;
+        } else if (strcmp(a, "--dump-window") == 0 && v) {
+            dump_window = atoi(v), i++;
         } else if (strcmp(a, "--dump") == 0 && v) {
             app.dump = v, i++;
         } else if (strcmp(a, "--no-video") == 0) {
@@ -1204,7 +1359,8 @@ int main(int argc, char **argv)
         return 1;
     }
     const char *player = getenv("IMHOTEP_PLAYER_DIR");
-    files_init(app.game, player && *player ? player : "local/player");
+    app.player = player && *player ? player : "local/player";
+    files_init(app.game, app.player);
 
     /* the state: the exe image, then the boot (core/boot; --boot-state: a saved booted state) */
     present_register();
@@ -1259,6 +1415,10 @@ int main(int argc, char **argv)
     } else if (read_boot_state(boot) != 0) {
         return 1;
     }
+    /* the screen's mode after the boot: the size it keeps in 0x00E38DB8 / 0x00E38DB4 (the desktop's, or the
+     * game's mode once its boot set it fullscreen) */
+    app.screen_w = S32(&app.st, 0x00E38DB8u);
+    app.screen_h = S32(&app.st, 0x00E38DB4u);
 
 
     /* SDL: the window shows the back buffer scaled */
@@ -1292,7 +1452,9 @@ int main(int argc, char **argv)
     }
     cursors_install(&app.st);
     SDL_StartTextInput();
-    if (script_path && !(script = fopen(script_path, "r"))) {
+    if (script_path && strcmp(script_path, "-") == 0) {
+        script = stdin;
+    } else if (script_path && !(script = fopen(script_path, "r"))) {
         fprintf(stderr, "imhotep: cannot read %s\n", script_path);
     }
 

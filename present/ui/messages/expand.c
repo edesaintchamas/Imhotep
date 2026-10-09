@@ -159,29 +159,46 @@ static void copy_out(game_state *st, uint32_t dst, const char *src, int32_t n)
     }
 }
 
+/* the wrappers' work buffers, one per nesting level: a keyword handler may expand a text of its own
+ * (0x00447B10 "[reason_phrase]" calls 0x00448330) while its caller's expansion is in progress */
+#define EXPAND_DEPTH 4
+#define EXPAND_BUF 0x10000
+static char expand_bufs[EXPAND_DEPTH][EXPAND_BUF];
+static int expand_depth;
+
 static int32_t run_expand(game_state *st, const int32_t *a)
 {
+    if (expand_depth >= EXPAND_DEPTH) {
+        state_unported(st, 0x004CB980u);
+        return 0;
+    }
+    char *buf = expand_bufs[expand_depth++];
     int32_t size = a[2];
-    static char buf[0x10000];
-    if (size > (int32_t) sizeof(buf)) {
-        size = (int32_t) sizeof(buf);
+    if (size > EXPAND_BUF) {
+        size = EXPAND_BUF;
     }
     int32_t n = 0;
     int32_t r = expand_n(st, (uint32_t) a[PORT_THIS_ARG], (uint32_t) a[0], buf, size, &n);
     copy_out(st, (uint32_t) a[1], buf, n);
+    expand_depth--;
     return r;
 }
 
 static int32_t run_message_expand(game_state *st, const int32_t *a)
 {
+    if (expand_depth >= EXPAND_DEPTH) {
+        state_unported(st, 0x00448330u);
+        return 0;
+    }
+    char *buf = expand_bufs[expand_depth++];
     int32_t size = a[2];
-    static char buf[0x10000];
-    if (size > (int32_t) sizeof(buf)) {
-        size = (int32_t) sizeof(buf);
+    if (size > EXPAND_BUF) {
+        size = EXPAND_BUF;
     }
     int32_t n = 0;
     message_text_expand_n(st, a[0], buf, size, &n);
     copy_out(st, (uint32_t) a[1], buf, n);
+    expand_depth--;
     return 0;
 }
 

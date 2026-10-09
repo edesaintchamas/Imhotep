@@ -65,6 +65,7 @@ PRESENT_TABLE(info_phrase_ports)
 PRESENT_TABLE(frontend_menu_ports)
 PRESENT_TABLE(msglist_ports)
 PRESENT_TABLE(msg_expand_ports)
+PRESENT_TABLE(msg_keyword_ports)
 PRESENT_TABLE(richtext_ports)
 PRESENT_TABLE(msgwindow_ports)
 PRESENT_TABLE(empire_ports)
@@ -77,6 +78,10 @@ PRESENT_TABLE(ui_cityframe_ports)
 PRESENT_TABLE(frontend_highscore_ports)
 PRESENT_TABLE(boot_loading_ports)
 PRESENT_TABLE(play_ports)
+PRESENT_TABLE(ui_button_ports)
+PRESENT_TABLE(info_query_ports)
+PRESENT_TABLE(ui_frame_ports)
+PRESENT_TABLE(fade_ports)
 
 static const struct {
     const ported_function *table;
@@ -137,6 +142,7 @@ static const struct {
     {frontend_menu_ports, &frontend_menu_ports_count},
     {msglist_ports, &msglist_ports_count},
     {msg_expand_ports, &msg_expand_ports_count},
+    {msg_keyword_ports, &msg_keyword_ports_count},
     {richtext_ports, &richtext_ports_count},
     {msgwindow_ports, &msgwindow_ports_count},
     {empire_ports, &empire_ports_count},
@@ -149,6 +155,10 @@ static const struct {
     {boot_loading_ports, &boot_loading_ports_count},
     {advisors_ports, &advisors_ports_count},
     {play_ports, &play_ports_count},
+    {ui_button_ports, &ui_button_ports_count},
+    {info_query_ports, &info_query_ports_count},
+    {ui_frame_ports, &ui_frame_ports_count},
+    {fade_ports, &fade_ports_count},
 };
 
 void present_register(void)

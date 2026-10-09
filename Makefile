@@ -15,9 +15,9 @@ GHIDRA_EXPORT    := local/ghidra-export
 export IMHOTEP_GAME_DIR
 
 
-# a check piped through tail must still fail the build when it fails
-SHELL := /bin/bash
-.SHELLFLAGS := -o pipefail -c
+# pipefail: a check piped into `tail -1` fails the build when it fails (in the SHELL itself: GNU Make
+# 3.81, macOS's, has no .SHELLFLAGS)
+SHELL := /bin/bash -o pipefail
 .PHONY: game present-check help verify fingerprint extract refs analyze provenance check-files core tools unit differential oracle-env oracle-check corpus test
 
 help:

@@ -9,9 +9,12 @@
  * 0x0041D310 -> 0x0041D3F0 -> 0x0041D050), the panel 0x00414C40, the build menu helpers
  * 0x00403F10 and 0x00405170, and the overlay level images of overlays 0x21..0x2A (0x00434AA0,
  * x87: reproduced on integers, core/city/day_x87.h). */
+#include <string.h>
+
 #include "ui.h"
 
 #include "city/day_x87.h"
+#include "city/month_message.h"
 #include "city/monument_rating_x87.h"
 #include "frame/frame.h"
 #include "frame/view.h"
@@ -88,10 +91,34 @@ void tutorial_checks(game_state *st)
         U8(st, 0x006FDCB4u) = 1;
         return;
     }
-    /* @bin 0x00417D31 the message's 30-byte block is the original's stack: i16 0x249, 0x248 at
-     * +0, +2 and the goods' text (0x24A..0x250) at +0x10; the other 24 bytes are what the frame
-     * held before (not reproducible): the message is not ported */
-    state_unported(st, 0x00417B40u);
+    /* @bin 0x00417D31 the message's 30-byte block (its phrases, i16 each: +0 the body, +2 the title,
+     * +4 the subtitle, ...) is a buffer of the original's frame: 0x249 at +0, 0x248 at +2, the goods'
+     * text at +0x10 */
+    uint8_t block[30];
+    /* @unverified UNINIT-417B40 the other 24 bytes are never written: the original sends what its
+     * stack held (in the oracle +4 is 0x2BDC or 1 by the state, the low half of a heap address), so
+     * the subtitle phrase +4 is arbitrary; here they are -1, the block's "no phrase" (as 0x004E0CF0
+     * writes for a message without a block) */
+    memset(block, 0xFF, sizeof(block));
+    int16_t phrase;
+    /* @bin 0x00417D3F the goods' text: all three 0x250; first and second 0x24D; first and third 0x24E;
+     * first 0x24A; second and third 0x24F; second 0x24B; third 0x24C */
+    if (a) {
+        phrase = b ? (c ? 0x250 : 0x24D) : (c ? 0x24E : 0x24A);
+    } else if (b && c) {
+        phrase = 0x24F;
+    } else {
+        phrase = b ? 0x24B : 0x24C;
+    }
+    const int16_t body = 0x249, title = 0x248;
+    memcpy(block, &body, 2);
+    memcpy(block + 2, &title, 2);
+    memcpy(block + 0x10, &phrase, 2);
+    /* @bin 0x00417DA8 0x00E950DC := 1, the message 0x83 posted (0x004E0CF0(0x83, 0, 0, block, 0)),
+     * then once only (0x006FDCB4 := 1) */
+    S32(st, 0x00E950DCu) = 1;
+    message_post(st, 0x83, 0, 0, block, 0);
+    U8(st, 0x006FDCB4u) = 1;
 }
 
 /* ---- scrolling ---- */
@@ -612,7 +639,7 @@ static int32_t run_level(game_state *st, const int32_t *a)
 
 const ported_function ui_cityframe_ports[] = {
     {0x0043E1A0u, "city_cost_draw", 0, 0, 0, run_city_cost_draw, 0},
-    {0x00417B40u, "tutorial_checks (the message 0x83: state_unported)", 0, 0, 0, run_tutorial_checks, PORT_PARTIAL},
+    {0x00417B40u, "tutorial_checks", 0, 0, 0, run_tutorial_checks, 0},
     {0x004DDD60u, "scroll_due", 0, 32, 0, run_scroll_due, 0},
     {0x004CF660u, "scroll_direction", 0, 32, 0, run_scroll_direction, 0},
     {0x004E61F0u, "anim_debug_step", 0, 0, 0, run_anim_debug_step, 0},

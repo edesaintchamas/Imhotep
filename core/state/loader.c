@@ -312,7 +312,6 @@ const ported_function loader_ports[] = {
      * file (loader_read): reached only through their callers */
     {0x004D41E0u, "loader (loader_read: save_file.c, save_load.c)", 1, 0, 0, NULL, 0},
     {0x005662E3u, "CRT _lseek (an offset of platform_file_read)", 3, 32, 0, NULL, 0},
-    {0x004D3C40u, "chunk 175 defaults below version 154 (save_file.c)", 0, 0, 0, NULL, 0},
     {0x004D0A40u, "shipwright queues from chunk 140 (save_load.c)", 1, 0, 0, NULL, 0},
     {0x004F67E0u, "shipwright queue reserve (save_load.c)", 1, 0, 0, NULL, 0},
     {0x004F6810u, "shipwright queue fields (save_load.c)", 1, 0, 0, NULL, 0},

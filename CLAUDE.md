@@ -162,4 +162,9 @@ When unsure, stop and write down the question in `docs/unverified.md` rather tha
       `platform/` (`make game`); a 1,190-frame scripted session equal to the original, state and
       pixels (docs/presentation.md, docs/roadmap.md 7.9)
 
-Next steps: `docs/roadmap.md` (carried-over items under 4.8, 5.3, 6.1 and 7.9).
+- [x] Completeness (phase 8): every function the game can reach is ported or classified with its
+      evidence (`tools/oracle/reach.py`, docs/provenance/frontier.md: C runtime, platform, map editor,
+      never called); the game reports any gap it meets (gaps.log); 94 randomised sessions, 1.04 million
+      frames, equal to the original (`tools/oracle/fuzz.py`, docs/roadmap.md 8.3)
+
+Next steps: `docs/roadmap.md` (carried-over items under 4.8, 5.3, 6.1, 7.9 and 8.4).

@@ -384,12 +384,14 @@ static void window_state(game_state *st, int32_t *iconic, int32_t *foreground, i
     if (p && p->window_state && p->window_state(p->ctx, iconic, foreground, rect)) {
         return;
     }
+    /* without a platform: shown, in front, the client area the window sized for the mode
+     * (AdjustWindowRectEx in 0x00426B40: 0x00E38D9C x 0x00E38D98; fullscreen the screen in that mode) */
     *iconic = 0;
     *foreground = 1;
     rect[0] = 0;
     rect[1] = 0;
-    rect[2] = S32(st, DESKTOP_W);
-    rect[3] = S32(st, DESKTOP_H);
+    rect[2] = S32(st, 0x00E38D9Cu);
+    rect[3] = S32(st, 0x00E38D98u);
 }
 
 static void window_active_check(game_state *st, int32_t foreground)

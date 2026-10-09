@@ -65,6 +65,8 @@ SIM_ALLOCATORS = {
     0x004D4E20: 'the saver: its route buffer rebuild after writing (autosave, last.sav; core/frame/autosave.c)',
     0x004D8310: 'the input dispatcher: window 0x15 (empire editor) grows a route path buffer (chunk 143)',
     0x004DD930: 'window 0x15: a route waypoint deleted, the route path rebuilt (chunk 143)',
+    0x004F6A50: 'a ring that grows during a tick (0x004F6900 push -> 0x004F6A50 -> 0x004F6700): its slots are '
+                'simulation data (core/sim/ring.c)',
 }
 
 # ... except while one of these is on the call stack (nearer than the simulation allocator): their blocks

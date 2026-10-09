@@ -1,0 +1,648 @@
+# frontier classes (tools/oracle/reach.py; local/oracle/agent_brief.md "Phase 8"): 0xADDR CLASS reason
+0x00402380 crt static constructor's atexit(destructor) (0x00561953): the CRT exit list, run at process exit only; core keeps none (core/boot/ctors.c; the constructor itself is ported in boot_ctor)
+0x00413C90 crt static constructor's atexit(destructor) (0x00561953): the CRT exit list, run at process exit only; core keeps none (core/boot/ctors.c; the constructor itself is ported in boot_ctor)
+0x00413CD0 crt static constructor's atexit(destructor) (0x00561953): the CRT exit list, run at process exit only; core keeps none (core/boot/ctors.c; the constructor itself is ported in boot_ctor)
+0x00413D10 crt static constructor's atexit(destructor) (0x00561953): the CRT exit list, run at process exit only; core keeps none (core/boot/ctors.c; the constructor itself is ported in boot_ctor)
+0x00413D50 crt static constructor's atexit(destructor) (0x00561953): the CRT exit list, run at process exit only; core keeps none (core/boot/ctors.c; the constructor itself is ported in boot_ctor)
+0x00413D90 crt static constructor's atexit(destructor) (0x00561953): the CRT exit list, run at process exit only; core keeps none (core/boot/ctors.c; the constructor itself is ported in boot_ctor)
+0x00413DD0 crt static constructor's atexit(destructor) (0x00561953): the CRT exit list, run at process exit only; core keeps none (core/boot/ctors.c; the constructor itself is ported in boot_ctor)
+0x00413E10 crt static constructor's atexit(destructor) (0x00561953): the CRT exit list, run at process exit only; core keeps none (core/boot/ctors.c; the constructor itself is ported in boot_ctor)
+0x00413E50 crt static constructor's atexit(destructor) (0x00561953): the CRT exit list, run at process exit only; core keeps none (core/boot/ctors.c; the constructor itself is ported in boot_ctor)
+0x0041E070 crt static constructor's atexit(destructor) (0x00561953): the CRT exit list, run at process exit only; core keeps none (core/boot/ctors.c; the constructor itself is ported in boot_ctor)
+0x004424D0 crt static constructor's atexit(destructor) (0x00561953): the CRT exit list, run at process exit only; core keeps none (core/boot/ctors.c; the constructor itself is ported in boot_ctor)
+0x004454A0 crt element destructor passed to the eh vector constructor iterator 0x00561441 (called only to unwind a throwing element constructor: these only store constants) and to the destructor iterator at exit
+0x00448310 crt static constructor's atexit(destructor) (0x00561953): the CRT exit list, run at process exit only; core keeps none (core/boot/ctors.c; the constructor itself is ported in boot_ctor)
+0x004483B0 crt static constructor's atexit(destructor) (0x00561953): the CRT exit list, run at process exit only; core keeps none (core/boot/ctors.c; the constructor itself is ported in boot_ctor)
+0x00448520 scope map editor: buttons 0x005D9A48 / 0x005D9A90 of the event list window 0x27 (draw 0x00448640, event detail 0x18 via 0x00448560; 0x00448E30 also from its draw 0x0044AAF0); window 0x27 is opened only by 0x00409130, a button of the editor menu 0x005763D8 that 0x004D8310 handles only in editor mode 0x00605A3C
+0x00448560 scope map editor: buttons 0x005D9A48 / 0x005D9A90 of the event list window 0x27 (draw 0x00448640, event detail 0x18 via 0x00448560; 0x00448E30 also from its draw 0x0044AAF0); window 0x27 is opened only by 0x00409130, a button of the editor menu 0x005763D8 that 0x004D8310 handles only in editor mode 0x00605A3C
+0x00448590 scope map editor: buttons 0x005D9A48 / 0x005D9A90 of the event list window 0x27 (draw 0x00448640, event detail 0x18 via 0x00448560; 0x00448E30 also from its draw 0x0044AAF0); window 0x27 is opened only by 0x00409130, a button of the editor menu 0x005763D8 that 0x004D8310 handles only in editor mode 0x00605A3C
+0x00448620 scope map editor: buttons 0x005D9A48 / 0x005D9A90 of the event list window 0x27 (draw 0x00448640, event detail 0x18 via 0x00448560; 0x00448E30 also from its draw 0x0044AAF0); window 0x27 is opened only by 0x00409130, a button of the editor menu 0x005763D8 that 0x004D8310 handles only in editor mode 0x00605A3C
+0x00448E30 scope map editor: buttons 0x005D9A48 / 0x005D9A90 of the event list window 0x27 (draw 0x00448640, event detail 0x18 via 0x00448560; 0x00448E30 also from its draw 0x0044AAF0); window 0x27 is opened only by 0x00409130, a button of the editor menu 0x005763D8 that 0x004D8310 handles only in editor mode 0x00605A3C
+0x00451AE0 crt static constructor's atexit(destructor) (0x00561953): the CRT exit list, run at process exit only; core keeps none (core/boot/ctors.c; the constructor itself is ported in boot_ctor)
+0x004BD290 crt static constructor's atexit(destructor) (0x00561953): the CRT exit list, run at process exit only; core keeps none (core/boot/ctors.c; the constructor itself is ported in boot_ctor)
+0x004BD660 crt element destructor passed to the eh vector constructor iterator 0x00561441 (called only to unwind a throwing element constructor: these only store constants) and to the destructor iterator at exit
+0x004CDF90 crt static constructor's atexit(destructor) (0x00561953): the CRT exit list, run at process exit only; core keeps none (core/boot/ctors.c; the constructor itself is ported in boot_ctor)
+0x004CDFD0 crt static constructor's atexit(destructor) (0x00561953): the CRT exit list, run at process exit only; core keeps none (core/boot/ctors.c; the constructor itself is ported in boot_ctor)
+0x004E52E0 unused base monument class vtable 0x0056F698 (+0/+4/+8: fits, ghost parts, exists): stored only by the base constructor 0x004E5210 and destructor 0x004E5290; every monument object ends with its own vtable (0x0056F438, 0x0056F48C, 0x0056F4DC, 0x0056F6E8, 0x00570160, 0x005701E8, 0x00570228, 0x00570268), whose +0/+4/+8 are the derived methods
+0x004E5300 unused base monument class vtable 0x0056F698 (+0/+4/+8: fits, ghost parts, exists): stored only by the base constructor 0x004E5210 and destructor 0x004E5290; every monument object ends with its own vtable (0x0056F438, 0x0056F48C, 0x0056F4DC, 0x0056F6E8, 0x00570160, 0x005701E8, 0x00570228, 0x00570268), whose +0/+4/+8 are the derived methods
+0x004E5320 unused base monument class vtable 0x0056F698 (+0/+4/+8: fits, ghost parts, exists): stored only by the base constructor 0x004E5210 and destructor 0x004E5290; every monument object ends with its own vtable (0x0056F438, 0x0056F48C, 0x0056F4DC, 0x0056F6E8, 0x00570160, 0x005701E8, 0x00570228, 0x00570268), whose +0/+4/+8 are the derived methods
+0x004F64D0 crt static constructor's atexit(destructor) (0x00561953): the CRT exit list, run at process exit only; core keeps none (core/boot/ctors.c; the constructor itself is ported in boot_ctor)
+0x00516590 crt static constructor's atexit(destructor) (0x00561953): the CRT exit list, run at process exit only; core keeps none (core/boot/ctors.c; the constructor itself is ported in boot_ctor)
+0x0053DA70 crt static constructor's atexit(destructor) (0x00561953): the CRT exit list, run at process exit only; core keeps none (core/boot/ctors.c; the constructor itself is ported in boot_ctor)
+0x0055D9C0 unused float helper of the animation-object step 0x0055D6D0 (via 0x0055D840): run by 0x004E61F0 only for the objects [0x00EA136C] / [0x00EA1370], which no code sets (only read at 0x004E62BA..0x004E6308 and cleared by 0x004E63B0); same for the 0x0055D290..0x0055D840 cluster
+0x0055F02D platform Miles voice search (AIL_sample_status) inside 0x0055F0E8: platform_sample_play (core/sim/platform.c)
+0x0055F07F platform Miles voice search (AIL_sample_status) inside 0x0055F0E8: platform_sample_play (core/sim/platform.c)
+0x00560210 unused sound registry release: from 0x0055DC63 only when a registry exists (it is created once, at boot: core/boot/sound.c registry_create stops there) and from the sound object destructor 0x0055DBF8 at exit
+0x00560350 unused QuickTime glue (QuickTime.qts: _CallComponent, theQuickTimeDispatcher; 0x005603F0 LoadLibrary): the movie [0x006FDC38] / [0x006FDC40] / [0x006FDC3C] it plays is never set (code only reads them, 0x00414CD1 0x00414D3F 0x004D6CB8 0x004D6CC2, or stores 0, 0x00416BDB; WinMain clears 0x006FDB38)
+0x00560360 unused QuickTime glue (QuickTime.qts: _CallComponent, theQuickTimeDispatcher; 0x005603F0 LoadLibrary): the movie [0x006FDC38] / [0x006FDC40] / [0x006FDC3C] it plays is never set (code only reads them, 0x00414CD1 0x00414D3F 0x004D6CB8 0x004D6CC2, or stores 0, 0x00416BDB; WinMain clears 0x006FDB38)
+0x005603F0 unused QuickTime glue (QuickTime.qts: _CallComponent, theQuickTimeDispatcher; 0x005603F0 LoadLibrary): the movie [0x006FDC38] / [0x006FDC40] / [0x006FDC3C] it plays is never set (code only reads them, 0x00414CD1 0x00414D3F 0x004D6CB8 0x004D6CC2, or stores 0, 0x00416BDB; WinMain clears 0x006FDB38)
+0x00560560 unused QuickTime glue (QuickTime.qts: _CallComponent, theQuickTimeDispatcher; 0x005603F0 LoadLibrary): the movie [0x006FDC38] / [0x006FDC40] / [0x006FDC3C] it plays is never set (code only reads them, 0x00414CD1 0x00414D3F 0x004D6CB8 0x004D6CC2, or stores 0, 0x00416BDB; WinMain clears 0x006FDB38)
+0x00560580 unused QuickTime glue (QuickTime.qts: _CallComponent, theQuickTimeDispatcher; 0x005603F0 LoadLibrary): the movie [0x006FDC38] / [0x006FDC40] / [0x006FDC3C] it plays is never set (code only reads them, 0x00414CD1 0x00414D3F 0x004D6CB8 0x004D6CC2, or stores 0, 0x00416BDB; WinMain clears 0x006FDB38)
+0x005605A0 unused QuickTime glue (QuickTime.qts: _CallComponent, theQuickTimeDispatcher; 0x005603F0 LoadLibrary): the movie [0x006FDC38] / [0x006FDC40] / [0x006FDC3C] it plays is never set (code only reads them, 0x00414CD1 0x00414D3F 0x004D6CB8 0x004D6CC2, or stores 0, 0x00416BDB; WinMain clears 0x006FDB38)
+0x005605C0 unused QuickTime glue (QuickTime.qts: _CallComponent, theQuickTimeDispatcher; 0x005603F0 LoadLibrary): the movie [0x006FDC38] / [0x006FDC40] / [0x006FDC3C] it plays is never set (code only reads them, 0x00414CD1 0x00414D3F 0x004D6CB8 0x004D6CC2, or stores 0, 0x00416BDB; WinMain clears 0x006FDB38)
+0x005605FA unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x0056062C unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00560648 unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00560671 unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x005606A0 unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x005606C6 unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x005606E2 unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00560734 unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x0056073C unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00560855 unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x005608CC unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00560909 crt _matherr default (returns 0) of the x87 math error path 0x0056971F (see 0x00567517)
+0x0056090C unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x005609DA unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00560A70 unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00560A9B unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00560AAE unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00560B2A unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00560B4C unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00560BFD unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00560C26 unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00560CA6 unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00560CCF unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00560D22 unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00560D87 unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00560D96 unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00560F02 unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00560F2F unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00560F4B unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00560FA3 unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00560FF9 unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00561090 unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x005610A7 unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x005610D4 unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x0056111C unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00561178 unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x005611C8 unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x0056123E unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00561278 unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x005612ED unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00561363 crt C++ eh vector constructor / destructor iterators and their unwind (__ArrayUnwind): the boot constructors build their arrays inline (core/boot/ctors.c vector_ctor, monuments.c); the destructors run at exit (0x0055D8B0 only for [0x00EA1368], never set)
+0x005613CB crt C++ eh vector constructor / destructor iterators and their unwind (__ArrayUnwind): the boot constructors build their arrays inline (core/boot/ctors.c vector_ctor, monuments.c); the destructors run at exit (0x0055D8B0 only for [0x00EA1368], never set)
+0x005613E3 crt C++ eh vector constructor / destructor iterators and their unwind (__ArrayUnwind): the boot constructors build their arrays inline (core/boot/ctors.c vector_ctor, monuments.c); the destructors run at exit (0x0055D8B0 only for [0x00EA1368], never set)
+0x00561441 crt C++ eh vector constructor / destructor iterators and their unwind (__ArrayUnwind): the boot constructors build their arrays inline (core/boot/ctors.c vector_ctor, monuments.c); the destructors run at exit (0x0055D8B0 only for [0x00EA1368], never set)
+0x005614AB crt C++ eh vector constructor / destructor iterators and their unwind (__ArrayUnwind): the boot constructors build their arrays inline (core/boot/ctors.c vector_ctor, monuments.c); the destructors run at exit (0x0055D8B0 only for [0x00EA1368], never set)
+0x00561896 crt CRT _cinit C initialisers: _fpmath (float printf hooks), _controlfp(0x10000, 0x30000) x87 at 53 bits, _ms_p5_test_fdiv: core needs none (integer simulation; x87 emulation at 53 bits in core/sim/x87_float.h)
+0x005618AE crt CRT _cinit C initialisers: _fpmath (float printf hooks), _controlfp(0x10000, 0x30000) x87 at 53 bits, _ms_p5_test_fdiv: core needs none (integer simulation; x87 emulation at 53 bits in core/sim/x87_float.h)
+0x005618E6 crt atexit / _onexit (and the realloc, _msize, block resize it uses to grow the exit list): no exit list in core
+0x00561953 crt atexit / _onexit (and the realloc, _msize, block resize it uses to grow the exit list): no exit list in core
+0x005619EA crt stdio internals under the ported fopen / fgets / fread / fwrite / fclose / sprintf (_fsopen, _openfile, _getstream, _freebuf, _flush, _filbuf, _write, _flsbuf, _getbuf, _isatty, memcpy): the port reads and writes files through platform_file_read / platform_file_write; sprintf writes a string directly
+0x00561BA6 crt heap internals of the ported malloc / free (_heap_alloc, _callnewh, small-block heap): the port allocates in the state heap arena (state_alloc, boot_alloc)
+0x005623FC platform _getcwd / _getdcwd (GetCurrentDirectory, GetDriveType) and _chdir's mbcs test: the working directory is the platform's (0x004CE2D0 working_directory, 0x0056B2DD _chdir: core/newgame/map_load.c)
+0x0056240F platform _getcwd / _getdcwd (GetCurrentDirectory, GetDriveType) and _chdir's mbcs test: the working directory is the platform's (0x004CE2D0 working_directory, 0x0056B2DD _chdir: core/newgame/map_load.c)
+0x005624E0 platform _getcwd / _getdcwd (GetCurrentDirectory, GetDriveType) and _chdir's mbcs test: the working directory is the platform's (0x004CE2D0 working_directory, 0x0056B2DD _chdir: core/newgame/map_load.c)
+0x00562517 platform the log file's write and time stamp (0x004CE860 _commit, 0x004CE8E0 time / localtime / asctime, tzset with getenv("TZ") and the environment helpers) under platform_log 0x004CE6E0 (core/sim/platform.c)
+0x0056256E platform the log file's write and time stamp (0x004CE860 _commit, 0x004CE8E0 time / localtime / asctime, tzset with getenv("TZ") and the environment helpers) under platform_log 0x004CE6E0 (core/sim/platform.c)
+0x0056261C platform the log file's write and time stamp (0x004CE860 _commit, 0x004CE8E0 time / localtime / asctime, tzset with getenv("TZ") and the environment helpers) under platform_log 0x004CE6E0 (core/sim/platform.c)
+0x00562644 platform the log file's write and time stamp (0x004CE860 _commit, 0x004CE8E0 time / localtime / asctime, tzset with getenv("TZ") and the environment helpers) under platform_log 0x004CE6E0 (core/sim/platform.c)
+0x005627A4 platform the log file's write and time stamp (0x004CE860 _commit, 0x004CE8E0 time / localtime / asctime, tzset with getenv("TZ") and the environment helpers) under platform_log 0x004CE6E0 (core/sim/platform.c)
+0x00562BEA unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00562C25 crt stdio internals under the ported fopen / fgets / fread / fwrite / fclose / sprintf (_fsopen, _openfile, _getstream, _freebuf, _flush, _filbuf, _write, _flsbuf, _getbuf, _isatty, memcpy): the port reads and writes files through platform_file_read / platform_file_write; sprintf writes a string directly
+0x00562C8A unused old iostream library (ios, streambuf, strstreambuf, ostrstream: RTTI .?AVios@@ ... at 0x00604880; vtables 0x00570534 ..) and its fflush / flushall: used only by 0x0053DD90 to build the "Graphic file out of sync" message box (0x0053DEFE .. 0x0053DFA5, after a load whose group count differs), not reached in play (core/graphics/last_graphics.c stops there)
+0x00562DCB crt strtol (and its toupper) of the ported music.txt reader 0x00539250: core/boot/sound.c parses the numbers itself
+0x00562DE2 crt strtol (and its toupper) of the ported music.txt reader 0x00539250: core/boot/sound.c parses the numbers itself
+0x00562FEA crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x005630E0 crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x00563105 crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x005631B0 crt strcmp / memset / strcpy / _strdup inside ported functions (sound registry, sound object constructor): done inline in their ports (core/boot/sound.c strcmp_at, ctors.c memset); _strdup only for a CD path (no CD)
+0x00563240 crt strcmp / memset / strcpy / _strdup inside ported functions (sound registry, sound object constructor): done inline in their ports (core/boot/sound.c strcmp_at, ctors.c memset); _strdup only for a CD path (no CD)
+0x00563320 crt type_info destructor and the SEH frame prolog (_EH_prolog): C++ runtime
+0x00563335 crt type_info destructor and the SEH frame prolog (_EH_prolog): C++ runtime
+0x00563354 crt type_info destructor and the SEH frame prolog (_EH_prolog): C++ runtime
+0x00563400 crt stdio internals under the ported fopen / fgets / fread / fwrite / fclose / sprintf (_fsopen, _openfile, _getstream, _freebuf, _flush, _filbuf, _write, _flsbuf, _getbuf, _isatty, memcpy): the port reads and writes files through platform_file_read / platform_file_write; sprintf writes a string directly
+0x005637EE crt C++ terminate / unhandled-exception filter / raise and signal lookup: only on an uncaught exception or abort
+0x005640EC crt CRT _cinit C initialisers: _fpmath (float printf hooks), _controlfp(0x10000, 0x30000) x87 at 53 bits, _ms_p5_test_fdiv: core needs none (integer simulation; x87 emulation at 53 bits in core/sim/x87_float.h)
+0x005640FE crt CRT _cinit C initialisers: _fpmath (float printf hooks), _controlfp(0x10000, 0x30000) x87 at 53 bits, _ms_p5_test_fdiv: core needs none (integer simulation; x87 emulation at 53 bits in core/sim/x87_float.h)
+0x0056413C crt CRT _cinit C initialisers: _fpmath (float printf hooks), _controlfp(0x10000, 0x30000) x87 at 53 bits, _ms_p5_test_fdiv: core needs none (integer simulation; x87 emulation at 53 bits in core/sim/x87_float.h)
+0x00564165 crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00564225 crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00564263 crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00564367 crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00564445 crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x005644E0 crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00564507 crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x0056452A crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x0056457B crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x005645A0 crt atexit / _onexit (and the realloc, _msize, block resize it uses to grow the exit list): no exit list in core
+0x005646C0 crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x005646ED crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x005646FE crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x0056470F crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x005647A8 crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x005647C2 crt atexit / _onexit (and the realloc, _msize, block resize it uses to grow the exit list): no exit list in core
+0x0056489E crt stdio internals under the ported fopen / fgets / fread / fwrite / fclose / sprintf (_fsopen, _openfile, _getstream, _freebuf, _flush, _filbuf, _write, _flsbuf, _getbuf, _isatty, memcpy): the port reads and writes files through platform_file_read / platform_file_write; sprintf writes a string directly
+0x005648C9 crt stdio internals under the ported fopen / fgets / fread / fwrite / fclose / sprintf (_fsopen, _openfile, _getstream, _freebuf, _flush, _filbuf, _write, _flsbuf, _getbuf, _isatty, memcpy): the port reads and writes files through platform_file_read / platform_file_write; sprintf writes a string directly
+0x00564A39 crt stdio internals under the ported fopen / fgets / fread / fwrite / fclose / sprintf (_fsopen, _openfile, _getstream, _freebuf, _flush, _filbuf, _write, _flsbuf, _getbuf, _isatty, memcpy): the port reads and writes files through platform_file_read / platform_file_write; sprintf writes a string directly
+0x00564AB1 crt stdio internals under the ported fopen / fgets / fread / fwrite / fclose / sprintf (_fsopen, _openfile, _getstream, _freebuf, _flush, _filbuf, _write, _flsbuf, _getbuf, _isatty, memcpy): the port reads and writes files through platform_file_read / platform_file_write; sprintf writes a string directly
+0x005653D0 crt heap internals of the ported malloc / free (_heap_alloc, _callnewh, small-block heap): the port allocates in the state heap arena (state_alloc, boot_alloc)
+0x005653EB crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x00565427 crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x00565465 crt heap internals of the ported malloc / free (_heap_alloc, _callnewh, small-block heap): the port allocates in the state heap arena (state_alloc, boot_alloc)
+0x00565490 crt heap internals of the ported malloc / free (_heap_alloc, _callnewh, small-block heap): the port allocates in the state heap arena (state_alloc, boot_alloc)
+0x005657BB crt heap internals of the ported malloc / free (_heap_alloc, _callnewh, small-block heap): the port allocates in the state heap arena (state_alloc, boot_alloc)
+0x00565AC4 crt heap internals of the ported malloc / free (_heap_alloc, _callnewh, small-block heap): the port allocates in the state heap arena (state_alloc, boot_alloc)
+0x00565B75 crt heap internals of the ported malloc / free (_heap_alloc, _callnewh, small-block heap): the port allocates in the state heap arena (state_alloc, boot_alloc)
+0x00565C70 crt atexit / _onexit (and the realloc, _msize, block resize it uses to grow the exit list): no exit list in core
+0x00565F66 crt locale-aware tolower / _isctype (LCMapString, GetStringType): the locale path needs LC_CTYPE [0x0126648C] != 0, which no code writes (no setlocale); the ported callers (crt_strcmpi, crt_strnicmp, atol) do the "C" locale
+0x00566014 crt stdio internals under the ported fopen / fgets / fread / fwrite / fclose / sprintf (_fsopen, _openfile, _getstream, _freebuf, _flush, _filbuf, _write, _flsbuf, _getbuf, _isatty, memcpy): the port reads and writes files through platform_file_read / platform_file_write; sprintf writes a string directly
+0x0056637D crt stdio internals under the ported fopen / fgets / fread / fwrite / fclose / sprintf (_fsopen, _openfile, _getstream, _freebuf, _flush, _filbuf, _write, _flsbuf, _getbuf, _isatty, memcpy): the port reads and writes files through platform_file_read / platform_file_write; sprintf writes a string directly
+0x00566682 crt locale-aware tolower / _isctype (LCMapString, GetStringType): the locale path needs LC_CTYPE [0x0126648C] != 0, which no code writes (no setlocale); the ported callers (crt_strcmpi, crt_strnicmp, atol) do the "C" locale
+0x00566750 crt strcpy / strcat of CRT internals (_getcwd, tzset, _setenvp, _NMSG_WRITE, the float formatting, putenv, _strdup); the ports copy strings inline
+0x00566760 crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x00566840 crt lowio internals under the ported _open / _close / _filelength / _fileno callers (_sopen, _alloc_osfhnd, _set_osfhnd, _free_osfhnd, _get_osfhandle, _chsize, _lseek): files are platform_file_* requests in the port
+0x005668D5 crt lowio internals under the ported _open / _close / _filelength / _fileno callers (_sopen, _alloc_osfhnd, _set_osfhnd, _free_osfhnd, _get_osfhandle, _chsize, _lseek): files are platform_file_* requests in the port
+0x0056694C crt lowio internals under the ported _open / _close / _filelength / _fileno callers (_sopen, _alloc_osfhnd, _set_osfhnd, _free_osfhnd, _get_osfhandle, _chsize, _lseek): files are platform_file_* requests in the port
+0x005669C6 crt lowio internals under the ported _open / _close / _filelength / _fileno callers (_sopen, _alloc_osfhnd, _set_osfhnd, _free_osfhnd, _get_osfhandle, _chsize, _lseek): files are platform_file_* requests in the port
+0x00566A03 crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x00566BAE platform the log file's write and time stamp (0x004CE860 _commit, 0x004CE8E0 time / localtime / asctime, tzset with getenv("TZ") and the environment helpers) under platform_log 0x004CE6E0 (core/sim/platform.c)
+0x00566BC3 platform the log file's write and time stamp (0x004CE860 _commit, 0x004CE8E0 time / localtime / asctime, tzset with getenv("TZ") and the environment helpers) under platform_log 0x004CE6E0 (core/sim/platform.c)
+0x00566E21 platform the log file's write and time stamp (0x004CE860 _commit, 0x004CE8E0 time / localtime / asctime, tzset with getenv("TZ") and the environment helpers) under platform_log 0x004CE6E0 (core/sim/platform.c)
+0x00566FCD platform the log file's write and time stamp (0x004CE860 _commit, 0x004CE8E0 time / localtime / asctime, tzset with getenv("TZ") and the environment helpers) under platform_log 0x004CE6E0 (core/sim/platform.c)
+0x0056710D platform the log file's write and time stamp (0x004CE860 _commit, 0x004CE8E0 time / localtime / asctime, tzset with getenv("TZ") and the environment helpers) under platform_log 0x004CE6E0 (core/sim/platform.c)
+0x00567206 platform the log file's write and time stamp (0x004CE860 _commit, 0x004CE8E0 time / localtime / asctime, tzset with getenv("TZ") and the environment helpers) under platform_log 0x004CE6E0 (core/sim/platform.c)
+0x00567517 crt x87 math error handling (_startOneArgErrorHandling, _handle_exc, _umatherr, errno) of asin 0x00562D00 for |q| > 1: its only caller 0x0051CAE0 passes dy / sqrt(dx*dx + dy*dy), never above 1 (core/sim/x87_angle.c)
+0x00567575 crt x87 math error handling (_startOneArgErrorHandling, _handle_exc, _umatherr, errno) of asin 0x00562D00 for |q| > 1: its only caller 0x0051CAE0 passes dy / sqrt(dx*dx + dy*dy), never above 1 (core/sim/x87_angle.c)
+0x0056758C crt x87 math error handling (_startOneArgErrorHandling, _handle_exc, _umatherr, errno) of asin 0x00562D00 for |q| > 1: its only caller 0x0051CAE0 passes dy / sqrt(dx*dx + dy*dy), never above 1 (core/sim/x87_angle.c)
+0x005676EC crt strtol (and its toupper) of the ported music.txt reader 0x00539250: core/boot/sound.c parses the numbers itself
+0x005677B8 crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x005678F9 crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x0056793C crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x00567994 crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x00567A4D crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x00567AE6 crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x00567C9A crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x00567DCC crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x00567E05 crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x00567F58 crt x87 math error handling (_startOneArgErrorHandling, _handle_exc, _umatherr, errno) of asin 0x00562D00 for |q| > 1: its only caller 0x0051CAE0 passes dy / sqrt(dx*dx + dy*dy), never above 1 (core/sim/x87_angle.c)
+0x0056820B crt x87 math error handling (_startOneArgErrorHandling, _handle_exc, _umatherr, errno) of asin 0x00562D00 for |q| > 1: its only caller 0x0051CAE0 passes dy / sqrt(dx*dx + dy*dy), never above 1 (core/sim/x87_angle.c)
+0x00568422 crt x87 math error handling (_startOneArgErrorHandling, _handle_exc, _umatherr, errno) of asin 0x00562D00 for |q| > 1: its only caller 0x0051CAE0 passes dy / sqrt(dx*dx + dy*dy), never above 1 (core/sim/x87_angle.c)
+0x00568448 crt x87 math error handling (_startOneArgErrorHandling, _handle_exc, _umatherr, errno) of asin 0x00562D00 for |q| > 1: its only caller 0x0051CAE0 passes dy / sqrt(dx*dx + dy*dy), never above 1 (core/sim/x87_angle.c)
+0x00568471 crt x87 math error handling (_startOneArgErrorHandling, _handle_exc, _umatherr, errno) of asin 0x00562D00 for |q| > 1: its only caller 0x0051CAE0 passes dy / sqrt(dx*dx + dy*dy), never above 1 (core/sim/x87_angle.c)
+0x00568532 crt x87 math error handling (_startOneArgErrorHandling, _handle_exc, _umatherr, errno) of asin 0x00562D00 for |q| > 1: its only caller 0x0051CAE0 passes dy / sqrt(dx*dx + dy*dy), never above 1 (core/sim/x87_angle.c)
+0x00568540 crt x87 math error handling (_startOneArgErrorHandling, _handle_exc, _umatherr, errno) of asin 0x00562D00 for |q| > 1: its only caller 0x0051CAE0 passes dy / sqrt(dx*dx + dy*dy), never above 1 (core/sim/x87_angle.c)
+0x0056854F crt x87 math error handling (_startOneArgErrorHandling, _handle_exc, _umatherr, errno) of asin 0x00562D00 for |q| > 1: its only caller 0x0051CAE0 passes dy / sqrt(dx*dx + dy*dy), never above 1 (core/sim/x87_angle.c)
+0x00568572 crt x87 math error handling (_startOneArgErrorHandling, _handle_exc, _umatherr, errno) of asin 0x00562D00 for |q| > 1: its only caller 0x0051CAE0 passes dy / sqrt(dx*dx + dy*dy), never above 1 (core/sim/x87_angle.c)
+0x005685E0 platform the log file's write and time stamp (0x004CE860 _commit, 0x004CE8E0 time / localtime / asctime, tzset with getenv("TZ") and the environment helpers) under platform_log 0x004CE6E0 (core/sim/platform.c)
+0x005686F4 crt C++ terminate / unhandled-exception filter / raise and signal lookup: only on an uncaught exception or abort
+0x0056870B crt C++ terminate / unhandled-exception filter / raise and signal lookup: only on an uncaught exception or abort
+0x005687A7 crt C++ terminate / unhandled-exception filter / raise and signal lookup: only on an uncaught exception or abort
+0x005687BF crt CRT _cinit C initialisers: _fpmath (float printf hooks), _controlfp(0x10000, 0x30000) x87 at 53 bits, _ms_p5_test_fdiv: core needs none (integer simulation; x87 emulation at 53 bits in core/sim/x87_float.h)
+0x005687F4 crt CRT _cinit C initialisers: _fpmath (float printf hooks), _controlfp(0x10000, 0x30000) x87 at 53 bits, _ms_p5_test_fdiv: core needs none (integer simulation; x87 emulation at 53 bits in core/sim/x87_float.h)
+0x0056880A crt CRT _cinit C initialisers: _fpmath (float printf hooks), _controlfp(0x10000, 0x30000) x87 at 53 bits, _ms_p5_test_fdiv: core needs none (integer simulation; x87 emulation at 53 bits in core/sim/x87_float.h)
+0x0056889C crt CRT _cinit C initialisers: _fpmath (float printf hooks), _controlfp(0x10000, 0x30000) x87 at 53 bits, _ms_p5_test_fdiv: core needs none (integer simulation; x87 emulation at 53 bits in core/sim/x87_float.h)
+0x00568925 crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x0056896E crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x005689C4 crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00568A50 crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00568A6B crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00568A77 crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00568A92 crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00568B1F crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00568C8B crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00568CA1 crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00568CB7 crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00568CE4 crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00568D11 crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00568D88 crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00568DEC crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00568EA2 crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x00568EC2 crt lowio internals under the ported _open / _close / _filelength / _fileno callers (_sopen, _alloc_osfhnd, _set_osfhnd, _free_osfhnd, _get_osfhandle, _chsize, _lseek): files are platform_file_* requests in the port
+0x0056917B crt stdio internals under the ported fopen / fgets / fread / fwrite / fclose / sprintf (_fsopen, _openfile, _getstream, _freebuf, _flush, _filbuf, _write, _flsbuf, _getbuf, _isatty, memcpy): the port reads and writes files through platform_file_read / platform_file_write; sprintf writes a string directly
+0x005691BF crt stdio internals under the ported fopen / fgets / fread / fwrite / fclose / sprintf (_fsopen, _openfile, _getstream, _freebuf, _flush, _filbuf, _write, _flsbuf, _getbuf, _isatty, memcpy): the port reads and writes files through platform_file_read / platform_file_write; sprintf writes a string directly
+0x005691E5 crt _wctomb under _output (%C / %S): the game has no wide-character formats
+0x00569335 crt locale-aware tolower / _isctype (LCMapString, GetStringType): the locale path needs LC_CTYPE [0x0126648C] != 0, which no code writes (no setlocale); the ported callers (crt_strcmpi, crt_strnicmp, atol) do the "C" locale
+0x0056947E crt locale-aware tolower / _isctype (LCMapString, GetStringType): the locale path needs LC_CTYPE [0x0126648C] != 0, which no code writes (no setlocale); the ported callers (crt_strcmpi, crt_strnicmp, atol) do the "C" locale
+0x005696A2 platform the log file's write and time stamp (0x004CE860 _commit, 0x004CE8E0 time / localtime / asctime, tzset with getenv("TZ") and the environment helpers) under platform_log 0x004CE6E0 (core/sim/platform.c)
+0x0056971F crt x87 math error handling (_startOneArgErrorHandling, _handle_exc, _umatherr, errno) of asin 0x00562D00 for |q| > 1: its only caller 0x0051CAE0 passes dy / sqrt(dx*dx + dy*dy), never above 1 (core/sim/x87_angle.c)
+0x005697EF crt multibyte code page set-up at start-up (_setmbcp, __initmbctable, _ismbblead): the game's text is single-byte; core has no locale
+0x00569800 crt multibyte code page set-up at start-up (_setmbcp, __initmbctable, _ismbblead): the game's text is single-byte; core has no locale
+0x00569831 crt multibyte code page set-up at start-up (_setmbcp, __initmbctable, _ismbblead): the game's text is single-byte; core has no locale
+0x005699CA crt multibyte code page set-up at start-up (_setmbcp, __initmbctable, _ismbblead): the game's text is single-byte; core has no locale
+0x00569A14 crt multibyte code page set-up at start-up (_setmbcp, __initmbctable, _ismbblead): the game's text is single-byte; core has no locale
+0x00569A47 crt multibyte code page set-up at start-up (_setmbcp, __initmbctable, _ismbblead): the game's text is single-byte; core has no locale
+0x00569A70 crt multibyte code page set-up at start-up (_setmbcp, __initmbctable, _ismbblead): the game's text is single-byte; core has no locale
+0x00569BF5 crt multibyte code page set-up at start-up (_setmbcp, __initmbctable, _ismbblead): the game's text is single-byte; core has no locale
+0x00569C11 crt CRT start-up and exit (entry, _heap_init, _ioinit, _setargv, _setenvp, _wincmdln, _cinit / _initterm, exit, _XcptFilter, _amsg_exit / runtime error banner and message box): the port starts in platform/main.c and core/boot game_boot (the static constructors through boot_ctor)
+0x00569C9A crt C++ terminate / unhandled-exception filter / raise and signal lookup: only on an uncaught exception or abort
+0x00569DC7 crt C++ terminate / unhandled-exception filter / raise and signal lookup: only on an uncaught exception or abort
+0x00569E0C crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00569E2D crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00569E8B crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00569EB9 crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00569EE6 crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x00569FAD crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x0056A47E crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x0056A711 crt lowio internals under the ported _open / _close / _filelength / _fileno callers (_sopen, _alloc_osfhnd, _set_osfhnd, _free_osfhnd, _get_osfhandle, _chsize, _lseek): files are platform_file_* requests in the port
+0x0056A857 platform the log file's write and time stamp (0x004CE860 _commit, 0x004CE8E0 time / localtime / asctime, tzset with getenv("TZ") and the environment helpers) under platform_log 0x004CE6E0 (core/sim/platform.c)
+0x0056A896 platform the log file's write and time stamp (0x004CE860 _commit, 0x004CE8E0 time / localtime / asctime, tzset with getenv("TZ") and the environment helpers) under platform_log 0x004CE6E0 (core/sim/platform.c)
+0x0056A904 crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x0056AB24 crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x0056ABA0 crt lowio internals under the ported _open / _close / _filelength / _fileno callers (_sopen, _alloc_osfhnd, _set_osfhnd, _free_osfhnd, _get_osfhandle, _chsize, _lseek): files are platform_file_* requests in the port
+0x0056AC16 platform the log file's write and time stamp (0x004CE860 _commit, 0x004CE8E0 time / localtime / asctime, tzset with getenv("TZ") and the environment helpers) under platform_log 0x004CE6E0 (core/sim/platform.c)
+0x0056AE40 crt float <-> text conversion of printf / scanf (_cfltcvt, _fassign, _cftoe/f/g, _fltout, $I10_OUTPUT, __strgtold12): the binary's data holds no %e / %f / %g format; the ported sprintf handles the integer ones
+0x0056AE93 crt locale-aware tolower / _isctype (LCMapString, GetStringType): the locale path needs LC_CTYPE [0x0126648C] != 0, which no code writes (no setlocale); the ported callers (crt_strcmpi, crt_strnicmp, atol) do the "C" locale
+0x0056AEBE platform the log file's write and time stamp (0x004CE860 _commit, 0x004CE8E0 time / localtime / asctime, tzset with getenv("TZ") and the environment helpers) under platform_log 0x004CE6E0 (core/sim/platform.c)
+0x0056B045 platform the log file's write and time stamp (0x004CE860 _commit, 0x004CE8E0 time / localtime / asctime, tzset with getenv("TZ") and the environment helpers) under platform_log 0x004CE6E0 (core/sim/platform.c)
+0x0056B09D platform the log file's write and time stamp (0x004CE860 _commit, 0x004CE8E0 time / localtime / asctime, tzset with getenv("TZ") and the environment helpers) under platform_log 0x004CE6E0 (core/sim/platform.c)
+0x0056B104 platform the log file's write and time stamp (0x004CE860 _commit, 0x004CE8E0 time / localtime / asctime, tzset with getenv("TZ") and the environment helpers) under platform_log 0x004CE6E0 (core/sim/platform.c)
+0x0056B177 crt strcmp / memset / strcpy / _strdup inside ported functions (sound registry, sound object constructor): done inline in their ports (core/boot/sound.c strcmp_at, ctors.c memset); _strdup only for a CD path (no CD)
+0x0056B1B6 crt lowio internals under the ported _open / _close / _filelength / _fileno callers (_sopen, _alloc_osfhnd, _set_osfhnd, _free_osfhnd, _get_osfhandle, _chsize, _lseek): files are platform_file_* requests in the port
+0x0056B22E crt lowio internals under the ported _open / _close / _filelength / _fileno callers (_sopen, _alloc_osfhnd, _set_osfhnd, _free_osfhnd, _get_osfhandle, _chsize, _lseek): files are platform_file_* requests in the port
+0x0056B363 platform _getcwd / _getdcwd (GetCurrentDirectory, GetDriveType) and _chdir's mbcs test: the working directory is the platform's (0x004CE2D0 working_directory, 0x0056B2DD _chdir: core/newgame/map_load.c)
+0x00403580 unused only in editor-button table 0x005C8C18 (2 entries), which no instruction names (no reference to 0x005C8C18..0x005C8C47)
+0x00403790 scope callers are editor rect callbacks only (windows 0x15, 0x1C, 0x4B, 0x4E)
+0x00403800 scope callers are editor rect callbacks only (windows 0x15, 0x1C, 0x4B, 0x4E)
+0x00403870 scope callers are rect callbacks of window 0x18 (editor) only
+0x004038E0 scope callers are editor rect callbacks only (windows 0x15, 0x1C, 0x4B, 0x4E)
+0x00407340 scope called only by 0x00407370 (empire editor table 0x005C3268)
+0x00407370 scope rect table 0x005C3268, empire editor window 0x15 (set only when 0x00605A3C = 1: 0x00409FA0)
+0x004074C0 scope rect table 0x005C3268, empire editor window 0x15 (set only when 0x00605A3C = 1: 0x00409FA0)
+0x004074E0 scope editor buttons 0x005C8C60, drawn/clicked only in window 0x15 (empire editor)
+0x00407620 scope called by 0x004D8310 only in window 0x15 (empire editor, present/ui/empire_editor.c)
+0x00407870 scope called by 0x004D8310 only in window 0x15 (empire editor, present/ui/empire_editor.c)
+0x00407A10 gap empire map (window 0x14): left press picks the object under the mouse (0x004D9A47)
+0x004080A0 scope rect table 0x005C3418 of the empire editor (window 0x15, 0x004D9E33)
+0x004080E0 scope rect table 0x005C3418 of the empire editor (window 0x15, 0x004D9E33)
+0x00408190 scope rect table 0x005C3418 of the empire editor (window 0x15, 0x004D9E33)
+0x004081C0 scope rect table 0x005C3418 of the empire editor (window 0x15, 0x004D9E33)
+0x004081F0 scope rect table 0x005C33C0 of the empire editor (window 0x15)
+0x00408290 scope rect table 0x005C3488 of window 0x24 (opened by 0x00408540 from the empire editor)
+0x004082D0 scope rect table 0x005C3DC0 of the empire editor (window 0x15)
+0x00408340 scope rect table 0x005C3DC0 of the empire editor (window 0x15)
+0x004083F0 scope rect table 0x005C3DC0 of the empire editor (window 0x15)
+0x00408440 scope rect table 0x005C3E68 of the empire editor (window 0x15)
+0x004084E0 scope rect table 0x005C3DC0 of the empire editor (window 0x15)
+0x00408540 scope rect table 0x005C3DC0 of the empire editor (window 0x15)
+0x004085B0 scope rect table 0x005C3DC0 of the empire editor (window 0x15)
+0x00408610 scope rect tables 0x005C3EC0 (14 entries) and 0x005C4048 (16 entries; 0x00408920 in entries 8..15) of the empire editor input (window 0x15, 0x004DB24A / 0x004DB271); 0x004C95D0 reads only their rectangles for tooltips
+0x00408840 scope rect tables 0x005C3EC0 (14 entries) and 0x005C4048 (16 entries; 0x00408920 in entries 8..15) of the empire editor input (window 0x15, 0x004DB24A / 0x004DB271); 0x004C95D0 reads only their rectangles for tooltips
+0x00408920 scope rect tables 0x005C3EC0 (14 entries) and 0x005C4048 (16 entries; 0x00408920 in entries 8..15) of the empire editor input (window 0x15, 0x004DB24A / 0x004DB271); 0x004C95D0 reads only their rectangles for tooltips
+0x00408A00 scope rect table 0x005C3E88 of the empire editor (window 0x15)
+0x00408A60 scope rect table 0x005C3E88 of the empire editor (window 0x15)
+0x00408AC0 scope rect table 0x005C5CD0 of window 0x25, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x00408B00 scope rect table 0x005C5CD0 of window 0x25, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x00408B40 scope rect table 0x005C5CD0 of window 0x25, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x00408C30 scope rect table 0x005C5E20 of window 0x19, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x00408C70 scope rect table 0x005C5E20 of window 0x19, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x00408CB0 scope rect table 0x005C5E20 of window 0x19, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x00408CE0 scope rect table 0x005C5EB0 of window 0x1B, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x00408F10 scope rect table 0x005C63D8 of window 0x1C, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x00408F30 scope rect table 0x005C63D8 of window 0x1C, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x00408F60 scope rect table 0x005C63D8 of window 0x1C, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x00408F90 scope rect table 0x005C63D8 of window 0x1C, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x00408FD0 scope rect table 0x005C63D8 of window 0x1C, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x00408FF0 scope rect table 0x005C63D8 of window 0x1C, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x00409020 scope rect table 0x005C63D8 of window 0x1C, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x00409050 scope rect table 0x005C63D8 of window 0x1C, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x00409080 scope rect table 0x005C63D8 of window 0x1C, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x004090B0 scope rect table 0x005C63D8 of window 0x1C, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x004090E0 scope rect table 0x005C63D8 of window 0x1C, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x00409100 scope rect table 0x005C63D8 of window 0x1C, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x00409150 scope rect tables 0x005C6DF0/0x005C6E7C (0x00537260, window 0x46) and 0x005C7100 (0x005374A0, window 0x4B): both opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x004091B0 scope rect table 0x005C6CD8 of window 0x46, opened only by 0x00409140 from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x00409200 scope rect table 0x005C5CD0 of window 0x25, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x00409240 scope rect table 0x005C5CD0 of window 0x25, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x004092B0 scope button 0x005C5E78 of the list window 0x0F/0x48, shown only when 0x00605A58 is set: written by 0x00409240 (window 0x25, editor) and cleared elsewhere
+0x00409300 scope button 0x005C5E78 of the list window 0x0F/0x48, shown only when 0x00605A58 is set: written by 0x00409240 (window 0x25, editor) and cleared elsewhere
+0x00409350 scope rect table 0x005C5CD0 of window 0x25, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x004093A0 scope rect table 0x005C5CD0 of window 0x25, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x004093D0 scope rect table 0x005C5CD0 of window 0x25, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x004093E0 scope rect table 0x005C3368 of window 0x16 (opened by 0x004093D0 from window 0x25, editor)
+0x00409410 scope rect table 0x005C3368 of window 0x16 (opened by 0x004093D0 from window 0x25, editor)
+0x00409490 gap empire map: the trade city open-route button 0x005C3DA0
+0x00409510 gap empire map button 0x005C7CE8 (help)
+0x00409520 gap empire map button 0x005C7D10 and right release (thunk to 0x0040A090)
+0x00409AC0 scope editor sidebar buttons 0x005C7760 (used only when 0x00605A3C = 1: 0x004D8746, 0x004D8858, 0x004D8B7A, 0x0051EBFA)
+0x00409CF0 scope editor sidebar buttons 0x005C7760 (used only when 0x00605A3C = 1: 0x004D8746, 0x004D8858, 0x004D8B7A, 0x0051EBFA)
+0x00409DA0 gap overlays menu (window 8) group callback 0x005C2BF0
+0x00409E00 gap overlays menu (window 8) item callback 0x005C2D08
+0x0040A090 gap empire map close (0x00409520, 0x0040B590)
+0x0040C670 unused only in editor-button table 0x005C5B18 (with 0x0040C630), which no instruction names
+0x0040C6B0 gap storage info (window 9) arrows 0x005C5B48 / 0x005C5B60 and arrow keys (core/frame/wndproc.c)
+0x0040C760 gap trade advisor arrows 0x005C5B78 / 0x005C5B90 and arrow keys
+0x0040C810 gap window 0x51 rect 0x005C47F0: back to the name window 0x36
+0x0040C830 gap window 0x51 rect 0x005C4358: a name picked from the list
+0x0040C8A0 scope rect table 0x005C63D8 of window 0x1C, opened only from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x0040C8B0 scope callers 0x0040C920 0x00442A40 0x005374A0: editor only
+0x0040C920 scope rect table 0x005C6F08 of window 0x4B (opened by 0x0040C8A0 from window 0x1C, editor)
+0x0040CB40 scope callers 0x0040C920 0x005374A0: window 0x4B, editor only
+0x0040CBE0 scope tables 0x005C7100 / 0x005C6F5C used only by 0x005374A0 (window 0x4B, editor)
+0x0040CC80 scope tables 0x005C7100 / 0x005C6F5C used only by 0x005374A0 (window 0x4B, editor)
+0x0040CE60 scope rect table 0x005C3348 of the empire editor (window 0x15); opens 0x4E
+0x0040CE70 scope rect table 0x005C3648 of window 0x4E (opened only by 0x0040CE60, empire editor)
+0x0040CEF0 scope rect table 0x005C3D80 used only by 0x00537CF0 (window 0x4E, empire editor)
+0x004138D0 scope called by 0x004D75D0 window 1 only when 0x00605A3C = 1 and 0x00605A38 != 0 (editor)
+0x00418350 gap campaign map window 0x35 button 0x005797B0
+0x0041D3A0 gap cheat window 0x55 OK button 0x0057C560
+0x0041E0E0 gap mission menu window 0x3D rect 0x0057CD50
+0x0041F460 gap mission menu window 0x3D arrows 0x0057CC30 / 0x0057CCC0 and arrow keys
+0x00420500 gap monument info (present/ui/info/monument.c) query
+0x00420550 gap monument info query
+0x004205B0 gap monument info query
+0x00420990 gap monument info query
+0x00420CC0 gap monument info query
+0x00420FC0 gap monument info query
+0x004212A0 gap monument info query
+0x00426590 gap yes / no popup (window 0x3F) yes button 0x005C8168
+0x004265B0 gap yes / no popup (window 0x3F) no button 0x005C8168
+0x00426B20 scope called only by 0x00532FE0 (window 0x1B, editor)
+0x00430E60 gap figure info thumbnail (present/ui/info/figure.c 0x004FA330)
+0x00442500 scope called by 0x00407370 and the empire editor input of 0x004D8310 (window 0x15)
+0x00442540 scope called only by 0x00407370 (empire editor table 0x005C3268)
+0x00442870 scope callers 0x00408CE0 0x0040C8B0 0x0040CC80 0x00442A40 0x00532FE0 0x005374A0: editor windows only
+0x00442A40 scope called by 0x004D8310 only in window 0x15 (empire editor); sets window 0x47
+0x00442EF0 scope called by 0x004D8310 only in window 0x15 (empire editor, present/ui/empire_editor.c)
+0x00442F80 scope called by 0x004D8310 only in window 0x15 (empire editor, present/ui/empire_editor.c)
+0x004437B0 scope called only by 0x00443820 (editor)
+0x00443820 scope called only by 0x00442870 (editor)
+0x00443A80 scope callers 0x0040CE70, 0x00442870, 0x00537CF0: empire editor only
+0x00443AD0 scope callers 0x0040CE70, 0x00442870, 0x00537CF0: empire editor only
+0x00444270 scope called by 0x004035F0 only when 0x00605968 = 2 (set only by editor callbacks 0x00403790..0x004038E0) and by 0x004074C0 (empire editor)
+0x004444E0 scope called only by 0x00444270 (editor)
+0x004483F0 scope called by 0x004D8310 only in window 0x27 (editor)
+0x004484B0 scope called only by 0x00448640 (window 0x27, editor)
+0x00448640 scope per-frame draw of window 0x27, opened only by 0x00409130 from the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1)
+0x00448CF0 scope callers 0x0044AAF0 and 0x004D8310 window 0x18: editor only
+0x00448F20 scope called only by 0x00448640 (window 0x27, editor)
+0x00448F60 scope called only by 0x00448640 (window 0x27, editor)
+0x004493B0 scope called only from window 0x18 / 0x27 code (0x0044AAF0, 0x00448F60 and their rect callbacks): editor
+0x004493F0 scope called only from window 0x18 / 0x27 code (0x0044AAF0, 0x00448F60 and their rect callbacks): editor
+0x004495C0 scope called only from window 0x18 / 0x27 code (0x0044AAF0, 0x00448F60 and their rect callbacks): editor
+0x004495D0 scope called only from window 0x18 / 0x27 code (0x0044AAF0, 0x00448F60 and their rect callbacks): editor
+0x00449620 scope called only from window 0x18 / 0x27 code (0x0044AAF0, 0x00448F60 and their rect callbacks): editor
+0x00449630 scope called only from window 0x18 / 0x27 code (0x0044AAF0, 0x00448F60 and their rect callbacks): editor
+0x00449640 scope called only from window 0x18 / 0x27 code (0x0044AAF0, 0x00448F60 and their rect callbacks): editor
+0x00449660 scope called only from window 0x18 / 0x27 code (0x0044AAF0, 0x00448F60 and their rect callbacks): editor
+0x00449690 scope called only from window 0x18 / 0x27 code (0x0044AAF0, 0x00448F60 and their rect callbacks): editor
+0x004498F0 scope rect tables 0x005D9E20..0x005DA14C of window 0x18 (0x0044AAF0 and 0x004D8310 window 0x18): editor
+0x00449B00 scope called only from window 0x18 / 0x27 code (0x0044AAF0, 0x00448F60 and their rect callbacks): editor
+0x00449B30 scope called only from window 0x18 / 0x27 code (0x0044AAF0, 0x00448F60 and their rect callbacks): editor
+0x00449B60 scope rect tables 0x005D9E20..0x005DA14C of window 0x18 (0x0044AAF0 and 0x004D8310 window 0x18): editor
+0x00449C20 scope rect tables 0x005D9E20..0x005DA14C of window 0x18 (0x0044AAF0 and 0x004D8310 window 0x18): editor
+0x00449DE0 scope rect tables 0x005D9E20..0x005DA14C of window 0x18 (0x0044AAF0 and 0x004D8310 window 0x18): editor
+0x00449F90 scope rect tables 0x005D9E20..0x005DA14C of window 0x18 (0x0044AAF0 and 0x004D8310 window 0x18): editor
+0x0044A140 scope rect tables 0x005D9E20..0x005DA14C of window 0x18 (0x0044AAF0 and 0x004D8310 window 0x18): editor
+0x0044A2F0 scope rect tables 0x005D9E20..0x005DA14C of window 0x18 (0x0044AAF0 and 0x004D8310 window 0x18): editor
+0x0044A3D0 scope rect tables 0x005D9E20..0x005DA14C of window 0x18 (0x0044AAF0 and 0x004D8310 window 0x18): editor
+0x0044A470 scope rect tables 0x005D9E20..0x005DA14C of window 0x18 (0x0044AAF0 and 0x004D8310 window 0x18): editor
+0x0044A4F0 scope rect tables 0x005D9E20..0x005DA14C of window 0x18 (0x0044AAF0 and 0x004D8310 window 0x18): editor
+0x0044A560 scope rect tables 0x005D9E20..0x005DA14C of window 0x18 (0x0044AAF0 and 0x004D8310 window 0x18): editor
+0x0044A5E0 scope rect tables 0x005D9E20..0x005DA14C of window 0x18 (0x0044AAF0 and 0x004D8310 window 0x18): editor
+0x0044A670 scope rect tables 0x005D9E20..0x005DA14C of window 0x18 (0x0044AAF0 and 0x004D8310 window 0x18): editor
+0x0044A6F0 scope rect tables 0x005D9E20..0x005DA14C of window 0x18 (0x0044AAF0 and 0x004D8310 window 0x18): editor
+0x0044A790 scope rect tables 0x005D9E20..0x005DA14C of window 0x18 (0x0044AAF0 and 0x004D8310 window 0x18): editor
+0x0044A830 scope rect tables 0x005D9E20..0x005DA14C of window 0x18 (0x0044AAF0 and 0x004D8310 window 0x18): editor
+0x0044A8D0 scope rect tables 0x005D9E20..0x005DA14C of window 0x18 (0x0044AAF0 and 0x004D8310 window 0x18): editor
+0x0044A940 scope called only from window 0x18 / 0x27 code (0x0044AAF0, 0x00448F60 and their rect callbacks): editor
+0x0044AA30 scope rect tables 0x005D9E20..0x005DA14C of window 0x18 (0x0044AAF0 and 0x004D8310 window 0x18): editor
+0x0044AAF0 scope per-frame draw of window 0x18, opened only by 0x00448560 (rect table 0x005D9A90 of window 0x27, editor)
+0x0044BD00 scope called only by 0x00533E70 (editor sidebar)
+0x0044D500 gap callee of 0x00524840 (advisor page 4)
+0x00489240 gap farm info (present/ui/info/service2.c) query
+0x00495B60 gap figure phrase (present/ui/info/phrase.c) query
+0x004B3320 unused called only by 0x00536120 when the debug switch 0x0078D7D4 = 1; its only write is 0 (0x00540B71)
+0x004B80B0 gap callee of 0x004E2380 / 0x004E23E0 (message go-to)
+0x004C5400 gap window 0x53 (main menu entry 0x00417FF0) scroll buttons 0x005E01D0
+0x004C7E90 gap message window (5) scroll buttons 0x005C7DF8 / 0x005C7E20
+0x004C7EE0 gap message window (5) back button 0x005C7DA8
+0x004CE920 scope called only by 0x004444E0 (editor)
+0x004CEDE0 scope callers 0x004DE160 (editor) and 0x004DE2C0 (unused)
+0x004CEE00 scope callers 0x004DE160 (editor) and 0x004DE2C0 (unused)
+0x004CFF20 platform GlobalMemoryStatus for the video log line (callers 0x00538E30, 0x00538FA0, 0x00539170: the video player)
+0x004D5520 scope the map save: 0x004099B0 window 0x10, opened only from the editor menu items 0x005C9164 / 0x005C9174 (menu 0x005C9230, 0x00605A3C = 1)
+0x004DD930 scope called by 0x004D8310 only in window 0x15 (empire editor, present/ui/empire_editor.c)
+0x004DDF70 gap figure info thumbnail (0x004FA330)
+0x004DE160 scope called by 0x004035F0 only when 0x00605968 = 1 (set only by editor callbacks 0x00403790..0x004038E0)
+0x004DE200 scope called only by 0x004DE160 (editor)
+0x004DE2C0 unused called only by 0x00403580 (unused)
+0x004E2160 gap message list (window 0x11) scroll buttons 0x005C8118 / 0x005C8140
+0x004E21B0 gap message list (window 0x11) help button 0x005C7E98
+0x004E2360 gap message window (5) button 0x005C7E48
+0x004E2380 gap message window (5) go-to button 0x005C7E70
+0x004E23E0 gap sidebar next-message button 0x00406030 (ported) calls it
+0x004E60F0 gap monument info query
+0x004E6150 gap monument info query
+0x004EA830 gap mission end window 0x43 second button 0x005C6648 (thunk to 0x00418510)
+0x004F7770 gap advisor page 5 per frame
+0x005027B0 gap storage info (window 9, types 0x48 / 0xC1) per frame
+0x00516210 gap festival dialog from the festival square info (window 0x52, 0x0040AA50) per frame
+0x00521060 gap advisors window 7 per frame (every page)
+0x005219C0 gap window 0x2A per frame (advisor page 1 dialog)
+0x00522A60 gap advisor page 2 per frame
+0x00523BB0 gap advisor page 3 per frame
+0x00524840 gap advisor page 4 per frame
+0x005253C0 gap window 0x2D per frame (advisor page 4 dialog, 0x0040AD00)
+0x00525720 gap window 0x2E per frame (advisor page 4 dialog, 0x0040AD90)
+0x005271F0 gap advisor page 7 per frame
+0x0052B6D0 gap advisor page 0x0E per frame
+0x00530780 scope per-frame draw of window 0x19 (editor, the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1))
+0x00531480 gap message options window 0x56 per frame (0x00402BE0, the game menu)
+0x00532920 scope per-frame draw of window 0x25 (editor, the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1))
+0x00532FE0 scope per-frame draw of window 0x1B (editor, the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1))
+0x00533470 scope per-frame draw of window 0x1C (editor, the editor menu 0x005763D8 (used by 0x004D8310 only under 0x00605A3C = 1, @0x004D86E1))
+0x00533E70 scope editor sidebar panel: 0x004D75D0 window 1 and 0x0051E990, both only when 0x00605A3C = 1
+0x00534320 scope per-frame draw of window 0x24 (empire editor sub-dialog)
+0x005344C0 scope called only by 0x00442A40 (empire editor)
+0x005374A0 scope per-frame draw of window 0x4B (editor sub-dialog of 0x1C)
+0x00537A50 gap window 0x4C per frame (0x0040AE00)
+0x00537CF0 scope per-frame draw of window 0x4E (empire editor sub-dialog)
+0x00538920 platform button of the modal message box 0x00538CD0 (window 0x54, its own loop), replaced by platform_message_box (core/sim/platform.c)
+0x00538FA0 platform Smacker per-frame step of window 0x13 (SmackWait/SmackToBuffer/DirectDraw): replaced by sim_platform.video_play (0x00538E30 platform_video_play), window 0x13 opens only when it plays
+0x00539220 platform end of a Smacker video (window restored): inlined in platform_video_close (core/sim/platform.c, @bin 0x00539220); else called only by 0x00538FA0 (platform)
+0x00547A60 gap overlay change: callers 0x00409DA0, 0x00409E00 and ports 0x004168E0, 0x0046F200
+0x0055D290 unused reached only through 0x0055D6D0 (debug animation objects 0x00EA136C / 0x00EA1370, never set)
+0x0055D2E0 unused reached only through 0x0055D6D0 (debug animation objects 0x00EA136C / 0x00EA1370, never set)
+0x0055D300 unused reached only through 0x0055D6D0 (debug animation objects 0x00EA136C / 0x00EA1370, never set)
+0x0055D330 unused reached only through 0x0055D6D0 (debug animation objects 0x00EA136C / 0x00EA1370, never set)
+0x0055D460 unused reached only through 0x0055D6D0 (debug animation objects 0x00EA136C / 0x00EA1370, never set)
+0x0055D480 unused reached only through 0x0055D6D0 (debug animation objects 0x00EA136C / 0x00EA1370, never set)
+0x0055D4C0 unused reached only through 0x0055D6D0 (debug animation objects 0x00EA136C / 0x00EA1370, never set)
+0x0055D4F0 unused reached only through 0x0055D6D0 (debug animation objects 0x00EA136C / 0x00EA1370, never set)
+0x0055D590 unused reached only through 0x0055D6D0 (debug animation objects 0x00EA136C / 0x00EA1370, never set)
+0x0055D630 unused reached only through 0x0055D6D0 (debug animation objects 0x00EA136C / 0x00EA1370, never set)
+0x0055D6D0 unused thiscall on the objects 0x00EA136C / 0x00EA1370 from 0x004E61F0: no instruction writes them but 0x004E63B0 (sets 0)
+0x0055D750 unused reached only through 0x0055D6D0 (debug animation objects 0x00EA136C / 0x00EA1370, never set)
+0x0055D760 unused reached only through 0x0055D6D0 (debug animation objects 0x00EA136C / 0x00EA1370, never set)
+0x0055D780 unused reached only through 0x0055D6D0 (debug animation objects 0x00EA136C / 0x00EA1370, never set)
+0x0055D7B0 unused reached only through 0x0055D6D0 (debug animation objects 0x00EA136C / 0x00EA1370, never set)
+0x0055D810 unused reached only through 0x0055D6D0 (debug animation objects 0x00EA136C / 0x00EA1370, never set)
+0x0055D840 unused reached only through 0x0055D6D0 (debug animation objects 0x00EA136C / 0x00EA1370, never set)
+0x00401480 gap monument E6 clear (thiscall 0x006DE650): GAME_CALLT from day_state.c (0x004525F0 type 0xE6) and undo.c (0x00485230)
+0x00401EB0 unused vtable 0x0056F438 slot +0x2C (class E6); no call through [vtable+0x2C] on an E6 object: E6's +0x28 (0x00401F30) calls 0x00401ED0 directly; the only [reg+0x2C] calls are E1/E3/E4 methods on their own this (0x0040F070, 0x004178E0, 0x004E6E10) and 0x0055CD50
+0x004021B0 unused vtable slot +0x34 of every monument class (0x0056F438 ... 0x00570268); no instruction calls [reg+0x34] on a monument object (only 0x004EC0F0's [esp+0x34], a local) and nothing names 0x004021B0
+0x004023A0 gap File menu item 1 (menu 0x005C91F0 -> items 0x005C8F30, callback +4): back to the main menu; called by the menu input 0x00426030
+0x00402B90 gap File menu item 6 (items 0x005C8F30): PostMessage(WM_KEYDOWN, VK_ESCAPE) -> platform_post_message
+0x00402BC0 gap Options menu item 1 (items 0x005C8F90): window 10
+0x00402BE0 gap Options menu item 4 (items 0x005C8F90): window 0x56
+0x00402E30 gap Options menu item 7 (items 0x005C8F90): window 0x45
+0x00402EE0 gap Options menu item 2 (items 0x005C8F90): sound options window 0x0B
+0x004032C0 gap Options menu item 3 (items 0x005C8F90): speed options window 0x0C
+0x004033F0 gap Help menu item 1 (items 0x005C9010; also editor 0x005C9050): help 0x004C5BF0(10)
+0x00403400 gap Help menu item 4 (items 0x005C9010): help 0x004C5BF0(0)
+0x00403410 gap Help menu item 2 (items 0x005C9010; also editor 0x005C9050): mouse help toggle 0x00E38EAC
+0x00403490 gap Help menu item 3 (items 0x005C9010): warnings toggle 0x00E38EC1
+0x004034D0 scope editor Help menu (items 0x005C9050, menu bar 0x005C9230 drawn and read only when 0x00605A3C = 1)
+0x00403500 gap Options menu item 8 (items 0x005C8F90): toggle 0x00E38EEC
+0x00403540 gap Options menu item 9 (items 0x005C8F90): toggle 0x00E38EC3
+0x00403C00 gap the list popup's set-up (windows 0xF / 0x48), called by button callbacks of game windows (0x0040C920, 0x0040CBE0 on 0x005C6CC0, 0x004498F0.. on 0x005D9E28) and editor ones
+0x00406070 scope editor menu (items 0x005C9190 of the editor menu bar 0x005C9230, only when 0x00605A3C = 1)
+0x00406090 scope editor menu (items 0x005C9190 of the editor menu bar 0x005C9230)
+0x004060E0 scope editor menu (items 0x005C9190 of the editor menu bar 0x005C9230)
+0x00406100 scope editor menu (items 0x005C9190 of the editor menu bar 0x005C9230)
+0x00406140 scope editor menu (items 0x005C9190 of the editor menu bar 0x005C9230)
+0x00406170 scope editor menu (items 0x005C9190 of the editor menu bar 0x005C9230)
+0x00408B80 scope editor rectangle buttons 0x005763D8 (0x004D8310 reads them only under 0x00605A3C = 1 and 0x00605A38 > 0)
+0x00408BC0 scope editor rectangle buttons 0x005763D8
+0x00408C00 scope editor rectangle buttons 0x005763D8
+0x00408C20 scope editor rectangle buttons 0x005763D8
+0x00408CD0 scope editor rectangle buttons 0x005763D8
+0x00408F00 scope editor rectangle buttons 0x005763D8
+0x00409130 scope editor rectangle buttons 0x005763D8
+0x00409140 scope editor rectangle buttons 0x005763D8
+0x00409390 scope editor rectangle buttons 0x005763D8
+0x00409430 scope editor buttons 0x005C8EB8 (0x004D75D0 / 0x004D8310 under 0x00605A3C = 1)
+0x00409540 scope editor menu (items 0x005C9150 of the editor menu bar 0x005C9230)
+0x00409580 scope editor menu (items 0x005C9150 of the editor menu bar 0x005C9230)
+0x004095C0 scope only called by 0x00409830 (editor menu item)
+0x00409620 scope only called by 0x00409650 / 0x00409760 (editor)
+0x00409650 scope only called by 0x00409830 (editor menu item)
+0x004096E0 scope only called by 0x00409830 (editor menu item)
+0x00409760 scope only called by 0x00409830 (editor menu item)
+0x004097C0 scope only called by 0x00409830 (editor menu item)
+0x00409820 scope called by 0x00409830 (editor menu) and 0x00407370 (empire editor buttons 0x005C3268, present/ui/empire_editor.c)
+0x00409830 scope editor menu (items 0x005C9150 of the editor menu bar 0x005C9230)
+0x0040C7D0 gap Options menu item 6 (items 0x005C8F90): toggle 0x00E39088
+0x0040D890 gap monument E1 clear (thiscall 0x006FD5D8): GAME_CALLT from day_state.c (0x004525F0) and undo.c (0x00485230)
+0x00413420 platform Bink end (0x00413580's modal player): platform_video_bink; window 0x4A never shows in the port
+0x00413470 platform Bink frame copy to the primary surface (window 0x4A, inside the modal player): platform_video_bink
+0x00413690 platform Bink modal player: platform_video_bink (video_modal)
+0x004143C0 platform WinMain's message loop (PeekMessage / frame): platform/main.c runs frame_run
+0x00414730 scope only called by 0x00408BC0 (editor rectangle button)
+0x00416BC0 unused Bink in-frame video close: called only when 0x006FDC40 != 0 (0x004D6CB7), and no instruction writes a non-zero value there (WinMain's zeroing 0x00413F09 and 0x00416BC0 itself only)
+0x00416FB0 gap monument E3 clear (thiscall 0x006FD368): GAME_CALLT from day_state.c and undo.c
+0x004183D0 gap city lost: whether the replay is possible (0x005409D0 map file, or fopen of the campaign's autosave_replay.sav): GAME_CALL from day_goals.c (0x004EA920)
+0x0041C6F0 unused scalar deleting destructor (vtable 0x0056F548) of the file-list class: its objects are locals (0x004CB6A0, 0x00516580) and a static (0x00402370) destroyed by direct calls to 0x0041C710; no delete through the vtable
+0x0041E090 unused thunk of the file-list destructor, only called by 0x0041E0C0
+0x0041E0C0 unused scalar deleting destructor (vtable 0x0056F54C); its only object is the static built by 0x0041E060 (ctor list), never deleted through the vtable
+0x004223F0 gap pyramid / tomb stone-laying step, under 0x00547E20 (called from actions_d.c / actions_d3.c, figure actions 0x004A8800, 0x004B0760)
+0x004233F0 gap stone placement for monument kind 1/0x1D (0x00547E20 switch)
+0x00423530 gap stone placement for kind 2 (0x00547E20 switch)
+0x00423670 gap stone placement for kind 3 (0x00547E20 switch)
+0x004237B0 gap stone placement for kind 4 (0x00547E20 switch)
+0x004238F0 gap stone placement for kind 5 (0x00547E20 switch)
+0x00423A30 gap stone placement (0x00547E20 switch)
+0x00423B70 gap stone placement (0x00547E20 switch)
+0x00423CB0 gap stone placement for kind 0 (0x00547E20 switch)
+0x00423DF0 gap stone placement for kind 6 (0x00547E20 switch)
+0x00423F30 gap stone placement for kind 7 (0x00547E20 switch)
+0x00424070 gap stone placement for kind 8 (0x00547E20 switch)
+0x004241B0 gap stone placement for kind 9 (0x00547E20 switch)
+0x004242F0 gap stone placement for kind 10 (0x00547E20 switch)
+0x00424430 gap stone placement (0x00547E20 switch)
+0x00424570 gap stone placement (0x00547E20 switch)
+0x004246B0 gap stone placement (0x00547E20 switch)
+0x004247F0 gap stone placement (0x00547E20 switch)
+0x00424930 gap stone placement (0x00547E20 switch)
+0x00424A70 gap stone placement (0x00547E20 switch)
+0x00424BB0 gap stone placement (0x00547E20 switch)
+0x00424CF0 gap stone placement (0x00547E20 switch)
+0x00424E30 gap stone placement (0x00547E20 switch)
+0x00424F70 gap stone placement (0x00547E20 switch)
+0x004250B0 gap stone placement (0x00547E20 switch)
+0x004251F0 gap stone placement (0x00547E20 switch)
+0x004265D0 platform CD search (file sizes on each drive): the boot's STEP_CD keeps 'D' (core/boot/boot.c; the GOG build ignores the result, dis 0x00413F9C)
+0x00426810 platform CD search (GetLogicalDrives / GetDriveType): boot STEP_CD
+0x004268C0 platform CD search: boot STEP_CD (core/boot/boot.c)
+0x00427510 platform DirectDraw error code -> index (0x00426FF0, 0x00413470, 0x00538FA0): the display set-up is platform_set_display
+0x00443710 scope only called by 0x00409820 (editor)
+0x00443EA0 scope empire file read for the editor: only call 0x00540AB6 under 0x00605A3C = 1 (core/newgame/reset.c)
+0x00448960 gap event record constructor (thiscall): done inline by the boot ctors (core/boot/ctors.c elem_448960), registered
+0x00458270 gap GAME_CALL from day_road.c (0x00457AF0)
+0x00459EC0 gap GAME_CALL from actions_b2.c, actions_b7.c, helpers_xa.c
+0x0045AAC0 gap GAME_CALL from events_handlers.c (0x0044E910 money request)
+0x00468B20 gap GAME_CALL from day_state.c (0x00468B70)
+0x0046FDA0 scope only called by 0x004DE430 (editor reset branch)
+0x00477A40 gap callee of 0x00401480 / 0x004E6660 (monument clears)
+0x00480B80 gap GAME_CALL from actions_b2.c (0x004937A0)
+0x00480E90 gap GAME_CALL from actions_b4.c (0x0049B610)
+0x00481540 scope under 0x00488E90 (editor map save 0x004D5520 and editor 0x00478440)
+0x00481690 scope under 0x00488E90 (editor)
+0x00488E90 scope callers 0x00478440 (editor commands) and 0x00489030 (editor)
+0x00489030 scope callers 0x00406090 (editor menu) and 0x004D5520 (map save, window 0x10 of the editor: present/ui/frontend/files.c)
+0x004A43A0 gap GAME_CALL from figure.c (0x004B4980)
+0x004B1700 gap GAME_CALL from actions_a.c (0x0048E9E0)
+0x004B28A0 gap GAME_CALL from actions_b3.c (0x00497450)
+0x004B46B0 gap GAME_CALL from actions_d.c (0x004ABE40, 0x004AC450)
+0x004B56D0 gap GAME_CALL from actions_b3.c (0x0049A880, 0x0049AC00)
+0x004B7510 gap GAME_CALL from helpers_xa.c (0x00469140)
+0x004BB090 scope both calls under 0x00605A3C = 1 (core/newgame/reset.c 0x00540A10, core/newgame/setup.c 0x004DE600)
+0x004C03D0 gap GAME_CALL from day_state.c (0x00468B70) and helpers_xa.c (0x00469140)
+0x004CE450 platform file existence (_open / _close): under the message box 0x00538E30, a platform request
+0x004CE860 platform status.txt log writer: platform_log (0x004CE6E0)
+0x004CE8E0 platform time stamp of the log (CRT time / ctime): platform_log
+0x004CE980 scope only called by 0x00443EA0 (editor)
+0x004CE9E0 platform "insert the CD" message after a missing file: platform_file_read / platform_pixels_load (the CD retry is the platform's)
+0x004CEA30 platform CD-drive retry of a missing file: platform_pixels_load (0x0053F660)
+0x004D05F0 gap fade of the screen shake (thiscall 0x006DE518): GAME_CALLT from frame.c (0x004D0280)
+0x004D0630 gap clamp, callee of 0x004D05F0 / 0x004D0650
+0x004D0650 gap fade step (back-buffer pixels and the random 0x00D3B380/84): GAME_CALLT from frame.c (0x004D0280)
+0x004D0A90 unused converter list 0x005E0910 (versions 0x66..0x6F): nothing in the code or data refers to 0x005E0910 (the save schema names 0x005E0960 and 0x005E0980 only)
+0x004D0AB0 unused converter list 0x005E0910, unreferenced
+0x004D0C10 unused converter list 0x005E0910, unreferenced
+0x004D0C60 gap save / map converter of chunk 136 events (list 0x005E0960, files of version 115..129): not ported; the loaders refuse such files (SAVE_ERR_CONVERTER, map_load.c state_unported); it builds the new block in a 0x48C4-byte stack object (0x0044BA20) whose bytes not set by the constructor are stack garbage; no bundled map (versions 144..150) or corpus save is that old
+0x004D0D40 gap save converter of chunk 77 messages (list 0x005E0980, versions 115..135): not ported; refused by the loaders; its 0x30-byte record takes bytes +0x2E/+0x2F from uninitialised stack (dis 0x004D0D5C copies 0x2C bytes, 0x004D0DBE writes back 0x30): not reproducible; no bundled file that old
+0x004D0DE0 unused converter list 0x005E0910, unreferenced
+0x004DE430 scope only call 0x00540AA4 under 0x00605A3C = 1 (core/newgame/reset.c)
+0x004E1600 gap message type remap of old saves (version < 0x81), done inline by the loader (core/io/save_load.c 0x004D32A0), registered
+0x004E5120 gap CRect constructor, done inline by the monument constructors (core/boot/monuments.c), registered
+0x004E5140 gap monument part record copy, done inline by core/boot/monuments.c, registered
+0x004E52D0 gap vtable slot +0xC of every monument class (returns 0): called through the vtable by 0x004E5790 (place_misc.c place_monument_exists)
+0x004E6660 gap monument E4 clear (thiscall 0x006DE548): GAME_CALLT from day_state.c and undo.c
+0x004E7300 gap callee of 0x004E70B0 (events_actions.c)
+0x004E7410 gap callee of 0x004E7300
+0x004E75A0 gap callee of 0x004E7300
+0x004EC360 scope only called by 0x00409830 (editor menu)
+0x004ED0D0 gap callee of 0x004ED330
+0x004ED330 gap GAME_CALL from frame.c (0x00405F60, building type 0xB7 being placed)
+0x004F2230 gap GAME_CALL from actions_d.c (0x004A8800)
+0x004F2960 gap GAME_CALL from actions_d.c (0x004A98B0)
+0x004F6690 gap shipwright queue constructor, called by 0x00451A70 (inline in core/boot/ctors.c)
+0x004F66C0 gap callee of 0x004F6A50 (battle boats list)
+0x004F66F0 gap callee of 0x004F6A50 (battle boats list)
+0x004F6790 gap callee of 0x004F6A50 / 0x004F66C0
+0x004F6900 gap called by 0x004F68F0 (actions_c2.c battle_add_boat)
+0x004F6950 gap callee of 0x004A43A0
+0x004F6A50 gap callee of 0x004F6900
+0x00517C20 gap GAME_CALL from day_road.c (0x00457AF0)
+0x00538940 platform the message box's drawing and loop: platform_message_box (0x00538CD0)
+0x00538C80 platform the message box's frame around 0x00538940: platform_message_box (0x00538CD0)
+0x0053DD80 gap graphics slot load by name, done inline by core/boot/graphics.c (0x0053DD10 / 0x0053DD40), registered
+0x00540500 crt destructor of the graphics slots (0xCC3C bytes, 0x00F55BB0), run by the eh vector destructor 0x0053DA90 at exit: frees heap memory, nothing reads it after
+0x00542F40 gap GAME_CALL from day_road.c (0x00457AF0)
+0x00545720 gap monument E5 clear (thiscall 0x006F9320): GAME_CALLT from day_state.c and undo.c
+0x00545BC0 gap callee of 0x004223F0
+0x00546660 gap tomb clear tiles, callee of 0x00545720 / 0x0054F450 / 0x00555E60 / 0x00558BC0
+0x00547870 gap callee of 0x00545BC0
+0x00547B60 gap GAME_CALL from actions_d.c (0x004A98B0)
+0x00547E20 gap tomb stone laying (vtable slot +0x30), GAME_CALLT from actions_d.c / actions_d3.c (0x004A8800, 0x004B0760)
+0x0054F450 gap monument EC clear (thiscall 0x006E9188): GAME_CALLT from day_state.c and undo.c
+0x0054FB20 gap callee of 0x004223F0
+0x0054FEE0 gap vtable slot +0x3C of class 0x005701E8 (0x006E9188, returns 0x201): called through [eax+0x3C] by 0x00547AD0 (core/newgame/start.c)
+0x00555E60 gap monument EB clear (thiscall 0x006DE9E0): GAME_CALLT from day_state.c and undo.c
+0x00556410 gap callee of 0x004223F0
+0x00558BC0 gap monument EA clear (thiscall 0x006F5648): GAME_CALLT from day_state.c and undo.c
+0x005590A0 gap callee of 0x004223F0
+0x00559110 gap tomb worker check (vtable slot +0x2C), GAME_CALLT from actions_d2.c / actions_d3.c
+0x0055C0E0 platform DirectDrawCreate import thunk: platform_set_display
+0x0055D8B0 crt teardown of the object 0x00EA1368 at quit (0x004E63B0 via 0x0055D960): frees heap blocks, nothing reads them after
+0x0055D990 crt callee of 0x0055DB90 (teardown at quit)
+0x0055DB90 crt destructor named by 0x0055D8B0 (teardown at quit)
+0x0055DBC0 gap registry constructor (three zeros, counter 0x012663B0 += 0xC), done inline by core/boot/ctors.c, registered
+0x0055EB99 platform Miles AIL_end_sample on each channel (0x0055EC7C): the sound platform
+0x0055EBD4 platform Miles AIL_end_3D_sample (0x0055EC7C): the sound platform
+0x0055EC7C platform Miles: stop every sample (0x0055DEA2 sound shutdown): the sound platform
+0x0055ECF3 platform Miles sample status scan of 0x0055F0E8: platform_sample_play
+0x0055EDD0 platform Miles channel choice of 0x0055F0E8: platform_sample_play

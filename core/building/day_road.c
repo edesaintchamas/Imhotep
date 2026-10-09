@@ -1,9 +1,12 @@
 /* Imhotep - the buildings' road access by day (day step 0x15).
  * Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0. */
+#include <string.h>
+
 #include "building/day_road.h"
 
 #include "building/day_access.h"
 #include "city/day_buildings.h"
+#include "city/month_message.h"
 #include "sim/call.h"
 #include "state/ported.h"
 #include "state/records.h"
@@ -428,14 +431,22 @@ void day_road_access_457af0(game_state *st)
     GAME_CALL0(st, 0x00458270u);
 }
 
-/* the monument message 0x92 (texts a, a + 1): its 30-byte block is a local of the original
- * whose first six bytes only are set (a, a + 1, -1); message_post copies all 30 into the
- * message record, so the other 24 are the caller's leftover stack bytes, which cannot be
- * reproduced: this path is left to the original */
-static void monument_message(game_state *st)
+/* @bin 0x0046F71D the monument message: 0x00E950DC := 1, then 0x004E0CF0(0x92, -1, 0, block, 0).
+ * The 30-byte block is a local of the original (esp + 0xC): +4 is set to -1 at the function's
+ * start (0x0046F20E, with +0 and +2), then +0 the body and +2 the title phrase of the monument
+ * (0x0046F4B7 ..); its other 24 bytes are never written */
+static void monument_message(game_state *st, int16_t body, int16_t title)
 {
+    uint8_t block[30];
+    /* @unverified UNINIT-46F200 bytes +6 .. +0x1D are what the original's stack held (see
+     * docs/unverified.md): 0, what the oracle shows there in every probed tick */
+    memset(block, 0, sizeof(block));
+    const int16_t none = -1; /* @bin 0x0046F20E +4 := -1 (no subtitle) */
+    memcpy(block, &body, 2);
+    memcpy(block + 2, &title, 2);
+    memcpy(block + 4, &none, 2);
     S32(st, 0x00E950DCu) = 1;
-    state_unported(st, 0x0046F200u);
+    message_post(st, 0x92, -1, 0, block, 0);
 }
 
 /* a monument finished (its object's progress function >= 100) and not yet announced */
@@ -457,8 +468,14 @@ void day_monuments_46f200(game_state *st)
         switch (S16(st, b + 0x10)) {
         case 0xB7:
             if ((int8_t) GAME_CALL(st, 0x004F6020u, id) != 0 && U8(st, b + 0x80) == 0) {
+                /* @bin 0x0046F49C the pyramid's phrases by its variant 0x005E4EF4 (jump table
+                 * 0x0046F79C): 1 0x22B / 0x22A, 2 0x22D / 0x22C, 3 0x229 / 0x228, 4 0x227 /
+                 * 0x226, 5 0x22F / 0x22E (body / title); other variants keep -1 */
+                static const int16_t phr[5][2] = {{0x22B, 0x22A}, {0x22D, 0x22C}, {0x229, 0x228},
+                                                  {0x227, 0x226}, {0x22F, 0x22E}};
+                uint32_t v = U32(st, 0x005E4EF4u) - 1u;
                 U8(st, b + 0x80) = 1;
-                monument_message(st);
+                monument_message(st, v <= 4 ? phr[v][0] : -1, v <= 4 ? phr[v][1] : -1);
                 return;
             }
             id += S32(st, (S32(st, 0x005E4EF4u) == 5 ? 0x0056F7ECu : 0x0056F7D8u) + 4u * U8(st, b + 0x54)) - 1;
@@ -467,7 +484,7 @@ void day_monuments_46f200(game_state *st)
             uint32_t c = CURRENT_CITY(st);
             if (S16(st, c + 0x433A) >= 0x10 && S32(st, c + 0x2988) == 0) {
                 S32(st, c + 0x2988) = 1;
-                monument_message(st);
+                monument_message(st, 0x231, 0x230); /* @bin 0x0046F55A */
                 return;
             }
             break;
@@ -475,14 +492,14 @@ void day_monuments_46f200(game_state *st)
         case 0xCF: case 0xD0:
             if (U8(st, b + 0x55) == 100 && U8(st, b + 0x80) == 0) {
                 U8(st, b + 0x80) = 1;
-                monument_message(st);
+                monument_message(st, 0x233, 0x232); /* @bin 0x0046F579 */
                 return;
             }
             break;
         case 0xD5:
             if (monument_done(st, id, 0, 0x00542AD0u, 0x68)) {
                 U8(st, b + 0x68) = 1;
-                monument_message(st);
+                monument_message(st, 0x235, 0x234); /* @bin 0x0046F59A */
                 return;
             }
             id += 0x63;
@@ -490,7 +507,7 @@ void day_monuments_46f200(game_state *st)
         case 0xE1:
             if (monument_done(st, id, 0x006FD5D8u, 0x0040D940u, 0x68)) {
                 U8(st, b + 0x68) = 1;
-                monument_message(st);
+                monument_message(st, 0x237, 0x236); /* @bin 0x0046F5BB */
                 return;
             }
             id += 0x18;
@@ -498,7 +515,7 @@ void day_monuments_46f200(game_state *st)
         case 0xE6:
             if (monument_done(st, id, 0x006DE650u, 0x00401540u, 0x60)) {
                 U8(st, b + 0x60) = 1;
-                monument_message(st);
+                monument_message(st, 0x239, 0x238); /* @bin 0x0046F5DC */
                 return;
             }
             id += 0xF;
@@ -506,7 +523,7 @@ void day_monuments_46f200(game_state *st)
         case 0xE3:
             if (monument_done(st, id, 0x006FD368u, 0x00417050u, 0x68)) {
                 U8(st, b + 0x68) = 1;
-                monument_message(st);
+                monument_message(st, 0x23B, 0x23A); /* @bin 0x0046F5FD */
                 return;
             }
             id += 8;
@@ -514,7 +531,7 @@ void day_monuments_46f200(game_state *st)
         case 0xE4:
             if (monument_done(st, id, 0x006DE548u, 0x004E6710u, 0x68)) {
                 U8(st, b + 0x68) = 1;
-                monument_message(st);
+                monument_message(st, 0x23D, 0x23C); /* @bin 0x0046F61E */
                 return;
             }
             id += 1;
@@ -522,7 +539,7 @@ void day_monuments_46f200(game_state *st)
         case 0xDE:
             if (monument_done(st, id, 0, 0x004DF040u, 0x74)) {
                 U8(st, b + 0x74) = 1;
-                monument_message(st);
+                monument_message(st, 0x23F, 0x23E); /* @bin 0x0046F63C */
                 return;
             }
             id += 0x73;
@@ -533,7 +550,7 @@ void day_monuments_46f200(game_state *st)
                 GAME_CALL0(st, 0x00547A60u);
                 GAME_CALL0(st, 0x004DEA50u);
                 U8(st, b + 0x9D) = 1;
-                monument_message(st);
+                monument_message(st, 0x241, 0x240); /* @bin 0x0046F65A */
                 return;
             }
             id += 0xA6;
@@ -546,7 +563,10 @@ void day_monuments_46f200(game_state *st)
                 GAME_CALL0(st, 0x00547A60u);
                 GAME_CALL0(st, 0x004DEA50u);
                 U8(st, b + 0x9D) = 1;
-                monument_message(st);
+                /* @bin 0x0046F677 EA 0x243 / 0x242, 0x0046F6AC EB 0x245 / 0x244, 0x0046F6E1 EC
+                 * 0x247 / 0x246 */
+                monument_message(st, type == 0xEA ? 0x243 : type == 0xEB ? 0x245 : 0x247,
+                                 type == 0xEA ? 0x242 : type == 0xEB ? 0x244 : 0x246);
                 return;
             }
             id += type == 0xEA ? 0x9D : type == 0xEB ? 0x1B4 : 0x200;

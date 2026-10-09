@@ -323,6 +323,7 @@ const ported_function boot_ports[] = {
     {0x0055DC63u, "boot_sound_start registry_create", 1, 32, 0x00E92BF8u, NULL, 0},
     {0x0055DC18u, "boot_sound_start registry_release", 0, 0, 0x00E92BF8u, NULL, 0},
     {0x00560280u, "boot_sound_start registry_entry", 0, 32, 0, NULL, 0},
+    {0x005602B0u, "boot_sound_start registry_entry_release (frees a name only the CD path strdups)", 0, 0, 0, NULL, 0},
     {0x0055DD3Fu, "boot_sound_start registry_add", 2, 32, 0x00E92BF8u, NULL, 0},
     {0x00539A40u, "boot_sound_start music_mode", 1, 0, 0x00E39180u, NULL, 0},
     {0x00539250u, "music_read", 0, 0, 0x00E39180u, NULL, 0},

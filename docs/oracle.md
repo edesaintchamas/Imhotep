@@ -28,6 +28,7 @@ Set up once: `make oracle-env` (a venv in `local/venv` with Unicorn and Capstone
 | `where.py`, `disasm.py` | address → exported function; Capstone disassembly of the exe |
 | `screen.py` | back buffer → PNG (into `local/oracle/screens`), pixel differences as rectangles; `screen.py SAVE --display WxHxF --window ID` draws a frame |
 | `framestep.py` | frame lockstep: the original's frame `0x004D6B60` (and its window procedure) against the port's, frame by frame, state and back buffer |
+| `fuzz.py` | randomised play sessions (roadmap 8.3): made live on `build/imhotep` (`--script -`), then compared with the original by `oracle_play_check.py` |
 | `sound.py` | a working stand-in for the Miles sound driver (`Game(sound=True)`) and the translation of its call log into the port's sound requests |
 
 ## What is replaced, and why it does not change the simulation
@@ -250,6 +251,39 @@ The whole game against the original: `tests/differential/oracle_play_check.py` r
 of `build/imhotep` (`--hidden --det-clock 0,25 --script --dump --msglog`, from the port's own boot, no
 sound, no video) and gives the original the same clock, window messages and cursor before each of its
 frames `0x004D6B60`; every frame's state and back buffer are compared (`make present-check`).
+
+## Randomised sessions (phase 8.3)
+
+`tools/oracle/fuzz.py run SEEDS [--frames N] [-j 2]` makes, per seed, a session a player could make and
+checks it. The session is made live: `build/imhotep --script -` reads its script lines from stdin and
+prints `ready FRAME WINDOW` before each; `peek ADDR LEN` lines (no frame) return state bytes, from
+which the fuzzer reads the layout (the sidebar's button tables, the build menu's rows, the campaign
+map's missions, the screen size). It gets into a game through the menus (a new family and its first
+mission, a chosen mission, a custom map, or a corpus save loaded from the family's saved games: the
+player directory then holds a family and copies of `local/saves`), then plays at random: roads and
+buildings next to them, menus, clearing, info panels, advisors, overlays, top menus with save and load,
+scrolling, rotation, speed and pause, hotkeys, Esc (its quit box answered No), resolution keys, long
+waits. The recorded lines replay the same session from a file (the clock is scripted). Then: the
+unported functions the game reached (its `gaps.log`), its exit status, and
+`tests/differential/oracle_play_check.py SESSION --player DIR --stop`. Findings go to
+`local/oracle/phase8/fuzz/findings.md`, each with a case (the session's lines up to its frame) in
+`local/oracle/phase8/fuzz/cases/`.
+
+`oracle_play_check.py` runs the game alongside the comparison: `--dump-window 48 --dump-delta` (each
+frame's dump holds the 4 KB blocks of the state file and back buffer that changed; the game waits while
+it is 48 frames ahead), so neither the disk nor its writes grow with a session's length; the
+differing ranges are found per 4 KB block and kept for blocks unchanged since the last frame (about 25
+frames a second in the front end, 10–20 in a city). `answer N` lines reach the oracle as
+`Game.box_answers` at the frame the game queued them (logged in the message log as 0xFFFFFFFF).
+`--player DIR` gives both sides the same player files (the original then boots on its own with them).
+Platform behaviour the play check gives the original that `game.py` lacks (kept out of `game.py`, whose hash
+keys every snapshot; proposed there): `GetSystemMetrics` answers the screen's current mode (1024 × 768, the
+screen `build/imhotep` boots on, until DirectDraw's `SetDisplayMode` changes it; `SetCooperativeLevel`
+normal gives the desktop's back), and during the boot a mode change makes `WM_DISPLAYCHANGE`'s writes, as
+the port's boot does (so displays below 1024 × 768 compare from the port's boot); COM objects of one kind
+share a vtable (a game changing its mode every frame ran out of stub slots). Bytes the original takes from
+its uninitialised stack and the port writes as `docs/unverified.md` documents are made the port's in the
+original's state when they appear (UNINIT-417B40: the tutorial message 0x83's block).
 
 ## Sound (phase 7)
 

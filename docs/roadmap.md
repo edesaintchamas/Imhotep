@@ -287,19 +287,78 @@ functions reachable from WinMain `0x00413ED0` have no port (about 75 KB of code,
 through function tables (windows, buttons, building and figure actions) add more. This phase ports
 everything the game can reach and looks for what scripted sessions miss.
 
-- [ ] 8.0 Gap report: the game reports every unported function it reaches (address, once, on stderr
+- [x] 8.0 Gap report: the game reports every unported function it reaches (address, once, on stderr
       and in a log file of the player directory), so a gap met in play is seen, not silent.
+
+      Done (2026-10-09, platform/main.c): calls to functions without a port and `state_unported` stops
+      inside ports (which were silent before: nothing read them) are printed once each and appended
+      to `$IMHOTEP_PLAYER_DIR/gaps.log` with the window and frame; the game goes on (the call answers
+      0).
 - [ ] 8.1 Frontier: every function reachable from WinMain through direct calls, function addresses in
       code (callbacks, `GAME_CALL` targets) and the function tables in the data sections, minus the
       ported ones (`tools/oracle/reach.py`, written to docs/provenance/frontier.md, each entry with its
       callers and a group). Out of scope, listed as such: the map editor (`0x00605A3C`), and code the
       binary cannot reach.
+
+      First count (2026-10-09): 3,565 functions reachable (2,801 of the 2,848 ports among them), 737
+      without a port (119 KB of code), 27 more only through the map editor. Each is being classified
+      (`tools/oracle/frontier_notes.txt`: gap, platform, crt, unused, scope) by area: runtime (343:
+      the C runtime, the start-up), core (176), ui (218, mostly through the window tables).
+
+      Classified (2026-10-10): of the 489 still without a port, 173 are C runtime internals the port
+      does natively, 49 platform work (Win32, DirectDraw, Miles, Bink, CD, message loop), 181 map
+      editor code (reached only with the editor flag `0x00605A3C` set), 84 never called in the shipped
+      game (table entries no index selects, objects nothing sets, flags only ever written 0), each
+      with its evidence in `tools/oracle/frontier_notes.txt`; 2 gaps left (below).
 - [ ] 8.2 Port the frontier by package, each function checked against the original (harness,
       framestep, frame cases); with it the `state_unported` stops left inside ported functions
       (paths the sessions never took).
-- [ ] 8.3 Randomised sessions: random input (clicks on buttons and the city, keys, scrolling, menus,
+
+      Progress (2026-10-10): 249 functions ported, 3,097 in all. Among them: the message keyword
+      handlers (`[amount]`, `[city_name]`... came out empty), the File / Options / Help menu items,
+      the monument clears and the tombs' stone laying, figure and building checks, frogs, the
+      screen-shake fade, the empire map, overlays, message and trade buttons, advisor pages and
+      windows 0x2A, 0x2D, 0x2E, 0x4C, 0x52, 0x56, the monument info queries; the tutorial goods
+      message (UNINIT-417B40). Checks: harness on the corpus, 22 new frame cases (212 / 212), lockstep
+      (0 differences). Left: the converters of old saves and maps 0x004D0C60 (events, versions
+      115–129) and 0x004D0D40 (messages, 115–135), whose output holds uninitialised stack bytes,
+      reached only by files older than any bundled map or corpus save.
+- [x] 8.3 Randomised sessions: random input (clicks on buttons and the city, keys, scrolling, menus,
       saves and loads) from new games and corpus saves, run by `build/imhotep` and by the original in
       the oracle with the same clock and messages, compared frame by frame (`oracle_play_check.py`);
       every difference and every unported function reached is a case to fix.
-- [ ] 8.4 Done when: the frontier holds only out-of-scope code, and the randomised sessions (several
+
+      Result (2026-10-10, `tools/oracle/fuzz.py`, docs/oracle.md "Randomised sessions"): 94 seeded
+      sessions, 1,040,743 frames compared with the original (7.2 hours of game time at 25 ms a
+      frame), from new families, chosen missions, custom maps and corpus saves loaded through the
+      menus, at 1024 x 768, 800 x 600 and 640 x 480, sessions of 3,000 to 43,000 frames (four of about
+      three game years). 93 equal on every frame, state and pixels; seed 202 equal for 28,669 frames,
+      then the oracle's limit (below). No crash. Found and fixed: a resolution key while windowed sent
+      the game back to fullscreen (the platform reported a display change for every new back buffer);
+      the advisors' per-frame part 0x00521060 unported (ported in 8.2). The play check's oracle
+      follows the display mode (GetSystemMetrics after SetDisplayMode), boots on a 1024 x 768 screen as
+      the game does, and shares the COM vtables (oracle_play_check.py); the tutorial message's
+      uninitialised bytes (UNINIT-417B40) are copied from the port when posted during a session.
+- [x] 8.4 Done when: the frontier holds only out-of-scope code, and the randomised sessions (several
       hours of frames across the corpus) show no difference and reach no unported function.
+
+      Result (2026-10-10): 3,097 functions ported (249 in this phase); the frontier holds only C runtime
+      internals, platform work, map editor code and functions the shipped game never calls, each
+      with its evidence, and the two converters below; 94 randomised sessions (1.04 million frames)
+      equal to the original. `make test` passes (now enforced): frame cases 212 / 212, drawing
+      1,968 / 1,968, boot 8 / 8 (windowed included), and phases 1–7's checks.
+
+      Found on the way: `make test` did not fail on a failed check since phase 6: its `pipefail` was set
+      through `.SHELLFLAGS`, which GNU Make 3.81 (macOS's) ignores. It is now in `SHELL`. The results
+      recorded for phases 6 and 7 were read from each check's own summary line.
+
+      Carried over:
+      - the old-format converters 0x004D0C60 and 0x004D0D40 (8.2): their output holds the original's
+        uninitialised stack; only files older than any bundled map or corpus save reach them;
+      - the oracle: its emulated heap runs out when a game changes its display mode every frame
+        (window 0x3E reverting to itself, seed 202), and scripted keys set no GetAsyncKeyState state;
+        the display-mode fixes of the play check are not in tools/oracle/game.py (its code is part of
+        every snapshot's key);
+      - the fuzzer knows the layout of the sidebar, build menus and campaign map; advisor, empire and
+        trade windows get random clicks only;
+      - the map editor (out of scope: 181 functions of the frontier).

@@ -376,6 +376,17 @@ PORTED_TABLE(boot_ports)
 PORTED_TABLE(boot_sound_ports)
 PORTED_TABLE(route_points_ports)
 PORTED_TABLE(display_ports)
+PORTED_TABLE(menu_item_ports)
+PORTED_TABLE(monument_clear_ports)
+PORTED_TABLE(figure_check_ports)
+PORTED_TABLE(building_check_ports)
+PORTED_TABLE(place_nearest_ports)
+PORTED_TABLE(frog_ports)
+PORTED_TABLE(builder_ports)
+PORTED_TABLE(ring_ports)
+PORTED_TABLE(list_popup_ports)
+PORTED_TABLE(inline_ports)
+PORTED_TABLE(tomb_stone_ports)
 static const struct {
     const ported_function *table;
     const int *count;
@@ -529,6 +540,17 @@ static const struct {
     {boot_sound_ports, &boot_sound_ports_count},
     {route_points_ports, &route_points_ports_count},
     {display_ports, &display_ports_count},
+    {menu_item_ports, &menu_item_ports_count},
+    {monument_clear_ports, &monument_clear_ports_count},
+    {figure_check_ports, &figure_check_ports_count},
+    {building_check_ports, &building_check_ports_count},
+    {place_nearest_ports, &place_nearest_ports_count},
+    {frog_ports, &frog_ports_count},
+    {builder_ports, &builder_ports_count},
+    {ring_ports, &ring_ports_count},
+    {list_popup_ports, &list_popup_ports_count},
+    {inline_ports, &inline_ports_count},
+    {tomb_stone_ports, &tomb_stone_ports_count},
 };
 #define NMODULES ((int) (sizeof(ported_modules) / sizeof(ported_modules[0])))
 
