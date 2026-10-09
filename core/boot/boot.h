@@ -48,8 +48,10 @@ typedef struct boot_host {
 } boot_host;
 
 /* handle kinds: the window, a cursor (id: its resource), DirectDraw, a surface (id 1: the primary one),
- * the sound driver (Miles' AIL_waveOutOpen), a sample handle of the driver (id: the voice) */
-enum { BOOT_WINDOW = 1, BOOT_CURSOR, BOOT_DIRECTDRAW, BOOT_SURFACE, BOOT_SOUND_DRIVER, BOOT_SOUND_SAMPLE };
+ * the sound driver (Miles' AIL_waveOutOpen), a sample handle of the driver (id: the voice), the
+ * clipper of a windowed game's primary surface */
+enum { BOOT_WINDOW = 1, BOOT_CURSOR, BOOT_DIRECTDRAW, BOOT_SURFACE, BOOT_SOUND_DRIVER, BOOT_SOUND_SAMPLE,
+       BOOT_CLIPPER };
 
 /* The host's display at the boot: the screen's size (GetSystemMetrics before the game sets its mode)
  * and its 16-bit pixel format 555 or 565. width 0: no display (the oracle's default boot: DirectDraw

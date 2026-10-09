@@ -263,12 +263,43 @@ binary into `present/` (deterministic, drawing into a pixel buffer) and checked 
       hover 175 / 175). The 12-month lockstep on the 8 corpus cities: 9,792
       ticks each, 0 with differences.
 
+      Closed after the first result (2026-10-09):
+      - the windowed mode (F6, kept in Pharaoh.inf): the boot's windowed set-up (0x00426B40,
+        0x00426FF0: the kept mode, the window's place, the clipper) is ported; before, a game left
+        windowed did not start again. `oracle_boot_check.py` case `1024x768x555+windowed` equal,
+        `oracle_play_check.py --windowed` 1,042 / 1,042 frames equal;
+      - the Smacker videos (logo, intro, credits, message videos): the GOG install has no `.smk`
+        files, so the original's opens fail as the port's do (docs/presentation.md 7): nothing to play.
+
       Carried over:
-      - the windowed mode's window styles and clipper (the boot stops there as unported; the game
-        runs fullscreen-style in an SDL window);
       - a video's frames: the oracle cannot decode Bink, so the frames FFmpeg shows are not compared
         (the player's state effects are);
-      - Smacker videos (logo, intro, credits: not played), and the CD-drive and 8.3 file-system edge cases (6.1);
+      - the CD-drive and 8.3 file-system edge cases (6.1);
       - 0x004179A0 loops forever in the original when no advisor is available from index 0; the
         port reproduces it;
       - the map editor (out of scope).
+
+## Phase 8: completeness
+
+The scripted sessions of 7.9 reach no unported function, but they cover a small part of the game: a
+call to a function without a port answers 0 and does nothing, silently. By direct calls alone, 290
+functions reachable from WinMain `0x00413ED0` have no port (about 75 KB of code, 2026-10-09); calls
+through function tables (windows, buttons, building and figure actions) add more. This phase ports
+everything the game can reach and looks for what scripted sessions miss.
+
+- [ ] 8.0 Gap report: the game reports every unported function it reaches (address, once, on stderr
+      and in a log file of the player directory), so a gap met in play is seen, not silent.
+- [ ] 8.1 Frontier: every function reachable from WinMain through direct calls, function addresses in
+      code (callbacks, `GAME_CALL` targets) and the function tables in the data sections, minus the
+      ported ones (`tools/oracle/reach.py`, written to docs/provenance/frontier.md, each entry with its
+      callers and a group). Out of scope, listed as such: the map editor (`0x00605A3C`), and code the
+      binary cannot reach.
+- [ ] 8.2 Port the frontier by package, each function checked against the original (harness,
+      framestep, frame cases); with it the `state_unported` stops left inside ported functions
+      (paths the sessions never took).
+- [ ] 8.3 Randomised sessions: random input (clicks on buttons and the city, keys, scrolling, menus,
+      saves and loads) from new games and corpus saves, run by `build/imhotep` and by the original in
+      the oracle with the same clock and messages, compared frame by frame (`oracle_play_check.py`);
+      every difference and every unported function reached is a case to fix.
+- [ ] 8.4 Done when: the frontier holds only out-of-scope code, and the randomised sessions (several
+      hours of frames across the corpus) show no difference and reach no unported function.

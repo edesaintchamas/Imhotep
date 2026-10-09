@@ -3,8 +3,10 @@ frame by frame, state and pixels (roadmap 7.9).
 
 Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0.
 
-  local/venv/bin/python tests/differential/oracle_play_check.py [SESSION] [--display WxH] [--keep DIR] [-v]
+  local/venv/bin/python tests/differential/oracle_play_check.py [SESSION] [--display WxH] [--windowed]
+        [--keep DIR] [-v]
   (default: tests/differential/play/session.txt at 1024x768; needs `make game`)
+  --windowed: the game windowed (as F6 leaves Pharaoh.inf), in a window of the screen's size
 
 The game runs the session (platform/main.c --script: clicks, keys, text) from its own boot (core/boot, as
 a player starts it), hidden, with a scripted clock (--det-clock 0,25: frame k reads 25 k ms, the boot 0,
@@ -46,15 +48,21 @@ OTHER_HEAP = (0x68000000, 0x98000000)
 STATE_BASE = 0x0056F000
 
 
-def run_game(session, display, work):
+def options(display, windowed):
+    """the Pharaoh.inf both sides boot with (as game.py display_options writes it): the display's
+    resolution, fullscreen or windowed (a window of the screen's size: the session's coordinates are
+    those of that resolution's layout; tests/differential/oracle_boot_check.py checks a smaller window)"""
     from game import RESOLUTIONS
+    return struct.pack('<ii8Bi', 0x10, 0 if windowed else 1, 0, 0, 0x44, 1, 1, 1, 0, 0, RESOLUTIONS[display])
+
+
+def run_game(session, display, windowed, work):
     player = os.path.join(work, 'player')
     dump = os.path.join(work, 'dump')
     os.makedirs(player)
     os.makedirs(dump)
-    # the options a player who chose this resolution left (as game.py display_options writes them)
     with open(os.path.join(player, 'Pharaoh.inf'), 'wb') as f:
-        f.write(struct.pack('<ii8Bi', 0x10, 1, 0, 0, 0x44, 1, 1, 1, 0, 0, RESOLUTIONS[display]))
+        f.write(options(display, windowed))
     msglog = os.path.join(work, 'messages.txt')
     env = dict(os.environ, IMHOTEP_PLAYER_DIR=player)
     r = subprocess.run([GAME, '--hidden', '--no-intro', '--no-sound', '--no-video',
@@ -69,12 +77,17 @@ def run_game(session, display, work):
     return dump, msgs, r.stderr
 
 
-def compare(dump, msgs, display, verbose):
+def compare(dump, msgs, display, windowed, verbose):
     import diff
     import excluded
     from game import Game, WNDPROC
     from oracle_boot_check import known_rules
-    g = Game.booted(display='%dx%dx555' % display, sound=False)
+    if windowed:
+        g = Game(display=display + (555,), sound=False)
+        g.add_file('Pharaoh.inf', options(display, windowed))
+        g.boot()
+    else:
+        g = Game.booted(display='%dx%dx555' % display, sound=False)
     g.write(REDRAW, b'\x01')
     cursor = (0, 0)
     bad = []
@@ -132,7 +145,8 @@ def compare(dump, msgs, display, verbose):
 def main():
     argv = sys.argv[1:]
     verbose = '-v' in argv
-    argv = [a for a in argv if a != '-v']
+    windowed = '--windowed' in argv
+    argv = [a for a in argv if a not in ('-v', '--windowed')]
     display, keep = (1024, 768), None
     if '--display' in argv:
         k = argv.index('--display')
@@ -149,15 +163,16 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         work = keep or tmp
         try:
-            dump, msgs, log = run_game(session, display, work)
+            dump, msgs, log = run_game(session, display, windowed, work)
         except RuntimeError as e:
             print('oracle_play_check: %s' % e)
             return 2
         if verbose:
             print(log, end='')
-        frames, bad = compare(dump, msgs, display, verbose)
+        frames, bad = compare(dump, msgs, display, windowed, verbose)
     print('oracle_play_check: %d / %d frames equal to the original (state and pixels), %s from the port\'s '
-          'boot at %dx%d' % (frames - len(bad), frames, os.path.relpath(session, ROOT), display[0], display[1]))
+          'boot at %dx%d%s' % (frames - len(bad), frames, os.path.relpath(session, ROOT), display[0], display[1],
+                                ', windowed' if windowed else ''))
     return 0 if frames and not bad else 1
 
 

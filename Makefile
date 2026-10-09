@@ -167,6 +167,7 @@ present-check: $(BUILD)/state_run $(BUILD)/state_replay ## The presentation port
 	local/venv/bin/python tests/differential/oracle_sound_check.py -j 8 | tail -1
 	local/venv/bin/python tests/differential/oracle_video_check.py | tail -1
 	@if [ -x $(BUILD)/imhotep ]; then IMHOTEP_BUILD=$(BUILD) local/venv/bin/python tests/differential/oracle_play_check.py | tail -1; \
+	IMHOTEP_BUILD=$(BUILD) local/venv/bin/python tests/differential/oracle_play_check.py --windowed | tail -1; \
 	else echo "oracle_play_check: skipped (make game)"; fi
 
 oracle-env: ## Python venv in local/venv with Unicorn and Capstone (tools/oracle, docs/oracle.md)

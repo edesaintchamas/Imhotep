@@ -8,9 +8,10 @@
  * their handles and the surfaces' memory come from the boot's host (core/boot/boot.h); the state gets
  * what the original stores. The display mode is the one the settings read (core/boot/settings.c:
  * the resolution 0x00E38E68 and the fullscreen option 0x00E38E5C from Pharaoh.inf, the defaults and the
- * screen's width otherwise); the host's display (boot_display) is the screen before the set-up. Only the
- * fullscreen path is ported (0x00E38E5C = 1, the default, and what tools/oracle/game.py's display boots
- * read from their Pharaoh.inf); the windowed path (window styles, a clipper) stops as unported. */
+ * screen's width otherwise); the host's display (boot_display) is the screen before the set-up. Both
+ * paths are ported: fullscreen (0x00E38E5C = 1, the default) sets the display mode; windowed (F6 in the
+ * game, kept in Pharaoh.inf) keeps the screen's mode, centres the window and attaches a clipper (the
+ * window's styles and place are the platform's). */
 #include <string.h>
 
 #include "boot/boot_internal.h"
@@ -67,18 +68,16 @@ static int32_t dd_open(game_state *st, const boot_host *host, const boot_display
     S32(st, 0x00E38E58u) = 16;
     S32(st, 0x00E38DB8u) = d->width;  /* GetSystemMetrics(SM_CXSCREEN): the screen's, before the mode */
     S32(st, 0x00E38DB4u) = d->height; /* GetSystemMetrics(SM_CYSCREEN) */
+    /* @bin 0x00426B9C a mode wider than the screen is shown fullscreen (windowed: the notice 0x39 first,
+     * 0x004E2970); windowed on a display of another depth than 16 bits too (the depth is 16 here) */
     if (S32(st, 0x00E38DB8u) < S32(st, 0x00E38DB0u)) {
         if (S32(st, FULLSCREEN) == 0) {
-            state_unported(st, 0x004E2970u); /* the windowed mode does not fit: a message */
-            return 0;
+            GAME_CALL(st, 0x004E2970u, 0x39, 0, 0);
         }
         S32(st, FULLSCREEN) = 1;
-    } else if (S32(st, FULLSCREEN) == 0) {
-        state_unported(st, 0x00426BC8u); /* windowed */
-        return 0;
     }
-    /* @bin 0x00426BF0 GetPaletteEntries(NULL, 0, 0x100, 0x0070D508): no palette in 16-bit modes, nothing
-     * written */
+    /* @bin 0x00426BF0 GetPaletteEntries(NULL, 0, 0x100, 0x0070D508) (fullscreen only): no palette in
+     * 16-bit modes, nothing written */
     uint32_t dd = U32(st, DDRAW);
     if (dd == 0) {
         dd = handle(st, host, BOOT_DIRECTDRAW, 0); /* DirectDrawCreate */
@@ -86,8 +85,19 @@ static int32_t dd_open(game_state *st, const boot_host *host, const boot_display
             platform_log(st, 0x005D1CB8u, 0, -1);
             return 0;
         }
-        /* SetCooperativeLevel(window, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_ALLOWREBOOT) */
+        /* SetCooperativeLevel(window, fullscreen: DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_ALLOWREBOOT,
+         * windowed: DDSCL_NORMAL) */
         platform_log(st, 0x005D1C74u, 0, 0);
+    }
+    if (S32(st, FULLSCREEN) == 0) {
+        /* @bin 0x00426E09 windowed: the window's styles and size for the mode (SetWindowLongA,
+         * AdjustWindowRectEx, SetWindowPos: the platform's), its place centred on the screen
+         * (0x00E390E8, 0x00E390E4; signed division by 2), "OK :DD Kept resolution." */
+        S32(st, 0x00E390E8u) = (S32(st, 0x00E38DB8u) - S32(st, 0x00E38DB0u)) / 2;
+        S32(st, 0x00E390E4u) = (S32(st, 0x00E38DB4u) - S32(st, 0x00E38DACu)) / 2;
+        platform_log(st, 0x005D1C28u, 0, 0);
+        U32(st, DDRAW) = dd;
+        return 1;
     }
     /* @bin 0x00426CA4 SetWindowLongA (the window's style), SetDisplayMode(0x00E38D9C, 0x00E38D98, 16)
      * (0x00426CE1): the platform's. assumed (Windows' behaviour, not the game's): when the mode differs
@@ -108,9 +118,13 @@ static int32_t dd_open(game_state *st, const boot_host *host, const boot_display
  * system memory, w x h), locked once: its pixels' address in 0x00E92E18; the pixel format */
 static int32_t surfaces_create(game_state *st, const boot_host *host, const boot_display *d, uint32_t *front)
 {
-    platform_log(st, 0x005D1FBCu, 0, 0);
-    /* the primary surface: the screen, in the display mode (fullscreen) */
-    int32_t sw = S32(st, 0x00E38DB0u), sh = S32(st, 0x00E38DACu);
+    int full = S32(st, FULLSCREEN) != 0;
+    /* @bin 0x00427142 windowed: "OK :DD Creating one Vram and one..." (0x005D1F10), else "... Vram only" */
+    platform_log(st, full ? 0x005D1FBCu : 0x005D1F10u, 0, 0);
+    /* the primary surface: the screen, in the display mode (fullscreen) or the screen's own (windowed:
+     * GetSystemMetrics, 0x00E38DB8 x 0x00E38DB4; tools/oracle/game.py surfaces of that size) */
+    int32_t sw = full ? S32(st, 0x00E38DB0u) : S32(st, 0x00E38DB8u);
+    int32_t sh = full ? S32(st, 0x00E38DACu) : S32(st, 0x00E38DB4u);
     uint32_t pixels = host && host->surface ? host->surface(host->ctx, st, sw, sh, 1)
                                             : boot_alloc(st, host, (uint32_t) sw * 2u * (uint32_t) sh, 0x53000000u);
     uint32_t primary = pixels ? handle(st, host, BOOT_SURFACE, 1) : 0;
@@ -133,7 +147,19 @@ static int32_t surfaces_create(game_state *st, const boot_host *host, const boot
         return 0;
     }
     U32(st, 0x00E92E18u) = back_pixels; /* @bin 0x00427257 lpSurface of the lock */
-    platform_log(st, 0x005D1F44u, 0, 0);
+    if (full) {
+        platform_log(st, 0x005D1F44u, 0, 0);
+    } else {
+        /* @bin 0x0042726D windowed: a clipper (CreateClipper into 0x00E39170, SetHWnd(the window),
+         * SetClipper on the primary surface), "OK :DD Surfaces created and clipper attached." */
+        uint32_t clipper = handle(st, host, BOOT_CLIPPER, 0);
+        U32(st, CLIPPER) = clipper;
+        if (!clipper) {
+            platform_log(st, 0x005D1EB0u, 0, 0);
+            return 0;
+        }
+        platform_log(st, 0x005D1E2Cu, 0, 0);
+    }
     /* @bin 0x004272F3 the format from the primary surface's masks: green 0x07E0: 565 (2), else 555 (0)
      * (red 0xFC00 655 and blue 0x3F 556 are forced to 565; DirectDraw gives the display's format) */
     if (d->format == 565) {

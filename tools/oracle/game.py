@@ -236,7 +236,12 @@ class Game(Pharaoh):
             'SetRect': (5, lambda e, r, a, b, c, d: rect(r, a, b, c, d)),
             'AdjustWindowRectEx': ok(4), 'GetMenu': ok(1, 0), 'SetWindowPos': ok(7),
             'SystemParametersInfoA': ok(4), 'GetWindowRect': (2, lambda e, wnd, r: rect(r, 0, 0, w, h)),
-            'GetClientRect': (2, lambda e, wnd, r: rect(r, 0, 0, w, h)), 'ClientToScreen': ok(2),
+            # the client area: the mode's size (0x00E38D9C x 0x00E38D98, the window sized for it by
+            # AdjustWindowRectEx; fullscreen the screen in that mode), the screen's before the set-up;
+            # ClientToScreen leaves it at 0, 0 (cursor positions are given in client pixels). The
+            # game reads it only windowed (fullscreen: GetSystemMetrics)
+            'GetClientRect': (2, lambda e, wnd, r: rect(r, 0, 0, self.u32(0x00E38D9C) or w, self.u32(0x00E38D98) or h)),
+            'ClientToScreen': ok(2),
             'GetPaletteEntries': ok(4, 0), 'ShowCursor': ok(1, 0), 'SetCursor': ok(1, 0),
             'PeekMessageA': ok(5, 0), 'InvalidateRect': ok(3), 'GetForegroundWindow': ok(0, self.HWND),
             # WM_PAINT, Alt+X (a posted Esc) and quitting: logged in self.posted, nothing else happens
@@ -715,11 +720,15 @@ class Game(Pharaoh):
         bytes (the original reads whatever length the file has), the settings' defaults (@bin
         0x00414802..0x004148B1: depth 0x10, 0x00E38E60..0x00E38E65 0, 0, 'D', 1, 1, 1; 0x00E38E66/67 are 0,
         nothing sets them before) with fullscreen 0x00E38E5C 1 and the resolution 0x00E38E68 of the
-        display (1 640x480, 2 800x600, 3 1024x768). A test's own Pharaoh.inf (Game.files) is kept."""
+        display (1 640x480, 2 800x600, 3 1024x768). With Game.windowed: fullscreen 0 (the game's F6) and
+        the resolution below the display's (a window that fits the screen; 640x480 on a 640x480
+        display). A test's own Pharaoh.inf (Game.files) is kept."""
         if self.display is None or 'pharaoh.inf' in self.files:
             return
-        self.add_file('Pharaoh.inf', struct.pack('<ii8Bi', 0x10, 1, 0, 0, 0x44, 1, 1, 1, 0, 0,
-                                                 RESOLUTIONS[self.display[:2]]))
+        res = RESOLUTIONS[self.display[:2]]
+        windowed = getattr(self, 'windowed', False)
+        self.add_file('Pharaoh.inf', struct.pack('<ii8Bi', 0x10, 0 if windowed else 1, 0, 0, 0x44, 1, 1, 1, 0, 0,
+                                                 max(1, res - 1) if windowed else res))
 
     def boot(self, trace=False):
         self.display_options()

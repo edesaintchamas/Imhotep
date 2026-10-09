@@ -6,7 +6,9 @@ Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0.
         [--keep DIR]
 
 CASE: none (no display), WxHxF (a display: 640x480x555, 800x600x565, 1024x768x565, ...), with +sound
-for the sound start-up (default: none, none+sound, and the four display cases of the frame checks).
+for the sound start-up, +windowed for a windowed game (Pharaoh.inf as the game's F6 leaves it: the
+resolution below the display's, game.py display_options) (default: none, none+sound, the four display
+cases of the frame checks, a windowed one).
 
 The original boots in the emulator (tools/oracle/game.py Game.boot: the static constructors, then WinMain's
 steps; its own run, step by step, with every allocation it makes outside the state logged). The port
@@ -56,7 +58,9 @@ BUILD = os.environ.get('IMHOTEP_BUILD', 'build')
 RUNNER = os.path.join(ROOT, BUILD, 'oracle_boot_run')
 CACHE = os.path.join(ROOT, 'local', 'oracle', 'cache')
 STATE_BASE, STATE_END = 0x0056F000, 0x01267AA8
-DEFAULT = ['none', 'none+sound', '640x480x555', '800x600x565', '1024x768x565', '1024x768x555', '1024x768x565+sound']
+DEFAULT = ['none', 'none+sound', '640x480x555', '800x600x565', '1024x768x565', '1024x768x555', '1024x768x565+sound',
+           '1024x768x555+windowed']
+WINDOWED = False  # the current case's +windowed (oracle_trace, player_dir)
 
 # the oracle's own allocations, by the Python function that makes them (not the game's)
 ARTIFACTS = {'_fopen': 'FILE block of the CRT fopen hook (the real CRT uses its _iob table)',
@@ -109,9 +113,12 @@ def runner():
 
 
 def parse_case(case):
-    head, _, tail = case.partition('+')
+    """(display, sound); sets WINDOWED"""
+    global WINDOWED
+    head, *tail = case.split('+')
     from game import parse_display
-    return (None if head == 'none' else parse_display(head)), tail == 'sound'
+    WINDOWED = 'windowed' in tail
+    return (None if head == 'none' else parse_display(head)), 'sound' in tail
 
 
 def code_hash():
@@ -131,12 +138,13 @@ def oracle_trace(display, sound):
     from game import Game, display_name
     from emu import OTHER_HEAP_BASE
     from unicorn.x86_const import UC_X86_REG_ESP
-    key = hashlib.sha1(repr((display_name(display), sound, code_hash())).encode()).hexdigest()[:20]
+    key = hashlib.sha1(repr((display_name(display), sound, code_hash()) + (('windowed',) if WINDOWED else ())).encode()).hexdigest()[:20]
     path = os.path.join(CACHE, 'boottrace_%s.pkl' % key)
     if os.path.exists(path):
         with open(path, 'rb') as f:
             return pickle.load(f)
     g = Game(display=display, sound=sound)
+    g.windowed = WINDOWED
     log = []
     plain = g.alloc
     current = ['ctor']
@@ -208,7 +216,7 @@ def player_dir(tmp, display):
     path = os.path.join(tmp, 'player')
     os.makedirs(path, exist_ok=True)
     g = Game.__new__(Game)  # only the options file: no emulator
-    g.display, g.files, g.names = display, {}, {}
+    g.display, g.files, g.names, g.windowed = display, {}, {}, WINDOWED
     g.display_options()
     for key, data in g.files.items():
         open(os.path.join(path, g.names[key].split('/')[-1]), 'wb').write(data)
