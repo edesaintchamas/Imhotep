@@ -134,7 +134,7 @@
 #define G_U7028F0 0x007028F0u /* @bin 0x0041DF60 i32: := 0 */
 #define G_U7028F4 0x007028F4u /* @bin 0x0041DF60 i32: := 0 (also present/ui/dispatch.c) */
 #define G_U70E468 0x0070E468u /* @bin 0x004303A0 i32: view geometry, argument 0 - argument 4 */
-#define G_U70E46C 0x0070E46Cu /* @bin 0x004303A0 i32: view geometry, argument 1 (as G_U70E474) */
+#define G_U70E46C 0x0070E46Cu /* @bin 0x004303A0 i32: view geometry, argument 1 (as G_VIEW_FIRST_ROW) */
 #define G_U70E470 0x0070E470u /* @bin 0x004303A0 i32: view geometry, argument 0 */
 #define G_U5E44A8 0x005E44A8u /* @bin 0x004E2AB0 five 8-byte entries: +0 i32 := (screen width - 180) / 2, +4 i16 copied to the notice's +4 */
 #define G_UE38E50 0x00E38E50u /* @bin 0x00540B50 i32: := 0 */

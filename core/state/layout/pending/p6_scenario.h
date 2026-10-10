@@ -22,7 +22,7 @@
 #define G_U5E06D4 0x005E06D4u /* @bin 0x004D0220 u8: := 0 when a mode works [g_frame.h] */
 #define G_APP_ACTIVE 0x00E3912Cu /* @bin 0x004D0220 i32: the window is active (core/frame/display.c) [g_frame.h] */
 #define G_DRAG_STATE 0x00E38E14u /* @bin 0x004CF263 i32: a mouse drag, 1 started, 2 past 50 px from its start (core/frame/frame.c) [g_frame.h] */
-#define G_UE38D90 0x00E38D90u /* @bin 0x004CF990 i32: the mode's height (with G_UE38D98) [g_frame.h] */
+#define G_UE38D90 0x00E38D90u /* @bin 0x004CF990 i32: the mode's height (with G_DRAW_H) [g_frame.h] */
 #define G_SCREEN_BYTES 0x00E38D8Cu /* @bin 0x004CF990 i32: the back buffer's size in bytes, 2 * w * h (docs/presentation.md 2.1) [g_frame.h] */
 #define G_RESOLUTION_SAVED 0x00E38EE4u /* @bin 0x00414902 i32: the confirmed resolution (core/frame/display.c, present/ui/frontend/screens.c) [g_frame.h] */
 #define G_AMBIENT_CHOICE 0x00F55B80u /* @bin 0x0053B9A3 i32: the ambient sound chosen (-1 by the start-up; core/frame/sound.c) [g_frame.h] */

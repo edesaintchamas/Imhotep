@@ -147,7 +147,7 @@ void empire_scroll_clamp(game_state *st)
         y = 0;
         S32(st, G_SCROLL_Y) = 0;
     }
-    lim = S32(st, G_MAP_H) + (S32(st, G_MAP_BOTTOM) - S32(st, G_UE38D98) + S32(st, G_MAP_Y));
+    lim = S32(st, G_MAP_H) + (S32(st, G_MAP_BOTTOM) - S32(st, G_DRAW_H) + S32(st, G_MAP_Y));
     if (y >= lim) {
         S32(st, G_SCROLL_Y) = lim - 1;
     }
