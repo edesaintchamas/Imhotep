@@ -460,7 +460,7 @@ int32_t houses_add_people(game_state *st, int32_t player, int32_t n)
             continue;
         }
         S32(st, c + CITY_U2718) = cursor;
-        int32_t cap = S32(st, G_HOUSE_LEVEL_U48 + 0x58u * (uint32_t) (int32_t) S16(st, b + BLD_SUBTYPE));
+        int32_t cap = S32(st, G_HOUSE_LEVEL_U1C + 0x58u * (uint32_t) (int32_t) S16(st, b + BLD_SUBTYPE));
         if (U8(st, b + BLD_HOUSE_MERGED) != 0) {
             cap = (int32_t) ((uint32_t) cap << 2);
         }

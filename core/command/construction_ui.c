@@ -711,7 +711,7 @@ void construction_preview(game_state *st, int32_t x1, int32_t y1, int32_t x2, in
     case 0x2C:
     case 0x2D:
         /* @bin 0x0047026B at most 6 forts (0x00BCB9B4) */
-        if (S32(st, G_FORMATION_COUNT) >= 6) {
+        if (S32(st, G_LEGIONS) >= 6) {
             return;
         }
         GAME_CALL(st, FN_FOOTPRINT_FITS, 3, x2, y2, -1, 1);

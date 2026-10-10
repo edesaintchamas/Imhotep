@@ -13,12 +13,10 @@
 #include "random/crt_rand.h"
 #include "random/random.h"
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define CURRENT_FIGURE 0x00D056F8u
-#define MAP_START 0x00BCA2D8u
-#define TERRAIN_GRID 0x00AF598Cu
 
 int32_t hunter_find_prey(game_state *st, int32_t x, int32_t y, int32_t range)
 {
@@ -30,20 +28,20 @@ int32_t hunter_find_prey(game_state *st, int32_t x, int32_t y, int32_t range)
     int32_t n = 0;
     for (int32_t id = 1; id < FIGURE_COUNT; id++) {
         uint32_t f = FIGURE_ADDR(id);
-        if (U8(st, f + 0x0E) != 1 || (uint8_t) figure_type_is_0x44_0x46(U8(st, f + 0x0A)) == 0) {
+        if (U8(st, f + FIG_STATE) != 1 || (uint8_t) figure_type_is_0x44_0x46(U8(st, f + FIG_TYPE)) == 0) {
             continue;
         }
-        uint8_t action = U8(st, f + 0x38);
+        uint8_t action = U8(st, f + FIG_ACTION);
         if (action == 4 || action == 0x0C) {
             continue;
         }
-        int32_t owner = S32(st, f + 0x138);
-        if (owner != 0 && owner != S16(st, FIGURE_ADDR(S32(st, CURRENT_FIGURE)) + 0x5A)) {
+        int32_t owner = S32(st, f + FIG_U138);
+        if (owner != 0 && owner != S16(st, FIGURE_ADDR(S32(st, G_CURRENT_FIGURE)) + FIG_HOME)) {
             continue;
         }
         ids[n] = id;
-        tiles[n] = (int32_t) (U32(st, MAP_START) + (uint32_t) (int32_t) S16(st, f + 0x14) +
-                              228u * (uint32_t) (int32_t) S16(st, f + 0x16));
+        tiles[n] = (int32_t) (U32(st, G_MAP_START) + (uint32_t) (int32_t) S16(st, f + FIG_X) +
+                              228u * (uint32_t) (int32_t) S16(st, f + FIG_Y));
         n++;
         if (n == 30) {
             break;
@@ -56,8 +54,8 @@ int32_t hunter_find_prey(game_state *st, int32_t x, int32_t y, int32_t range)
     if (r == 0) {
         return 0;
     }
-    int32_t cur = S32(st, CURRENT_FIGURE);
-    if (S16(st, FIGURE_ADDR(cur) + 0x3E) > range) {
+    int32_t cur = S32(st, G_CURRENT_FIGURE);
+    if (S16(st, FIGURE_ADDR(cur) + FIG_PATH_LENGTH) > range) {
         return 0;
     }
     figure_route_release(st, cur);
@@ -72,9 +70,9 @@ void cart_unloaded(game_state *st, int32_t amount, int32_t fid, int32_t terrain)
      * load +0x74); all unloaded: going home (action 0x0F, destination its +0x2C, +0x2E), else the
      * next destination (0x0048AE50) by its type, or action 8 */
     uint32_t f = FIGURE_ADDR(fid);
-    int32_t b = S16(st, f + 0x5E);
+    int32_t b = S16(st, f + FIG_DEST_BUILDING);
     uint32_t ba = BUILDING_ADDR(b);
-    int16_t type = S16(st, ba + 0x10);
+    int16_t type = S16(st, ba + BLD_TYPE);
     int counted = 0;
     if (type >= 0x6E && type <= 0x72) {
         counted = 1;
@@ -92,7 +90,7 @@ void cart_unloaded(game_state *st, int32_t amount, int32_t fid, int32_t terrain)
     if (counted) {
         /* @bin 0x0048B22C the good of the building's +0xCE */
         int32_t good;
-        switch (S16(st, ba + 0xCE)) {
+        switch (S16(st, ba + BLD_INPUT2)) {
         case 0x01: good = 0x10; break;
         case 0x03: good = 0x18; break;
         case 0x04: good = 0x14; break;
@@ -119,54 +117,54 @@ void cart_unloaded(game_state *st, int32_t amount, int32_t fid, int32_t terrain)
         case 0x1A: good = 0x22; break;
         default: good = -1; break;
         }
-        if (S16(st, ba + 0x10) == 0xCC && (int32_t) U8(st, f + 0x0B) == good) {
-            S16(st, ba + 0x106) -= 1;
+        if (S16(st, ba + BLD_TYPE) == 0xCC && (int32_t) U8(st, f + FIG_RESOURCE) == good) {
+            S16(st, ba + BLD_INCOMING_AMOUNT) -= 1;
         } else {
-            S16(st, ba + 0x104) -= 1;
+            S16(st, ba + BLD_INCOMING_CARTS) -= 1;
         }
-    } else if (S16(st, ba + 0x10) == 0x47) {
-        int16_t load = S16(st, f + 0x74);
-        S16(st, ba + 0x104) -= 1;
-        S16(st, ba + 0x106) = (int16_t) (S16(st, ba + 0x106) - load);
+    } else if (S16(st, ba + BLD_TYPE) == 0x47) {
+        int16_t load = S16(st, f + FIG_AMOUNT);
+        S16(st, ba + BLD_INCOMING_CARTS) -= 1;
+        S16(st, ba + BLD_INCOMING_AMOUNT) = (int16_t) (S16(st, ba + BLD_INCOMING_AMOUNT) - load);
     }
-    int16_t load = S16(st, f + 0x74);
+    int16_t load = S16(st, f + FIG_AMOUNT);
     if (amount == load) {
-        U8(st, f + 0x38) = 0x0F;
-        S16(st, f + 0x36) = 0;
-        S16(st, f + 0x24) = S16(st, f + 0x2C);
-        S16(st, f + 0x26) = S16(st, f + 0x2E);
-        S16(st, f + 0x74) = 0;
+        U8(st, f + FIG_ACTION) = 0x0F;
+        S16(st, f + FIG_WAIT_TICKS) = 0;
+        S16(st, f + FIG_DEST_X) = S16(st, f + FIG_SOURCE_X);
+        S16(st, f + FIG_DEST_Y) = S16(st, f + FIG_SOURCE_Y);
+        S16(st, f + FIG_AMOUNT) = 0;
         return;
     }
-    S16(st, f + 0x74) = (int16_t) (load - amount);
+    S16(st, f + FIG_AMOUNT) = (int16_t) (load - amount);
     int32_t to = cart_find_destination(st, fid, terrain);
     if (to == 0) {
-        U8(st, f + 0x38) = 8;
-        S16(st, f + 0x36) = 0;
+        U8(st, f + FIG_ACTION) = 8;
+        S16(st, f + FIG_WAIT_TICKS) = 0;
         return;
     }
-    switch (S16(st, BUILDING_ADDR(to) + 0x10)) { /* @bin 0x0048B2A4 jump table */
-    case 0x48: case 0x49: case 0xC1: U8(st, f + 0x38) = 9; break;
-    case 0x47: case 0xBF: U8(st, f + 0x38) = 0x0A; break;
-    case 0x5F: U8(st, f + 0x38) = 0x10; break;
-    default: U8(st, f + 0x38) = 0x0B; break;
+    switch (S16(st, BUILDING_ADDR(to) + BLD_TYPE)) { /* @bin 0x0048B2A4 jump table */
+    case 0x48: case 0x49: case 0xC1: U8(st, f + FIG_ACTION) = 9; break;
+    case 0x47: case 0xBF: U8(st, f + FIG_ACTION) = 0x0A; break;
+    case 0x5F: U8(st, f + FIG_ACTION) = 0x10; break;
+    default: U8(st, f + FIG_ACTION) = 0x0B; break;
     }
-    S16(st, f + 0x36) = 0;
-    S16(st, f + 0x24) = S16(st, 0x00D3B4E4u);
-    S16(st, f + 0x26) = S16(st, 0x00D3B4E0u);
+    S16(st, f + FIG_WAIT_TICKS) = 0;
+    S16(st, f + FIG_DEST_X) = S16(st, G_ROAD_ACCESS_X);
+    S16(st, f + FIG_DEST_Y) = S16(st, G_ROAD_ACCESS_Y);
 }
 
 void figure_new_slot_0x7f(game_state *st, int32_t fid)
 {
     /* @bin 0x00444B30 the figure's +0x7F takes the next of the 100 records of 0x58 bytes at
      * 0x0077AF00 (counter 0x0077AEFC), cleared */
-    int32_t n = S32(st, 0x0077AEFCu);
-    U8(st, FIGURE_ADDR(fid) + 0x7F) = (uint8_t) n;
-    GAME_CALL(st, 0x0040F8F0u, (int32_t) (0x0077AF00u + 0x58u * (uint32_t) n), 0x58, 0);
-    n = S32(st, 0x0077AEFCu) + 1;
-    S32(st, 0x0077AEFCu) = n;
+    int32_t n = S32(st, G_TRADER_NEXT);
+    U8(st, FIGURE_ADDR(fid) + FIG_U7F) = (uint8_t) n;
+    GAME_CALL(st, FN_FILL_BYTES, (int32_t) (G_TRADERS + 0x58u * (uint32_t) n), 0x58, 0);
+    n = S32(st, G_TRADER_NEXT) + 1;
+    S32(st, G_TRADER_NEXT) = n;
     if (n >= 100) {
-        S32(st, 0x0077AEFCu) = 0;
+        S32(st, G_TRADER_NEXT) = 0;
     }
 }
 
@@ -198,9 +196,9 @@ int32_t direction_to_fine(game_state *st, int32_t x0, int32_t y0, int32_t x1, in
     int32_t dy = y0 > y1 ? y0 - y1 : y1 - y0;
     int32_t r;
     if (dx > dy) {
-        r = GAME_CALL(st, 0x004CDE60u, dx, dy);
+        r = GAME_CALL(st, FN_CALC_RATIO_PERCENT, dx, dy);
     } else if (dx < dy) {
-        r = -GAME_CALL(st, 0x004CDE60u, dy, dx);
+        r = -GAME_CALL(st, FN_CALC_RATIO_PERCENT, dy, dx);
     } else {
         r = 100;
     }
@@ -241,10 +239,10 @@ void formation_morale_hit(game_state *st, int32_t formation)
     if (formation == 0) {
         return;
     }
-    GAME_CALL(st, 0x004B7C80u);
-    int32_t r = GAME_CALL(st, 0x004CDE60u, 1, (int32_t) U8(st, 0x00BCB9F0u + 0x90u * (uint32_t) formation));
+    GAME_CALL(st, FN_FORMATIONS_REBUILD);
+    int32_t r = GAME_CALL(st, FN_CALC_RATIO_PERCENT, 1, (int32_t) U8(st, G_FORMATION_BASE + FM_COUNT + 0x90u * (uint32_t) formation));
     int32_t d = r < 8 ? -5 : r < 10 ? -7 : r < 14 ? -10 : r < 20 ? -12 : r < 30 ? -15 : -20;
-    GAME_CALL(st, 0x004B7B50u, formation, d);
+    GAME_CALL(st, FN_FORMATION_ADD_0X2C, formation, d);
 }
 
 void figure_hit_sound(game_state *st, int32_t fid)
@@ -252,7 +250,7 @@ void figure_hit_sound(game_state *st, int32_t fid)
     /* @bin 0x004B5050 the sound (0x0053B4A0, channel 3) of the figure's type +0x0A: jump table
      * 0x004B51A8; types 0x1A and the others pick one of 4 / 8 at random (0x00562348) */
     int32_t sound;
-    switch (U8(st, FIGURE_ADDR(fid) + 0x0A)) {
+    switch (U8(st, FIGURE_ADDR(fid) + FIG_TYPE)) {
     case 0x0D: case 0x2D: case 0x38: sound = 0x0D; break;
     case 0x1A: sound = ((crt_rand(st) * 4) >> 15) + 0x1D; break;
     case 0x44: sound = 8; break;
@@ -267,7 +265,7 @@ void figure_hit_sound(game_state *st, int32_t fid)
     case 0x68: sound = 2; break;
     default: sound = ((crt_rand(st) * 8) >> 15) + 0x15; break;
     }
-    GAME_CALL(st, 0x0053B4A0u, fid, sound, 3);
+    GAME_CALL(st, FN_FIGURE_SOUND_53B4A0, fid, sound, 3);
 }
 
 void figure_attack_sound(game_state *st, int32_t fid)
@@ -275,14 +273,14 @@ void figure_attack_sound(game_state *st, int32_t fid)
     /* @bin 0x004B5210 the attack sound (0x0053B4A0, channel 2) of the figure's type: jump table
      * 0x004B528C */
     int32_t sound;
-    switch (U8(st, FIGURE_ADDR(fid) + 0x0A)) {
+    switch (U8(st, FIGURE_ADDR(fid) + FIG_TYPE)) {
     case 0x0B: case 0x2B: case 0x37: sound = 0x0B; break;
     case 0x0C: case 0x2C: case 0x36: sound = 0x0C; break;
     case 0x0D: case 0x2D: case 0x38: case 0x63: sound = 0x0D; break;
     case 0x4E: case 0x5D: case 0x64: sound = 0x11; break;
     default: return;
     }
-    GAME_CALL(st, 0x0053B4A0u, fid, sound, 2);
+    GAME_CALL(st, FN_FIGURE_SOUND_53B4A0, fid, sound, 2);
 }
 
 int32_t line_of_fire_clear(game_state *st, int32_t x, int32_t y, int32_t tx, int32_t ty)
@@ -292,47 +290,47 @@ int32_t line_of_fire_clear(game_state *st, int32_t x, int32_t y, int32_t tx, int
      * 0x00B285CC & 0xF (the first 6 tiles skipped when the start has terrain 0xC000), or after
      * 1000 tiles */
     uint32_t z = FIGURE_ADDR(0);
-    S16(st, z + 0x4A) = (int16_t) (x * 15);
-    S16(st, z + 0x4C) = (int16_t) (y * 15);
+    S16(st, z + FIG_CC_X) = (int16_t) (x * 15);
+    S16(st, z + FIG_CC_Y) = (int16_t) (y * 15);
     int32_t skip = 0;
-    if (U32(st, TERRAIN_GRID + 4u * (U32(st, MAP_START) + 228u * (uint32_t) y + (uint32_t) x)) & 0xC000u) {
+    if (U32(st, G_GRID_TERRAIN + 4u * (U32(st, G_MAP_START) + 228u * (uint32_t) y + (uint32_t) x)) & 0xC000u) {
         skip = 6;
     }
     figure_line_to(st, 0, x * 15, y * 15, tx * 15, ty * 15, 0);
     for (int32_t n = 0; n < 1000; n++) {
         for (int32_t i = 0; i < 8; i++) {
-            if ((int32_t) S16(st, z + 0x52) + (int32_t) S16(st, z + 0x54) <= 0) {
+            if ((int32_t) S16(st, z + FIG_CC_DELTA_X) + (int32_t) S16(st, z + FIG_CC_DELTA_Y) <= 0) {
                 return 1;
             }
             figure_line_error(st, 0);
-            if (U8(st, z + 0x58) == 2) {
+            if (U8(st, z + FIG_CC_DIRECTION) == 2) {
                 figure_line_step_y(st, 0);
-                if (S16(st, z + 0x56) >= 0) {
-                    S16(st, z + 0x52) -= 1;
+                if (S16(st, z + FIG_CC_ERROR) >= 0) {
+                    S16(st, z + FIG_CC_DELTA_X) -= 1;
                     figure_line_step_x(st, 0);
                 }
             } else {
                 figure_line_step_x(st, 0);
-                if (S16(st, z + 0x56) >= 0) {
-                    S16(st, z + 0x54) -= 1;
+                if (S16(st, z + FIG_CC_ERROR) >= 0) {
+                    S16(st, z + FIG_CC_DELTA_Y) -= 1;
                     figure_line_step_y(st, 0);
                 }
             }
         }
-        int16_t cx = (int16_t) (S16(st, z + 0x4A) / 15);
-        int16_t cy = (int16_t) (S16(st, z + 0x4C) / 15);
-        S16(st, z + 0x14) = cx;
-        S16(st, z + 0x16) = cy;
+        int16_t cx = (int16_t) (S16(st, z + FIG_CC_X) / 15);
+        int16_t cy = (int16_t) (S16(st, z + FIG_CC_Y) / 15);
+        S16(st, z + FIG_X) = cx;
+        S16(st, z + FIG_Y) = cy;
         if (skip != 0) {
             skip--;
             continue;
         }
-        uint32_t t = U32(st, MAP_START) + (uint32_t) (int32_t) cx + 228u * (uint32_t) (int32_t) cy;
-        uint32_t flags = U32(st, TERRAIN_GRID + 4u * t);
+        uint32_t t = U32(st, G_MAP_START) + (uint32_t) (int32_t) cx + 228u * (uint32_t) (int32_t) cy;
+        uint32_t flags = U32(st, G_GRID_TERRAIN + 4u * t);
         if (flags & 0xC001u) {
             return 0;
         }
-        if ((flags & 8u) && (U8(st, 0x00B285CCu + t) & 0x0Fu)) {
+        if ((flags & 8u) && (U8(st, G_DAY2_DESTROY_BITS + t) & 0x0Fu)) {
             return 0;
         }
     }
@@ -344,19 +342,19 @@ int32_t missile_create(game_state *st, int32_t from, int32_t x, int32_t y, int32
     /* @bin 0x004B45C0 a missile figure `type` (0x004B4800) at (x, y) shot by figure `from` (its
      * sound 0x004B5210) towards (tx, ty): +0x1C 0x3C for type 0x3D else 10, +0x5A the shooter, a
      * straight line (0x004B4220, exact), +0x11 its angle (0x0051CAE0, x87, replayed) */
-    int32_t id = figure_create(st, S32(st, 0x00EAAC28u), type, x, y, 0);
+    int32_t id = figure_create(st, S32(st, G_PLAYER), type, x, y, 0);
     if (id == 0) {
         return 0;
     }
     figure_attack_sound(st, from);
     uint32_t f = FIGURE_ADDR(id);
-    U8(st, f + 0x1C) = type == 0x3D ? 0x3C : 10;
-    S16(st, f + 0x5A) = (int16_t) from;
-    S16(st, f + 0x24) = (int16_t) tx;
-    S16(st, f + 0x26) = (int16_t) ty;
-    figure_line_to(st, id, S16(st, f + 0x4A), S16(st, f + 0x4C), S16(st, f + 0x24) * 15, (int16_t) ty * 15, 1);
-    U8(st, f + 0x11) = (uint8_t) GAME_CALL(st, 0x0051CAE0u, S16(st, f + 0x14), S16(st, f + 0x16), S16(st, f + 0x24),
-                                           S16(st, f + 0x26));
+    U8(st, f + FIG_MISSILE_DAMAGE) = type == 0x3D ? 0x3C : 10;
+    S16(st, f + FIG_HOME) = (int16_t) from;
+    S16(st, f + FIG_DEST_X) = (int16_t) tx;
+    S16(st, f + FIG_DEST_Y) = (int16_t) ty;
+    figure_line_to(st, id, S16(st, f + FIG_CC_X), S16(st, f + FIG_CC_Y), S16(st, f + FIG_DEST_X) * 15, (int16_t) ty * 15, 1);
+    U8(st, f + FIG_DIRECTION) = (uint8_t) GAME_CALL(st, FN_X87_DIRECTION, S16(st, f + FIG_X), S16(st, f + FIG_Y), S16(st, f + FIG_DEST_X),
+                                           S16(st, f + FIG_DEST_Y));
     return id;
 }
 
@@ -366,29 +364,29 @@ void figure_spawn_ring(game_state *st, int32_t x, int32_t y, int32_t size, int32
      * or 16 when `many` (sound 0x0053B090(0x11)); each moved by 0x005DC614[size] in 1/15 tile and
      * its destination by the pair at 0x005DC62C + 8 k, sent there (0x004B4220); +0x59 the byte
      * 0x005DC6AC + 4 k, +0x15C whether it is under 3 */
-    int32_t off = S32(st, 0x005DC5FCu + 4u * (uint32_t) size);
-    int32_t sub = S32(st, 0x005DC614u + 4u * (uint32_t) size);
+    int32_t off = S32(st, G_U5DC5FC + 4u * (uint32_t) size);
+    int32_t sub = S32(st, G_U5DC614 + 4u * (uint32_t) size);
     int32_t n = (uint8_t) many != 0 ? 16 : 4;
     for (int32_t k = 0; k < n; k++) {
-        int32_t id = figure_create(st, S32(st, 0x00EAAC28u), 6, x + off, y + off, 0);
+        int32_t id = figure_create(st, S32(st, G_PLAYER), 6, x + off, y + off, 0);
         if (id == 0) {
             continue;
         }
         uint32_t f = FIGURE_ADDR(id);
-        int16_t dx = S16(st, 0x005DC62Cu + 8u * (uint32_t) k);
-        int16_t dy = S16(st, 0x005DC630u + 8u * (uint32_t) k);
-        S16(st, f + 0x4A) = (int16_t) (S16(st, f + 0x4A) + sub);
-        S16(st, f + 0x4C) = (int16_t) (S16(st, f + 0x4C) + sub);
-        S16(st, f + 0x24) = (int16_t) (S16(st, f + 0x24) + dx);
-        S16(st, f + 0x26) = (int16_t) (S16(st, f + 0x26) + dy);
-        figure_line_to(st, id, S16(st, f + 0x4A), S16(st, f + 0x4C), sub + S16(st, f + 0x24) * 15,
-                       sub + S16(st, f + 0x26) * 15, 0);
-        uint8_t v = U8(st, 0x005DC6ACu + 4u * (uint32_t) k);
-        U8(st, f + 0x59) = v;
-        U32(st, f + 0x15C) = v < 3;
+        int16_t dx = S16(st, G_U5DC62C + 8u * (uint32_t) k);
+        int16_t dy = S16(st, G_U5DC630 + 8u * (uint32_t) k);
+        S16(st, f + FIG_CC_X) = (int16_t) (S16(st, f + FIG_CC_X) + sub);
+        S16(st, f + FIG_CC_Y) = (int16_t) (S16(st, f + FIG_CC_Y) + sub);
+        S16(st, f + FIG_DEST_X) = (int16_t) (S16(st, f + FIG_DEST_X) + dx);
+        S16(st, f + FIG_DEST_Y) = (int16_t) (S16(st, f + FIG_DEST_Y) + dy);
+        figure_line_to(st, id, S16(st, f + FIG_CC_X), S16(st, f + FIG_CC_Y), sub + S16(st, f + FIG_DEST_X) * 15,
+                       sub + S16(st, f + FIG_DEST_Y) * 15, 0);
+        uint8_t v = U8(st, G_U5DC6AC + 4u * (uint32_t) k);
+        U8(st, f + FIG_U59) = v;
+        U32(st, f + FIG_U15C) = v < 3;
     }
     if ((uint8_t) many != 0) {
-        GAME_CALL(st, 0x0053B090u, 0x11);
+        GAME_CALL(st, FN_UI_SOUND, 0x11);
     }
 }
 
@@ -397,23 +395,23 @@ void figure_fight_end(game_state *st, int32_t fid)
     /* @bin 0x004B1DA0 the fight is over: +0x8B 0, back to the action before (+0x10), opponents
      * +0x90, +0x8C, +0x8E cleared, route released (0x004B3250) */
     uint32_t f = FIGURE_ADDR(fid);
-    U8(st, f + 0x8B) = 0;
-    U8(st, f + 0x38) = U8(st, f + 0x10);
-    S16(st, f + 0x90) = 0;
-    S16(st, f + 0x8C) = 0;
-    S16(st, f + 0x8E) = 0;
+    U8(st, f + FIG_ATTACKERS) = 0;
+    U8(st, f + FIG_ACTION) = U8(st, f + FIG_ACTION_BEFORE_ATTACK);
+    S16(st, f + FIG_OPPONENT) = 0;
+    S16(st, f + FIG_ATTACKER1) = 0;
+    S16(st, f + FIG_ATTACKER2) = 0;
     figure_route_release(st, fid);
 }
 
-#define FORMATION_AT(id) (0x00BCB9C8u + 0x90u * (uint32_t) (id))
-#define FIGURE_PROPS(type) (0x007090CCu + 0x38u * (uint32_t) (type))
+#define FORMATION_AT(id) (G_FORMATION_BASE + 0x90u * (uint32_t) (id))
+#define FIGURE_PROPS(type) (G_PROPS + 0x38u * (uint32_t) (type))
 
 /* the formation's facing bonus: +4 / +2 / -2 / -4 by its type (+0x04, 0x0B .. 0x0D) when it holds
  * its position (+0x5A), its facing +0x6B against the figure's direction and its +0x2A */
 static int32_t is_alive_fighting(game_state *st, int32_t id)
 {
     uint32_t a = FIGURE_ADDR(id);
-    return U8(st, a + 0x0E) == 1 && U8(st, a + 0x38) != 4;
+    return U8(st, a + FIG_STATE) == 1 && U8(st, a + FIG_ACTION) != 4;
 }
 
 void figure_fight(game_state *st, int32_t fid)
@@ -426,76 +424,76 @@ void figure_fight(game_state *st, int32_t fid)
      * +0x04, +0x6B, +0x2A); damage (20 - defence) * attack / 20 added to the opponent's +0x1D;
      * over its property +0x04 it dies (action 4) */
     uint32_t f = FIGURE_ADDR(fid);
-    int32_t fm = S16(st, f + 0x60);
-    if (S8(st, f + 0x39) <= 5) {
-        S8(st, f + 0x39) = (int8_t) (S8(st, f + 0x39) + 1);
+    int32_t fm = S16(st, f + FIG_FORMATION);
+    if (S8(st, f + FIG_PROGRESS_ON_TILE) <= 5) {
+        S8(st, f + FIG_PROGRESS_ON_TILE) = (int8_t) (S8(st, f + FIG_PROGRESS_ON_TILE) + 1);
         figure_substep(st, fid);
     }
-    uint8_t mode = U8(st, f + 0x8B);
+    uint8_t mode = U8(st, f + FIG_ATTACKERS);
     if (mode == 0) {
         figure_fight_end(st, fid);
         return;
     }
     if (mode == 1) {
-        if (!is_alive_fighting(st, S16(st, f + 0x90))) {
+        if (!is_alive_fighting(st, S16(st, f + FIG_OPPONENT))) {
             figure_fight_end(st, fid);
             return;
         }
     } else if (mode == 2) {
-        int32_t o = S16(st, f + 0x90);
+        int32_t o = S16(st, f + FIG_OPPONENT);
         if (!is_alive_fighting(st, o)) {
-            if (o == S16(st, f + 0x8C)) {
-                S16(st, f + 0x90) = S16(st, f + 0x8E);
-            } else if (o == S16(st, f + 0x8E)) {
-                S16(st, f + 0x90) = S16(st, f + 0x8C);
+            if (o == S16(st, f + FIG_ATTACKER1)) {
+                S16(st, f + FIG_OPPONENT) = S16(st, f + FIG_ATTACKER2);
+            } else if (o == S16(st, f + FIG_ATTACKER2)) {
+                S16(st, f + FIG_OPPONENT) = S16(st, f + FIG_ATTACKER1);
             }
-            int16_t n = S16(st, f + 0x90);
+            int16_t n = S16(st, f + FIG_OPPONENT);
             if (!is_alive_fighting(st, n)) {
                 figure_fight_end(st, fid);
                 return;
             }
-            U8(st, f + 0x8B) = 1;
-            S16(st, f + 0x8C) = n;
-            S16(st, f + 0x8E) = 0;
+            U8(st, f + FIG_ATTACKERS) = 1;
+            S16(st, f + FIG_ATTACKER1) = n;
+            S16(st, f + FIG_ATTACKER2) = 0;
         }
     }
-    uint8_t c = (uint8_t) (U8(st, f + 0x6A) + 1);
-    U8(st, f + 0x6A) = c;
+    uint8_t c = (uint8_t) (U8(st, f + FIG_ATTACK_IMAGE) + 1);
+    U8(st, f + FIG_ATTACK_IMAGE) = c;
     if (c < 0x18) {
         return;
     }
-    int32_t oid = S16(st, f + 0x90);
+    int32_t oid = S16(st, f + FIG_OPPONENT);
     uint32_t o = FIGURE_ADDR(oid);
-    int32_t ofm = S16(st, o + 0x60);
-    int32_t kind = S32(st, FIGURE_PROPS(U8(st, o + 0x0A)));
-    U8(st, f + 0x6A) = (kind == 1 || kind == 4) ? 0x0C : 0;
+    int32_t ofm = S16(st, o + FIG_FORMATION);
+    int32_t kind = S32(st, FIGURE_PROPS(U8(st, o + FIG_TYPE)) + FIGTYPE_U00);
+    U8(st, f + FIG_ATTACK_IMAGE) = (kind == 1 || kind == 4) ? 0x0C : 0;
     int32_t bonus = 0;
-    if ((int32_t) U8(st, o + 0x0F) == S32(st, 0x00EAAC28u)) {
-        bonus = (S16(st, FORMATION_AT(fm) + 0x7A) + 10) / 20;
+    if ((int32_t) U8(st, o + FIG_OWNER) == S32(st, G_PLAYER)) {
+        bonus = (S16(st, FORMATION_AT(fm) + FM_EXPERIENCE) + 10) / 20;
     }
-    int32_t attack = S32(st, FIGURE_PROPS(U8(st, f + 0x0A)) + 8);
-    int32_t defence = S32(st, FIGURE_PROPS(U8(st, o + 0x0A)) + 0x0C) + bonus;
+    int32_t attack = S32(st, FIGURE_PROPS(U8(st, f + FIG_TYPE)) + FIGTYPE_ATTACK);
+    int32_t defence = S32(st, FIGURE_PROPS(U8(st, o + FIG_TYPE)) + FIGTYPE_DEFENCE) + bonus;
     if (defence >= 20) {
         defence = 20;
     }
-    int32_t fdir = S8(st, f + 0x13), odir = S8(st, o + 0x13);
+    int32_t fdir = S8(st, f + FIG_ATTACK_DIRECTION), odir = S8(st, o + FIG_ATTACK_DIRECTION);
     uint32_t fa = FORMATION_AT(fm), oa = FORMATION_AT(ofm);
-    if (S16(st, o + 0x90) != fid && direction_near(fdir, odir)) {
-        int16_t t = S16(st, fa + 4);
+    if (S16(st, o + FIG_OPPONENT) != fid && direction_near(fdir, odir)) {
+        int16_t t = S16(st, fa + FM_TYPE);
         if (t == 0x0C || t == 0x0D) {
             attack += 4;
-            GAME_CALL(st, 0x0047D350u, 0x8D);
+            GAME_CALL(st, FN_RETURN_ZERO, 0x8D);
         }
     }
-    if (S16(st, fa + 0x5A) != 0) {
-        int32_t t = S16(st, fa + 4);
+    if (S16(st, fa + FM_U5A) != 0) {
+        int32_t t = S16(st, fa + FM_TYPE);
         if (t == 0x0B || t == 0x0D) {
-            if (direction_near(fdir, U8(st, fa + 0x6B)) && S16(st, fa + 0x2A) == 6) {
+            if (direction_near(fdir, U8(st, fa + FM_FACING)) && S16(st, fa + FM_LAYOUT) == 6) {
                 attack += 2;
             }
         } else if (t == 0x0C) {
-            if (direction_near(fdir, U8(st, fa + 0x6B))) {
-                int32_t v = S16(st, fa + 0x2A);
+            if (direction_near(fdir, U8(st, fa + FM_FACING))) {
+                int32_t v = S16(st, fa + FM_LAYOUT);
                 if (v > 0) {
                     if (v <= 2) {
                         attack += 4;
@@ -506,19 +504,19 @@ void figure_fight(game_state *st, int32_t fid)
             }
         }
     }
-    if (S16(st, oa + 0x5A) != 0) {
-        int32_t t = S16(st, oa + 4);
+    if (S16(st, oa + FM_U5A) != 0) {
+        int32_t t = S16(st, oa + FM_TYPE);
         if (t == 0x0B || t == 0x0D) {
-            if (!direction_near(odir, U8(st, oa + 0x6B))) {
+            if (!direction_near(odir, U8(st, oa + FM_FACING))) {
                 defence -= 4;
-            } else if (S16(st, oa + 0x2A) == 6) {
+            } else if (S16(st, oa + FM_LAYOUT) == 6) {
                 defence -= 2;
             }
         } else if (t == 0x0C) {
-            if (!direction_near(odir, U8(st, oa + 0x6B))) {
+            if (!direction_near(odir, U8(st, oa + FM_FACING))) {
                 defence -= 4;
             } else {
-                int32_t v = S16(st, oa + 0x2A);
+                int32_t v = S16(st, oa + FM_LAYOUT);
                 if (v > 0) {
                     if (v <= 2) {
                         defence += 4;
@@ -529,19 +527,19 @@ void figure_fight(game_state *st, int32_t fid)
             }
         }
     }
-    if (S16(st, fa + 4) == 0x39 && direction_near(fdir, U8(st, fa + 0x6B))) {
-        int32_t v = S16(st, fa + 0x2A);
+    if (S16(st, fa + FM_TYPE) == 0x39 && direction_near(fdir, U8(st, fa + FM_FACING))) {
+        int32_t v = S16(st, fa + FM_LAYOUT);
         if (v > 0 && v <= 2) {
             attack += 4;
         }
     }
-    if (S16(st, oa + 4) == 0x39 && direction_near(odir, U8(st, oa + 0x6B))) {
-        int32_t v = S16(st, oa + 0x2A);
+    if (S16(st, oa + FM_TYPE) == 0x39 && direction_near(odir, U8(st, oa + FM_FACING))) {
+        int32_t v = S16(st, oa + FM_LAYOUT);
         if (v > 0 && v <= 2) {
             defence += 4;
         }
     }
-    int32_t health = S32(st, FIGURE_PROPS(U8(st, o + 0x0A)) + 4);
+    int32_t health = S32(st, FIGURE_PROPS(U8(st, o + FIG_TYPE)) + FIGTYPE_MAX_DAMAGE);
     if (defence < 0) {
         defence = 0;
     }
@@ -555,23 +553,23 @@ void figure_fight(game_state *st, int32_t fid)
             damage = 0;
         }
     }
-    uint8_t hurt = (uint8_t) (U8(st, o + 0x1D) + (uint8_t) damage);
-    U8(st, o + 0x1D) = hurt;
+    uint8_t hurt = (uint8_t) (U8(st, o + FIG_DAMAGE) + (uint8_t) damage);
+    U8(st, o + FIG_DAMAGE) = hurt;
     if ((int32_t) hurt <= health) {
         figure_attack_sound(st, fid);
         return;
     }
-    uint8_t otype = U8(st, o + 0x0A);
-    if ((uint8_t) GAME_CALL(st, 0x004EA9C0u, otype) == 0 && (uint8_t) GAME_CALL(st, 0x004EA9A0u, U8(st, o + 0x0A)) == 0 &&
-        U8(st, o + 0x0A) != 0x17 && (int32_t) U8(st, f + 0x0F) == S32(st, 0x00EAAC28u)) {
-        int32_t m = S16(st, fa + 0x7A) + 1;
+    uint8_t otype = U8(st, o + FIG_TYPE);
+    if ((uint8_t) GAME_CALL(st, FN_FIGURE_TYPE_IS_ENEMY_0X52, otype) == 0 && (uint8_t) GAME_CALL(st, FN_FIGURE_TYPE_IS_0X44_0X46, U8(st, o + FIG_TYPE)) == 0 &&
+        U8(st, o + FIG_TYPE) != 0x17 && (int32_t) U8(st, f + FIG_OWNER) == S32(st, G_PLAYER)) {
+        int32_t m = S16(st, fa + FM_EXPERIENCE) + 1;
         if (m >= 100) {
             m = 100;
         }
-        S16(st, fa + 0x7A) = (int16_t) m;
+        S16(st, fa + FM_EXPERIENCE) = (int16_t) m;
     }
-    U8(st, o + 0x38) = 4;
-    S16(st, o + 0x36) = 0;
+    U8(st, o + FIG_ACTION) = 4;
+    S16(st, o + FIG_WAIT_TICKS) = 0;
     figure_hit_sound(st, oid);
     formation_morale_hit(st, ofm);
 }
@@ -580,9 +578,9 @@ void figure_fight(game_state *st, int32_t fid)
 static void animal_rest(game_state *st, uint32_t f)
 {
     random_next_state(st);
-    S16(st, f + 0x36) = (int16_t) (S32(st, 0x00D3B370u) % 100 + 0xFA);
-    S32(st, f + 0x144) = 0x0C;
-    S32(st, f + 0x148) = 0;
+    S16(st, f + FIG_WAIT_TICKS) = (int16_t) (S32(st, G_R_1_15) % 100 + 0xFA);
+    S32(st, f + FIG_FRAME_PERIOD) = 0x0C;
+    S32(st, f + FIG_FRAME_TICKS) = 0;
 }
 
 /* the "wander" action of the animals: one random step; the first of the 8 directions from the
@@ -593,14 +591,14 @@ static void animal_wander(game_state *st, int32_t fid, uint32_t offsets, uint32_
 {
     uint32_t f = FIGURE_ADDR(fid);
     random_next_state(st);
-    int32_t dir = (int32_t) (U32(st, 0x00D3B384u) & 7u);
+    int32_t dir = (int32_t) (U32(st, G_R_IV1) & 7u);
     int32_t k;
     for (k = 0; k < 8; k++) {
-        uint32_t t = U32(st, offsets + 4u * (uint32_t) dir) + U32(st, f + 0x20);
-        uint32_t flags = U32(st, TERRAIN_GRID + 4u * t);
+        uint32_t t = U32(st, offsets + 4u * (uint32_t) dir) + U32(st, f + FIG_GRID_OFFSET);
+        uint32_t flags = U32(st, G_GRID_TERRAIN + 4u * t);
         if ((flags & 4u) && !(flags & 0x80000u)) {
-            S16(st, f + 0x24) = (int16_t) (S16(st, pairs + 8u * (uint32_t) dir) + S16(st, f + 0x14));
-            S16(st, f + 0x26) = (int16_t) (S16(st, pairs + 4u + 8u * (uint32_t) dir) + S16(st, f + 0x16));
+            S16(st, f + FIG_DEST_X) = (int16_t) (S16(st, pairs + 8u * (uint32_t) dir) + S16(st, f + FIG_X));
+            S16(st, f + FIG_DEST_Y) = (int16_t) (S16(st, pairs + 4u + 8u * (uint32_t) dir) + S16(st, f + FIG_Y));
             break;
         }
         dir++;
@@ -610,15 +608,15 @@ static void animal_wander(game_state *st, int32_t fid, uint32_t offsets, uint32_
     }
     if (k == 8) {
         int32_t ox = 0, oy = 0;
-        if (map_search_rings(st, S16(st, f + 0x14), S16(st, f + 0x16), 0, 0, 4, &ox, &oy, 5, fid) == 0) {
-            S16(st, f + 0x24) = S16(st, f + 0x14);
-            S16(st, f + 0x26) = S16(st, f + 0x16);
+        if (map_search_rings(st, S16(st, f + FIG_X), S16(st, f + FIG_Y), 0, 0, 4, &ox, &oy, 5, fid) == 0) {
+            S16(st, f + FIG_DEST_X) = S16(st, f + FIG_X);
+            S16(st, f + FIG_DEST_Y) = S16(st, f + FIG_Y);
         } else {
-            S16(st, f + 0x24) = (int16_t) ox;
-            S16(st, f + 0x26) = (int16_t) oy;
+            S16(st, f + FIG_DEST_X) = (int16_t) ox;
+            S16(st, f + FIG_DEST_Y) = (int16_t) oy;
         }
     }
-    S32(st, f + 0x148) = 0;
+    S32(st, f + FIG_FRAME_TICKS) = 0;
 }
 
 void animal_set_action(game_state *st, int32_t fid, int32_t action)
@@ -626,13 +624,13 @@ void animal_set_action(game_state *st, int32_t fid, int32_t action)
     /* @bin 0x004ECA70 an animal's next action: 0x13 wanders (+0x144 0x0B; offsets 0x005E4E80,
      * pairs 0x005E4EA0), the others rest */
     uint32_t f = FIGURE_ADDR(fid);
-    U8(st, f + 0x38) = (uint8_t) action;
+    U8(st, f + FIG_ACTION) = (uint8_t) action;
     if (action != 0x13) {
         animal_rest(st, f);
         return;
     }
-    S32(st, f + 0x144) = 0x0B;
-    animal_wander(st, fid, 0x005E4E80u, 0x005E4EA0u);
+    S32(st, f + FIG_FRAME_PERIOD) = 0x0B;
+    animal_wander(st, fid, G_U5E4E80, G_U5E4EA0);
 }
 
 void animal_set_action2(game_state *st, int32_t fid, int32_t action)
@@ -641,26 +639,26 @@ void animal_set_action2(game_state *st, int32_t fid, int32_t action)
      * offsets 0x005E4E0C, pairs 0x005E4E30), 0x1A waits (+0x144 0x0C, +0x36 20), the others seek
      * (0x004EC990, +0x144 7, +0x36 200) */
     uint32_t f = FIGURE_ADDR(fid);
-    U8(st, f + 0x38) = (uint8_t) action;
+    U8(st, f + FIG_ACTION) = (uint8_t) action;
     if (action == 0x12) {
         animal_rest(st, f);
         return;
     }
     if (action == 0x13) {
-        S32(st, f + 0x144) = 0x0C;
-        animal_wander(st, fid, 0x005E4E0Cu, 0x005E4E30u);
+        S32(st, f + FIG_FRAME_PERIOD) = 0x0C;
+        animal_wander(st, fid, G_U5E4E0C, G_U5E4E30);
         return;
     }
     if (action == 0x1A) {
-        S32(st, f + 0x144) = 0x0C;
-        S16(st, f + 0x36) = 0x14;
-        S32(st, f + 0x148) = 0;
+        S32(st, f + FIG_FRAME_PERIOD) = 0x0C;
+        S16(st, f + FIG_WAIT_TICKS) = 0x14;
+        S32(st, f + FIG_FRAME_TICKS) = 0;
         return;
     }
-    GAME_CALL(st, 0x004EC990u, fid);
-    S32(st, f + 0x144) = 7;
-    S16(st, f + 0x36) = 200;
-    S32(st, f + 0x148) = 0;
+    GAME_CALL(st, FN_ANIMAL_SEEK_TARGET, fid);
+    S32(st, f + FIG_FRAME_PERIOD) = 7;
+    S16(st, f + FIG_WAIT_TICKS) = 200;
+    S32(st, f + FIG_FRAME_TICKS) = 0;
 }
 
 void animal_choose_action(game_state *st, int32_t fid)
@@ -668,7 +666,7 @@ void animal_choose_action(game_state *st, int32_t fid)
     /* @bin 0x004ECD40 one random step; random % 100 against the weights of the current action
      * (8: 50 / 50, 0x13: 90 / 10, else 25 / 75) picks the next action of 0x005E4EE0 (0x004ECA70) */
     int32_t w[2];
-    uint8_t a = U8(st, FIGURE_ADDR(fid) + 0x38);
+    uint8_t a = U8(st, FIGURE_ADDR(fid) + FIG_ACTION);
     if (a == 8) {
         w[0] = 50;
         w[1] = 50;
@@ -680,7 +678,7 @@ void animal_choose_action(game_state *st, int32_t fid)
         w[1] = 75;
     }
     random_next_state(st);
-    int32_t r = S32(st, 0x00D3B370u) % 100;
+    int32_t r = S32(st, G_R_1_15) % 100;
     int32_t i, sum = 0;
     for (i = 0; i < 2; i++) {
         sum += w[i];
@@ -688,7 +686,7 @@ void animal_choose_action(game_state *st, int32_t fid)
             break;
         }
     }
-    animal_set_action(st, fid, S32(st, 0x005E4EE0u + 4u * (uint32_t) i));
+    animal_set_action(st, fid, S32(st, G_U5E4EE0 + 4u * (uint32_t) i));
 }
 
 int32_t boat_ram_target(game_state *st, int32_t fid)
@@ -697,9 +695,9 @@ int32_t boat_ram_target(game_state *st, int32_t fid)
      * the next tile in its direction +0x11 (0..7) */
     static const int32_t step[8] = {-228, -227, 1, 229, 228, 227, -1, -229};
     uint32_t f = FIGURE_ADDR(fid);
-    int32_t tile = (int32_t) (U32(st, MAP_START) + (uint32_t) (int32_t) S16(st, f + 0x14) +
-                              228u * (uint32_t) (int32_t) S16(st, f + 0x16));
-    uint32_t dir = (uint32_t) (int32_t) S8(st, f + 0x11);
+    int32_t tile = (int32_t) (U32(st, G_MAP_START) + (uint32_t) (int32_t) S16(st, f + FIG_X) +
+                              228u * (uint32_t) (int32_t) S16(st, f + FIG_Y));
+    uint32_t dir = (uint32_t) (int32_t) S8(st, f + FIG_DIRECTION);
     if (dir > 7) {
         return 0;
     }
@@ -715,11 +713,11 @@ int32_t figure_held_back(game_state *st, int32_t fid)
     /* @bin 0x004BCE90 soldiers 0x0B .. 0x0D whose formation's +0x82 is set (>= 0), ships 0x4D /
      * 0x4E whose +0x132 is: not a target (jump table 0x004BCEF4) */
     uint32_t f = FIGURE_ADDR(fid);
-    switch (U8(st, f + 0x0A)) {
+    switch (U8(st, f + FIG_TYPE)) {
     case 0x0B: case 0x0C: case 0x0D:
-        return S16(st, 0x00BCB9C8u + 0x90u * (uint32_t) (int32_t) S16(st, f + 0x60) + 0x82) >= 0;
+        return S16(st, G_FORMATION_BASE + 0x90u * (uint32_t) (int32_t) S16(st, f + FIG_FORMATION) + FM_U82) >= 0;
     case 0x4D: case 0x4E:
-        return S16(st, f + 0x132) >= 0;
+        return S16(st, f + FIG_U132) >= 0;
     default:
         return 0;
     }
@@ -733,13 +731,13 @@ int32_t warship_find_target(game_state *st, int32_t x, int32_t y, int32_t range)
      * 0x4D; the largest weight minus distance (max of dx, dy; the best distance in 0x00BCD5EC,
      * from `range`) with a clear line (0x004B4420); its position to 0x00D3B4E4 / 0x00D3B4E0 */
     int32_t best = 0, best_w = 0;
-    S32(st, 0x00BCD5ECu) = range;
+    S32(st, G_BEST_DISTANCE) = range;
     for (int32_t id = 1; id < FIGURE_COUNT; id++) {
         uint32_t f = FIGURE_ADDR(id);
-        if (U8(st, f + 0x0E) != 1 || (uint8_t) figure_held_back(st, id) != 0 || U8(st, f + 0x38) == 4) {
+        if (U8(st, f + FIG_STATE) != 1 || (uint8_t) figure_held_back(st, id) != 0 || U8(st, f + FIG_ACTION) == 4) {
             continue;
         }
-        uint8_t type = U8(st, f + 0x0A);
+        uint8_t type = U8(st, f + FIG_TYPE);
         int32_t w;
         if (type == 0x0B || type == 0x0C || type == 0x0D) {
             w = 0x11;
@@ -748,24 +746,24 @@ int32_t warship_find_target(game_state *st, int32_t x, int32_t y, int32_t range)
         } else if (type == 0x4E) {
             w = 0x0F;
         } else if (type == 0x4D) {
-            w = U8(st, f + 0x130) != 0 ? 25 : 10;
+            w = U8(st, f + FIG_U130) != 0 ? 25 : 10;
         } else {
             continue;
         }
-        int32_t tx = S16(st, f + 0x14), ty = S16(st, f + 0x16);
+        int32_t tx = S16(st, f + FIG_X), ty = S16(st, f + FIG_Y);
         int32_t dx = x > tx ? x - tx : x < tx ? tx - x : 0;
         int32_t dy = y > ty ? y - ty : y < ty ? ty - y : 0;
-        S32(st, 0x00D3B4FCu) = dx;
-        S32(st, 0x00D3B4F8u) = dy;
+        S32(st, G_DIST_X) = dx;
+        S32(st, G_DIST_Y) = dy;
         int32_t d = dx < dy ? dy : dx;
         if (w == 0x11) {
-            uint32_t cur = FIGURE_ADDR(S32(st, CURRENT_FIGURE));
-            if (d > S32(st, 0x007090CCu + 0x38u * (uint32_t) U8(st, cur + 0x0A) + 0x18)) {
+            uint32_t cur = FIGURE_ADDR(S32(st, G_CURRENT_FIGURE));
+            if (d > S32(st, G_PROPS + 0x38u * (uint32_t) U8(st, cur + FIG_TYPE) + FIGTYPE_RANGE)) {
                 continue;
             }
         }
-        if (w - d > best_w - S32(st, 0x00BCD5ECu) && line_of_fire_clear(st, x, y, tx, ty) != 0) {
-            S32(st, 0x00BCD5ECu) = d;
+        if (w - d > best_w - S32(st, G_BEST_DISTANCE) && line_of_fire_clear(st, x, y, tx, ty) != 0) {
+            S32(st, G_BEST_DISTANCE) = d;
             best = id;
             best_w = w;
         }
@@ -773,15 +771,15 @@ int32_t warship_find_target(game_state *st, int32_t x, int32_t y, int32_t range)
     if (best == 0) {
         return 0;
     }
-    S32(st, 0x00D3B4E0u) = S16(st, FIGURE_ADDR(best) + 0x16);
-    S32(st, 0x00D3B4E4u) = S16(st, FIGURE_ADDR(best) + 0x14);
+    S32(st, G_ROAD_ACCESS_Y) = S16(st, FIGURE_ADDR(best) + FIG_Y);
+    S32(st, G_ROAD_ACCESS_X) = S16(st, FIGURE_ADDR(best) + FIG_X);
     return best;
 }
 
 int32_t warship_find_target_of(game_state *st, int32_t fid, int32_t range)
 {
     /* @bin 0x004BCF40 0x004BCF70 from the figure's tile */
-    return warship_find_target(st, S16(st, FIGURE_ADDR(fid) + 0x14), S16(st, FIGURE_ADDR(fid) + 0x16), range);
+    return warship_find_target(st, S16(st, FIGURE_ADDR(fid) + FIG_X), S16(st, FIGURE_ADDR(fid) + FIG_Y), range);
 }
 
 int32_t tile_neighbours_with(game_state *st, uint32_t mask, int32_t tile)
@@ -790,7 +788,7 @@ int32_t tile_neighbours_with(game_state *st, uint32_t mask, int32_t tile)
     static const int32_t order[8] = {-228, -227, 1, 229, 228, 227, -1, -229};
     int32_t n = 0;
     for (int k = 0; k < 8; k++) {
-        if (U32(st, TERRAIN_GRID + 4u * (uint32_t) (tile + order[k])) & mask) {
+        if (U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (tile + order[k])) & mask) {
             n++;
         }
     }
@@ -808,15 +806,15 @@ int32_t tile_ring_solid(game_state *st, int32_t x, int32_t y, int32_t ring)
     if (ring >= 11) {
         ring = 11;
     }
-    int32_t first = S16(st, 0x005C9B52u + 2u * (uint32_t) ring);
-    int32_t count = S16(st, 0x005C9AFEu + 2u * (uint32_t) ring);
-    S32(st, 0x00BC9768u) = (int32_t) (U32(st, MAP_START) + 228u * (uint32_t) y + (uint32_t) x);
+    int32_t first = S16(st, G_RING_FIRST + 2u * (uint32_t) ring);
+    int32_t count = S16(st, G_RING_COUNT + 2u * (uint32_t) ring);
+    S32(st, G_TILE_CURSOR) = (int32_t) (U32(st, G_MAP_START) + 228u * (uint32_t) y + (uint32_t) x);
     for (int32_t i = 0; i < count; i++) {
         if (ring_tile_outside(st, x, y, 1, ring, i) != 0) {
             continue;
         }
-        int32_t t = S32(st, 0x00BC9768u) + S16(st, 0x0070C8ECu + 2u * (uint32_t) (first + i));
-        if (!(U8(st, TERRAIN_GRID + 4u * (uint32_t) t) & 3u)) {
+        int32_t t = S32(st, G_TILE_CURSOR) + S16(st, G_RING_OFFSETS_1 + 2u * (uint32_t) (first + i));
+        if (!(U8(st, G_GRID_TERRAIN + 4u * (uint32_t) t) & 3u)) {
             return 0;
         }
     }
@@ -830,20 +828,20 @@ void tree_image_update(game_state *st, int32_t tile)
      * or of a terrain-0x40000 tile surrounded by it (0x00477690 == 8) by the map edge (0x0047A1C0);
      * the image groups of 0x00F56B5C, 0x00F56B9C, 0x00F56C3C, 0x00F57244, 0x00F5723C, 0x00F56B94,
      * which by 0x00A43EAC; + the tile's random & 7 */
-    uint32_t v = U32(st, TERRAIN_GRID + 4u * (uint32_t) tile);
-    uint32_t rnd = U8(st, 0x00ACF85Cu + (uint32_t) tile) & 7u;
-    uint32_t img = 0x00B7482Cu + 4u * (uint32_t) tile;
+    uint32_t v = U32(st, G_GRID_TERRAIN + 4u * (uint32_t) tile);
+    uint32_t rnd = U8(st, G_RANDOM + (uint32_t) tile) & 7u;
+    uint32_t img = G_IMAGE + 4u * (uint32_t) tile;
     if ((v & 1u) && !(v & 0x80000u)) {
-        uint32_t m = U8(st, 0x00A509BCu + (uint32_t) tile);
+        uint32_t m = U8(st, G_GRID_MOISTURE + (uint32_t) tile);
         if (m > 100) {
             m = 100;
         }
         int32_t q = (int32_t) m / 34;
-        if (U8(st, 0x00A43EACu + (uint32_t) tile) != 0xFF) {
-            U32(st, img) = U32(st, 0x00F56B9Cu) + rnd + (uint32_t) q * 8u;
+        if (U8(st, G_GRID_VEGETATION + (uint32_t) tile) != 0xFF) {
+            U32(st, img) = U32(st, G_IMAGE_GROUP_509) + rnd + (uint32_t) q * 8u;
             return;
         }
-        int32_t rel = tile - S32(st, MAP_START);
+        int32_t rel = tile - S32(st, G_MAP_START);
         int32_t x = rel % 228, y = rel / 228;
         int32_t k = 3;
         for (;;) {
@@ -863,18 +861,18 @@ void tree_image_update(game_state *st, int32_t tile)
             add = 0x30;
             k -= 2;
         }
-        U32(st, img) = U32(st, 0x00F56B5Cu) + rnd + (uint32_t) (k * 8) + (uint32_t) add;
+        U32(st, img) = U32(st, G_IMAGE_GROUP_501) + rnd + (uint32_t) (k * 8) + (uint32_t) add;
         return;
     }
     if (!(v & 0x40000u) || (v & 0x80000u) || tile_neighbours_with(st, 0x40000u, tile) != 8) {
         return;
     }
-    int32_t rel = tile - S32(st, MAP_START);
-    uint8_t edge = (uint8_t) GAME_CALL(st, 0x0047A1C0u, rel % 228, rel / 228);
-    if (U8(st, 0x00A43EACu + (uint32_t) tile) == 0xFF) {
-        U32(st, img) = rnd + (edge ? U32(st, 0x00F57244u) : U32(st, 0x00F56C3Cu));
+    int32_t rel = tile - S32(st, G_MAP_START);
+    uint8_t edge = (uint8_t) GAME_CALL(st, FN_FIGURE_NEAR_MAP_EDGE, rel % 228, rel / 228);
+    if (U8(st, G_GRID_VEGETATION + (uint32_t) tile) == 0xFF) {
+        U32(st, img) = rnd + (edge ? U32(st, G_IMAGE_GROUP_722) : U32(st, G_IMAGE_GROUP_529));
     } else {
-        U32(st, img) = rnd + (edge ? U32(st, 0x00F5723Cu) : U32(st, 0x00F56B94u));
+        U32(st, img) = rnd + (edge ? U32(st, G_IMAGE_GROUP_721) : U32(st, G_IMAGE_GROUP_508));
     }
 }
 
@@ -890,33 +888,33 @@ int32_t find_gatherable(game_state *st, int32_t x, int32_t y, int32_t unused, ui
     (void) unused;
     uint8_t ftype;
     if (mask == 0x40000u) {
-        if (U8(st, 0x00978D9Au) == 0) {
+        if (U8(st, G_REEDS_AVAILABLE) == 0) {
             return 0;
         }
         ftype = 0x5A;
     } else {
-        if (U8(st, 0x00978D98u) == 0) {
+        if (U8(st, G_TREES_AVAILABLE) == 0) {
             return 0;
         }
         ftype = 0x4B;
     }
     int32_t n = 0, r = 0;
     for (int32_t row = y0; row < y1; row++) {
-        int32_t start = S32(st, 0x00BC9F24u + 4u * (uint32_t) row);
+        int32_t start = S32(st, G_ROW_FIRST + 4u * (uint32_t) row);
         int32_t tile, col;
         if (start > x0) {
-            tile = S32(st, 0x00BC9804u + 4u * (uint32_t) row);
+            tile = S32(st, G_ROW_OFFSET + 4u * (uint32_t) row);
             col = start;
         } else {
-            tile = (int32_t) (U32(st, MAP_START) + 228u * (uint32_t) row + (uint32_t) x0);
+            tile = (int32_t) (U32(st, G_MAP_START) + 228u * (uint32_t) row + (uint32_t) x0);
             col = x0;
         }
-        int32_t end = S32(st, 0x00BC9B94u + 4u * (uint32_t) row);
+        int32_t end = S32(st, G_ROW_END + 4u * (uint32_t) row);
         if (end >= x1) {
             end = x1;
         }
         for (; col < end; col++, tile++) {
-            uint32_t v = U32(st, TERRAIN_GRID + 4u * (uint32_t) tile);
+            uint32_t v = U32(st, G_GRID_TERRAIN + 4u * (uint32_t) tile);
             if (v & 0x80000u) {
                 continue;
             }
@@ -924,17 +922,17 @@ int32_t find_gatherable(game_state *st, int32_t x, int32_t y, int32_t unused, ui
                 if (mask == 0x40000u && tile_neighbours_with(st, 0x40000u, tile) != 8) {
                     continue;
                 }
-                int32_t fig = S16(st, 0x00B350DCu + 2u * (uint32_t) tile);
-                if (U8(st, FIGURE_ADDR(fig) + 0x0A) == ftype) {
+                int32_t fig = S16(st, G_FIGURE_GRID + 2u * (uint32_t) tile);
+                if (U8(st, FIGURE_ADDR(fig) + FIG_TYPE) == ftype) {
                     continue;
                 }
-                if (U8(st, 0x00A43EACu + (uint32_t) tile) == 0xFF) {
-                    S32(st, 0x0096E6B4u + 4u * (uint32_t) n) = tile;
+                if (U8(st, G_GRID_VEGETATION + (uint32_t) tile) == 0xFF) {
+                    S32(st, G_FULL_LIST + 4u * (uint32_t) n) = tile;
                     n++;
                 }
             }
             if (n == 3999) {
-                r = route_walk_free_to_marked(st, x, y, 0x0096E6B4u, 3999);
+                r = route_walk_free_to_marked(st, x, y, G_FULL_LIST, 3999);
                 if (r != 0) {
                     goto found;
                 }
@@ -942,26 +940,26 @@ int32_t find_gatherable(game_state *st, int32_t x, int32_t y, int32_t unused, ui
             }
         }
     }
-    if (n != 0 && (r = route_walk_free_to_marked(st, x, y, 0x0096E6B4u, n)) != 0) {
+    if (n != 0 && (r = route_walk_free_to_marked(st, x, y, G_FULL_LIST, n)) != 0) {
         goto found;
     }
     if (mask == 0x40000u) {
-        U8(st, 0x00978D9Au) = 0;
+        U8(st, G_REEDS_AVAILABLE) = 0;
     } else {
-        U8(st, 0x00978D98u) = 0;
+        U8(st, G_TREES_AVAILABLE) = 0;
     }
     return 0;
 found:;
-    int32_t rel = S32(st, 0x0096E6B0u + 4u * (uint32_t) r) - S32(st, MAP_START);
-    S32(st, 0x00D3B4E4u) = rel % 228;
-    S32(st, 0x00D3B4E0u) = rel / 228;
+    int32_t rel = S32(st, G_CANDIDATES + 4u * (uint32_t) r) - S32(st, G_MAP_START);
+    S32(st, G_ROAD_ACCESS_X) = rel % 228;
+    S32(st, G_ROAD_ACCESS_Y) = rel / 228;
     return 1;
 }
 
 int32_t figure_in_attack(game_state *st, int32_t fid)
 {
     /* @bin 0x004B63D0 action 6, 7, 0x16 or 0x17 */
-    uint8_t a = U8(st, FIGURE_ADDR(fid) + 0x38);
+    uint8_t a = U8(st, FIGURE_ADDR(fid) + FIG_ACTION);
     return a == 6 || a == 7 || a == 0x17 || a == 0x16;
 }
 
@@ -974,78 +972,78 @@ int32_t formation_move_to(game_state *st, int32_t x, int32_t y, int32_t formatio
      * whose first figure is in action 0x13 (and 0x00D3B198 not 1) sends its men to action 0x14
      * (+0x2A 15), then every man (+0x08, 16) not dying, not attacking (0x004B63D0), with +0x73 0
      * and +0x66 at most 1 (1: morale +10, 0x004B7B50) goes to action 0x0B */
-    if (U8(st, 0x00E38E60u) != 0) {
+    if (U8(st, G_GATE) != 0) {
         return 0;
     }
-    uint32_t fa = 0x00BCB9C8u + 0x90u * (uint32_t) formation;
-    int32_t leader = S16(st, fa + 0x40);
-    GAME_CALL(st, 0x00517A40u, S16(st, fa + 0x2E), S16(st, fa + 0x30), -2, -2);
+    uint32_t fa = G_FORMATION_BASE + 0x90u * (uint32_t) formation;
+    int32_t leader = S16(st, fa + FM_STANDARD_BEARER);
+    GAME_CALL(st, FN_ROUTE_DISTANCES_TO, S16(st, fa + FM_X), S16(st, fa + FM_Y), -2, -2);
     int32_t r;
-    if (S32(st, fa + 0x84) != 0) {
-        r = route_even_to(st, S16(st, fa + 0x2E), S16(st, fa + 0x30), x, y);
+    if (S32(st, fa + FM_U84) != 0) {
+        r = route_even_to(st, S16(st, fa + FM_X), S16(st, fa + FM_Y), x, y);
     } else {
         uint32_t lf = FIGURE_ADDR(leader);
-        r = route_even_to(st, S16(st, lf + 0x14), S16(st, lf + 0x16), x, y);
+        r = route_even_to(st, S16(st, lf + FIG_X), S16(st, lf + FIG_Y), x, y);
     }
     if (r == 0) {
-        GAME_CALL(st, 0x004E2970u, 0xD3, 0, 0);
+        GAME_CALL(st, FN_NOTICE_ADD_4E2970, 0xD3, 0, 0);
         return 0;
     }
-    if (S32(st, 0x00EED760u + 4u * (U32(st, MAP_START) + 228u * (uint32_t) y + (uint32_t) x)) <= 0) {
+    if (S32(st, G_GRID_ROAD_DISTANCE + 4u * (U32(st, G_MAP_START) + 228u * (uint32_t) y + (uint32_t) x)) <= 0) {
         return 0;
     }
-    if (x == S16(st, fa + 0x2E) && y == S16(st, fa + 0x30)) {
+    if (x == S16(st, fa + FM_X) && y == S16(st, fa + FM_Y)) {
         return 0;
     }
-    if (S16(st, fa + 0x64) != 0) {
+    if (S16(st, fa + FM_U64) != 0) {
         return 0;
     }
-    S16(st, fa + 0x32) = (int16_t) x;
-    S16(st, fa + 0x34) = (int16_t) y;
-    U8(st, fa + 0x03) = 0;
+    S16(st, fa + FM_U32) = (int16_t) x;
+    S16(st, fa + FM_U34) = (int16_t) y;
+    U8(st, fa + FM_U03) = 0;
     if ((uint8_t) silent != 0) {
         return 1;
     }
-    if (S16(st, fa + 0x2C) <= 20) {
-        GAME_CALL(st, 0x004E2970u, 0x33, 0, 0);
+    if (S16(st, fa + FM_MORALE) <= 20) {
+        GAME_CALL(st, FN_NOTICE_ADD_4E2970, 0x33, 0, 0);
     }
-    if (S16(st, fa + 4) == 0x0D && U8(st, FIGURE_ADDR(S16(st, fa + 8)) + 0x38) == 0x13 && S32(st, 0x00D3B198u) != 1) {
+    if (S16(st, fa + FM_TYPE) == 0x0D && U8(st, FIGURE_ADDR(S16(st, fa + FM_FIGURES)) + FIG_ACTION) == 0x13 && S32(st, G_PARAM1) != 1) {
         for (int32_t i = 0; i < 16; i++) {
-            int32_t id = S16(st, fa + 8 + 2u * (uint32_t) i);
+            int32_t id = S16(st, fa + FM_FIGURES + 2u * (uint32_t) i);
             if (id == 0) {
                 break;
             }
             uint32_t f = FIGURE_ADDR(id);
-            if (U8(st, f + 0x38) == 4 || U8(st, fa + 0x73) != 0 || U8(st, fa + 0x66) > 1 || figure_in_attack(st, id)) {
+            if (U8(st, f + FIG_ACTION) == 4 || U8(st, fa + FM_U73) != 0 || U8(st, fa + FM_U66) > 1 || figure_in_attack(st, id)) {
                 continue;
             }
-            if (U8(st, fa + 0x66) == 1) {
-                GAME_CALL(st, 0x004B7B50u, formation, 10);
+            if (U8(st, fa + FM_U66) == 1) {
+                GAME_CALL(st, FN_FORMATION_ADD_0X2C, formation, 10);
             }
-            U8(st, f + 0x00) = 0;
-            S32(st, f + 0x134) = 0;
-            S16(st, fa + 0x2A) = 0x0F;
-            S32(st, f + 0x13C) = S16(st, f + 0x14);
-            S32(st, f + 0x140) = S16(st, f + 0x16);
-            U8(st, f + 0x38) = 0x14;
-            U8(st, FIGURE_ADDR(S32(st, CURRENT_FIGURE)) + 0x01) = 0;
+            U8(st, f + FIG_U00) = 0;
+            S32(st, f + FIG_U134) = 0;
+            S16(st, fa + FM_LAYOUT) = 0x0F;
+            S32(st, f + FIG_U13C) = S16(st, f + FIG_X);
+            S32(st, f + FIG_U140) = S16(st, f + FIG_Y);
+            U8(st, f + FIG_ACTION) = 0x14;
+            U8(st, FIGURE_ADDR(S32(st, G_CURRENT_FIGURE)) + FIG_ANIM_FRAME) = 0;
         }
     }
     for (int32_t i = 0; i < 16; i++) {
-        int32_t id = S16(st, fa + 8 + 2u * (uint32_t) i);
+        int32_t id = S16(st, fa + FM_FIGURES + 2u * (uint32_t) i);
         if (id == 0) {
             return 1;
         }
         uint32_t f = FIGURE_ADDR(id);
-        uint8_t a = U8(st, f + 0x38);
-        if (a == 4 || a == 5 || U8(st, fa + 0x73) != 0 || U8(st, fa + 0x66) > 1 || figure_in_attack(st, id)) {
+        uint8_t a = U8(st, f + FIG_ACTION);
+        if (a == 4 || a == 5 || U8(st, fa + FM_U73) != 0 || U8(st, fa + FM_U66) > 1 || figure_in_attack(st, id)) {
             continue;
         }
-        if (U8(st, fa + 0x66) == 1) {
-            GAME_CALL(st, 0x004B7B50u, formation, 10);
+        if (U8(st, fa + FM_U66) == 1) {
+            GAME_CALL(st, FN_FORMATION_ADD_0X2C, formation, 10);
         }
-        U8(st, f + 0x00) = 0;
-        U8(st, f + 0x38) = 0x0B;
+        U8(st, f + FIG_U00) = 0;
+        U8(st, f + FIG_ACTION) = 0x0B;
         figure_route_release(st, id);
     }
     return 1;
@@ -1057,32 +1055,32 @@ int32_t nearest_building_0x63(game_state *st, int32_t x, int32_t y)
      * 0x0078D800) in use of type 0x63 with +0xBD 0 and +0x20 set: the nearest (max of dx, dy) with
      * +0x30 0 (its distance in 0x0078D7F8), else the nearest with +0x30 set when within 2 */
     int32_t best_far = 10000, any = 0, other = 0;
-    S32(st, 0x0078D7F8u) = 10000;
-    S32(st, 0x0078D800u) = 0;
-    int32_t n = S32(st, 0x0078D7FCu);
+    S32(st, G_RUIN_DISTANCE) = 10000;
+    S32(st, G_RUIN_LIST_SIZE) = 0;
+    int32_t n = S32(st, G_RUIN_COUNT);
     if (n <= 0) {
         return 0;
     }
-    S32(st, 0x0078D800u) = n;
+    S32(st, G_RUIN_LIST_SIZE) = n;
     for (int32_t i = 0; i < n; i++) {
-        int32_t b = S16(st, 0x0078DD90u + 2u * (uint32_t) i);
+        int32_t b = S16(st, G_RUINS + 2u * (uint32_t) i);
         uint32_t ba = BUILDING_ADDR(b);
-        if (U8(st, ba) != 1 || S16(st, ba + 0x10) != 0x63 || U8(st, ba + 0xBD) != 0 || S16(st, ba + 0x20) == 0) {
+        if (U8(st, ba + BLD_STATE) != 1 || S16(st, ba + BLD_TYPE) != 0x63 || U8(st, ba + BLD_UBD) != 0 || S16(st, ba + BLD_DISTANCE) == 0) {
             continue;
         }
-        int32_t bx = S16(st, ba + 6), by = S16(st, ba + 8);
+        int32_t bx = S16(st, ba + BLD_X), by = S16(st, ba + BLD_Y);
         int32_t dx = x > bx ? x - bx : x < bx ? bx - x : 0;
         int32_t dy = y > by ? y - by : y < by ? by - y : 0;
-        S32(st, 0x00D3B4FCu) = dx;
-        S32(st, 0x00D3B4F8u) = dy;
+        S32(st, G_DIST_X) = dx;
+        S32(st, G_DIST_Y) = dy;
         int32_t d = dx < dy ? dy : dx;
-        if (S16(st, ba + 0x30) != 0) {
+        if (S16(st, ba + BLD_TOWER_WALKER) != 0) {
             if (d < best_far) {
                 best_far = d;
                 other = b;
             }
-        } else if (d < S32(st, 0x0078D7F8u)) {
-            S32(st, 0x0078D7F8u) = d;
+        } else if (d < S32(st, G_RUIN_DISTANCE)) {
+            S32(st, G_RUIN_DISTANCE) = d;
             any = b;
         }
     }

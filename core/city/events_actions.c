@@ -243,7 +243,7 @@ void plague_fire(game_state *st, int32_t times)
             int32_t r = GAME_CALL0(st, FN_MISSION_GOALS_PENDING);
             GAME_CALL(st, FN_BUILDING_SPAWN_469E40, bi, r);
             uint32_t b = BUILDING_ADDR(i);
-            S32(st, b + BLD_CRIME_RISK) = S32(st, G_HOUSE_LEVEL_U40 + 0x58u * (uint32_t) (int32_t) S16(st, b + BLD_SUBTYPE));
+            S32(st, b + BLD_CRIME_RISK) = S32(st, G_HOUSE_LEVEL_U14 + 0x58u * (uint32_t) (int32_t) S16(st, b + BLD_SUBTYPE));
         }
     }
 }

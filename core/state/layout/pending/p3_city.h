@@ -49,13 +49,7 @@
 #define G_U5F5C7C 0x005F5C7Cu /* @bin 0x004F13D3 i32 per pyramid size: G_PYRAMID_KIND 5 [g_building.h] */
 #define G_PYRAMID_RAMP 0x005F5D08u /* @bin 0x004ECEA0 u32 grid offset of the ramp tile per pyramid size, 0: none (core/map/terrain_land.c) [g_building.h] */
 #define G_MONUMENT_PART_KINDS 0x00601DE4u /* @bin 0x00541DE0 13 dwords (0x34 bytes) per part kind (core/building/monument.c) [g_building.h] */
-#define G_HOUSE_LEVEL_U2C 0x0070CDF8u /* @bin the house level table, i32 (save.md §5: 0x0070CDCC + level * 0x58) */
-#define G_HOUSE_LEVEL_U30 0x0070CDFCu /* @bin the house level table, i32 (save.md §5: 0x0070CDCC + level * 0x58) */
-#define G_HOUSE_LEVEL_U34 0x0070CE00u /* @bin the house level table, i32 (save.md §5: 0x0070CDCC + level * 0x58) */
-#define G_HOUSE_LEVEL_U38 0x0070CE04u /* @bin the house level table, i32 (save.md §5: 0x0070CDCC + level * 0x58) */
-#define G_HOUSE_LEVEL_U40 0x0070CE0Cu /* @bin the house level table, i32 (save.md §5: 0x0070CDCC + level * 0x58) */
 #define G_HOUSE_LEVEL_U44 0x0070CE10u /* @bin the house level table, i32 (save.md §5: 0x0070CDCC + level * 0x58) */
-#define G_HOUSE_LEVEL_U48 0x0070CE14u /* @bin the house level table, i32 (save.md §5: 0x0070CDCC + level * 0x58) */
 #define G_HOUSE_LEVEL_U50 0x0070CE1Cu /* @bin the house level table, i32 (save.md §5: 0x0070CDCC + level * 0x58) */
 #define G_HOUSE_LEVEL_U54 0x0070CE20u /* @bin the house level table, i32 (save.md §5: 0x0070CDCC + level * 0x58) */
 #define G_ENTRY_POINT_X 0x00784C64u /* @bin 0x004DE8A9 i16: entry point (core/newgame/setup.c) [g_scenario.h] */
@@ -69,13 +63,11 @@
 #define G_HAIL_TIMER 0x0078D7A0u /* @bin 0x004E6EB0 i32: := 0x198 with the hail; the screen shakes while positive (core/frame/frame.c) [g_scenario.h] */
 #define G_DEADLINE_YEAR 0x0078D7B8u /* @bin 0x004DE820 i32: deadline year (save.md §3 chunk 76) [g_scenario.h] */
 #define G_WIND 0x0078D808u /* @bin 0x00455530 i32: the CRT rand & 7, a new year; the wind direction (core/building/day_state.c) [g_building.h] */
-#define G_STORAGE_SETTINGS 0x007900C0u /* @bin 0x007900C0 storage settings: records of 0xC4 bytes by building +0xC1 (core/figure/helpers_xb.c) [g_command.h] */
 #define G_TILE_VISITS 0x00978D9Cu /* @bin 0x0047E250 u32 per tile: walker tile-visit counters (save.md §3 chunk 148) [g_figure.h] */
 #define G_UBC96D8 0x00BC96D8u /* @bin 0x0047CC70 i32: the pattern (turn) found (core/building/map_add.c) [g_building.h] */
 #define G_UBC96DC 0x00BC96DCu /* @bin 0x0047CC70 i32: the turn against the view (core/building/map_add.c) [g_building.h] */
-#define G_UD386D4 0x00D386D4u /* @bin 0x0048BCAE i32: a mode 1..3 (flood state 1, core/building/building_extra.c) [g_figure.h] */
+#define G_FLOOD_STATE 0x00D386D4u /* @bin 0x0048BCAE i32: a mode 1..3 (flood state 1, core/building/building_extra.c) [g_figure.h] */
 #define G_UEAAE8C 0x00EAAE8Cu /* @bin 0x004ED360 i32: the kind 0xDA / 0xDB / 0xDC [g_building.h] */
-#define G_UF5609C 0x00F5609Cu /* @bin 0x00488B1E i32: an image base of the farm overlay [g_figure.h] */
 #define G_UF5736C 0x00F5736Cu /* @bin 0x004ED360 u32: a construction image (core/building/monument_obj.c) [g_building.h] */
 
 #endif

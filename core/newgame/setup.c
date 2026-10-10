@@ -125,7 +125,7 @@ void empire_cities_setup(game_state *st)
 
 void empire_0x77af00_clear(game_state *st)
 {
-    GAME_CALL(st, FN_FILL_BYTES, G_TRADER_RECORDS, 0x2260, 0);
+    GAME_CALL(st, FN_FILL_BYTES, G_TRADERS, 0x2260, 0);
     U32(st, G_TRADER_NEXT) = 0;
 }
 

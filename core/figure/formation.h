@@ -5,10 +5,11 @@
 
 #include <stdint.h>
 
+#include "state/layout.h"
 #include "state/state.h"
 
-/* @bin chunk 24: 50 formations of 0x90 bytes (record 0 unused) */
-#define FORMATION_BASE 0x00BCB9C8u
+/* @bin chunk 24: 50 formations of 0x90 bytes (record 0 unused); fields FM_* in state/layout/figure.h */
+#define FORMATION_BASE G_FORMATION_BASE
 #define FORMATION_SIZE 0x90u
 #define FORMATION_ADDR(id) (FORMATION_BASE + FORMATION_SIZE * (uint32_t) (id))
 

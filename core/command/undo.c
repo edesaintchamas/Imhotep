@@ -108,8 +108,8 @@ void undo_building_readd(game_state *st, int32_t id)
     t = S16(st, b + BLD_TYPE);
     if (t == 0x47 || t == 0x48 || t == 0x46 || t == 0xBF || t == 0xC1 || t == 0xBE) {
         uint32_t k = U8(st, b + BLD_STORAGE_ID);
-        if (k != 0 && U8(st, G_STORAGE_SETTINGS + 0xC4u * k) == 0) {
-            U8(st, G_STORAGE_SETTINGS + 0xC4u * k) = 1;
+        if (k != 0 && U8(st, G_STORAGE_SETTINGS_U08 + 0xC4u * k) == 0) {
+            U8(st, G_STORAGE_SETTINGS_U08 + 0xC4u * k) = 1;
             if (S32(st, G_STORAGE_HIGHEST) <= (int32_t) k) {
                 S32(st, G_STORAGE_HIGHEST) = (int32_t) k;
             }
@@ -119,8 +119,8 @@ void undo_building_readd(game_state *st, int32_t id)
     }
     if (S16(st, b + BLD_TYPE) == 0x88) {
         uint32_t k = U8(st, b + BLD_UCA);
-        if (k != 0 && U32(st, G_REC88 + 0xE0u * k) == 0) {
-            U32(st, G_REC88 + 0xE0u * k) = 1;
+        if (k != 0 && U32(st, G_FERRY_QUEUES + 0xE0u * k) == 0) {
+            U32(st, G_FERRY_QUEUES + 0xE0u * k) = 1;
         } else {
             U8(st, b + BLD_UCA) = (uint8_t) GAME_CALL(st, FN_REC88_CREATE, id);
         }

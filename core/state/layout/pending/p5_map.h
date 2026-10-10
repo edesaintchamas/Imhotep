@@ -65,7 +65,7 @@
 
 /* the overlay (g_ui.h) */
 
-/* ferry-landing queues (chunk 137): G_REC88 + 0xE0 * id, ids 1..49; the building's BLD_UCA holds the id */
+/* ferry-landing queues (chunk 137): G_FERRY_QUEUES + 0xE0 * id, ids 1..49; the building's BLD_UCA holds the id */
 #define REC88_BUILDING 0xDCu /* @bin 0x0046EFD0 i32: the building */
 
 #endif

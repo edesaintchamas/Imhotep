@@ -134,6 +134,17 @@ def main():
                     continue
                 by_addr.setdefault(addr, []).append((bool(NEUTRAL.match(name)), pending, order, name, path))
                 order += 1
+    # a name defined for two addresses is ambiguous: renaming by name would rewrite both meanings.
+    # Separate them first (rename one inside the package that introduced it), then run again
+    addrs_of = {}
+    for addr, defs in by_addr.items():
+        for d in defs:
+            addrs_of.setdefault(d[3], set()).add(addr)
+    clash = {n: a for n, a in addrs_of.items() if len(a) > 1}
+    if clash:
+        for n, a in sorted(clash.items()):
+            print('one name for several addresses: %s (%s): separate them first' % (n, ', '.join('0x%08X' % x for x in sorted(a))))
+        return 1
     for addr, defs in sorted(by_addr.items()):
         names = {d[3] for d in defs}
         if len(names) < 2:

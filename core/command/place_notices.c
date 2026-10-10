@@ -200,7 +200,7 @@ void notice_4e2e20(game_state *st, int32_t type)
     int32_t e = GAME_CALLT(st, G_EVENTS, FN_EVENTS_NEXT, 0, 0);
     while (e != 0) {
         if ((uint8_t) GAME_CALLT0(st, (uint32_t) e, FN_EVENT_PENDING) != 0) {
-            if (S32(st, G_FORMATION_COUNT) != 0 || U8(st, CURRENT_CITY(st) + CITY_WARSHIPS) != 0) {
+            if (S32(st, G_LEGIONS) != 0 || U8(st, CURRENT_CITY(st) + CITY_WARSHIPS) != 0) {
                 return;
             }
             notice(st, 0x68);

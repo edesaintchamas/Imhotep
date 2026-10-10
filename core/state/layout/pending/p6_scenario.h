@@ -78,7 +78,6 @@
 #define G_ENEMY_SOLDIERS 0x00D05638u /* i32 chunk 109: enemy soldiers [g_figure.h] */
 #define G_OWN_FORMATIONS 0x00D05634u /* i32 chunk 110: own formations [g_figure.h] */
 #define G_OWN_STRENGTH 0x00D05630u /* i32 chunk 111: own soldier strength [g_figure.h] */
-#define G_UD0562C 0x00D0562Cu /* @bin 0x004B8CF0 i32 chunk 112: counter 0-4 (wrap calls 0x004BA090) [g_figure.h] */
 /* formations (save.md §3 chunks 25-27) */
 #define G_FORMATION_HIGHEST 0x00BCB9BCu /* @bin 0x004B6E10 i32 chunk 25: highest formation id in use [g_building.h] */
 #define G_LEGION_LAST 0x00BCB9B8u /* @bin 0x004B77D0 i32 chunk 26: last player legion found by the recount [g_figure.h] */
@@ -132,9 +131,7 @@
 
 /* -- named with the rewrite of core/newgame/flow.c, flow2.c, figures.c, setup.c -- */
 #define G_U7027A8 0x007027A8u /* @bin 0x004181E0 i32: := 0 by the briefing, := 1 by 0x00417E70 and the mission window [g_sim.h] */
-#define G_TRADER_RECORDS 0x0077AF00u /* @bin 0x00444B30 chunk 94: trader records, 100 x 88 [g_figure.h] */
 #define G_TRADER_NEXT 0x0077AEFCu /* @bin 0x00444B30 chunk 95: the next trader record index [g_figure.h] */
-#define G_U5CDB78 0x005CDB78u /* @bin 0x004BB98F (dx, dy) pairs of i32, 8 bytes each: the second offsets table (herds, invader camps) [g_figure.h] */
 #define G_SCENARIO_MAP_WIDTH 0x00784904u /* @bin 0x004DE6A2 i32: the scenario's map width -> G_MAP_WIDTH [g_map.h] */
 #define G_SCENARIO_MAP_HEIGHT 0x00784908u /* @bin 0x004DE6A2 i32 -> G_MAP_HEIGHT [g_map.h] */
 #define G_OVERLAY_PREV 0x00E94E10u /* @bin 0x004168E0 i32: the previous overlay [g_frame.h] */

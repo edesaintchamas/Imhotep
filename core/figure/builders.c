@@ -5,18 +5,17 @@
  * The work places: 0x00EAAF58 entries (building ids, i32) at 0x00EAAC44; a building's worker in
  * +0x64 (i16); workers are figures of type 0x51 at action 0x0B or 0x50 at action 0x0C. */
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 
-#define BREC(id) (0x007999D8u + 0x108u * (uint32_t) (int32_t) (id))
-#define FIG(id) (0x00BCD600u + 0x184u * (uint32_t) (int32_t) (id))
-#define PLACES 0x00EAAC44u
-#define PLACE_COUNT 0x00EAAF58u
+#define BREC(id) BUILDING_ADDR((int32_t) (id))
+#define FIG(id) (FIGURE_BASE + 8u + 0x184u * (uint32_t) (int32_t) (id))
 
 /* the work place building b is free: no worker, or its worker is not (type 0x51 at action 0x0B
  * or type 0x50 at action 0x0C) */
 static int place_free(game_state *st, int32_t b)
 {
-    int32_t w = S16(st, BREC(b) + 0x64);
+    int32_t w = S16(st, BREC(b) + BLD_U64);
     if (w <= 0) {
         return 1;
     }
@@ -34,8 +33,8 @@ static int place_free(game_state *st, int32_t b)
 /* the first listed work place equal to b and free (its index), or -1 */
 static int32_t find_free(game_state *st, int32_t b)
 {
-    for (int32_t i = 0; i < S32(st, PLACE_COUNT); i++) {
-        int32_t p = S32(st, PLACES + 4u * (uint32_t) i);
+    for (int32_t i = 0; i < S32(st, G_PLACE_COUNT); i++) {
+        int32_t p = S32(st, G_PLACES + 4u * (uint32_t) i);
         if (p == b && place_free(st, p)) {
             return i;
         }
@@ -55,32 +54,32 @@ void worker_find_place_4f2230(game_state *st, int32_t f)
         U8(st, F + 0x30) = 0x0C;
         return;
     }
-    if ((uint8_t) GAME_CALL(st, 0x004F1D10u, f, 1) != 1) {
+    if ((uint8_t) GAME_CALL(st, FN_FIGURE_PYRAMID_STEP, f, 1) != 1) {
         return;
     }
-    GAME_CALL(st, 0x004F2410u, f);
+    GAME_CALL(st, FN_WORKER_JOIN, f);
     int32_t b = S16(st, F + 0x46);
-    GAME_CALL(st, 0x004EF450u, b - S16(st, BREC(b) + 0x12));
+    GAME_CALL(st, FN_PYRAMID_LEVEL_PARTS, b - S16(st, BREC(b) + BLD_PART));
     int32_t i = find_free(st, b);
     if (i >= 0) {
-        int32_t p = S32(st, PLACES + 4u * (uint32_t) i);
+        int32_t p = S32(st, G_PLACES + 4u * (uint32_t) i);
         U8(st, F + 0x30) = 0x0B;
         S16(st, F + 0x2E) = 0;
-        S16(st, BREC(p) + 0x64) = (int16_t) f;
+        S16(st, BREC(p) + BLD_U64) = (int16_t) f;
         return;
     }
     int32_t cur = b;
     for (;;) {
         i = find_free(st, cur);
         if (i >= 0) {
-            int32_t p = S32(st, PLACES + 4u * (uint32_t) i);
+            int32_t p = S32(st, G_PLACES + 4u * (uint32_t) i);
             int32_t arg = S16(st, F + 0x48);
-            S16(st, BREC(p) + 0x64) = (int16_t) f;
-            int32_t next = GAME_CALL(st, 0x004F2190u, b);
-            GAME_CALL(st, 0x004F02F0u, f, next, arg, 1);
+            S16(st, BREC(p) + BLD_U64) = (int16_t) f;
+            int32_t next = GAME_CALL(st, FN_PYRAMID_NEXT_PART, b);
+            GAME_CALL(st, FN_FIGURE_PYRAMID_TARGET, f, next, arg, 1);
             return;
         }
-        cur = GAME_CALL(st, 0x004F2190u, cur);
+        cur = GAME_CALL(st, FN_PYRAMID_NEXT_PART, cur);
         if (cur == b) {
             U8(st, F + 0x30) = 0x0C;
             S16(st, F + 0x118) = 0;
@@ -94,9 +93,9 @@ void worker_release_4f2960(game_state *st, int32_t f)
     /* @bin 0x004F2960 the building on the figure's tile (+0x20 -> 0x00B4E6FC): 0x004EF450(its main
      * building); its worker (0x004F28E0): type 0x50 -> action 0x0C, 0x51 -> action 0x0B; its +0x2E
      * := 0 */
-    int32_t b = S16(st, 0x00B4E6FCu + 2u * U32(st, FIG(f) + 0x20));
-    GAME_CALL(st, 0x004EF450u, b - S16(st, BREC(b) + 0x12));
-    int32_t g = GAME_CALL(st, 0x004F28E0u, b);
+    int32_t b = S16(st, G_BUILDING_GRID + 2u * U32(st, FIG(f) + 0x20));
+    GAME_CALL(st, FN_PYRAMID_LEVEL_PARTS, b - S16(st, BREC(b) + BLD_PART));
+    int32_t g = GAME_CALL(st, FN_PYRAMID_LINKED_WORKER, b);
     if (g <= 0) {
         return;
     }

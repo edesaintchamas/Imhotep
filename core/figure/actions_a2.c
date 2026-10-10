@@ -6,48 +6,42 @@
 #include "figure/actions_a.h"
 
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/records.h"
 
-#define BUILDING_HIGHEST 0x0078D790u /* highest building id in use */
-#define TRADE_HALTED 0x00784BBCu      /* non-zero: no goods are moved to the storage yards */
-#define FOUND_X 0x00D3B4E4u           /* the tile a search found (read as words by the actions) */
-#define FOUND_Y 0x00D3B4E0u
-#define CANDIDATES 0x0096E6B0u /* count, then the candidates' map offsets (0x0096E6B4 ..) */
-#define CANDIDATE_IDS 0x00972530u /* the candidates' building ids, 1-based like the offsets */
-#define MAP_OFFSET 0x00BCA2D8u    /* the map's offset in the 228 x 228 grids */
 
 static int32_t workshop_good(int16_t v);
 
 /* @bin 0x007900C2 the storage settings: 0xC4 bytes per storage (building +0xC1), one per good */
 static uint8_t storage_setting(game_state *st, uint32_t storage, uint32_t good)
 {
-    return U8(st, 0x007900C2u + 0xC4u * storage + good);
+    return U8(st, G_STORAGE_ORDERS + 0xC4u * storage + good);
 }
 
 /* @bin 0x00EA42F8 per player, per good (0x1276 dwords per player): non-zero, the good is held */
 static int32_t good_held(game_state *st, uint32_t good)
 {
-    return S32(st, 0x00EA42F8u + 4u * (U32(st, CURRENT_PLAYER_ADDR) * 0x1276u + good));
+    return S32(st, CITY_BASE + CITY_U2A88 + 4u * (U32(st, CURRENT_PLAYER_ADDR) * 0x1276u + good));
 }
 
 /* append building `id` at grid offset `offset` to the candidate lists (count `n` before) */
 static void add_candidate(game_state *st, int32_t n, int32_t id, uint32_t offset)
 {
-    U32(st, CANDIDATE_IDS + 4u + 4u * (uint32_t) n) = (uint32_t) id;
-    U32(st, CANDIDATES + 4u + 4u * (uint32_t) n) = offset;
+    U32(st, G_CANDIDATE_IDS + 4u + 4u * (uint32_t) n) = (uint32_t) id;
+    U32(st, G_CANDIDATES + 4u + 4u * (uint32_t) n) = offset;
 }
 
 /* 0x004B28F0 chooses among the candidates the one figure `fid` reaches; returns its index (1 ..) */
 static int32_t choose_candidate(game_state *st, int32_t fid, int32_t n)
 {
-    return figure_route_to_any(st, fid, CANDIDATES + 4u, n);
+    return figure_route_to_any(st, fid, G_CANDIDATES + 4u, n);
 }
 
 int32_t cart_storage_for_good(game_state *st, int32_t fid, int32_t good, int32_t terrain)
 {
     /* @bin 0x0045DCC0 the storage yards (types 0x47, 0xBF) of terrain `terrain` that accept `good`
      * (1 .. 8) and still have room; the figure picks the one it reaches */
-    if (S32(st, TRADE_HALTED) != 0) {
+    if (S32(st, G_U784BBC) != 0) {
         return 0;
     }
     if (good <= 0 || good > 8) {
@@ -57,33 +51,33 @@ int32_t cart_storage_for_good(game_state *st, int32_t fid, int32_t good, int32_t
         return 0;
     }
     int32_t n = 0;
-    S32(st, CANDIDATES) = 0;
-    for (int32_t i = 1; i <= S32(st, BUILDING_HIGHEST); i++) {
+    S32(st, G_CANDIDATES) = 0;
+    for (int32_t i = 1; i <= S32(st, G_BUILDING_HIGHEST); i++) {
         uint32_t b = BUILDING_ADDR(i);
-        int16_t t = S16(st, b + 0x10);
-        if (U8(st, b) != 1 || (t != 0x47 && t != 0xBF) || U8(st, b + 0x44) == 0 || S16(st, b + 0x20) <= 0 ||
-            U8(st, b + 0x14) != terrain) {
+        int16_t t = S16(st, b + BLD_TYPE);
+        if (U8(st, b + BLD_STATE) != 1 || (t != 0x47 && t != 0xBF) || U8(st, b + BLD_U44) == 0 || S16(st, b + BLD_DISTANCE) <= 0 ||
+            U8(st, b + BLD_ROAD_NETWORK) != terrain) {
             continue;
         }
         /* @bin 0x0045DD7A the type's table 0x00705EB8 (40 bytes per building type) */
-        int32_t r = GAME_CALL(st, 0x004CDE60u, S16(st, b + 0x40), S32(st, 0x00705EB8u + 40u * (uint32_t) t));
+        int32_t r = GAME_CALL(st, FN_CALC_RATIO_PERCENT, S16(st, b + BLD_WORKERS), S32(st, G_TYPE_WORKERS + 40u * (uint32_t) t));
         if (r < 100) {
             continue;
         }
-        uint32_t k = U8(st, b + 0xC1);
+        uint32_t k = U8(st, b + BLD_STORAGE_ID);
         if (storage_setting(st, k, (uint32_t) good) != 2) {
             continue;
         }
         /* @bin 0x0045DDB0 the settings' limits (0x00790134, 0x62 words per storage) */
-        if (S16(st, 0x00790134u + 2u * (k * 0x62u + (uint32_t) good)) <= S16(st, b + 0x56 + 2u * (uint32_t) good) ||
-            S16(st, b + 0x56) <= 100) {
+        if (S16(st, G_STORAGE_GET + 2u * (k * 0x62u + (uint32_t) good)) <= S16(st, b + BLD_INVENTORY + 2u * (uint32_t) good) ||
+            S16(st, b + BLD_INVENTORY) <= 100) {
             continue;
         }
-        U32(st, CANDIDATE_IDS + 4u + 4u * (uint32_t) n) = (uint32_t) i;
+        U32(st, G_CANDIDATE_IDS + 4u + 4u * (uint32_t) n) = (uint32_t) i;
         n++;
-        S32(st, CANDIDATES) = n;
-        U32(st, CANDIDATES + 4u * (uint32_t) n) =
-            U32(st, MAP_OFFSET) + (uint32_t) S16(st, b + 0x06) + 228u * (uint32_t) S16(st, b + 0x08) + 0xE5u;
+        S32(st, G_CANDIDATES) = n;
+        U32(st, G_CANDIDATES + 4u * (uint32_t) n) =
+            U32(st, G_MAP_START) + (uint32_t) S16(st, b + BLD_X) + 228u * (uint32_t) S16(st, b + BLD_Y) + 0xE5u;
     }
     if (n == 0) {
         return 0;
@@ -92,10 +86,10 @@ int32_t cart_storage_for_good(game_state *st, int32_t fid, int32_t good, int32_t
     if (r == 0) {
         return 0;
     }
-    int32_t id = (int32_t) U32(st, CANDIDATE_IDS + 4u * (uint32_t) r);
+    int32_t id = (int32_t) U32(st, G_CANDIDATE_IDS + 4u * (uint32_t) r);
     uint32_t b = BUILDING_ADDR(id);
-    S32(st, FOUND_Y) = S16(st, b + 0x08) + 1;
-    S32(st, FOUND_X) = S16(st, b + 0x06) + 1;
+    S32(st, G_ROAD_ACCESS_Y) = S16(st, b + BLD_Y) + 1;
+    S32(st, G_ROAD_ACCESS_X) = S16(st, b + BLD_X) + 1;
     return id;
 }
 
@@ -105,36 +99,36 @@ int32_t cart_storage_to_empty(game_state *st, int32_t bid)
      * terrain, the nearest one (0x0045DC50, doubled up to 400 units) that wants goods `bid` is set
      * to empty (setting 2); 0x00D3B4E0/E4 its entry point (building 0's when none) */
     uint32_t b = BUILDING_ADDR(bid);
-    uint32_t k = U8(st, b + 0xC1);
+    uint32_t k = U8(st, b + BLD_STORAGE_ID);
     int32_t emptying = 0;
     for (uint32_t g = 1; g <= 8; g++) {
         if (storage_setting(st, k, g) == 2) {
             emptying++;
         }
     }
-    if (S32(st, TRADE_HALTED) != 0 || emptying <= 0) {
+    if (S32(st, G_U784BBC) != 0 || emptying <= 0) {
         return 0;
     }
     int32_t best = 10000, found = 0;
-    for (int32_t i = 0; i < S32(st, 0x0078D9A0u); i++) {
-        int16_t s = S16(st, 0x0078D8D4u + 2u * (uint32_t) i);
+    for (int32_t i = 0; i < S32(st, G_STORAGE_LIST_COUNT); i++) {
+        int16_t s = S16(st, G_STORAGE_BUILDINGS + 2u * (uint32_t) i);
         uint32_t c = BUILDING_ADDR(s);
-        if (U8(st, c + 0x14) != U8(st, b + 0x14)) {
+        if (U8(st, c + BLD_ROAD_NETWORK) != U8(st, b + BLD_ROAD_NETWORK)) {
             continue;
         }
-        uint32_t kc = U8(st, c + 0xC1);
+        uint32_t kc = U8(st, c + BLD_STORAGE_ID);
         int32_t room = 0;
         for (uint32_t g = 1; g <= 8; g++) {
             if (storage_setting(st, k, g) == 2 && storage_setting(st, kc, g) != 2) {
-                room += S16(st, c + 0x56 + 2u * g);
+                room += S16(st, c + BLD_INVENTORY + 2u * g);
             }
         }
         if (room <= 0) {
             continue;
         }
         /* @bin 0x0045DFA0 the original passes `bid`'s +0x26 twice (not +0x28) */
-        int32_t d = GAME_CALL(st, 0x0045DC50u, S16(st, c + 0x26), S16(st, c + 0x28), S16(st, b + 0x26),
-                              S16(st, b + 0x26), S16(st, b + 0x20), S16(st, c + 0x20));
+        int32_t d = GAME_CALL(st, FN_BUILDING_DISTANCE, S16(st, c + BLD_ROAD_ACCESS_X), S16(st, c + BLD_ROAD_ACCESS_Y), S16(st, b + BLD_ROAD_ACCESS_X),
+                              S16(st, b + BLD_ROAD_ACCESS_X), S16(st, b + BLD_DISTANCE), S16(st, c + BLD_DISTANCE));
         if (room <= 400) {
             d += d;
         }
@@ -144,8 +138,8 @@ int32_t cart_storage_to_empty(game_state *st, int32_t bid)
         }
     }
     uint32_t f = BUILDING_ADDR(found);
-    S32(st, FOUND_Y) = S16(st, f + 0x28);
-    S32(st, FOUND_X) = S16(st, f + 0x26);
+    S32(st, G_ROAD_ACCESS_Y) = S16(st, f + BLD_ROAD_ACCESS_Y);
+    S32(st, G_ROAD_ACCESS_X) = S16(st, f + BLD_ROAD_ACCESS_X);
     return found;
 }
 
@@ -212,18 +206,18 @@ int32_t cart_workshop_for_good(game_state *st, int32_t fid, int32_t good, int32_
         return 0;
     }
     int32_t n = 0, found = 0;
-    S32(st, CANDIDATES) = 0;
-    for (int32_t i = 1; i <= S32(st, BUILDING_HIGHEST); i++) {
+    S32(st, G_CANDIDATES) = 0;
+    for (int32_t i = 1; i <= S32(st, G_BUILDING_HIGHEST); i++) {
         uint32_t b = BUILDING_ADDR(i);
-        if (U8(st, b) != 1 || !is_workshop(S16(st, b + 0x10)) || U8(st, b + 0x44) == 0 ||
-            S16(st, b + 0x20) <= 0 || S16(st, b + 0x12) != kind || U8(st, b + 0x14) != terrain) {
+        if (U8(st, b + BLD_STATE) != 1 || !is_workshop(S16(st, b + BLD_TYPE)) || U8(st, b + BLD_U44) == 0 ||
+            S16(st, b + BLD_DISTANCE) <= 0 || S16(st, b + BLD_SUBTYPE) != kind || U8(st, b + BLD_ROAD_NETWORK) != terrain) {
             continue;
         }
         add_candidate(st, n, i,
-                      U32(st, MAP_OFFSET) + (uint32_t) S16(st, b + 0x06) + 228u * (uint32_t) S16(st, b + 0x08));
+                      U32(st, G_MAP_START) + (uint32_t) S16(st, b + BLD_X) + 228u * (uint32_t) S16(st, b + BLD_Y));
         n++;
     }
-    S32(st, CANDIDATES) = n;
+    S32(st, G_CANDIDATES) = n;
     if (n == 0) {
         return 0;
     }
@@ -231,10 +225,10 @@ int32_t cart_workshop_for_good(game_state *st, int32_t fid, int32_t good, int32_
     if (r <= 0) {
         return 0;
     }
-    found = (int32_t) U32(st, CANDIDATE_IDS + 4u * (uint32_t) r);
+    found = (int32_t) U32(st, G_CANDIDATE_IDS + 4u * (uint32_t) r);
     uint32_t b = BUILDING_ADDR(found);
-    S32(st, FOUND_X) = S16(st, b + 0x26);
-    S32(st, FOUND_Y) = S16(st, b + 0x28);
+    S32(st, G_ROAD_ACCESS_X) = S16(st, b + BLD_ROAD_ACCESS_X);
+    S32(st, G_ROAD_ACCESS_Y) = S16(st, b + BLD_ROAD_ACCESS_Y);
     return found;
 }
 
@@ -244,14 +238,14 @@ int32_t cart_take_from_storage(game_state *st, int32_t from, int32_t to)
      * not (at most 800, and what `from` holds at +0x56); 0x0045E360 takes it out of `to`.
      * 0x0078D99C: the good chosen */
     uint32_t a = BUILDING_ADDR(from);
-    uint32_t ka = U8(st, a + 0xC1);
-    uint32_t kb = U8(st, BUILDING_ADDR(to) + 0xC1);
+    uint32_t ka = U8(st, a + BLD_STORAGE_ID);
+    uint32_t kb = U8(st, BUILDING_ADDR(to) + BLD_STORAGE_ID);
     int32_t best = 0, good = 0;
     for (uint32_t g = 1; g <= 8; g++) {
         if (storage_setting(st, ka, g) != 2 || storage_setting(st, kb, g) == 2) {
             continue;
         }
-        int32_t v = S16(st, BUILDING_ADDR(to) + 0x56 + 2u * g);
+        int32_t v = S16(st, BUILDING_ADDR(to) + BLD_INVENTORY + 2u * g);
         if (v > best) {
             best = v;
             good = (int32_t) g;
@@ -260,11 +254,11 @@ int32_t cart_take_from_storage(game_state *st, int32_t from, int32_t to)
     if (best > 0x320) {
         best = 0x320;
     }
-    if (best > S16(st, a + 0x56)) {
-        best = S16(st, a + 0x56);
+    if (best > S16(st, a + BLD_INVENTORY)) {
+        best = S16(st, a + BLD_INVENTORY);
     }
-    GAME_CALL(st, 0x0045E360u, (int32_t) U32(st, CURRENT_PLAYER_ADDR), to, good, best);
-    S32(st, 0x0078D99Cu) = good;
+    GAME_CALL(st, FN_STORAGE_TAKE_STOCK, (int32_t) U32(st, CURRENT_PLAYER_ADDR), to, good, best);
+    S32(st, G_GOOD_CHOSEN) = good;
     return best;
 }
 
@@ -307,44 +301,44 @@ void cart_delivered(game_state *st, int32_t taken, int32_t fid, int32_t terrain,
      * the destination's goods in transit (+0x104 / +0x106) go down; all of it: it goes home (or
      * dies, `last`), else 0x0048AE50 looks for where to take the rest */
     uint32_t f = FIGURE_ADDR(fid);
-    uint32_t d = BUILDING_ADDR(S16(st, f + 0x5E));
-    int16_t t = S16(st, d + 0x10);
+    uint32_t d = BUILDING_ADDR(S16(st, f + FIG_DEST_BUILDING));
+    int16_t t = S16(st, d + BLD_TYPE);
     if (is_workshop(t)) {
-        int32_t good = workshop_good(S16(st, d + 0xCE));
-        if (t == 0xCC && U8(st, f + 0x0B) == good) {
-            S16(st, d + 0x106) -= 1;
+        int32_t good = workshop_good(S16(st, d + BLD_INPUT2));
+        if (t == 0xCC && U8(st, f + FIG_RESOURCE) == good) {
+            S16(st, d + BLD_INCOMING_AMOUNT) -= 1;
         } else {
-            S16(st, d + 0x104) -= 1;
+            S16(st, d + BLD_INCOMING_CARTS) -= 1;
         }
     } else if (t == 0x47) {
-        S16(st, d + 0x104) -= 1;
-        S16(st, d + 0x106) -= S16(st, f + 0x74);
+        S16(st, d + BLD_INCOMING_CARTS) -= 1;
+        S16(st, d + BLD_INCOMING_AMOUNT) -= S16(st, f + FIG_AMOUNT);
     }
-    int16_t load = S16(st, f + 0x74);
+    int16_t load = S16(st, f + FIG_AMOUNT);
     if (taken == load) {
         if ((uint8_t) last != 0) {
-            U8(st, f + 0x0E) = 2;
-            S16(st, f + 0x36) = 0;
+            U8(st, f + FIG_STATE) = 2;
+            S16(st, f + FIG_WAIT_TICKS) = 0;
             return;
         }
-        U8(st, f + 0x38) = 0x0B;
-        S16(st, f + 0x36) = 0;
-        S16(st, f + 0x24) = S16(st, f + 0x2C);
-        S16(st, f + 0x26) = S16(st, f + 0x2E);
-        S16(st, f + 0x74) = 0;
+        U8(st, f + FIG_ACTION) = 0x0B;
+        S16(st, f + FIG_WAIT_TICKS) = 0;
+        S16(st, f + FIG_DEST_X) = S16(st, f + FIG_SOURCE_X);
+        S16(st, f + FIG_DEST_Y) = S16(st, f + FIG_SOURCE_Y);
+        S16(st, f + FIG_AMOUNT) = 0;
         return;
     }
-    S16(st, f + 0x74) = (int16_t) (load - taken);
+    S16(st, f + FIG_AMOUNT) = (int16_t) (load - taken);
     if (cart_find_destination(st, fid, terrain) != 0) {
-        U8(st, f + 0x38) = 9;
-        S16(st, f + 0x36) = 0;
-        S16(st, f + 0x24) = S16(st, FOUND_X);
-        S16(st, f + 0x26) = S16(st, FOUND_Y);
+        U8(st, f + FIG_ACTION) = 9;
+        S16(st, f + FIG_WAIT_TICKS) = 0;
+        S16(st, f + FIG_DEST_X) = S16(st, G_ROAD_ACCESS_X);
+        S16(st, f + FIG_DEST_Y) = S16(st, G_ROAD_ACCESS_Y);
         return;
     }
-    U8(st, f + 0x38) = 8;
-    U8(st, f + 0x66) = 2;
-    S16(st, f + 0x36) = 0;
+    U8(st, f + FIG_ACTION) = 8;
+    U8(st, f + FIG_SERVICE_MAX) = 2;
+    S16(st, f + FIG_WAIT_TICKS) = 0;
 }
 
 int32_t cart_find_destination(game_state *st, int32_t fid, int32_t terrain)
@@ -352,20 +346,20 @@ int32_t cart_find_destination(game_state *st, int32_t fid, int32_t terrain)
     /* @bin 0x0048AE50 where a cart pusher takes its good (+0x0B): a workshop, a storage yard (0x0045EAB0),
      * then 0x0045ACF0, 0x0045D9E0 (0, then 1); +0x5E the building found (0: none) */
     uint32_t f = FIGURE_ADDR(fid);
-    int32_t r = GAME_CALL(st, 0x0045F7B0u, S16(st, f + 0x14), S16(st, f + 0x16), U8(st, f + 0x0B), terrain);
+    int32_t r = GAME_CALL(st, FN_CART_CITY_BUILDING, S16(st, f + FIG_X), S16(st, f + FIG_Y), U8(st, f + FIG_RESOURCE), terrain);
     if (r == 0) {
-        r = cart_workshop_with_room(st, fid, U8(st, f + 0x0B), terrain);
+        r = cart_workshop_with_room(st, fid, U8(st, f + FIG_RESOURCE), terrain);
     }
     if (r == 0) {
-        r = cart_dock_for_good(st, 0, fid, U8(st, f + 0x0B), terrain);
+        r = cart_dock_for_good(st, 0, fid, U8(st, f + FIG_RESOURCE), terrain);
     }
     if (r == 0) {
-        r = cart_storage_with_room(st, 0, fid, U8(st, f + 0x0B), terrain);
+        r = cart_storage_with_room(st, 0, fid, U8(st, f + FIG_RESOURCE), terrain);
     }
     if (r == 0) {
-        r = cart_storage_with_room(st, 1, fid, U8(st, f + 0x0B), terrain);
+        r = cart_storage_with_room(st, 1, fid, U8(st, f + FIG_RESOURCE), terrain);
     }
-    S16(st, f + 0x5E) = (int16_t) r;
+    S16(st, f + FIG_DEST_BUILDING) = (int16_t) r;
     return r;
 }
 
@@ -392,16 +386,16 @@ void cart_sprite_load(game_state *st, int32_t fid)
     /* @bin 0x0048B4A0 +0x180: the cart's sprite by the good and the load (+0x74: none, up to 200,
      * up to 400, more) */
     uint32_t f = FIGURE_ADDR(fid);
-    int16_t load = S16(st, f + 0x74);
+    int16_t load = S16(st, f + FIG_AMOUNT);
     int32_t e = load == 0 ? -1 : load <= 0xC8 ? 0 : load > 0x190 ? 0x10 : 8;
-    uint8_t g = U8(st, f + 0x0B);
+    uint8_t g = U8(st, f + FIG_RESOURCE);
     if (cart_goods_turned(g) && e != -1) {
         e = 0;
     }
     int empty;
-    if (U8(st, f + 0x0A) == 0x26) {
-        uint8_t a = U8(st, f + 0x38);
-        empty = a == 0x10 || a == 0x0C || (a == 7 && (U8(st, f + 0x10) == 0x10 || U8(st, f + 0x10) == 0x0C));
+    if (U8(st, f + FIG_TYPE) == 0x26) {
+        uint8_t a = U8(st, f + FIG_ACTION);
+        empty = a == 0x10 || a == 0x0C || (a == 7 && (U8(st, f + FIG_ACTION_BEFORE_ATTACK) == 0x10 || U8(st, f + FIG_ACTION_BEFORE_ATTACK) == 0x0C));
         if (!empty) {
             e = 0;
         }
@@ -409,11 +403,11 @@ void cart_sprite_load(game_state *st, int32_t fid)
         empty = e < 0;
     }
     if (!empty) {
-        S32(st, f + 0x180) = S32(st, 0x00F55BB4u + 8u * (uint32_t) cart_good_sprites(g)) + e;
+        S32(st, f + FIG_U180) = S32(st, G_DAY2_REDRAW_GROUPS + 8u * (uint32_t) cart_good_sprites(g)) + e;
         return;
     }
-    int turned = cart_goods_turned(g) || (g == 0 && cart_goods_turned(U8(st, f + 0x7A)));
-    S32(st, f + 0x180) = S32(st, turned ? 0x00F5603Cu : 0x00F55F54u);
+    int turned = cart_goods_turned(g) || (g == 0 && cart_goods_turned(U8(st, f + FIG_COLLECTING)));
+    S32(st, f + FIG_U180) = S32(st, turned ? G_IMAGE_GROUP_145 : G_IMAGE_GROUP_116);
 }
 
 /* @bin 0x0045ECF2 (jump tables 0x0045F120, 0x0045F1D0, 0x0045F280, 0x0045F330) a workshop's stock
@@ -442,29 +436,29 @@ int32_t cart_workshop_with_room(game_state *st, int32_t fid, int32_t good, int32
         return 0;
     }
     int32_t best_wait = 10000, best_stock = 10000;
-    S32(st, CANDIDATES) = 0;
-    for (int32_t i = 1; i <= S32(st, BUILDING_HIGHEST); i++) {
+    S32(st, G_CANDIDATES) = 0;
+    for (int32_t i = 1; i <= S32(st, G_BUILDING_HIGHEST); i++) {
         uint32_t b = BUILDING_ADDR(i);
-        if (U8(st, b) != 1) {
+        if (U8(st, b + BLD_STATE) != 1) {
             continue;
         }
-        if (GAME_CALL(st, 0x00459240u, i) != 0) {
+        if (GAME_CALL(st, FN_BUILDING_RESOURCE_IN_STOCK, i) != 0) {
             continue;
         }
-        int16_t t = S16(st, b + 0x10);
-        if (!is_workshop(t) || U8(st, b + 0x44) == 0 || S16(st, b + 0x20) <= 0) {
+        int16_t t = S16(st, b + BLD_TYPE);
+        if (!is_workshop(t) || U8(st, b + BLD_U44) == 0 || S16(st, b + BLD_DISTANCE) <= 0) {
             continue;
         }
-        if (S16(st, b + 0x12) != kind && S16(st, b + 0xCE) != kind) {
+        if (S16(st, b + BLD_SUBTYPE) != kind && S16(st, b + BLD_INPUT2) != kind) {
             continue;
         }
-        if (U8(st, b + 0x14) != terrain) {
+        if (U8(st, b + BLD_ROAD_NETWORK) != terrain) {
             continue;
         }
-        if ((t == 0xBB || t == 0xBC || t == 0xBD) && S16(st, b + 0x40) == 0) {
+        if ((t == 0xBB || t == 0xBC || t == 0xBD) && S16(st, b + BLD_WORKERS) == 0) {
             continue;
         }
-        int second = S16(st, b + 0xCE) != 0 && S16(st, b + 0xCE) == kind;
+        int second = S16(st, b + BLD_INPUT2) != 0 && S16(st, b + BLD_INPUT2) == kind;
         int32_t cap = workshop_capacity(t);
         int32_t stock = S16(st, b + (second ? 0xCC : 0x3C));
         if (stock + 100 > cap) {
@@ -478,30 +472,30 @@ int32_t cart_workshop_with_room(game_state *st, int32_t fid, int32_t good, int32
             continue;
         }
         if (stock < best_stock) {
-            S32(st, CANDIDATES) = 0;
+            S32(st, G_CANDIDATES) = 0;
             best_wait = wait;
             best_stock = stock;
         }
-        int32_t n = S32(st, CANDIDATES);
-        U32(st, CANDIDATE_IDS + 4u + 4u * (uint32_t) n) = (uint32_t) i;
+        int32_t n = S32(st, G_CANDIDATES);
+        U32(st, G_CANDIDATE_IDS + 4u + 4u * (uint32_t) n) = (uint32_t) i;
         n++;
-        S32(st, CANDIDATES) = n;
-        U32(st, CANDIDATES + 4u * (uint32_t) n) =
-            U32(st, MAP_OFFSET) + (uint32_t) S16(st, b + 0x26) + 228u * (uint32_t) S16(st, b + 0x28);
+        S32(st, G_CANDIDATES) = n;
+        U32(st, G_CANDIDATES + 4u * (uint32_t) n) =
+            U32(st, G_MAP_START) + (uint32_t) S16(st, b + BLD_ROAD_ACCESS_X) + 228u * (uint32_t) S16(st, b + BLD_ROAD_ACCESS_Y);
     }
-    int32_t r = figure_route_to_any(st, fid, CANDIDATES + 4u, S32(st, CANDIDATES));
-    int32_t id = r != 0 ? (int32_t) U32(st, CANDIDATE_IDS + 4u * (uint32_t) r) : 0;
+    int32_t r = figure_route_to_any(st, fid, G_CANDIDATES + 4u, S32(st, G_CANDIDATES));
+    int32_t id = r != 0 ? (int32_t) U32(st, G_CANDIDATE_IDS + 4u * (uint32_t) r) : 0;
     uint32_t b = BUILDING_ADDR(id);
-    S32(st, FOUND_X) = S16(st, b + 0x26);
-    S32(st, FOUND_Y) = S16(st, b + 0x28);
+    S32(st, G_ROAD_ACCESS_X) = S16(st, b + BLD_ROAD_ACCESS_X);
+    S32(st, G_ROAD_ACCESS_Y) = S16(st, b + BLD_ROAD_ACCESS_Y);
     if (id == 0) {
         return 0;
     }
-    if (S16(st, b + 0x10) == 0xCC && good == workshop_good(S16(st, b + 0xCE))) {
-        S16(st, b + 0x106) += 1;
+    if (S16(st, b + BLD_TYPE) == 0xCC && good == workshop_good(S16(st, b + BLD_INPUT2))) {
+        S16(st, b + BLD_INCOMING_AMOUNT) += 1;
         return id;
     }
-    S16(st, b + 0x104) += 1;
+    S16(st, b + BLD_INCOMING_CARTS) += 1;
     return id;
 }
 
@@ -514,8 +508,8 @@ int32_t walker_find_workplace(game_state *st, int32_t fid)
      * that busy count (+0x5E and the target set) */
     uint32_t f = FIGURE_ADDR(fid);
     int32_t k1 = 0, k2 = 0, k3 = 0;
-    S32(st, 0x0078D7F0u) = 0;
-    switch (U8(st, f + 0x0A)) {
+    S32(st, G_WORK_COUNT) = 0;
+    switch (U8(st, f + FIG_TYPE)) {
     case 0x0F: k1 = 0x1F; /* fall through */
     case 0x10: k2 = 0x1E; /* fall through */
     case 0x11: k3 = 0x21; break;
@@ -523,59 +517,59 @@ int32_t walker_find_workplace(game_state *st, int32_t fid)
     case 0x69: k1 = 0xE2; break;
     default: return 0;
     }
-    S32(st, CANDIDATES) = 0;
+    S32(st, G_CANDIDATES) = 0;
     int32_t n = 0;
-    for (int32_t i = 1; i <= S32(st, BUILDING_HIGHEST); i++) {
+    for (int32_t i = 1; i <= S32(st, G_BUILDING_HIGHEST); i++) {
         uint32_t b = BUILDING_ADDR(i);
-        int16_t t = S16(st, b + 0x10);
-        if (U8(st, b) != 1 || S16(st, b + 0x40) <= 0 || t == 0 || (t != k1 && t != k2 && t != k3)) {
+        int16_t t = S16(st, b + BLD_TYPE);
+        if (U8(st, b + BLD_STATE) != 1 || S16(st, b + BLD_WORKERS) <= 0 || t == 0 || (t != k1 && t != k2 && t != k3)) {
             continue;
         }
-        if (GAME_CALL(st, 0x00475B50u, i) != i) {
+        if (GAME_CALL(st, FN_BUILDING_MAIN_PART, i) != i) {
             continue;
         }
-        uint8_t ft = U8(st, f + 0x0A);
-        if (((ft == 0x0F || ft == 0x12 || ft == 0x69) && U8(st, b + 0xA7) != 0) ||
-            (ft == 0x10 && U8(st, b + 0xA8) != 0) || (ft == 0x11 && U8(st, b + 0xA9) != 0)) {
+        uint8_t ft = U8(st, f + FIG_TYPE);
+        if (((ft == 0x0F || ft == 0x12 || ft == 0x69) && U8(st, b + BLD_UA7) != 0) ||
+            (ft == 0x10 && U8(st, b + BLD_UA8) != 0) || (ft == 0x11 && U8(st, b + BLD_UA9) != 0)) {
             continue;
         }
-        n = S32(st, CANDIDATES);
-        U32(st, CANDIDATE_IDS + 4u + 4u * (uint32_t) n) = (uint32_t) i;
+        n = S32(st, G_CANDIDATES);
+        U32(st, G_CANDIDATE_IDS + 4u + 4u * (uint32_t) n) = (uint32_t) i;
         n++;
-        U32(st, CANDIDATES + 4u * (uint32_t) n) =
-            U32(st, MAP_OFFSET) + (uint32_t) S16(st, b + 0x26) + 228u * (uint32_t) S16(st, b + 0x28);
-        S32(st, CANDIDATES) = n;
+        U32(st, G_CANDIDATES + 4u * (uint32_t) n) =
+            U32(st, G_MAP_START) + (uint32_t) S16(st, b + BLD_ROAD_ACCESS_X) + 228u * (uint32_t) S16(st, b + BLD_ROAD_ACCESS_Y);
+        S32(st, G_CANDIDATES) = n;
     }
-    n = S32(st, CANDIDATES);
+    n = S32(st, G_CANDIDATES);
     if (n != 0) {
         if (n <= 0) {
             return 0;
         }
-        int32_t r = figure_route_to_any(st, fid, CANDIDATES + 4u, n);
-        return r > 0 ? (int32_t) U32(st, CANDIDATE_IDS + 4u * (uint32_t) r) : 0;
+        int32_t r = figure_route_to_any(st, fid, G_CANDIDATES + 4u, n);
+        return r > 0 ? (int32_t) U32(st, G_CANDIDATE_IDS + 4u * (uint32_t) r) : 0;
     }
     int32_t best = 1000, found = 0;
-    GAME_CALL(st, 0x00519A30u, S16(st, f + 0x14), S16(st, f + 0x16));
-    for (int32_t i = 1; i <= S32(st, BUILDING_HIGHEST); i++) {
+    GAME_CALL(st, FN_ROUTE_FLOOD_EE0C50, S16(st, f + FIG_X), S16(st, f + FIG_Y));
+    for (int32_t i = 1; i <= S32(st, G_BUILDING_HIGHEST); i++) {
         uint32_t b = BUILDING_ADDR(i);
-        int16_t t = S16(st, b + 0x10);
-        if (U8(st, b) != 1 || S16(st, b + 0x40) <= 0 || t == 0 || (t != k1 && t != k2 && t != k3)) {
+        int16_t t = S16(st, b + BLD_TYPE);
+        if (U8(st, b + BLD_STATE) != 1 || S16(st, b + BLD_WORKERS) <= 0 || t == 0 || (t != k1 && t != k2 && t != k3)) {
             continue;
         }
-        if (GAME_CALL(st, 0x00475B50u, i) != i) {
+        if (GAME_CALL(st, FN_BUILDING_MAIN_PART, i) != i) {
             continue;
         }
-        uint32_t tile = U32(st, MAP_OFFSET) + (uint32_t) S16(st, b + 0x26) + 228u * (uint32_t) S16(st, b + 0x28);
-        int32_t d = S32(st, 0x00EED760u + 4u * tile);
-        uint8_t ft = U8(st, f + 0x0A);
-        if (ft == 0x0F && U8(st, b + 0xA7) != 0) {
-            d += U8(st, b + 0xA7);
+        uint32_t tile = U32(st, G_MAP_START) + (uint32_t) S16(st, b + BLD_ROAD_ACCESS_X) + 228u * (uint32_t) S16(st, b + BLD_ROAD_ACCESS_Y);
+        int32_t d = S32(st, G_GRID_ROAD_DISTANCE + 4u * tile);
+        uint8_t ft = U8(st, f + FIG_TYPE);
+        if (ft == 0x0F && U8(st, b + BLD_UA7) != 0) {
+            d += U8(st, b + BLD_UA7);
         }
-        if (ft == 0x10 && U8(st, b + 0xA8) != 0) {
-            d += U8(st, b + 0xA8);
+        if (ft == 0x10 && U8(st, b + BLD_UA8) != 0) {
+            d += U8(st, b + BLD_UA8);
         }
-        if (ft == 0x11 && U8(st, b + 0xA9) != 0) {
-            d += U8(st, b + 0xA9);
+        if (ft == 0x11 && U8(st, b + BLD_UA9) != 0) {
+            d += U8(st, b + BLD_UA9);
         }
         if (d < best) {
             best = d;
@@ -586,9 +580,9 @@ int32_t walker_find_workplace(game_state *st, int32_t fid)
         return 0;
     }
     uint32_t b = BUILDING_ADDR(found);
-    S16(st, f + 0x5E) = (int16_t) found;
-    S16(st, f + 0x24) = S16(st, b + 0x26);
-    S16(st, f + 0x26) = S16(st, b + 0x28);
+    S16(st, f + FIG_DEST_BUILDING) = (int16_t) found;
+    S16(st, f + FIG_DEST_X) = S16(st, b + BLD_ROAD_ACCESS_X);
+    S16(st, f + FIG_DEST_Y) = S16(st, b + BLD_ROAD_ACCESS_Y);
     return found;
 }
 
@@ -599,7 +593,7 @@ int32_t cart_storage_with_room(game_state *st, int32_t force, int32_t fid, int32
      * with its limit, table 0x007900EC / 0x00790134) with room for the carts on the way (+0x104,
      * +0x106) and at least 100 free (+0x56); not for a held good unless `force`. The figure picks
      * the one it reaches; it gets a cart more on the way (+0x104) carrying +0x74 (+0x106) */
-    if (S32(st, TRADE_HALTED) != 0) {
+    if (S32(st, G_U784BBC) != 0) {
         return 0;
     }
     if (good <= 0 || good > 8) {
@@ -608,56 +602,56 @@ int32_t cart_storage_with_room(game_state *st, int32_t force, int32_t fid, int32
     if (good_held(st, (uint32_t) good) != 0 && force == 0) {
         return 0;
     }
-    S32(st, CANDIDATES) = 0;
-    for (int32_t i = 1; i <= S32(st, BUILDING_HIGHEST); i++) {
+    S32(st, G_CANDIDATES) = 0;
+    for (int32_t i = 1; i <= S32(st, G_BUILDING_HIGHEST); i++) {
         uint32_t b = BUILDING_ADDR(i);
-        int16_t t = S16(st, b + 0x10);
-        if (U8(st, b) != 1 || (t != 0x47 && t != 0xBF) || U8(st, b + 0x44) == 0 || S16(st, b + 0x20) <= 0 ||
-            U8(st, b + 0x14) != terrain) {
+        int16_t t = S16(st, b + BLD_TYPE);
+        if (U8(st, b + BLD_STATE) != 1 || (t != 0x47 && t != 0xBF) || U8(st, b + BLD_U44) == 0 || S16(st, b + BLD_DISTANCE) <= 0 ||
+            U8(st, b + BLD_ROAD_NETWORK) != terrain) {
             continue;
         }
-        if (GAME_CALL(st, 0x004CDE60u, S16(st, b + 0x40), S32(st, 0x00705EB8u + 40u * (uint32_t) t)) < 100) {
-            S32(st, 0x00D05628u) += 1;
+        if (GAME_CALL(st, FN_CALC_RATIO_PERCENT, S16(st, b + BLD_WORKERS), S32(st, G_TYPE_WORKERS + 40u * (uint32_t) t)) < 100) {
+            S32(st, G_YARDS_LOW) += 1;
             continue;
         }
-        uint32_t k = U8(st, b + 0xC1);
+        uint32_t k = U8(st, b + BLD_STORAGE_ID);
         uint8_t s = storage_setting(st, k, (uint32_t) good);
         if (s != 0 && s != 2) {
             continue;
         }
-        uint32_t lim = (s == 0 ? 0x007900ECu : 0x00790134u) + 2u * (k * 0x62u + (uint32_t) good);
-        int16_t stock = S16(st, b + 0x56 + 2u * (uint32_t) good);
+        uint32_t lim = (s == 0 ? G_STORAGE_FILL : G_STORAGE_GET) + 2u * (k * 0x62u + (uint32_t) good);
+        int16_t stock = S16(st, b + BLD_INVENTORY + 2u * (uint32_t) good);
         if (S16(st, lim) <= stock) {
             continue;
         }
-        if (S16(st, b + 0x104) > 0 && S16(st, lim) - S16(st, b + 0x106) - stock <= 0) {
+        if (S16(st, b + BLD_INCOMING_CARTS) > 0 && S16(st, lim) - S16(st, b + BLD_INCOMING_AMOUNT) - stock <= 0) {
             continue;
         }
-        if (S16(st, b + 0x56) < 100) {
+        if (S16(st, b + BLD_INVENTORY) < 100) {
             continue;
         }
-        int32_t n = S32(st, CANDIDATES);
-        U32(st, CANDIDATE_IDS + 4u + 4u * (uint32_t) n) = (uint32_t) i;
-        GAME_CALL(st, 0x004806A0u, S16(st, b + 0x06), S16(st, b + 0x08));
-        U32(st, CANDIDATES + 4u + 4u * (uint32_t) S32(st, CANDIDATES)) =
-            (uint32_t) S32(st, FOUND_X) + 228u * (uint32_t) S32(st, FOUND_Y) + U32(st, MAP_OFFSET);
-        S32(st, CANDIDATES) += 1;
+        int32_t n = S32(st, G_CANDIDATES);
+        U32(st, G_CANDIDATE_IDS + 4u + 4u * (uint32_t) n) = (uint32_t) i;
+        GAME_CALL(st, FN_BUILDING_ROAD_ACCESS_4, S16(st, b + BLD_X), S16(st, b + BLD_Y));
+        U32(st, G_CANDIDATES + 4u + 4u * (uint32_t) S32(st, G_CANDIDATES)) =
+            (uint32_t) S32(st, G_ROAD_ACCESS_X) + 228u * (uint32_t) S32(st, G_ROAD_ACCESS_Y) + U32(st, G_MAP_START);
+        S32(st, G_CANDIDATES) += 1;
     }
-    int32_t n = S32(st, CANDIDATES);
+    int32_t n = S32(st, G_CANDIDATES);
     if (n == 0) {
         return 0;
     }
-    int32_t r = figure_route_to_any(st, fid, CANDIDATES + 4u, n);
+    int32_t r = figure_route_to_any(st, fid, G_CANDIDATES + 4u, n);
     if (r == 0) {
         return 0;
     }
-    int32_t id = (int32_t) U32(st, CANDIDATE_IDS + 4u * (uint32_t) r);
+    int32_t id = (int32_t) U32(st, G_CANDIDATE_IDS + 4u * (uint32_t) r);
     uint32_t b = BUILDING_ADDR(id);
-    S32(st, FOUND_X) = S16(st, b + 0x26);
-    S32(st, FOUND_Y) = S16(st, b + 0x28);
+    S32(st, G_ROAD_ACCESS_X) = S16(st, b + BLD_ROAD_ACCESS_X);
+    S32(st, G_ROAD_ACCESS_Y) = S16(st, b + BLD_ROAD_ACCESS_Y);
     if (id != 0) {
-        S16(st, b + 0x104) += 1;
-        S16(st, b + 0x106) += S16(st, FIGURE_ADDR(fid) + 0x74);
+        S16(st, b + BLD_INCOMING_CARTS) += 1;
+        S16(st, b + BLD_INCOMING_AMOUNT) += S16(st, FIGURE_ADDR(fid) + FIG_AMOUNT);
     }
     return id;
 }
@@ -670,19 +664,19 @@ int32_t cart_dock_for_good(game_state *st, int32_t skip, int32_t fid, int32_t go
      * (0x004CDE60) of 100 or more (else 0x00D05628 counts it), and free for the good (+0x12 none,
      * or the good under 400 at +0x3C); reached at the main part's entry (+0x44 1) or the road next
      * to it (0x00480180). The figure picks the one it reaches */
-    S32(st, CANDIDATES) = 0;
+    S32(st, G_CANDIDATES) = 0;
     if (good == 0x15) {
         return 0;
     }
-    for (int32_t i = 1; i <= S32(st, BUILDING_HIGHEST); i++) {
+    for (int32_t i = 1; i <= S32(st, G_BUILDING_HIGHEST); i++) {
         uint32_t b = BUILDING_ADDR(i);
-        if (U8(st, b) != 1 || S16(st, b + 0x10) != 0x49 || U8(st, b + 0x44) == 0 || S16(st, b + 0x20) <= 0 ||
-            U8(st, b + 0x14) != terrain) {
+        if (U8(st, b + BLD_STATE) != 1 || S16(st, b + BLD_TYPE) != 0x49 || U8(st, b + BLD_U44) == 0 || S16(st, b + BLD_DISTANCE) <= 0 ||
+            U8(st, b + BLD_ROAD_NETWORK) != terrain) {
             continue;
         }
-        int32_t m = GAME_CALL(st, 0x00475B50u, i);
+        int32_t m = GAME_CALL(st, FN_BUILDING_MAIN_PART, i);
         uint32_t mb = BUILDING_ADDR(m);
-        uint32_t k = U8(st, mb + 0xC1);
+        uint32_t k = U8(st, mb + BLD_STORAGE_ID);
         if (skip == m && storage_setting(st, k, (uint32_t) good) != 2) {
             continue;
         }
@@ -690,47 +684,47 @@ int32_t cart_dock_for_good(game_state *st, int32_t skip, int32_t fid, int32_t go
         if (s != 0 && s != 2) {
             continue;
         }
-        int32_t stock = GAME_CALL(st, 0x0045D510u, m, good);
-        if (S16(st, (s == 0 ? 0x007900ECu : 0x00790134u) + 2u * (k * 0x62u + (uint32_t) good)) <= stock) {
+        int32_t stock = GAME_CALL(st, FN_BUILDING_PARTS_STOCK, m, good);
+        if (S16(st, (s == 0 ? G_STORAGE_FILL : G_STORAGE_GET) + 2u * (k * 0x62u + (uint32_t) good)) <= stock) {
             continue;
         }
-        if (GAME_CALL(st, 0x004CDE60u, S16(st, mb + 0x40), S32(st, 0x00705EB8u + 40u * (uint32_t) S16(st, mb + 0x10))) <
+        if (GAME_CALL(st, FN_CALC_RATIO_PERCENT, S16(st, mb + BLD_WORKERS), S32(st, G_TYPE_WORKERS + 40u * (uint32_t) S16(st, mb + BLD_TYPE))) <
             100) {
-            S32(st, 0x00D05628u) += 1;
+            S32(st, G_YARDS_LOW) += 1;
             continue;
         }
-        int16_t k2 = S16(st, b + 0x12);
-        if (k2 != 0 && (k2 != good || S16(st, b + 0x3C) >= 400)) {
+        int16_t k2 = S16(st, b + BLD_SUBTYPE);
+        if (k2 != 0 && (k2 != good || S16(st, b + BLD_STORED) >= 400)) {
             continue;
         }
-        int32_t m2 = GAME_CALL(st, 0x00475B50u, i);
+        int32_t m2 = GAME_CALL(st, FN_BUILDING_MAIN_PART, i);
         uint32_t m2b = BUILDING_ADDR(m2);
         uint32_t tile;
-        if (U8(st, m2b + 0x44) == 1) {
-            tile = U32(st, MAP_OFFSET) + (uint32_t) S16(st, m2b + 0x26) + 228u * (uint32_t) S16(st, m2b + 0x28);
+        if (U8(st, m2b + BLD_U44) == 1) {
+            tile = U32(st, G_MAP_START) + (uint32_t) S16(st, m2b + BLD_ROAD_ACCESS_X) + 228u * (uint32_t) S16(st, m2b + BLD_ROAD_ACCESS_Y);
         } else {
-            if (GAME_CALL(st, 0x00480180u, S16(st, m2b + 0x06), S16(st, m2b + 0x08), 3) == 0) {
+            if (GAME_CALL(st, FN_BUILDING_ROAD_ACCESS, S16(st, m2b + BLD_X), S16(st, m2b + BLD_Y), 3) == 0) {
                 continue;
             }
-            tile = (uint32_t) S32(st, FOUND_X) + 228u * (uint32_t) S32(st, FOUND_Y) + U32(st, MAP_OFFSET);
+            tile = (uint32_t) S32(st, G_ROAD_ACCESS_X) + 228u * (uint32_t) S32(st, G_ROAD_ACCESS_Y) + U32(st, G_MAP_START);
         }
-        int32_t n = S32(st, CANDIDATES);
+        int32_t n = S32(st, G_CANDIDATES);
         add_candidate(st, n, i, tile);
-        S32(st, CANDIDATES) = n + 1;
+        S32(st, G_CANDIDATES) = n + 1;
     }
-    int32_t n = S32(st, CANDIDATES);
+    int32_t n = S32(st, G_CANDIDATES);
     if (n == 0) {
         return 0;
     }
-    int32_t r = figure_route_to_any(st, fid, CANDIDATES + 4u, n);
+    int32_t r = figure_route_to_any(st, fid, G_CANDIDATES + 4u, n);
     if (r == 0) {
         return 0;
     }
-    int32_t id = (int32_t) U32(st, CANDIDATE_IDS + 4u * (uint32_t) r);
-    uint32_t mb = BUILDING_ADDR(GAME_CALL(st, 0x00475B50u, id));
-    S32(st, FOUND_X) = S16(st, mb + 0x26);
-    S32(st, FOUND_Y) = S16(st, mb + 0x28);
-    if (U8(st, mb + 0x44) == 1 || GAME_CALL(st, 0x00480180u, S16(st, mb + 0x06), S16(st, mb + 0x08), 3) != 0) {
+    int32_t id = (int32_t) U32(st, G_CANDIDATE_IDS + 4u * (uint32_t) r);
+    uint32_t mb = BUILDING_ADDR(GAME_CALL(st, FN_BUILDING_MAIN_PART, id));
+    S32(st, G_ROAD_ACCESS_X) = S16(st, mb + BLD_ROAD_ACCESS_X);
+    S32(st, G_ROAD_ACCESS_Y) = S16(st, mb + BLD_ROAD_ACCESS_Y);
+    if (U8(st, mb + BLD_U44) == 1 || GAME_CALL(st, FN_BUILDING_ROAD_ACCESS, S16(st, mb + BLD_X), S16(st, mb + BLD_Y), 3) != 0) {
         return id;
     }
     return 0;

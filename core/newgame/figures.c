@@ -123,7 +123,7 @@ void newgame_herds_create(game_state *st)
             U8(st, a + 0x29) = (uint8_t) count2;
             /* @bin 0x004BB98F offsets 0x005CDB78, tiles for mode 1 */
             herd_animals(st, fm, type2, count2, S32(st, G_HERD2_POINTS_X + 4u * p), S32(st, G_HERD2_POINTS_Y + 4u * p),
-                         G_U5CDB78, 1, 0);
+                         G_RING16_DX, 1, 0);
         }
         cb0 = U32(st, G_U784CB0); /* @bin 0x004BBBEB */
     }

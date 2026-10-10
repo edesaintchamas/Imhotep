@@ -504,7 +504,7 @@ void newgame_start(game_state *st, uint32_t name, int32_t flag)
     }
     S32(st, city + CITY_DIFFICULTY) = S32(st, G_DIFFICULTY);
     /* @bin 0x005409A5 */
-    U8(st, G_U784CBD) = U8(st, G_U784CBD) == 1;
+    U8(st, G_ALT_SPRITES) = U8(st, G_ALT_SPRITES) == 1;
     newgame_profiler_reset(st);
 }
 

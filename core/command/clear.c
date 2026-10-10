@@ -372,7 +372,7 @@ static int clear_building(game_state *st, int32_t bid, int32_t preview)
     /* @bin 0x00474B6E links freed: storage record +0xC1, table 0x009783A4 (+0xCB), 0x00EAAF68 (+0xCA) */
     uint8_t k = U8(st, b + BLD_STORAGE_ID);
     if (k != 0) {
-        U8(st, G_STORAGE_SETTINGS + 0xC4u * k) = 0;
+        U8(st, G_STORAGE_SETTINGS_U08 + 0xC4u * k) = 0;
     }
     k = U8(st, b + BLD_UCB);
     if (k != 0) {
@@ -380,7 +380,7 @@ static int clear_building(game_state *st, int32_t bid, int32_t preview)
     }
     k = U8(st, b + BLD_UCA);
     if (k != 0) {
-        U32(st, G_REC88 + 0xE0u * k) = 0;
+        U32(st, G_FERRY_QUEUES + 0xE0u * k) = 0;
     }
     /* @bin 0x00474BC5 a house's goods given back (0x00459020) */
     if (U8(st, b + BLD_HOUSE_SIZE) != 0 && S16(st, b + BLD_POPULATION) != 0 && preview == 0) {

@@ -552,7 +552,7 @@ void map_read_chunks(game_state *st, map_stream *f)
     }
     if (v <= 0x9D) {
         U32(st, G_BLOOD_RIVER_DURATION) = 0;
-        U8(st, G_U784CBD) = 0;
+        U8(st, G_ALT_SPRITES) = 0;
         U32(st, G_MUMMY_ATTACK_PARAM) = 0xA;
         U32(st, G_HAIL_TIMER) = 0;
     }
@@ -614,7 +614,7 @@ void map_setup_grids(game_state *st)
     }
     /* @bin 0x004D59BD the vegetation grid 0x00A43EAC := -1 (0x32C4 dwords) */
     for (uint32_t k = 0; k < 0x32C4u; k++) {
-        U32(st, G_UA43EAC + 4 * k) = 0xFFFFFFFFu;
+        U32(st, G_GRID_VEGETATION + 4 * k) = 0xFFFFFFFFu;
     }
     GAME_CALL(st, FN_NOTHING, 0, 0, (int32_t) U32(st, G_MAP_WIDTH), (int32_t) U32(st, G_CAMERA_Y));
     GAME_CALL0(st, FN_DAY_FERTILITY_4860D0);

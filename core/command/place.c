@@ -422,7 +422,7 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
                     notice(st, 2);
                     return;
                 }
-                if (S32(st, G_FORMATION_COUNT) >= 6) {
+                if (S32(st, G_LEGIONS) >= 6) {
                     notice(st, 0x34);
                     return;
                 }

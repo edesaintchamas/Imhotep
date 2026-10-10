@@ -57,7 +57,7 @@ static void storage_clear(game_state *st)
 
 static void rec_eaaf68_clear(game_state *st)
 {
-    zero(st, G_REC88, 0x2BC0u); /* @bin 0x0046EFB0 the 0xE0-byte records at 0x00EAAF68 */
+    zero(st, G_FERRY_QUEUES, 0x2BC0u); /* @bin 0x0046EFB0 the 0xE0-byte records at 0x00EAAF68 */
 }
 
 static void rec_9784d8_clear(game_state *st)
@@ -98,7 +98,7 @@ static void events_release(game_state *st)
     U32(st, G_ENEMY_SOLDIERS) = 0;
     U32(st, G_OWN_FORMATIONS) = 0;
     U32(st, G_OWN_STRENGTH) = 0;
-    U32(st, G_UD0562C) = 0;
+    U32(st, G_ENEMY_COUNTER) = 0;
 }
 
 static void figure_name_counters(game_state *st)
@@ -117,7 +117,7 @@ static void formations_clear(game_state *st)
     }
     U32(st, G_FORMATION_HIGHEST) = 0;
     U32(st, G_LEGION_LAST) = 0;
-    U32(st, G_FORMATION_COUNT) = 0;
+    U32(st, G_LEGIONS) = 0;
 }
 
 static void rec_c8ad38_clear(game_state *st)

@@ -143,8 +143,7 @@
 #define G_RAMP_LAST_TILE 0x00EAAE9Cu   /* @bin 0x004ED003 i32: the last tile of the ramp walk 0x004ED360 */
 #define G_UEADB28 0x00EADB28u          /* @bin 0x004F6AD0 i32: := houses_at_least(G_GOAL_HOUSE_LEVEL) */
 /* P1 (g_figure.h) */
-#define G_STORAGE_SETTINGS 0x007900C0u /* @bin 0x00474B6E records of 0xC4 bytes by building +0xC1 (core/figure/helpers_xb.c) */
-#define G_FORMATION_COUNT 0x00BCB9B4u  /* @bin 0x0047026B i32: the formations in use (forts; core/figure/formation.h) */
+#define G_STORAGE_SETTINGS_U08 0x007900C0u /* @bin 0x00474B6E records of 0xC4 bytes by building +0xC1 (core/figure/helpers_xb.c) */
 /* P2 (g_building.h) */
 #define G_GATEHOUSE_PART_IDS 0x005DF78Cu /* @bin 0x004BFA50 i32[4] per rotation: the gatehouse parts */
 #define G_GATEHOUSE_PARTS 0x005DF814u  /* @bin 0x004BFA50 16-byte records: +0 size, +4 / +8 offsets by rotation */

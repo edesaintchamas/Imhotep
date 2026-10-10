@@ -82,7 +82,7 @@ void farm_crop_large(game_state *st, int32_t id, int32_t x, int32_t y, int32_t i
         if (grown < a / 5) {
             mode = 1;
             sel = 4;
-        } else if (S32(st, G_UD386D4) == 1) {
+        } else if (S32(st, G_FLOOD_STATE) == 1) {
             mode = 3;
             sel = U8(st, G_RANDOM + (uint32_t) (t + S32(st, G_TICK_DAY))) % 7;
         } else {
@@ -110,7 +110,7 @@ void farm_crop_large(game_state *st, int32_t id, int32_t x, int32_t y, int32_t i
             if (mode == 1) {
                 e = S32(st, G_UF560A4) + (((S32(st, G_TICK) >> 3) + id) & 7) + depth * 8 - 8;
             } else if (mode == 2) {
-                e = S32(st, G_UF5609C) + ((int32_t) U8(st, G_RANDOM + (uint32_t) t) + k) % 7 + depth * 8 - 8;
+                e = S32(st, G_IMAGE_GROUP_157) + ((int32_t) U8(st, G_RANDOM + (uint32_t) t) + k) % 7 + depth * 8 - 8;
             } else {
                 e = S32(st, G_UF560AC) + U8(st, G_RANDOM + (uint32_t) t) % 7 + depth * 8 - 8;
             }

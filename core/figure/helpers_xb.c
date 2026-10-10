@@ -10,6 +10,7 @@
 #include "city/goods.h"
 #include "sim/call.h"
 #include "sim/math.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
@@ -19,12 +20,12 @@ int32_t storage_fill_level(int32_t amount); /* @bin 0x0045B490 (core/building/bu
 #define CUR_PLAYER(st) S32(st, CURRENT_PLAYER_ADDR)
 /* @bin 0x007900C0 storage settings: records of 0xC4 bytes by the building's +0xC1; +2 + good: a
  * byte per good, +0x2C + 2 good / +0x74 + 2 good: i16 limits */
-#define STORE_REC(k) (0x007900C0u + 0xC4u * (uint32_t) (k))
+#define STORE_REC(k) (G_STORAGE_SETTINGS_U08 + 0xC4u * (uint32_t) (k))
 /* @bin 0x0077DE04 empire cities, 0x6A bytes each: +0 route index, +2 + good, +0x26 + good bytes */
-#define ECITY(c) (0x0077DE04u + 0x6Au * (uint32_t) (c))
+#define ECITY(c) (G_EMPIRE_CITIES + EMPCITY_ROUTE + 0x6Au * (uint32_t) (c))
 /* @bin 0x0077646C / 0x0077592C route limits / route counts, i32 [route * 36 + good] */
-#define ROUTE_LIMIT(r, g) (0x0077646Cu + 4u * (36u * (uint32_t) (r) + (uint32_t) (g)))
-#define ROUTE_DONE(r, g) (0x0077592Cu + 4u * (36u * (uint32_t) (r) + (uint32_t) (g)))
+#define ROUTE_LIMIT(r, g) (G_TRADE_ROUTE_LIMITS + 4u * (36u * (uint32_t) (r) + (uint32_t) (g)))
+#define ROUTE_DONE(r, g) (G_TRADE_DONE + 4u * (36u * (uint32_t) (r) + (uint32_t) (g)))
 
 static int is_storage(int16_t type)
 {
@@ -38,7 +39,7 @@ int32_t trade_good_open_24(game_state *st, int32_t player, int32_t city, int32_t
      * (+0x48F0 + 4 good) above the threshold (status 2: i16 +0x286E * 100, else 0x00775810[good])
      * and, for city != 0, the empire city's byte +2 + good set */
     uint32_t c = CITY_ADDR(player);
-    int16_t status = S16(st, c + 0x2826u + 2u * (uint32_t) good);
+    int16_t status = S16(st, c + CITY_GOOD_SETTING + 2u * (uint32_t) good);
     if (status != 2 && status != 4) {
         return 0;
     }
@@ -49,12 +50,12 @@ int32_t trade_good_open_24(game_state *st, int32_t player, int32_t city, int32_t
     if (city != 0 && S32(st, ROUTE_DONE(U8(st, ECITY(city)), good)) >= limit) {
         return 0;
     }
-    int32_t stock = S32(st, c + 0x48F0u + 4u * (uint32_t) good);
-    if (S16(st, c + 0x2826u + 2u * (uint32_t) good) == 2) {
-        if (!(stock > S16(st, c + 0x286Eu + 2u * (uint32_t) good) * 100)) {
+    int32_t stock = S32(st, c + CITY_GOOD_STOCK + 4u * (uint32_t) good);
+    if (S16(st, c + CITY_GOOD_SETTING + 2u * (uint32_t) good) == 2) {
+        if (!(stock > S16(st, c + CITY_U286E + 2u * (uint32_t) good) * 100)) {
             return 0;
         }
-    } else if (!(stock > S32(st, 0x00775810u + 4u * (uint32_t) good))) {
+    } else if (!(stock > S32(st, G_DEFAULT_LIMIT + 4u * (uint32_t) good))) {
         return 0;
     }
     if (city != 0 && U8(st, ECITY(city) + 2u + (uint32_t) good) == 0) {
@@ -69,11 +70,11 @@ int32_t trade_good_open_13(game_state *st, int32_t player, int32_t city, int32_t
      * 1..0x23 but not 0x1B, the empire city's byte +0x26 + good set, the route count below its
      * adjusted limit and the stock below the threshold (status 1: i16 +0x286E * 100, else
      * 0x00775810[good]) */
-    if (S32(st, CURRENT_CITY(st) + 0x0C) <= -5000) {
+    if (S32(st, CURRENT_CITY(st) + CITY_TREASURY) <= -5000) {
         return 0;
     }
     uint32_t c = CITY_ADDR(player);
-    int16_t status = S16(st, c + 0x2826u + 2u * (uint32_t) good);
+    int16_t status = S16(st, c + CITY_GOOD_SETTING + 2u * (uint32_t) good);
     if (status != 1 && status != 3) {
         return 0;
     }
@@ -87,14 +88,14 @@ int32_t trade_good_open_13(game_state *st, int32_t player, int32_t city, int32_t
     if (S32(st, ROUTE_DONE(U8(st, ECITY(city)), good)) >= limit) {
         return 0;
     }
-    int32_t stock = S32(st, c + 0x48F0u + 4u * (uint32_t) good);
+    int32_t stock = S32(st, c + CITY_GOOD_STOCK + 4u * (uint32_t) good);
     if (good < 1) {
         return 0;
     }
-    if (S16(st, c + 0x2826u + 2u * (uint32_t) good) == 1) {
-        return stock < S16(st, c + 0x286Eu + 2u * (uint32_t) good) * 100;
+    if (S16(st, c + CITY_GOOD_SETTING + 2u * (uint32_t) good) == 1) {
+        return stock < S16(st, c + CITY_U286E + 2u * (uint32_t) good) * 100;
     }
-    return stock < S32(st, 0x00775810u + 4u * (uint32_t) good);
+    return stock < S32(st, G_DEFAULT_LIMIT + 4u * (uint32_t) good);
 }
 
 int32_t storage_over_limit(game_state *st, int32_t bid, int32_t amount, int32_t good)
@@ -102,7 +103,7 @@ int32_t storage_over_limit(game_state *st, int32_t bid, int32_t amount, int32_t 
     /* @bin 0x0045B230 the limit of `good` in the building's settings (+0x74 + 2 good when its byte
      * +2 + good is set, else +0x2C + 2 good) is below the stock (0x0045D510) + amount
      * (only al is set: ret_bits 8) */
-    uint32_t r = STORE_REC(U8(st, B(bid) + 0xC1));
+    uint32_t r = STORE_REC(U8(st, B(bid) + BLD_STORAGE_ID));
     int32_t limit = U8(st, r + 2u + (uint32_t) good) != 0 ? S16(st, r + 0x74u + 2u * (uint32_t) good)
                                                          : S16(st, r + 0x2Cu + 2u * (uint32_t) good);
     return limit < building_parts_stock(st, bid, good) + amount;
@@ -117,8 +118,8 @@ int32_t storage_add(game_state *st, int32_t player, int32_t bid, int32_t good, i
      * Returns the units put (<= 0 when none fit), 0 when no part is found */
     int32_t main = building_main_part(st, bid);
     uint32_t m = B(main);
-    uint8_t k = U8(st, m + 0xC1);
-    if (S16(st, m + 0x40) <= 0 || S16(st, m + 0x4A) != 0) {
+    uint8_t k = U8(st, m + BLD_STORAGE_ID);
+    if (S16(st, m + BLD_WORKERS) <= 0 || S16(st, m + BLD_BURNING) != 0) {
         return 0;
     }
     if ((uint8_t) storage_over_limit(st, main, 0, good) != 0) {
@@ -140,13 +141,13 @@ int32_t storage_add(game_state *st, int32_t player, int32_t bid, int32_t good, i
         int32_t best = -1, part = 0;
         int32_t cur = building_main_part(st, at);
         for (int j = 0; j < 8; j++) {
-            cur = S16(st, B(cur) + 0x3A);
+            cur = S16(st, B(cur) + BLD_NEXT_PART);
             if (cur <= 0) {
                 return 0;
             }
-            int16_t g = S16(st, B(cur) + 0x12);
+            int16_t g = S16(st, B(cur) + BLD_SUBTYPE);
             if (g == 0 || g == good) {
-                int16_t have = S16(st, B(cur) + 0x3C);
+                int16_t have = S16(st, B(cur) + BLD_STORED);
                 if (have < 0x190 && have > best) {
                     best = have;
                     part = cur;
@@ -158,16 +159,16 @@ int32_t storage_add(game_state *st, int32_t player, int32_t bid, int32_t good, i
         }
         at = part;
         uint32_t idx = 4u * ((uint32_t) player * 0x1276u + (uint32_t) good);
-        S32(st, 0x00EA60D0u + idx) -= 1;
-        S32(st, 0x00EA6160u + idx) += 1;
+        S32(st, CITY_BASE + CITY_U4860 + idx) -= 1;
+        S32(st, CITY_BASE + CITY_GOOD_STOCK + idx) += 1;
         uint32_t p = B(part);
-        S16(st, p + 0x12) = (int16_t) good;
-        S16(st, p + 0x3C) = (int16_t) (S16(st, p + 0x3C) + 1);
-        int16_t have = S16(st, p + 0x3C);
-        int32_t tile = S32(st, p + 0x0C);
+        S16(st, p + BLD_SUBTYPE) = (int16_t) good;
+        S16(st, p + BLD_STORED) = (int16_t) (S16(st, p + BLD_STORED) + 1);
+        int16_t have = S16(st, p + BLD_STORED);
+        int32_t tile = S32(st, p + BLD_GRID_OFFSET);
         /* @bin 0x0045B436 goods below 0x1F: images from 0x00F566BC, the others from 0x00F57204 */
-        int32_t base = good < 0x1F ? S32(st, 0x00F566BCu) + good * 4 - 4 : S32(st, 0x00F57204u) + good * 4 - 0x7C;
-        S32(st, 0x00B7482Cu + 4u * (uint32_t) tile) = storage_fill_level(have) + base;
+        int32_t base = good < 0x1F ? S32(st, G_IMAGE_GROUP_353) + good * 4 - 4 : S32(st, G_IMAGE_GROUP_714) + good * 4 - 0x7C;
+        S32(st, G_IMAGE + 4u * (uint32_t) tile) = storage_fill_level(have) + base;
     }
     return n;
 }
@@ -178,7 +179,7 @@ int32_t storage_room_loads(game_state *st, int32_t bid, int32_t good, int32_t am
      * takes: 0 when over its settings limit; the room is 3200 less the parts' stock (+0x3C, chain
      * +0x3A, 8 parts); capped by what the current player's city wants (stock +0x48F0 below the
      * threshold of trade_good_open_13) */
-    if (!is_storage(S16(st, B(bid) + 0x10))) {
+    if (!is_storage(S16(st, B(bid) + BLD_TYPE))) {
         return 0;
     }
     building_parts_stock(st, bid, good); /* result unused */
@@ -191,8 +192,8 @@ int32_t storage_room_loads(game_state *st, int32_t bid, int32_t good, int32_t am
     int32_t sum = 0;
     int32_t cur = bid;
     for (int i = 0; i < 8; i++) {
-        cur = S16(st, B(cur) + 0x3A);
-        int16_t have = S16(st, B(cur) + 0x3C);
+        cur = S16(st, B(cur) + BLD_NEXT_PART);
+        int16_t have = S16(st, B(cur) + BLD_STORED);
         sum += have > 0 ? have : 0;
     }
     int32_t room = 0xC80 - sum;
@@ -207,12 +208,12 @@ int32_t storage_room_loads(game_state *st, int32_t bid, int32_t good, int32_t am
     }
     uint32_t c = CURRENT_CITY(st);
     int32_t lim;
-    if (S16(st, c + 0x2826u + 2u * (uint32_t) good) == 1) {
-        lim = S16(st, c + 0x286Eu + 2u * (uint32_t) good) * 100;
+    if (S16(st, c + CITY_GOOD_SETTING + 2u * (uint32_t) good) == 1) {
+        lim = S16(st, c + CITY_U286E + 2u * (uint32_t) good) * 100;
     } else {
-        lim = S32(st, 0x00775810u + 4u * (uint32_t) good);
+        lim = S32(st, G_DEFAULT_LIMIT + 4u * (uint32_t) good);
     }
-    int32_t stock = S32(st, c + 0x48F0u + 4u * (uint32_t) good);
+    int32_t stock = S32(st, c + CITY_GOOD_STOCK + 4u * (uint32_t) good);
     if (stock + q * 100 < lim) {
         return q;
     }
@@ -227,23 +228,23 @@ int32_t storage_trades_24(game_state *st, int32_t fid, int32_t player, int32_t b
     /* @bin 0x0045CF50 a storage building whose part chain (+0x3A, 8 steps) holds a good (+0x12,
      * stock +0x3C > 0) with trade_good_open_24 and a total stock (0x0045D510) of at least 100,
      * for a figure whose +0x6F is below 8 */
-    int16_t type = S16(st, B(bid) + 0x10);
+    int16_t type = S16(st, B(bid) + BLD_TYPE);
     if (!is_storage(type)) {
         return 0;
     }
-    if (U8(st, FIGURE_ADDR(fid) + 0x6F) >= 8) {
+    if (U8(st, FIGURE_ADDR(fid) + FIG_U6F) >= 8) {
         return 0;
     }
     int32_t cur = bid;
     for (int i = 0; i < 8; i++) {
-        cur = S16(st, B(cur) + 0x3A);
-        if (cur <= 0 || S16(st, B(cur) + 0x3C) <= 0) {
+        cur = S16(st, B(cur) + BLD_NEXT_PART);
+        if (cur <= 0 || S16(st, B(cur) + BLD_STORED) <= 0) {
             continue;
         }
-        if (trade_good_open_24(st, player, city, S16(st, B(cur) + 0x12)) == 0) {
+        if (trade_good_open_24(st, player, city, S16(st, B(cur) + BLD_SUBTYPE)) == 0) {
             continue;
         }
-        if (building_parts_stock(st, bid, S16(st, B(cur) + 0x12)) >= 100) {
+        if (building_parts_stock(st, bid, S16(st, B(cur) + BLD_SUBTYPE)) >= 100) {
             return 1;
         }
     }
@@ -257,15 +258,15 @@ int32_t storage_trades_13(game_state *st, int32_t fid, int32_t player, int32_t b
      * limit is open; the city's rotating good (+0x42C4) is advanced to one that is (settings byte
      * not 1); then a part (+0x3A, 8 steps) below 400 that is empty or holds an open good */
     uint32_t b = B(bid);
-    int16_t type = S16(st, b + 0x10);
+    int16_t type = S16(st, b + BLD_TYPE);
     if (!is_storage(type)) {
         return 0;
     }
-    calc_ratio_percent(S16(st, b + 0x40), S32(st, 0x00705EB8u + 40u * (uint32_t) (int32_t) type)); /* unused */
-    if (S16(st, FIGURE_ADDR(fid) + 0x74) >= 8) {
+    calc_ratio_percent(S16(st, b + BLD_WORKERS), S32(st, G_TYPE_WORKERS + 40u * (uint32_t) (int32_t) type)); /* unused */
+    if (S16(st, FIGURE_ADDR(fid) + FIG_AMOUNT) >= 8) {
         return 0;
     }
-    uint32_t r = STORE_REC(U8(st, b + 0xC1));
+    uint32_t r = STORE_REC(U8(st, b + BLD_STORAGE_ID));
     int count = 0;
     for (int32_t good = 1; good < 0x24; good++) {
         uint8_t fl = U8(st, r + 2u + (uint32_t) good);
@@ -286,17 +287,17 @@ int32_t storage_trades_13(game_state *st, int32_t fid, int32_t player, int32_t b
         return 0;
     }
     uint32_t c = CITY_ADDR(player);
-    int32_t ok = trade_good_open_13(st, player, city, S32(st, c + 0x42C4));
-    if (U8(st, r + 2u + (uint32_t) S32(st, CURRENT_CITY(st) + 0x42C4)) == 1 || ok == 0) {
+    int32_t ok = trade_good_open_13(st, player, city, S32(st, c + CITY_U42C4));
+    if (U8(st, r + 2u + (uint32_t) S32(st, CURRENT_CITY(st) + CITY_U42C4)) == 1 || ok == 0) {
         int found = 0;
         for (int i = 1; i < 0x24; i++) {
-            int32_t v = S32(st, c + 0x42C4) + 1;
-            S32(st, c + 0x42C4) = v;
+            int32_t v = S32(st, c + CITY_U42C4) + 1;
+            S32(st, c + CITY_U42C4) = v;
             if (v >= 0x24) {
-                S32(st, c + 0x42C4) = 1;
+                S32(st, c + CITY_U42C4) = 1;
             }
-            if (U8(st, r + 2u + (uint32_t) S32(st, CURRENT_CITY(st) + 0x42C4)) != 1 &&
-                trade_good_open_13(st, player, city, S32(st, c + 0x42C4)) != 0) {
+            if (U8(st, r + 2u + (uint32_t) S32(st, CURRENT_CITY(st) + CITY_U42C4)) != 1 &&
+                trade_good_open_13(st, player, city, S32(st, c + CITY_U42C4)) != 0) {
                 found = 1;
                 break;
             }
@@ -307,18 +308,18 @@ int32_t storage_trades_13(game_state *st, int32_t fid, int32_t player, int32_t b
     }
     int32_t cur = bid;
     for (int i = 0; i < 8; i++) {
-        cur = S16(st, B(cur) + 0x3A);
+        cur = S16(st, B(cur) + BLD_NEXT_PART);
         if (cur <= 0) {
             continue;
         }
-        int16_t have = S16(st, B(cur) + 0x3C);
+        int16_t have = S16(st, B(cur) + BLD_STORED);
         if (have >= 0x190) {
             continue;
         }
         if (have == 0) {
             return 1;
         }
-        if (trade_good_open_13(st, player, city, S16(st, B(cur) + 0x12)) != 0) {
+        if (trade_good_open_13(st, player, city, S16(st, B(cur) + BLD_SUBTYPE)) != 0) {
             return 1;
         }
     }
@@ -331,9 +332,9 @@ void city_good_value_move(game_state *st, int32_t player, int32_t unused, int32_
      * +0x2C6C gains it */
     (void) unused;
     uint32_t c = CITY_ADDR(player);
-    int32_t v = S32(st, 0x005D2C48u + 8u * (uint32_t) good);
-    S32(st, c + 0x0C) -= v;
-    S32(st, c + 0x2C6C) += v;
+    int32_t v = S32(st, G_PRICE_BUY + 8u * (uint32_t) good);
+    S32(st, c + CITY_TREASURY) -= v;
+    S32(st, c + CITY_U2C6C) += v;
 }
 
 int32_t storage_next_good_13(game_state *st, int32_t player, int32_t bid, int32_t city)
@@ -341,47 +342,47 @@ int32_t storage_next_good_13(game_state *st, int32_t player, int32_t bid, int32_
     /* @bin 0x0045D370 the next good (rotating +0x42C4 of the player's city, then probing with
      * +0x42C8) with trade_good_open_13 that the storage building takes a load of (0x0045B2A0 by
      * 100 returns 100); its value is moved (0x0045D4D0); returns that good, else 0 */
-    if (!is_storage(S16(st, B(bid) + 0x10))) {
+    if (!is_storage(S16(st, B(bid) + BLD_TYPE))) {
         return 0;
     }
     uint32_t c = CITY_ADDR(player);
     int found = 0;
     for (int i = 1; i < 0x24; i++) {
-        if (trade_good_open_13(st, player, city, S32(st, c + 0x42C4)) != 0) {
+        if (trade_good_open_13(st, player, city, S32(st, c + CITY_U42C4)) != 0) {
             found = 1;
             break;
         }
-        int32_t v = S32(st, c + 0x42C4) + 1;
-        S32(st, c + 0x42C4) = v;
+        int32_t v = S32(st, c + CITY_U42C4) + 1;
+        S32(st, c + CITY_U42C4) = v;
         if (v >= 0x24) {
-            S32(st, c + 0x42C4) = 1;
+            S32(st, c + CITY_U42C4) = 1;
         }
     }
     if (!found) {
         return 0;
     }
-    int32_t good = S32(st, c + 0x42C4);
-    S32(st, c + 0x42C4) = good + 1;
+    int32_t good = S32(st, c + CITY_U42C4);
+    S32(st, c + CITY_U42C4) = good + 1;
     if (good + 1 >= 0x24) {
-        S32(st, c + 0x42C4) = 1;
+        S32(st, c + CITY_U42C4) = 1;
     }
     if (storage_add(st, CUR_PLAYER(st), bid, good, 100) == 100) {
         city_good_value_move(st, player, bid, good);
         return good;
     }
     for (int i = 1; i < 0x24; i++) {
-        int32_t v = S32(st, c + 0x42C8) + 1;
-        S32(st, c + 0x42C8) = v;
+        int32_t v = S32(st, c + CITY_U42C8) + 1;
+        S32(st, c + CITY_U42C8) = v;
         if (v >= 0x24) {
-            S32(st, c + 0x42C8) = 1;
+            S32(st, c + CITY_U42C8) = 1;
         }
-        if (trade_good_open_13(st, player, city, S32(st, c + 0x42C8)) == 0) {
+        if (trade_good_open_13(st, player, city, S32(st, c + CITY_U42C8)) == 0) {
             continue;
         }
-        good = S32(st, c + 0x42C4);
-        S32(st, c + 0x42C4) = good + 1;
+        good = S32(st, c + CITY_U42C4);
+        S32(st, c + CITY_U42C4) = good + 1;
         if (good + 1 >= 0x24) {
-            S32(st, c + 0x42C4) = 1;
+            S32(st, c + CITY_U42C4) = 1;
         }
         if (storage_add(st, CUR_PLAYER(st), bid, good, 100) == 100) {
             city_good_value_move(st, player, bid, good);
@@ -396,12 +397,12 @@ int32_t storage_next_good_13(game_state *st, int32_t player, int32_t bid, int32_
 static int32_t storage_found(game_state *st, int32_t best)
 {
     uint32_t b = B(best);
-    if (U8(st, b + 0x44) == 1) {
-        S32(st, ROAD_ACCESS_X) = S16(st, b + 0x26);
-        S32(st, ROAD_ACCESS_Y) = S16(st, b + 0x28);
+    if (U8(st, b + BLD_U44) == 1) {
+        S32(st, ROAD_ACCESS_X) = S16(st, b + BLD_ROAD_ACCESS_X);
+        S32(st, ROAD_ACCESS_Y) = S16(st, b + BLD_ROAD_ACCESS_Y);
         return best;
     }
-    if (building_road_access(st, S16(st, b + 0x06), S16(st, b + 0x08), 3) != 0) {
+    if (building_road_access(st, S16(st, b + BLD_X), S16(st, b + BLD_Y), 3) != 0) {
         return best;
     }
     return 0;
@@ -418,36 +419,36 @@ int32_t storage_find_for_trader(game_state *st, int32_t fid, int32_t x, int32_t 
     uint32_t f = FIGURE_ADDR(fid);
     int32_t best = 10000, best_id = 0;
     for (int32_t good = 1; good < 0x24; good++) {
-        uint32_t a = 0x00775780u + 4u * (uint32_t) good;
+        uint32_t a = G_TRADE_OPEN_24 + 4u * (uint32_t) good;
         S32(st, a) = trade_good_open_24(st, CUR_PLAYER(st), city, good) != 0 ? 1 : 0;
-        if (U8(st, f + 0x6F) >= 8) {
+        if (U8(st, f + FIG_U6F) >= 8) {
             S32(st, a) = 0;
         }
-        a = 0x007756F0u + 4u * (uint32_t) good;
+        a = G_TRADE_OPEN_13 + 4u * (uint32_t) good;
         if (city != 0 && trade_good_open_13(st, CUR_PLAYER(st), city, good) != 0) {
             S32(st, a) = 1;
         } else {
             S32(st, a) = 0;
         }
-        if (S16(st, f + 0x74) >= 8) {
+        if (S16(st, f + FIG_AMOUNT) >= 8) {
             S32(st, a) = 0;
         }
     }
     int32_t wanted = 0;
-    for (uint32_t a = 0x007756F4u; a < 0x00775780u; a += 4) {
+    for (uint32_t a = G_TRADE_OPEN_13 + 4u; a < G_TRADE_OPEN_24; a += 4) {
         if (S32(st, a) == 1) {
             wanted++;
         }
     }
     for (int32_t bid = 1; bid < BUILDING_COUNT; bid++) {
         uint32_t b = B(bid);
-        if (U8(st, b) != 1 || !is_storage(S16(st, b + 0x10)) || U8(st, b + 0x44) == 0 ||
-            S16(st, b + 0x20) <= 0 || S16(st, b + 0x40) == 0) {
+        if (U8(st, b + BLD_STATE) != 1 || !is_storage(S16(st, b + BLD_TYPE)) || U8(st, b + BLD_U44) == 0 ||
+            S16(st, b + BLD_DISTANCE) <= 0 || S16(st, b + BLD_WORKERS) == 0) {
             continue;
         }
-        uint8_t k = U8(st, b + 0xC1);
-        if (storage_trades_13(st, fid, U8(st, f + 0x0F), bid, U8(st, f + 0x6E)) == 0 &&
-            storage_trades_24(st, fid, U8(st, f + 0x0F), bid, U8(st, f + 0x6E)) == 0) {
+        uint8_t k = U8(st, b + BLD_STORAGE_ID);
+        if (storage_trades_13(st, fid, U8(st, f + FIG_OWNER), bid, U8(st, f + FIG_U6E)) == 0 &&
+            storage_trades_24(st, fid, U8(st, f + FIG_OWNER), bid, U8(st, f + FIG_U6E)) == 0) {
             continue;
         }
         uint32_t r = STORE_REC(k);
@@ -464,8 +465,8 @@ int32_t storage_find_for_trader(game_state *st, int32_t fid, int32_t x, int32_t 
         int32_t score = 0x20;
         int32_t cur = bid;
         for (int i = 0; i < 8; i++) {
-            cur = S16(st, B(cur) + 0x3A);
-            if (cur != 0 && S32(st, 0x00775780u + 4u * (uint32_t) (int32_t) S16(st, B(cur) + 0x12)) != 0) {
+            cur = S16(st, B(cur) + BLD_NEXT_PART);
+            if (cur != 0 && S32(st, G_TRADE_OPEN_24 + 4u * (uint32_t) (int32_t) S16(st, B(cur) + BLD_SUBTYPE)) != 0) {
                 score -= 4;
             }
             if (wanted == 0 || open == 0 || U8(st, r + 1) != 0) {
@@ -473,12 +474,12 @@ int32_t storage_find_for_trader(game_state *st, int32_t fid, int32_t x, int32_t 
             }
             uint32_t c = CURRENT_CITY(st);
             for (int n = 1;;) {
-                int32_t v = S32(st, c + 0x42C4) + 1;
-                S32(st, c + 0x42C4) = v;
+                int32_t v = S32(st, c + CITY_U42C4) + 1;
+                S32(st, c + CITY_U42C4) = v;
                 if (v >= 0x24) {
-                    S32(st, c + 0x42C4) = 1;
+                    S32(st, c + CITY_U42C4) = 1;
                 }
-                if (U8(st, r + 2u + (uint32_t) S32(st, c + 0x42C4)) != 1) {
+                if (U8(st, r + 2u + (uint32_t) S32(st, c + CITY_U42C4)) != 1) {
                     break;
                 }
                 n++;
@@ -486,23 +487,23 @@ int32_t storage_find_for_trader(game_state *st, int32_t fid, int32_t x, int32_t 
                     break;
                 }
             }
-            int32_t rot = S32(st, c + 0x42C4);
+            int32_t rot = S32(st, c + CITY_U42C4);
             if (U8(st, r + 2u + (uint32_t) rot) == 1) {
                 continue;
             }
-            int16_t g = S16(st, B(cur) + 0x12);
+            int16_t g = S16(st, B(cur) + BLD_SUBTYPE);
             if (g == 0) {
                 score -= 16;
             }
-            if (cur != 0 && S32(st, 0x007756F0u + 4u * (uint32_t) (int32_t) g) != 0 &&
-                S16(st, B(cur) + 0x3C) < 0x190 && g == rot) {
+            if (cur != 0 && S32(st, G_TRADE_OPEN_13 + 4u * (uint32_t) (int32_t) g) != 0 &&
+                S16(st, B(cur) + BLD_STORED) < 0x190 && g == rot) {
                 score -= 8;
             }
         }
         if (score >= 0x20) {
             continue;
         }
-        score += building_distance(S16(st, b + 0x06), S16(st, b + 0x08), x, y, a4, S16(st, b + 0x20), st);
+        score += building_distance(S16(st, b + BLD_X), S16(st, b + BLD_Y), x, y, a4, S16(st, b + BLD_DISTANCE), st);
         if (score < best) {
             best = score;
             best_id = bid;
@@ -519,37 +520,37 @@ int32_t storage_find_13(game_state *st, int32_t x, int32_t y, int32_t city, int3
      * is below its settings limit (settings byte 0 or 2) and with room (0x004454D0 by 400); score
      * 32 less 8 per empty part and 4 per part below 400 holding the good, plus the distance */
     uint32_t c = CURRENT_CITY(st);
-    int32_t v = S32(st, c + 0x4490) + 1;
-    S32(st, c + 0x4490) = v;
+    int32_t v = S32(st, c + CITY_U4490) + 1;
+    S32(st, c + CITY_U4490) = v;
     if (v >= 0x24) {
-        S32(st, c + 0x4490) = 1;
+        S32(st, c + CITY_U4490) = 1;
     }
     int32_t best = 10000, best_id = 0;
     for (int32_t good = 1; good < 0x24; good++) {
-        S32(st, 0x007756F0u + 4u * (uint32_t) good) = trade_good_open_13(st, CUR_PLAYER(st), city, good) != 0;
+        S32(st, G_TRADE_OPEN_13 + 4u * (uint32_t) good) = trade_good_open_13(st, CUR_PLAYER(st), city, good) != 0;
     }
     c = CURRENT_CITY(st);
     for (int n = 1; n < 0x24; n++) {
-        int32_t g = S32(st, c + 0x4490);
-        if (S32(st, 0x007756F0u + 4u * (uint32_t) g) != 0) {
+        int32_t g = S32(st, c + CITY_U4490);
+        if (S32(st, G_TRADE_OPEN_13 + 4u * (uint32_t) g) != 0) {
             break;
         }
-        S32(st, c + 0x4490) = g + 1;
+        S32(st, c + CITY_U4490) = g + 1;
         if (g + 1 >= 0x24) {
-            S32(st, c + 0x4490) = 1;
+            S32(st, c + CITY_U4490) = 1;
         }
     }
-    if (S32(st, 0x007756F0u + 4u * (uint32_t) S32(st, c + 0x4490)) == 0) {
+    if (S32(st, G_TRADE_OPEN_13 + 4u * (uint32_t) S32(st, c + CITY_U4490)) == 0) {
         return 0;
     }
     for (int32_t bid = 1; bid < BUILDING_COUNT; bid++) {
         uint32_t b = B(bid);
-        if (U8(st, b) != 1 || !is_storage(S16(st, b + 0x10)) || U8(st, b + 0x44) == 0 ||
-            S16(st, b + 0x20) <= 0 || (int32_t) U8(st, b + 0x14) != player || S16(st, b + 0x40) <= 0) {
+        if (U8(st, b + BLD_STATE) != 1 || !is_storage(S16(st, b + BLD_TYPE)) || U8(st, b + BLD_U44) == 0 ||
+            S16(st, b + BLD_DISTANCE) <= 0 || (int32_t) U8(st, b + BLD_ROAD_NETWORK) != player || S16(st, b + BLD_WORKERS) <= 0) {
             continue;
         }
-        uint32_t r = STORE_REC(U8(st, b + 0xC1));
-        int32_t g = S32(st, CURRENT_CITY(st) + 0x4490);
+        uint32_t r = STORE_REC(U8(st, b + BLD_STORAGE_ID));
+        int32_t g = S32(st, CURRENT_CITY(st) + CITY_U4490);
         uint8_t fl = U8(st, r + 2u + (uint32_t) g);
         int32_t lim;
         if (fl == 0) {
@@ -573,19 +574,19 @@ int32_t storage_find_13(game_state *st, int32_t x, int32_t y, int32_t city, int3
         }
         int32_t cur = bid;
         for (int i = 0; i < 8; i++) {
-            cur = S16(st, B(cur) + 0x3A);
-            int16_t pg = S16(st, B(cur) + 0x12);
+            cur = S16(st, B(cur) + BLD_NEXT_PART);
+            int16_t pg = S16(st, B(cur) + BLD_SUBTYPE);
             if (pg == 0) {
                 score -= 8;
             }
-            if (cur != 0 && pg == S32(st, CURRENT_CITY(st) + 0x4490) && S16(st, B(cur) + 0x3C) < 0x190) {
+            if (cur != 0 && pg == S32(st, CURRENT_CITY(st) + CITY_U4490) && S16(st, B(cur) + BLD_STORED) < 0x190) {
                 score -= 4;
             }
         }
         if (score >= 0x20) {
             continue;
         }
-        score += building_distance(S16(st, b + 0x06), S16(st, b + 0x08), x, y, a3, S16(st, b + 0x20), st);
+        score += building_distance(S16(st, b + BLD_X), S16(st, b + BLD_Y), x, y, a3, S16(st, b + BLD_DISTANCE), st);
         if (score < best) {
             best = score;
             best_id = bid;
@@ -601,53 +602,53 @@ int32_t storage_find_24(game_state *st, int32_t x, int32_t y, int32_t city, int3
      * buildings in use of `player` (+0x14), +0x44 set, +0x20 > 0, holding at least 100 of the good
      * (0x0045D510); score 32 less 1 per part holding some of it, plus the distance */
     uint32_t c = CURRENT_CITY(st);
-    int32_t v = S32(st, c + 0x4494) + 1;
-    S32(st, c + 0x4494) = v;
+    int32_t v = S32(st, c + CITY_U4494) + 1;
+    S32(st, c + CITY_U4494) = v;
     if (v >= 0x24) {
-        S32(st, c + 0x4494) = 1;
+        S32(st, c + CITY_U4494) = 1;
     }
     int32_t best = 10000, best_id = 0;
     for (int32_t good = 1; good < 0x24; good++) {
-        S32(st, 0x00775780u + 4u * (uint32_t) good) = trade_good_open_24(st, CUR_PLAYER(st), city, good) != 0;
+        S32(st, G_TRADE_OPEN_24 + 4u * (uint32_t) good) = trade_good_open_24(st, CUR_PLAYER(st), city, good) != 0;
     }
     c = CURRENT_CITY(st);
     for (int n = 1; n < 0x24; n++) {
-        int32_t g = S32(st, c + 0x4494);
-        if (S32(st, 0x00775780u + 4u * (uint32_t) g) != 0) {
+        int32_t g = S32(st, c + CITY_U4494);
+        if (S32(st, G_TRADE_OPEN_24 + 4u * (uint32_t) g) != 0) {
             break;
         }
-        S32(st, c + 0x4494) = g + 1;
+        S32(st, c + CITY_U4494) = g + 1;
         if (g + 1 >= 0x24) {
-            S32(st, c + 0x4494) = 1;
+            S32(st, c + CITY_U4494) = 1;
         }
     }
-    if (S32(st, 0x00775780u + 4u * (uint32_t) S32(st, c + 0x4494)) == 0) {
+    if (S32(st, G_TRADE_OPEN_24 + 4u * (uint32_t) S32(st, c + CITY_U4494)) == 0) {
         return 0;
     }
     for (int32_t bid = 1; bid < BUILDING_COUNT; bid++) {
         uint32_t b = B(bid);
-        if (U8(st, b) != 1 || !is_storage(S16(st, b + 0x10)) || U8(st, b + 0x44) == 0 ||
-            S16(st, b + 0x20) <= 0 || (int32_t) U8(st, b + 0x14) != player) {
+        if (U8(st, b + BLD_STATE) != 1 || !is_storage(S16(st, b + BLD_TYPE)) || U8(st, b + BLD_U44) == 0 ||
+            S16(st, b + BLD_DISTANCE) <= 0 || (int32_t) U8(st, b + BLD_ROAD_NETWORK) != player) {
             continue;
         }
-        if (building_parts_stock(st, bid, S32(st, CURRENT_CITY(st) + 0x4494)) < 100) {
+        if (building_parts_stock(st, bid, S32(st, CURRENT_CITY(st) + CITY_U4494)) < 100) {
             continue;
         }
         int32_t score = 0x20;
         int32_t cur = bid;
         for (int i = 0; i < 8; i++) {
-            cur = S16(st, B(cur) + 0x3A);
+            cur = S16(st, B(cur) + BLD_NEXT_PART);
             if (cur == 0) {
                 continue;
             }
-            if (S16(st, B(cur) + 0x12) == S32(st, CURRENT_CITY(st) + 0x4494) && S16(st, B(cur) + 0x3C) > 0) {
+            if (S16(st, B(cur) + BLD_SUBTYPE) == S32(st, CURRENT_CITY(st) + CITY_U4494) && S16(st, B(cur) + BLD_STORED) > 0) {
                 score--;
             }
         }
         if (score >= 0x20) {
             continue;
         }
-        score += building_distance(S16(st, b + 0x06), S16(st, b + 0x08), x, y, a3, S16(st, b + 0x20), st);
+        score += building_distance(S16(st, b + BLD_X), S16(st, b + BLD_Y), x, y, a3, S16(st, b + BLD_DISTANCE), st);
         if (score < best) {
             best = score;
             best_id = bid;
@@ -660,10 +661,10 @@ void figure_slot_count_good(game_state *st, int32_t fid, int32_t good)
 {
     /* @bin 0x00444B80 the figure's record (+0x7F) among the 0x58-byte records at 0x0077AF00:
      * +4 + 1, byte +0x2C + good + 1, +0x54 + the good's value (0x005D2C4C + 8 good) */
-    uint32_t r = 0x0077AF00u + 0x58u * (uint32_t) U8(st, FIGURE_ADDR(fid) + 0x7F);
+    uint32_t r = G_TRADERS + 0x58u * (uint32_t) U8(st, FIGURE_ADDR(fid) + FIG_U7F);
     S32(st, r + 0x04) += 1;
     U8(st, r + 0x2Cu + (uint32_t) good) = (uint8_t) (U8(st, r + 0x2Cu + (uint32_t) good) + 1);
-    S32(st, r + 0x54) += S32(st, 0x005D2C4Cu + 8u * (uint32_t) good);
+    S32(st, r + 0x54) += S32(st, G_PRICE_SELL + 8u * (uint32_t) good);
 }
 
 int32_t storage_sell_next(game_state *st, int32_t player, int32_t bid, int32_t city)
@@ -673,36 +674,36 @@ int32_t storage_sell_next(game_state *st, int32_t player, int32_t bid, int32_t c
      * (0x0045D510) below 100. A load of 100 of it is taken (0x0045B570) and its value
      * (0x005D2C4C + 8 good; 150 % of it when the current player's city +0x45CC > 0, 0x004CDE40)
      * added to the player's city +0xC and +0x2C64. Returns the good, else 0 */
-    if (!is_storage(S16(st, B(bid) + 0x10))) {
+    if (!is_storage(S16(st, B(bid) + BLD_TYPE))) {
         return 0;
     }
     int32_t good = 0;
     int32_t cur = bid;
     for (int i = 0; i < 8; i++) {
-        cur = S16(st, B(cur) + 0x3A);
-        if (cur <= 0 || S16(st, B(cur) + 0x3C) <= 0) {
+        cur = S16(st, B(cur) + BLD_NEXT_PART);
+        if (cur <= 0 || S16(st, B(cur) + BLD_STORED) <= 0) {
             continue;
         }
-        if (trade_good_open_24(st, player, city, S16(st, B(cur) + 0x12)) == 0) {
+        if (trade_good_open_24(st, player, city, S16(st, B(cur) + BLD_SUBTYPE)) == 0) {
             continue;
         }
-        if (building_parts_stock(st, bid, S16(st, B(cur) + 0x12)) < 100) {
+        if (building_parts_stock(st, bid, S16(st, B(cur) + BLD_SUBTYPE)) < 100) {
             return 0;
         }
-        good = S16(st, B(cur) + 0x12);
+        good = S16(st, B(cur) + BLD_SUBTYPE);
     }
     if (good == 0) {
         return 0;
     }
-    GAME_CALL(st, 0x0045B570u, player, bid, good, 100);
+    GAME_CALL(st, FN_STORAGE_TAKE, player, bid, good, 100);
     uint32_t c = CITY_ADDR(player);
-    if (S32(st, CURRENT_CITY(st) + 0x45CC) > 0) {
-        S32(st, c + 0x0C) += calc_percentage(S32(st, 0x005D2C4Cu + 8u * (uint32_t) good), 150);
-        S32(st, c + 0x2C64) += calc_percentage(S32(st, 0x005D2C4Cu + 8u * (uint32_t) good), 150);
+    if (S32(st, CURRENT_CITY(st) + CITY_U45CC) > 0) {
+        S32(st, c + CITY_TREASURY) += calc_percentage(S32(st, G_PRICE_SELL + 8u * (uint32_t) good), 150);
+        S32(st, c + CITY_U2C64) += calc_percentage(S32(st, G_PRICE_SELL + 8u * (uint32_t) good), 150);
     } else {
-        int32_t v = S32(st, 0x005D2C4Cu + 8u * (uint32_t) good);
-        S32(st, c + 0x0C) += v;
-        S32(st, c + 0x2C64) += v;
+        int32_t v = S32(st, G_PRICE_SELL + 8u * (uint32_t) good);
+        S32(st, c + CITY_TREASURY) += v;
+        S32(st, c + CITY_U2C64) += v;
     }
     return good;
 }
@@ -711,10 +712,10 @@ void figure_slot_count_good_b(game_state *st, int32_t fid, int32_t good)
 {
     /* @bin 0x00444BD0 like 0x00444B80 on the other counters of the figure's record (+0x7F):
      * +0 + 1, byte +8 + good + 1, +0x50 + the good's value 0x005D2C48 + 8 good */
-    uint32_t r = 0x0077AF00u + 0x58u * (uint32_t) U8(st, FIGURE_ADDR(fid) + 0x7F);
+    uint32_t r = G_TRADERS + 0x58u * (uint32_t) U8(st, FIGURE_ADDR(fid) + FIG_U7F);
     S32(st, r) += 1;
     U8(st, r + 0x08u + (uint32_t) good) = (uint8_t) (U8(st, r + 0x08u + (uint32_t) good) + 1);
-    S32(st, r + 0x50) += S32(st, 0x005D2C48u + 8u * (uint32_t) good);
+    S32(st, r + 0x50) += S32(st, G_PRICE_BUY + 8u * (uint32_t) good);
 }
 
 int32_t storage_take_from_trader(game_state *st, int32_t bid, int32_t good, int32_t city, int32_t fid)
@@ -724,7 +725,7 @@ int32_t storage_take_from_trader(game_state *st, int32_t bid, int32_t good, int3
      * gives; the figure's +0x74 counts them up to 4; each load is stored (0x0045B2A0 by 100), its
      * value moved (city +0xC -, +0x2C6C +), counted on the route and in the figure's record
      * (0x00444B80). Returns 1 when some were taken (or the count was negative), else 0 */
-    if (!is_storage(S16(st, B(bid) + 0x10))) {
+    if (!is_storage(S16(st, B(bid) + BLD_TYPE))) {
         return 0;
     }
     uint32_t ec = ECITY(city);
@@ -739,12 +740,12 @@ int32_t storage_take_from_trader(game_state *st, int32_t bid, int32_t good, int3
     }
     int32_t n = storage_room_loads(st, bid, good, room);
     uint32_t f = FIGURE_ADDR(fid);
-    int16_t have = S16(st, f + 0x74);
+    int16_t have = S16(st, f + FIG_AMOUNT);
     if (have < 0) {
         n = have + 4;
     }
     if (n < 4) {
-        S16(st, f + 0x74) = (int16_t) (have - n + 4);
+        S16(st, f + FIG_AMOUNT) = (int16_t) (have - n + 4);
     }
     if (n == 0) {
         return 0;
@@ -752,9 +753,9 @@ int32_t storage_take_from_trader(game_state *st, int32_t bid, int32_t good, int3
     for (int32_t i = n; i > 0; i--) {
         storage_add(st, CUR_PLAYER(st), bid, good, 100);
         uint32_t c = CURRENT_CITY(st);
-        int32_t value = S32(st, 0x005D2C48u + 8u * (uint32_t) good);
-        S32(st, c + 0x0C) -= value;
-        S32(st, c + 0x2C6C) += value;
+        int32_t value = S32(st, G_PRICE_BUY + 8u * (uint32_t) good);
+        S32(st, c + CITY_TREASURY) -= value;
+        S32(st, c + CITY_U2C6C) += value;
         S32(st, ROUTE_DONE(U8(st, ec), good)) += 1;
         figure_slot_count_good(st, fid, good);
     }
@@ -764,7 +765,7 @@ int32_t storage_take_from_trader(game_state *st, int32_t bid, int32_t good, int3
 int32_t building_type_0x459ef0(game_state *st, int32_t bid)
 {
     /* @bin 0x00459EF0 types 0x54 .. 0x57, 0xB8, 0xBB .. 0xBD (jump table 0x00459F24) */
-    switch (S16(st, B(bid) + 0x10)) {
+    switch (S16(st, B(bid) + BLD_TYPE)) {
     case 0x54: case 0x55: case 0x56: case 0x57: case 0xB8: case 0xBB: case 0xBC: case 0xBD:
         return 1;
     default:
@@ -779,24 +780,24 @@ int32_t building_47_add(game_state *st, int32_t bid, int32_t good, int32_t count
      * +0x2C, byte 2: +0x74; other bytes: no limit); `count`: the current player's city +0x45E4
      * gains `amount`. Returns what was moved (1 for bid <= 0) */
     uint32_t b = B(bid);
-    uint8_t k = U8(st, b + 0xC1);
+    uint8_t k = U8(st, b + BLD_STORAGE_ID);
     if (bid <= 0) {
         return 1;
     }
-    int16_t type = S16(st, b + 0x10);
+    int16_t type = S16(st, b + BLD_TYPE);
     if (type != 0x47 && type != 0xBF) {
         return 0;
     }
     if (good <= 0 || good > 8) {
         return 0;
     }
-    int16_t pending = S16(st, b + 0x56);
+    int16_t pending = S16(st, b + BLD_INVENTORY);
     if (pending <= 0) {
         return 0;
     }
     uint32_t r = STORE_REC(k);
     uint8_t fl = U8(st, r + 2u + (uint32_t) good);
-    uint32_t slot = b + 0x56u + 2u * (uint32_t) good;
+    uint32_t slot = b + BLD_INVENTORY + 2u * (uint32_t) good;
     if (fl == 0) {
         if (S16(st, r + 0x2Cu + 2u * (uint32_t) good) <= S16(st, slot)) {
             return 0;
@@ -807,16 +808,16 @@ int32_t building_47_add(game_state *st, int32_t bid, int32_t good, int32_t count
         }
     }
     if (count != 0) {
-        S32(st, CURRENT_CITY(st) + 0x45E4) += amount;
+        S32(st, CURRENT_CITY(st) + CITY_U45E4) += amount;
     }
     if ((int32_t) pending > amount) {
         S16(st, slot) = (int16_t) (S16(st, slot) + amount);
-        S16(st, b + 0x56) = (int16_t) (S16(st, b + 0x56) - amount);
+        S16(st, b + BLD_INVENTORY) = (int16_t) (S16(st, b + BLD_INVENTORY) - amount);
         return amount;
     }
     S16(st, slot) = (int16_t) (S16(st, slot) + pending);
-    int32_t r16 = S16(st, b + 0x56);
-    S16(st, b + 0x56) = 0;
+    int32_t r16 = S16(st, b + BLD_INVENTORY);
+    S16(st, b + BLD_INVENTORY) = 0;
     return r16;
 }
 
@@ -854,7 +855,7 @@ int32_t building_add_good(game_state *st, int32_t bid, int32_t amount, int32_t g
         return 0;
     }
     uint32_t b = B(bid);
-    int16_t type = S16(st, b + 0x10);
+    int16_t type = S16(st, b + BLD_TYPE);
     if (!(type >= 0x6E && type <= 0x72)) {
         switch (type) { /* @bin 0x0045FE6F jump table */
         case 0x20: case 0x2F: case 0x33: case 0x35: case 0x4A: case 0x71: case 0xB1: case 0xB2:
@@ -870,23 +871,23 @@ int32_t building_add_good(game_state *st, int32_t bid, int32_t amount, int32_t g
             return 0;
         }
         uint32_t c = CURRENT_CITY(st);
-        S32(st, c + 0x0C) += amount;
-        S32(st, c + 0x42E0) += amount;
-        S32(st, c + 0x47B0) += amount;
+        S32(st, c + CITY_TREASURY) += amount;
+        S32(st, c + CITY_U42E0) += amount;
+        S32(st, c + CITY_U47B0) += amount;
         /* @bin 0x0045FECD tutorial: 0x00E38EBC 0, 0x00579520 the scenario byte 0x00E38EA8,
          * 0x007027BC 0, +0x42E0 at least 500 */
-        if (S32(st, 0x00E38EBCu) == 0 && S32(st, 0x00579520u) == (int32_t) S8(st, 0x00E38EA8u) &&
-            U8(st, 0x007027BCu) == 0 && S32(st, c + 0x42E0) >= 500) {
-            GAME_CALL(st, 0x00417AE0u, 4);
+        if (S32(st, G_CUSTOM) == 0 && S32(st, G_U579520) == (int32_t) S8(st, G_MISSION) &&
+            U8(st, G_U7027BC) == 0 && S32(st, c + CITY_U42E0) >= 500) {
+            GAME_CALL(st, FN_TUTORIAL_STEP, 4);
         }
         return amount;
     }
     int32_t raw = raw_good(good);
     uint32_t have_at;
-    if (S16(st, b + 0x12) == raw) {
-        have_at = b + 0x3C;
-    } else if (S16(st, b + 0xCE) == raw) {
-        have_at = b + 0xCC;
+    if (S16(st, b + BLD_SUBTYPE) == raw) {
+        have_at = b + BLD_STORED;
+    } else if (S16(st, b + BLD_INPUT2) == raw) {
+        have_at = b + BLD_STOCK2;
     } else {
         return 0;
     }
@@ -913,54 +914,54 @@ int32_t cart_city_building(game_state *st, int32_t x, int32_t y, int32_t good, i
     (void) x;
     (void) y;
     uint32_t c = CURRENT_CITY(st);
-    int32_t bid = S32(st, c + 0x44AC);
+    int32_t bid = S32(st, c + CITY_U44AC);
     int32_t raw = raw_good(good);
     if (good != 0x0A && good != 0x1C) {
         return 0;
     }
-    if (S32(st, c + 0x2A88u + 4u * (uint32_t) good) != 0) {
+    if (S32(st, c + CITY_U2A88 + 4u * (uint32_t) good) != 0) {
         return 0;
     }
-    if (S32(st, 0x007058B8u) <= 0) {
+    if (S32(st, G_U7058B8) <= 0) {
         return 0;
     }
     uint32_t b = B(bid);
-    if (raw == S16(st, b + 0x12)) {
-        int32_t cap = type_cap(S16(st, b + 0x10));
-        int32_t have = S16(st, b + 0x3C);
+    if (raw == S16(st, b + BLD_SUBTYPE)) {
+        int32_t cap = type_cap(S16(st, b + BLD_TYPE));
+        int32_t have = S16(st, b + BLD_STORED);
         if (have >= cap) {
             return 0;
         }
-        int16_t coming = S16(st, b + 0x104);
-        if (coming > 0 && type_cap(S16(st, b + 0x10)) - coming * 100 - have <= 0) {
+        int16_t coming = S16(st, b + BLD_INCOMING_CARTS);
+        if (coming > 0 && type_cap(S16(st, b + BLD_TYPE)) - coming * 100 - have <= 0) {
             return 0;
         }
     }
-    if (raw == S16(st, b + 0xCE)) {
-        int32_t cap = type_cap(S16(st, b + 0x10));
-        int32_t have = S16(st, b + 0xCC);
+    if (raw == S16(st, b + BLD_INPUT2)) {
+        int32_t cap = type_cap(S16(st, b + BLD_TYPE));
+        int32_t have = S16(st, b + BLD_STOCK2);
         if (have >= cap) {
             return 0;
         }
-        int16_t coming = S16(st, b + 0x106);
-        if (coming > 0 && type_cap(S16(st, b + 0x10)) - coming * 100 - have <= 0) {
+        int16_t coming = S16(st, b + BLD_INCOMING_AMOUNT);
+        if (coming > 0 && type_cap(S16(st, b + BLD_TYPE)) - coming * 100 - have <= 0) {
             return 0;
         }
     }
-    if (S32(st, 0x00BCB9B4u) <= 0) {
+    if (S32(st, G_LEGIONS) <= 0) {
         return 0;
     }
-    if (building_road_access(st, S16(st, b + 0x06), S16(st, b + 0x08), U8(st, b + 0x03)) == 0) {
+    if (building_road_access(st, S16(st, b + BLD_X), S16(st, b + BLD_Y), U8(st, b + BLD_SIZE)) == 0) {
         return 0;
     }
-    if ((int32_t) U8(st, b + 0x14) != terrain) {
+    if ((int32_t) U8(st, b + BLD_ROAD_NETWORK) != terrain) {
         return 0;
     }
-    if (raw == S16(st, b + 0x12)) {
-        S16(st, b + 0x104) = (int16_t) (S16(st, b + 0x104) + 1);
+    if (raw == S16(st, b + BLD_SUBTYPE)) {
+        S16(st, b + BLD_INCOMING_CARTS) = (int16_t) (S16(st, b + BLD_INCOMING_CARTS) + 1);
     }
-    if (raw == S16(st, b + 0xCE)) {
-        S16(st, b + 0x106) = (int16_t) (S16(st, b + 0x106) + 1);
+    if (raw == S16(st, b + BLD_INPUT2)) {
+        S16(st, b + BLD_INCOMING_AMOUNT) = (int16_t) (S16(st, b + BLD_INCOMING_AMOUNT) + 1);
     }
     return bid;
 }
@@ -970,12 +971,12 @@ void figure_mark_building_0x20(game_state *st, int32_t fid)
     /* @bin 0x00468530 figure types 0x0F / 0x10 / 0x11 set their building's (+0x5E) byte +0xA7 /
      * +0xA8 / +0xA9 to 0x20 */
     uint32_t f = FIGURE_ADDR(fid);
-    uint8_t type = U8(st, f + 0x0A);
-    int32_t b = S16(st, f + 0x5E);
+    uint8_t type = U8(st, f + FIG_TYPE);
+    int32_t b = S16(st, f + FIG_DEST_BUILDING);
     switch (type) {
-    case 0x0F: U8(st, B(b) + 0xA7) = 0x20; break;
-    case 0x10: U8(st, B(b) + 0xA8) = 0x20; break;
-    case 0x11: U8(st, B(b) + 0xA9) = 0x20; break;
+    case 0x0F: U8(st, B(b) + BLD_UA7) = 0x20; break;
+    case 0x10: U8(st, B(b) + BLD_UA8) = 0x20; break;
+    case 0x11: U8(st, B(b) + BLD_UA9) = 0x20; break;
     default: break;
     }
 }
@@ -993,32 +994,32 @@ int32_t map_free_tile_in_ring(game_state *st, int32_t x, int32_t y, int32_t size
     if (y0 < 0) {
         y0 = 0;
     }
-    if (x1 >= S32(st, 0x00BCA2D0u)) {
-        x1 = S32(st, 0x00BCA2D0u) - 1;
+    if (x1 >= S32(st, G_MAP_WIDTH)) {
+        x1 = S32(st, G_MAP_WIDTH) - 1;
     }
-    if (y1 >= S32(st, 0x00BCA2D4u)) {
-        y1 = S32(st, 0x00BCA2D4u) - 1;
+    if (y1 >= S32(st, G_MAP_HEIGHT)) {
+        y1 = S32(st, G_MAP_HEIGHT) - 1;
     }
-    uint32_t tile = U32(st, 0x00BCA2D8u) + 228u * (uint32_t) y0 + (uint32_t) x0;
+    uint32_t tile = U32(st, G_MAP_START) + 228u * (uint32_t) y0 + (uint32_t) x0;
     uint32_t step = (uint32_t) (x0 - x1 + 0xE3);
-    S32(st, 0x00D3B4E0u) = y0;
-    S32(st, 0x00BC9768u) = (int32_t) tile;
+    S32(st, G_ROAD_ACCESS_Y) = y0;
+    S32(st, G_TILE_CURSOR) = (int32_t) tile;
     for (int32_t yy = y0; yy <= y1;) {
         int32_t xx = x0;
-        S32(st, 0x00D3B4E4u) = xx;
+        S32(st, G_ROAD_ACCESS_X) = xx;
         while (xx <= x1) {
-            if (U8(st, 0x00EBAB20u + tile) == 0) {
+            if (U8(st, G_EBAB20 + tile) == 0) {
                 return 1;
             }
             xx++;
             tile++;
-            S32(st, 0x00D3B4E4u) = xx;
-            S32(st, 0x00BC9768u) = (int32_t) tile;
+            S32(st, G_ROAD_ACCESS_X) = xx;
+            S32(st, G_TILE_CURSOR) = (int32_t) tile;
         }
         yy++;
         tile += step;
-        S32(st, 0x00D3B4E0u) = yy;
-        S32(st, 0x00BC9768u) = (int32_t) tile;
+        S32(st, G_ROAD_ACCESS_Y) = yy;
+        S32(st, G_TILE_CURSOR) = (int32_t) tile;
     }
     return 0;
 }

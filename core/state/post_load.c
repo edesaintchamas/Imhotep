@@ -122,7 +122,7 @@ int32_t rec88_create(game_state *st, int32_t building_id)
 {
     /* @bin 0x0046EFD0 the first record whose dword +0 is 0 */
     for (int32_t id = 1; id <= REC88_LAST; id++) {
-        uint32_t r = G_REC88 + REC88_SIZE * (uint32_t) id;
+        uint32_t r = G_FERRY_QUEUES + REC88_SIZE * (uint32_t) id;
         if (S32(st, r) == 0) {
             memset(state_ptr(st, r, REC88_SIZE), 0, REC88_SIZE);
             U8(st, r) = 1;
@@ -137,13 +137,13 @@ void load_rebuild_0x88_links(game_state *st)
 {
     /* @bin 0x0046F030 */
     for (int32_t id = 1; id <= REC88_LAST; id++) {
-        S32(st, G_REC88 + REC88_SIZE * (uint32_t) id + REC88_BUILDING) = 0;
+        S32(st, G_FERRY_QUEUES + REC88_SIZE * (uint32_t) id + REC88_BUILDING) = 0;
     }
     int32_t max = S32(st, G_BUILDING_HIGHEST);
     for (int32_t b = 1; b <= max; b++) {
         uint32_t p = building(b);
         if (U8(st, p + BLD_STATE) != 0 && S16(st, p + BLD_TYPE) == 0x88 && U8(st, p + BLD_UCA) != 0) {
-            U8(st, G_REC88 + REC88_SIZE * U8(st, p + BLD_UCA)) = 1;
+            U8(st, G_FERRY_QUEUES + REC88_SIZE * U8(st, p + BLD_UCA)) = 1;
         }
     }
     for (int32_t b = 1; max > 0 && b <= S32(st, G_BUILDING_HIGHEST); b++) {
@@ -152,8 +152,8 @@ void load_rebuild_0x88_links(game_state *st)
             continue;
         }
         uint8_t s = U8(st, p + BLD_UCA);
-        if (s != 0 && S32(st, G_REC88 + REC88_SIZE * s + REC88_BUILDING) == 0) {
-            S32(st, G_REC88 + REC88_SIZE * s + REC88_BUILDING) = b;
+        if (s != 0 && S32(st, G_FERRY_QUEUES + REC88_SIZE * s + REC88_BUILDING) == 0) {
+            S32(st, G_FERRY_QUEUES + REC88_SIZE * s + REC88_BUILDING) = b;
         } else {
             U8(st, p + BLD_UCA) = (uint8_t) rec88_create(st, b);
         }

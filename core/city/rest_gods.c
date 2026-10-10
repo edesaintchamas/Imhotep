@@ -361,7 +361,7 @@ void houses_stock_4c42b0(game_state *st)
                     continue;
                 }
                 /* @bin 0x004C4530 by good (k 8..11: 0xF, 0xD, 0x11, 0x13) */
-                uint32_t table = k == 8 ? G_HOUSE_LEVEL_U38 : k == 9 ? G_HOUSE_LEVEL_U2C : k == 10 ? G_HOUSE_LEVEL_U30 : G_HOUSE_LEVEL_U34;
+                uint32_t table = k == 8 ? G_HOUSE_GOODS_D : k == 9 ? G_HOUSE_GOODS_A : k == 10 ? G_HOUSE_GOODS_B : G_HOUSE_GOODS_C;
                 int32_t v = S32(st, table + 0x58u * (uint32_t) (int32_t) S16(st, r + BLD_SUBTYPE));
                 if (U8(st, r + BLD_SIZE) > 1) {
                     v <<= 2;

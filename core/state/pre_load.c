@@ -56,7 +56,7 @@ void pre_load_clear(game_state *st)
         memset(state_ptr(st, grids[i][0], grids[i][1]), 0, grids[i][1]);
     }
     /* @bin 0x0046FA40 0x00A43EAC: 0x32C4 dwords := -1 */
-    memset(state_ptr(st, G_UA43EAC, 0x32C4u * 4), 0xFF, 0x32C4u * 4);
+    memset(state_ptr(st, G_GRID_VEGETATION, 0x32C4u * 4), 0xFF, 0x32C4u * 4);
     floodplain_manager_reset(st);
     /* @bin 0x0046FA40 tables whose entries' byte +0x0E is cleared, with their counts */
     static const uint32_t tables[][2] = {

@@ -556,7 +556,7 @@ void boot_ctor(game_state *st, const boot_host *host, uint32_t fn)
         boot_ctor_4d4a60(st); /* @bin 0x004D4A60 */
         break;
     case FN_CTOR_RECORDS_0X00EAAF68_4F64A0:
-        vector_ctor(st, G_REC88, 0xE0, 0x32, elem_4f6500); /* @bin 0x004F64B0 */
+        vector_ctor(st, G_FERRY_QUEUES, 0xE0, 0x32, elem_4f6500); /* @bin 0x004F64B0 */
         break;
     case FN_CTOR_FAMILY_LIST_0X00EADFA8:
         file_list_ctor(st, G_FAMILY_LIST); /* @bin 0x00516580 the family list */

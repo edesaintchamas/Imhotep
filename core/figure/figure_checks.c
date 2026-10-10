@@ -9,16 +9,17 @@
 #include "figure/actions_a.h"
 #include "sim/call.h"
 #include "sim/queue.h"
+#include "state/layout.h"
 #include "state/ported.h"
 
-#define FIG(id) (0x00BCD600u + 0x184u * (uint32_t) (int32_t) (id))
-#define BLD(id) (0x007999D8u + 0x108u * (uint32_t) (int32_t) (id))
-#define ON_TILE(grid) (0x00B350DCu + 2u * (uint32_t) (int32_t) (grid))
+#define FIG(id) (FIGURE_BASE + 8u + 0x184u * (uint32_t) (int32_t) (id))
+#define BLD(id) BUILDING_ADDR((int32_t) (id))
+#define ON_TILE(grid) (G_FIGURE_GRID + 2u * (uint32_t) (int32_t) (grid))
 
 int32_t building_type_4d_4f(game_state *st, int32_t id)
 {
     /* @bin 0x00459EC0 the building's type (+0x10, i16) in 0x4D .. 0x4F */
-    int32_t t = S16(st, BLD(id) + 0x10);
+    int32_t t = S16(st, BLD(id) + BLD_TYPE);
     return t >= 0x4D && t <= 0x4F;
 }
 
@@ -78,11 +79,11 @@ uint8_t figure_leave_battle(game_state *st, int32_t id)
      * the figure removed from that battle's ring (0x004F6950 on 0x009783A4 + 0x1C * battle); 1.
      * No battle: 0 */
     int32_t b = S16(st, FIG(id) + 0x56);
-    uint8_t v = U8(st, BLD(b) + 0xCB);
+    uint8_t v = U8(st, BLD(b) + BLD_UCB);
     if (v == 0 || v >= 10) {
         return 0;
     }
-    ring_remove_4f6950(st, 0x009783A4u + 0x1Cu * v, id);
+    ring_remove_4f6950(st, G_REC4A + 0x1Cu * v, id);
     return 1;
 }
 
@@ -94,7 +95,7 @@ void figure_meet_around(game_state *st, int32_t id)
      * (0x004B1210) */
     uint32_t f = FIG(id);
     int32_t grid = S32(st, f + 0x18);
-    for (uint32_t e = 0x005F80FCu; e < 0x005F811Cu; e += 4) {
+    for (uint32_t e = G_DIRECTION_OFFSETS; e < G_DIRECTION_OFFSETS + 0x20u; e += 4) {
         if (U8(st, f + 0x30) == 5) {
             return;
         }
@@ -182,9 +183,9 @@ void figures_2a_near(game_state *st, int32_t x, int32_t y)
         }
         int32_t fx = S16(st, f + 0x0C), fy = S16(st, f + 0x0E);
         int32_t dx = fx > x ? fx - x : (fx < x ? x - fx : 0);
-        S32(st, 0x00D3B4FCu) = dx;
+        S32(st, G_DIST_X) = dx;
         int32_t dy = fy > y ? fy - y : (fy < y ? y - fy : 0);
-        S32(st, 0x00D3B4F8u) = dy;
+        S32(st, G_DIST_Y) = dy;
         if ((dx < dy ? dy : dx) <= 1) {
             U8(st, f + 6) = 2;
         }

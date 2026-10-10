@@ -275,7 +275,6 @@
 #define G_U784CA4 0x00784CA4u /* @bin 0x0046D480 i32: tile image of a flagged tile made a type 0x58 building (and + 1) */
 #define G_U784CA8 0x00784CA8u /* @bin 0x0046D480 i32: tile image of a flagged tile made a type 0x59 building */
 #define G_U784CAC 0x00784CACu /* @bin 0x0046D480 i32: tile image of a flagged tile made a type 0x5D building */
-#define G_U784CBD 0x00784CBDu /* @bin 0x005409A5 u8: := (it == 1) at the start, := 0 by the version-157 upgrade; selects a sprite set (core/figure/actions_a.c) */
 /* set at the scenario start (0x005405B0, docs/newgame.md 3.2 step 5) */
 #define G_U78D810 0x0078D810u /* @bin 0x005405B0 i32: := 1 at the start */
 #define G_U78D814 0x0078D814u /* @bin 0x005405B0 i32: := 1 at the start */

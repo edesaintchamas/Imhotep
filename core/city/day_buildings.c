@@ -290,7 +290,7 @@ void buildings_highest_update(game_state *st)
     }
     S32(st, G_STORAGE_HIGHEST) = 0;
     for (int32_t i = 1; i < 200; i++) {
-        if (U8(st, G_STORAGE_SETTINGS + 0xC4u + 0xC4u * (uint32_t) (i - 1)) != 0) {
+        if (U8(st, G_STORAGE_SETTINGS_U08 + 0xC4u + 0xC4u * (uint32_t) (i - 1)) != 0) {
             S32(st, G_STORAGE_HIGHEST) = i;
         }
     }
@@ -391,7 +391,7 @@ void day_spawn_469b90(game_state *st)
         int32_t flag = (int8_t) GAME_CALL0(st, FN_MISSION_GOALS_PENDING) != 0 && first != 0;
         building_spawn_469e40(st, id, flag);
         n--;
-        S32(st, b + BLD_CRIME_RISK) = S32(st, G_HOUSE_LEVEL_U40 + 0x58u * (uint32_t) (int32_t) S16(st, b + BLD_SUBTYPE));
+        S32(st, b + BLD_CRIME_RISK) = S32(st, G_HOUSE_LEVEL_U14 + 0x58u * (uint32_t) (int32_t) S16(st, b + BLD_SUBTYPE));
         if (first > 0) {
             first--;
         }
@@ -443,7 +443,7 @@ void day_step_0x16(game_state *st)
             continue;
         }
         /* @bin 0x0045849B the type's amount (table 0x0070CE14 by +0x12), times 4 with +4 */
-        int32_t v = S32(st, G_HOUSE_LEVEL_U48 + 0x58u * (uint32_t) (int32_t) S16(st, b + BLD_SUBTYPE));
+        int32_t v = S32(st, G_HOUSE_LEVEL_U1C + 0x58u * (uint32_t) (int32_t) S16(st, b + BLD_SUBTYPE));
         if (U8(st, b + BLD_HOUSE_MERGED) != 0) {
             v = (int32_t) ((uint32_t) v << 2);
         }
@@ -565,7 +565,7 @@ void day_stock_totals_45e040(game_state *st)
         if (U8(st, b + BLD_STATE) != 1 || (type != 0x47 && type != 0xBF) || U8(st, b + BLD_U44) == 0 || S16(st, b + BLD_DISTANCE) <= 0) {
             continue;
         }
-        uint32_t rec = G_STORAGE_SETTINGS + 0xC4u * U8(st, b + BLD_STORAGE_ID);
+        uint32_t rec = G_STORAGE_SETTINGS_U08 + 0xC4u * U8(st, b + BLD_STORAGE_ID);
         int32_t sum = 0;
         for (uint32_t k = 1; k <= 8; k++) {
             if (U8(st, rec + 2 + k) == 2) {

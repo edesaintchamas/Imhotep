@@ -253,7 +253,7 @@ void game_tick(game_state *st, const sim_env *env)
         day_dispatch(st, env);
         call(st, env, FN_COUNTDOWN_0X00EA89DC);
         sim_call(st, env, FN_FLOOD_TICK, NULL, 0, G_UD05720);
-        if (S32(st, G_UD386D4) == 3 && S32(st, city(st) + CITY_U4998) == 2) { /* 0x00EA6208 */
+        if (S32(st, G_FLOOD_STATE) == 3 && S32(st, city(st) + CITY_U4998) == 2) { /* 0x00EA6208 */
             S32(st, city(st) + CITY_U4998) = 0;
         }
     }

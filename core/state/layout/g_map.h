@@ -125,7 +125,6 @@
 
 /* @bin 0x00451C50 i32: 3 with the city record's CITY_U4998 == 2 resets it (tick); the flood state per
  * core/building/building_extra.c, the game mode per core/figure/actions_a.c: not settled */
-#define G_UD386D4 0x00D386D4u
 
 /* --- harvested: names the ports gave these addresses in local #defines (tools/naming/harvest.py).
  * @bin evidence: the defining port (file) and its comment. A package agent checks each name it
