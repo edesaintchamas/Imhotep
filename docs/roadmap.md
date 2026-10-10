@@ -386,8 +386,15 @@ The game builds and runs on the maintainer's Mac only, from a checkout, with the
       usual GOG install locations, else asks), checks it against the reference fingerprint, and keeps
       saves and settings in the system's per-user data directory (SDL_GetPrefPath) instead of
       `local/player`.
-- [ ] 9.4 Packaging: a release workflow builds, on a tag, a macOS app, a Windows zip and a Linux
+- [x] 9.4 Packaging: a release workflow builds, on a tag, a macOS app, a Windows zip and a Linux
       archive with their libraries; nothing from the game in them.
+
+      Done (2026-10-11): `.github/workflows/release.yml` and `tools/release/` (docs/release.md). On a tag
+      v*, a draft release with `Imhotep.app` (arm64, macOS 11+), a Windows zip (with `SDL2.dll`), a
+      Linux tar.gz and AppImage (glibc 2.35+), 3 to 3.5 MB each: FFmpeg (minimal LGPL build, decoding
+      the installation's 837 media files exactly as a full FFmpeg) and SDL2 built from pinned sources
+      and linked statically. Each package checked for game content and smoke-tested on a fresh runner
+      (Linux: Ubuntu 22.04 and 24.04, Debian 12, Fedora 42 containers).
 - [x] 9.5 Player documentation: install, play, report a gap (gaps.log), and what differs from the
       original (docs/unverified.md).
 - [ ] 9.6 Done when: CI is green on the three systems and a release built by the workflow plays from a

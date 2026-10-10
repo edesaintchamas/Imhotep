@@ -18,21 +18,24 @@ Imhotep does not include any game content. You need a legitimate copy of
 Ready-made builds are on the [Releases page](https://github.com/edesaintchamas/Imhotep/releases).
 None of them contains anything from the game: you still need your own installation (see below).
 
-- **macOS** (Apple silicon): `imhotep-VERSION-macos-arm64.zip` holds `Imhotep.app`, with SDL2 and
-  FFmpeg inside. The app is not signed with an Apple Developer ID, so the first time Gatekeeper
-  refuses to open it: right-click (or Control-click) `Imhotep.app` > Open, then Open in the dialog
-  (or System Settings > Privacy & Security > Open Anyway). Later starts open it normally.
-- **Windows** (64-bit): unzip `imhotep-VERSION-windows-x64.zip` anywhere and run `imhotep.exe`; the
-  DLLs next to it are SDL2, FFmpeg and their dependencies. The executable is not signed: if
-  SmartScreen says "Windows protected your PC", click More info > Run anyway.
-- **Linux** (x86-64, glibc 2.35 or later: Ubuntu 22.04, Debian 12, Fedora and later): either
-  `Imhotep-VERSION-x86_64.AppImage` (`chmod +x` it and run it; it needs FUSE, or run it with
+- **macOS** (Apple silicon, macOS 11 or later): `imhotep-VERSION-macos-arm64.zip` holds
+  `Imhotep.app`; move it to Applications. The app is not signed with an Apple Developer ID, so the
+  first time Gatekeeper refuses to open it: right-click (or Control-click) `Imhotep.app` > Open, then
+  Open in the dialog (or System Settings > Privacy & Security > Open Anyway). Later starts open it
+  normally.
+- **Windows** (64-bit): unzip `imhotep-VERSION-windows-x64.zip` anywhere and run `imhotep.exe`
+  (`SDL2.dll` must stay next to it). The executable is not signed: if SmartScreen says "Windows
+  protected your PC", click More info > Run anyway.
+- **Linux** (x86-64, glibc 2.35 or later: Ubuntu 22.04, Debian 12, Fedora 36 and later): either
+  `Imhotep-VERSION-x86_64.AppImage` (`chmod +x` it and run it; it needs FUSE, else run it with
   `--appimage-extract-and-run`), or `imhotep-VERSION-linux-x86_64.tar.gz` (unpack it and run
-  `./imhotep`; the libraries it needs are in `lib/`). Both rely on the system for the graphics
-  drivers, X11 / Wayland and the sound server only.
+  `./imhotep`). SDL2 and FFmpeg are built in; the system provides the graphics drivers, X11 or
+  Wayland and the sound server (ALSA, PulseAudio or PipeWire), as on any desktop.
 
-On the first start, point Imhotep at the game folder with `--game "FOLDER"` (or `IMHOTEP_GAME_DIR`)
-if it does not find it by itself; it remembers it afterwards.
+Imhotep finds a GOG installation in the usual places by itself. Otherwise start it once with the
+game folder, the one holding `Pharaoh.exe` (it remembers it afterwards):
+`imhotep --game "FOLDER"`; on macOS, from Terminal,
+`/Applications/Imhotep.app/Contents/MacOS/imhotep --game "FOLDER"`.
 
 ## Playing
 
