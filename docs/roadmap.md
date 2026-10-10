@@ -397,8 +397,16 @@ The game builds and runs on the maintainer's Mac only, from a checkout, with the
       (Linux: Ubuntu 22.04 and 24.04, Debian 12, Fedora 42 containers).
 - [x] 9.5 Player documentation: install, play, report a gap (gaps.log), and what differs from the
       original (docs/unverified.md).
-- [ ] 9.6 Done when: CI is green on the three systems and a release built by the workflow plays from a
+- [x] 9.6 Done when: CI is green on the three systems and a release built by the workflow plays from a
       fresh machine with only a Pharaoh installation.
+
+      Result (2026-10-11): CI green on Linux (gcc, clang), macOS and Windows; the Release workflow
+      (dispatched on main) builds the four packages and smoke-tests each on a fresh runner (Linux:
+      ubuntu 22.04 / 24.04, debian 12, fedora 42 containers). The macOS package it built, linked only to
+      system libraries, plays the reference session equal to the original (`oracle_play_check.py`:
+      1,042 / 1,042 frames) with this machine's Pharaoh installation. Carried over: a full play run of
+      the Windows and Linux packages on machines with the game; Developer ID signing and notarisation
+      (macOS), Authenticode (Windows); an x86_64 macOS build.
 
 ## Phase 10: readability
 
