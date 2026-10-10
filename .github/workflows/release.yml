@@ -13,6 +13,7 @@ name: Release
 on:
   push:
     tags: ["v*"]
+    branches: [release]  # TESTING ONLY, removed before merge (workflow_dispatch needs the file on main)
   workflow_dispatch:
 
 permissions:
