@@ -20,15 +20,15 @@ void chunk175_defaults(game_state *st)
      * dword of 0x006FDCE0 := 0 instead): +0 u8 := 0xFF, +4 i32 := -1, +8 u8 := 0; in the original's
      * order of writes */
     U32(st, G_CARRY_COPY) = 0;
-    U32(st, G_CARRY_COPY_GROUPS + 4u) = 0xFFFFFFFFu;
-    U8(st, G_CARRY_COPY_GROUPS + 8u) = 0;
-    U8(st, G_CARRY_COPY_GROUPS) = 0xFF;
-    U32(st, G_CARRY_COPY_GROUPS + 12u + 4u) = 0xFFFFFFFFu;
-    U8(st, G_CARRY_COPY_GROUPS + 12u + 8u) = 0;
-    U8(st, G_CARRY_COPY_GROUPS + 12u) = 0xFF;
-    U32(st, G_CARRY_COPY_GROUPS + 24u + 4u) = 0xFFFFFFFFu;
-    U8(st, G_CARRY_COPY_GROUPS + 24u + 8u) = 0;
-    U8(st, G_CARRY_COPY_GROUPS + 24u) = 0xFF;
+    U32(st, G_WAITING_SOLDIERS + 4u) = 0xFFFFFFFFu;
+    U8(st, G_WAITING_SOLDIERS + 8u) = 0;
+    U8(st, G_WAITING_SOLDIERS) = 0xFF;
+    U32(st, G_WAITING_SOLDIERS + 12u + 4u) = 0xFFFFFFFFu;
+    U8(st, G_WAITING_SOLDIERS + 12u + 8u) = 0;
+    U8(st, G_WAITING_SOLDIERS + 12u) = 0xFF;
+    U32(st, G_WAITING_SOLDIERS + 24u + 4u) = 0xFFFFFFFFu;
+    U8(st, G_WAITING_SOLDIERS + 24u + 8u) = 0;
+    U8(st, G_WAITING_SOLDIERS + 24u) = 0xFF;
     U32(st, G_CARRY_GROUPS + 4u) = 0xFFFFFFFFu;
     U8(st, G_CARRY_GROUPS + 8u) = 0;
     U8(st, G_CARRY_GROUPS) = 0xFF;

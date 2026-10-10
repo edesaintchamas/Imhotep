@@ -136,7 +136,6 @@
 #define G_STR_MAPS_DIR 0x0057626Cu     /* @bin 0x004183D0 "maps\" */
 #define G_STR_AUTOSAVE_REPLAY 0x0057BFC4u /* @bin 0x004183D0 "autosave_replay.sav" */
 #define G_CARRY_GROUPS 0x006FDCBCu     /* @bin 0x004D3C40 3 records of 12 bytes (u8, i32, u8): the waiting groups of G_CARRY */
-#define G_CARRY_COPY_GROUPS 0x006FDCE4u /* @bin 0x004D3C40 the same in G_CARRY_COPY (the soldiers waiting, map_add.c) */
 /* P3 (g_city.h) */
 #define G_RATING_LOWEST_INDEX 0x00705738u /* @bin 0x00426B00 i32: the index of the lowest rating (core/city/month_ratings.c) */
 #define G_FROGS_COUNTDOWN 0x0078D7A8u  /* @bin 0x004023A0 i32: Plague of Frogs countdown, save.md chunk 105 */
@@ -145,10 +144,7 @@
 /* P1 (g_figure.h) */
 #define G_STORAGE_SETTINGS_U08 0x007900C0u /* @bin 0x00474B6E records of 0xC4 bytes by building +0xC1 (core/figure/helpers_xb.c) */
 /* P2 (g_building.h) */
-#define G_GATEHOUSE_PART_IDS 0x005DF78Cu /* @bin 0x004BFA50 i32[4] per rotation: the gatehouse parts */
 #define G_GATEHOUSE_PARTS 0x005DF814u  /* @bin 0x004BFA50 16-byte records: +0 size, +4 / +8 offsets by rotation */
-#define G_TEMPLE_COMPLEX_ANCHORS 0x005E00CCu /* @bin 0x004C3730 (x, y) pairs by rotation and view / 2 */
-#define G_UBCA32C 0x00BCA32Cu          /* @bin 0x0043DE6A u8: the water-lift ghost's flag (core/building/day_water.c) */
 #define G_UNDO_COUNTDOWN 0x00BC9688u   /* @bin 0x00485200 i32: := 500, the undo's countdown (core/city/day_basic.c) */
 /* P5 (g_map.h) */
 #define G_UBCA328 0x00BCA328u          /* @bin 0x0046FEF0 i32: := 1 after a water lift drag (core/map/terrain_roads.c) */

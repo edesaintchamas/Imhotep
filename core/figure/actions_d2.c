@@ -173,7 +173,7 @@ static void state_load(game_state *st, int32_t id, uint32_t home)
     int16_t prev = S16(st, f + FIG_LEADER);
     int16_t b = 0;
     if (prev != 0 && S16(st, FIGURE_ADDR(prev) + FIG_LEADER) == id) {
-        b = S16(st, G_BUILDING_GRID + 2u * U32(st, FIGURE_ADDR(prev) + FIG_U28));
+        b = S16(st, G_GRID_BUILDING + 2u * U32(st, FIGURE_ADDR(prev) + FIG_U28));
     }
     if (b == 0) {
         GAME_CALL(st, FN_FIGURE_ROUTE_RELEASE, id);
@@ -201,7 +201,7 @@ static void state_load(game_state *st, int32_t id, uint32_t home)
     id = cur(st);
     f = FIGURE_ADDR(id);
     /* @bin 0x004AA48E the building at the sledge's tile (+0x68's +0x20) */
-    int16_t t = S16(st, G_BUILDING_GRID + 2u * U32(st, FIGURE_ADDR(S16(st, f + FIG_LEADER)) + FIG_GRID_OFFSET));
+    int16_t t = S16(st, G_GRID_BUILDING + 2u * U32(st, FIGURE_ADDR(S16(st, f + FIG_LEADER)) + FIG_GRID_OFFSET));
     uint32_t tb = BUILDING_ADDR(t);
     int16_t type = S16(st, tb + BLD_TYPE);
     if (type == TYPE_PYRAMID) {
@@ -333,7 +333,7 @@ static void state_work(game_state *st, uint32_t this_ptr, uint32_t work, uint32_
 {
     uint32_t f = fig(st);
     U8(st, f + FIG_INVISIBLE) = 0;
-    int16_t t = S16(st, G_BUILDING_GRID + 2u * U32(st, f + FIG_U28));
+    int16_t t = S16(st, G_GRID_BUILDING + 2u * U32(st, f + FIG_U28));
     if (t == 0) {
         U8(st, f + FIG_ACTION) = 8;
         return;
@@ -643,7 +643,7 @@ void labor_assign(game_state *st, uint32_t self, int32_t fid)
             }
             /* @bin 0x004BF662 the stone for the next level, by the difficulty-like 0x005E4EF4 */
             int8_t r = (int8_t) GAME_CALL(st, FN_PYRAMID_PART_UNFINISHED,
-                                          S16(st, G_BUILDING_GRID + 2u * U32(st, FIGURE_ADDR(best_value) + FIG_GRID_OFFSET)));
+                                          S16(st, G_GRID_BUILDING + 2u * U32(st, FIGURE_ADDR(best_value) + FIG_GRID_OFFSET)));
             int32_t g = S32(st, G_PYRAMID_KIND);
             uint8_t resource;
             if (r != 0) {
@@ -735,7 +735,7 @@ int8_t laborer_sledge_ready(game_state *st, int32_t id)
         U8(st, f + FIG_ACTION) = 8;
         return 0;
     }
-    int16_t b = S16(st, G_BUILDING_GRID + 2u * U32(st, FIGURE_ADDR(p) + FIG_U28));
+    int16_t b = S16(st, G_GRID_BUILDING + 2u * U32(st, FIGURE_ADDR(p) + FIG_U28));
     uint32_t bb = BUILDING_ADDR(b);
     int8_t r;
     switch (S16(st, bb + BLD_TYPE)) {
@@ -907,7 +907,7 @@ void figure_action_55(game_state *st)
         int ok = 0;
         if (prev != 0) {
             uint32_t p = FIGURE_ADDR(prev);
-            ok = S16(st, p + FIG_LEADER) == id && S16(st, G_BUILDING_GRID + 2u * U32(st, p + FIG_U28)) != 0;
+            ok = S16(st, p + FIG_LEADER) == id && S16(st, G_GRID_BUILDING + 2u * U32(st, p + FIG_U28)) != 0;
         }
         if (!ok) {
             GAME_CALL(st, FN_FIGURE_ROUTE_RELEASE, id);
@@ -964,7 +964,7 @@ void figure_action_55(game_state *st)
         S16(st, f + FIG_WAIT_TICKS) += 1;
         if (S16(st, f + FIG_WAIT_TICKS) > 0x1E) {
             S16(st, f + FIG_WAIT_TICKS) = 0;
-            int16_t t = S16(st, G_BUILDING_GRID + 2u * U32(st, f + FIG_U28));
+            int16_t t = S16(st, G_GRID_BUILDING + 2u * U32(st, f + FIG_U28));
             if (t != 0 && S16(st, BUILDING_ADDR(t) + BLD_TYPE) == TYPE_PYRAMID && U8(st, BUILDING_ADDR(t) + BLD_U55) > 1) {
                 /* @bin 0x004AACF1 the slot itself is not used here */
                 int32_t x, y;
@@ -976,7 +976,7 @@ void figure_action_55(game_state *st)
         f = fig(st);
         int8_t dir = S8(st, f + FIG_DIRECTION);
         if (dir == 8) {
-            int16_t t = S16(st, G_BUILDING_GRID + 2u * U32(st, f + FIG_U28));
+            int16_t t = S16(st, G_GRID_BUILDING + 2u * U32(st, f + FIG_U28));
             if (t == 0 || S16(st, BUILDING_ADDR(t) + BLD_TYPE) != TYPE_PYRAMID) {
                 U8(st, f + FIG_ACTION) = 8;
             } else if (U8(st, BUILDING_ADDR(t) + BLD_U55) > 1) {
@@ -1002,7 +1002,7 @@ void figure_action_55(game_state *st)
         int16_t p = S16(st, f + FIG_LEADER);
         int ready = 0;
         if (p != 0) {
-            int16_t t = S16(st, G_BUILDING_GRID + 2u * U32(st, FIGURE_ADDR(p) + FIG_U28));
+            int16_t t = S16(st, G_GRID_BUILDING + 2u * U32(st, FIGURE_ADDR(p) + FIG_U28));
             if (t != 0 && (int8_t) GAME_CALL(st, FN_PYRAMID_WORKER_BUSY, t) != 0) {
                 ready = 1;
             }
@@ -1033,7 +1033,7 @@ void figure_action_55(game_state *st)
     case 0x13: {
         U8(st, f + FIG_INVISIBLE) = 0;
         int16_t p = S16(st, f + FIG_LEADER);
-        int16_t t = S16(st, G_BUILDING_GRID + 2u * U32(st, FIGURE_ADDR(p) + FIG_GRID_OFFSET));
+        int16_t t = S16(st, G_GRID_BUILDING + 2u * U32(st, FIGURE_ADDR(p) + FIG_GRID_OFFSET));
         if (S16(st, BUILDING_ADDR(t) + BLD_TYPE) == TYPE_PYRAMID) {
             GAME_CALL(st, FN_FIGURE_PYRAMID_TARGET, id, t, S16(st, f + FIG_CC_DEST_Y), 0);
             U8(st, fig(st) + FIG_ACTION) = 0x14;

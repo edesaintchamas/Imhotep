@@ -54,7 +54,7 @@ static int32_t add32(int32_t a, int32_t b)
 /* @bin 0x00F55BB4 image ids of the sprite groups, 8 bytes per group (the first dword: the id) */
 static int32_t image_group(game_state *st, int32_t group)
 {
-    return S32(st, G_DAY2_REDRAW_GROUPS + 8u * (uint32_t) group);
+    return S32(st, G_IMAGE_GROUPS + 8u * (uint32_t) group);
 }
 
 /* @bin 0x004A2320 the nearest prey within range (0 when none) */
@@ -1583,7 +1583,7 @@ void figure_action_4f(game_state *st)
     case 9: {
         U8(st, c + FIG_INVISIBLE) = 0;
         U8(st, c + FIG_TERRAIN_USAGE) = 3;
-        t = S16(st, G_BUILDING_GRID + 2u * U32(st, c + FIG_U28));
+        t = S16(st, G_GRID_BUILDING + 2u * U32(st, c + FIG_U28));
         if (t != 0) {
             bt = U16(st, BUILDING_ADDR(t) + BLD_TYPE);
             if (bt == 0xD5 || bt == 0xE3 || bt == 0xE1 || bt == 0xE4 || bt == 0xDE) {
@@ -1623,7 +1623,7 @@ void figure_action_4f(game_state *st)
     case 0x0A: {
         /* @bin 0x004A7A85 working at the building on the destination tile, by its type */
         U8(st, c + FIG_INVISIBLE) = 0;
-        t = S16(st, G_BUILDING_GRID + 2u * U32(st, c + FIG_U28));
+        t = S16(st, G_GRID_BUILDING + 2u * U32(st, c + FIG_U28));
         if (t == 0) {
             U8(st, c + FIG_ACTION) = 8;
             U16(st, c + FIG_WAIT_TICKS) = 0;
@@ -1749,7 +1749,7 @@ void worker_start_job(game_state *st, int32_t id)
      * one on the destination tile (grid 0x00B4E6FC), +0x52 = 1, +0x54 = 15 */
     uint32_t f = FIG(id);
     U16(st, f + FIG_FOLLOW) = 1;
-    uint16_t b = U16(st, G_BUILDING_GRID + 2u * U32(st, f + FIG_U28));
+    uint16_t b = U16(st, G_GRID_BUILDING + 2u * U32(st, f + FIG_U28));
     U16(st, f + FIG_CC_X) = b;
     U16(st, f + FIG_CC_Y) = 0;
     U16(st, f + FIG_WORK_BUILDING) = b;
@@ -1948,7 +1948,7 @@ void figure_action_50(game_state *st)
         c = FIG(id);
         dir = U8(st, c + FIG_DIRECTION);
         if (dir == 8) {
-            t = S16(st, G_BUILDING_GRID + 2u * U32(st, c + FIG_U28));
+            t = S16(st, G_GRID_BUILDING + 2u * U32(st, c + FIG_U28));
             if (t != 0) {
                 bt = U16(st, BUILDING_ADDR(t) + BLD_TYPE);
                 if (bt == 0xB7) {
@@ -1995,7 +1995,7 @@ void figure_action_50(game_state *st)
         }
         break;
     case 0x0C:
-        t = S16(st, G_BUILDING_GRID + 2u * U32(st, c + FIG_U28));
+        t = S16(st, G_GRID_BUILDING + 2u * U32(st, c + FIG_U28));
         if (t == 0) {
             int32_t g = S16(st, c + FIG_DEST_BUILDING);
             if (U16(st, BUILDING_ADDR(g) + BLD_TYPE) == 0xB7 && (U32(st, G_GRID_TERRAIN + 4u * U32(st, c + FIG_U28)) & 0x10000000u)) {
@@ -2088,7 +2088,7 @@ void figure_action_50(game_state *st)
             break;
         }
     } else if (action == 0x0C) {
-        if (at_work && S16(st, c + FIG_WAIT_TICKS) < S32(st, G_U5E4EE8)) {
+        if (at_work && S16(st, c + FIG_WAIT_TICKS) < S32(st, G_PYRAMID_RISE_TIME_A)) {
             if (U8(st, c + FIG_ANIM_FRAME) >= 9) {
                 U8(st, c + FIG_ANIM_FRAME) = 0;
             }

@@ -300,9 +300,9 @@ int32_t city_0x451b10(game_state *st)
             if (S16(st, b + BLD_UC8) >= 1) {
                 continue;
             }
-            int32_t g = (int32_t) (U32(st, G_PYRAMID_RAMP + 4u * U8(st, b + BLD_MONUMENT_KIND)) + U32(st, b + BLD_GRID_OFFSET) - U32(st, G_MAP_START));
+            int32_t g = (int32_t) (U32(st, G_PYRAMID_RAMP_START + 4u * U8(st, b + BLD_MONUMENT_KIND)) + U32(st, b + BLD_GRID_OFFSET) - U32(st, G_MAP_START));
             GAME_CALL(st, FN_RAMP_WALK, g % 0xE4, g / 0xE4, 3, 0);
-            if (S32(st, G_UEAAE90) == 0) {
+            if (S32(st, G_RAMP_WALK_TILE) == 0) {
                 return 1;
             }
         } else if (t == 0xD2 && S16(st, CITY(st) + CITY_U433A) >= 0x10) {

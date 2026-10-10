@@ -11,9 +11,9 @@
 #include "state/ported.h"
 
 #define TER(o) U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (o))
-#define IMG(o) S32(st, G_IMAGE + 4u * (uint32_t) (o))
-#define BGRID(o) S16(st, G_BUILDING_GRID + 2u * (uint32_t) (o))
-#define BITS(o) U8(st, G_DAY2_DESTROY_BITS + (uint32_t) (o))
+#define IMG(o) S32(st, G_GRID_IMAGE + 4u * (uint32_t) (o))
+#define BGRID(o) S16(st, G_GRID_BUILDING + 2u * (uint32_t) (o))
+#define BITS(o) U8(st, G_GRID_BITFIELDS + (uint32_t) (o))
 
 void canal_tile(game_state *st, int32_t dry)
 {
@@ -51,7 +51,7 @@ void canal_tile(game_state *st, int32_t dry)
     IMG(c) = img;
     BITS(c) &= 0xF0;
     U8(st, G_CANAL + (uint32_t) c) = (uint8_t) S32(st, G_MATCH_EXTRA);
-    U8(st, G_EDGE + (uint32_t) c) |= 0x40;
+    U8(st, G_GRID_EDGE + (uint32_t) c) |= 0x40;
 }
 
 void canals_rect_redraw(game_state *st, int32_t x0, int32_t y0, int32_t x1, int32_t y1)

@@ -81,7 +81,7 @@ static void area_scan(game_state *st, int32_t x, int32_t y, int32_t r, int row_g
 
 static int16_t building_at(game_state *st, int32_t tile)
 {
-    return S16(st, G_BUILDING_GRID + 2u * (uint32_t) tile);
+    return S16(st, G_GRID_BUILDING + 2u * (uint32_t) tile);
 }
 
 /* a house (+0x05) with people (+0x1C) */
@@ -249,7 +249,7 @@ static void lower_e4(game_state *st, int32_t tile, scan_ctx *c)
     }
     v -= c->value;
     S32(st, a + BLD_CRIME_RISK) = v;
-    int32_t floor = S32(st, G_HOUSE_LEVEL_U14 + 0x58u * (uint32_t) S16(st, a + BLD_SUBTYPE));
+    int32_t floor = S32(st, G_HOUSE_LEVEL_CRIME_RISK + 0x58u * (uint32_t) S16(st, a + BLD_SUBTYPE));
     if (v < floor) {
         S32(st, a + BLD_CRIME_RISK) = floor;
     }
@@ -599,7 +599,7 @@ static void bazaar_house(game_state *st, int32_t tile, scan_ctx *c)
         slots--;
     }
     bazaar_extra(st, baz, h, G_HOUSE_GOODS_D + t, 0xA4, 0x66, 0x64);
-    bazaar_extra(st, baz, h, G_HOUSE_GOODS_A + t, 0x9E, 0x68, 0x66);
+    bazaar_extra(st, baz, h, G_HOUSE_LEVEL_GOODS + t, 0x9E, 0x68, 0x66);
     bazaar_extra(st, baz, h, G_HOUSE_GOODS_B + t, 0xA2, 0x6A, 0x68);
     bazaar_extra(st, baz, h, G_HOUSE_GOODS_C + t, 0xA0, 0x6C, 0x6A);
 }

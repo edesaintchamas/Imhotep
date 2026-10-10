@@ -112,10 +112,8 @@
 #define G_STR_TOMB_SETI_FIN 0x005F75C0u /* @bin 0x004F4637 "TombSetiFin" */
 #define G_STR_TOMB_SETI 0x005F75B4u /* @bin 0x004F4637 "TombSeti" */
 #define G_STR_TOMB_RAM 0x005F75ACu /* @bin 0x004F4637 "TombRam" */
-#define G_STR_ABU_SIMBEL 0x005760B0u /* @bin 0x004F4759 "AbuSimbel" (core/building/rest_monument.c) */
 #define G_STR_CAESAREUM1 0x005F75A0u /* @bin 0x004F4837 "Caesareum1" */
 #define G_STR_LT_HOUSE1 0x005E4934u /* @bin 0x004F4837 "LtHouse1" */
-#define G_LIB_MAIN_B1 0x00576338u /* @bin 0x004F4837 "LibMainb1" (the G_LIB_MAIN_ series of g_building.h; core/building/rest_monument.c) */
 #define G_STR_MAUS_CARRYOVER 0x005F7590u /* @bin 0x004F4837 "MausCarryover" */
 #define G_STR_GLORY_OF_PTOLEMY 0x00601840u /* @bin 0x0053D972 "The Glory of Ptolemy" */
 #define G_STR_OBELISK_EXTRA 0x006017E0u /* @bin 0x0053D970 "OBELISK_EXTRA" */

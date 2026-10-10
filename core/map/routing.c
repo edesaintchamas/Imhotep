@@ -167,7 +167,7 @@ void routing_fill_ec7630(game_state *st, int32_t x0, int32_t y0, int32_t x1, int
             } else if (t & 0x400) {
                 g = 2;
             } else if (t & 8) {
-                int16_t type = building_type(st, S16(st, G_BUILDING_GRID + 2u * (uint32_t) o));
+                int16_t type = building_type(st, S16(st, G_GRID_BUILDING + 2u * (uint32_t) o));
                 g = type == 0x48 ? 1 : type == 0xCA ? 4 : blocks_ec7630(type) ? 0xFF : type == 0x39 ? 5 : type == 0x36 ? 0 : 1;
             } else if (t & 0x100) {
                 g = 0;
@@ -203,7 +203,7 @@ void routing_fill_ee0c50(game_state *st, int32_t x0, int32_t y0, int32_t x1, int
             if (flag && (T(st, o) & 0x10044) == 0x44 && U8(st, G_SPRITE + uo) == 0) {
                 U32(st, G_GRID_TERRAIN + 4 * uo) &= ~0x40u;
             }
-            int32_t base = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 507); /* an image group's first id (startup numbering) */
+            int32_t base = S32(st, G_IMAGE_GROUPS + 8u * 507); /* an image group's first id (startup numbering) */
             uint32_t t = T(st, o);
             uint8_t *g = &U8(st, G_GRID_ROUTING + uo);
             if ((t & 0x80000) || (t & 0x10004) == 0x10004) {
@@ -215,14 +215,14 @@ void routing_fill_ee0c50(game_state *st, int32_t x0, int32_t y0, int32_t x1, int
             } else if (t & 0x10000000) {
                 *g = 5;
             } else if (t & 0x8008) {
-                int16_t b = S16(st, G_BUILDING_GRID + 2 * uo);
+                int16_t b = S16(st, G_GRID_BUILDING + 2 * uo);
                 if (b == 0) {
                     /* a building flag without a building: cleared, the tile becomes plain land */
                     U32(st, G_GRID_TERRAIN + 4 * uo) = t & ~8u;
                     U8(st, G_EC7630 + uo) = 4;
-                    S32(st, G_IMAGE + 4 * uo) = (U8(st, G_RANDOM + uo) & 7) + base;
-                    U8(st, G_EDGE + uo) = 0x40;
-                    U8(st, G_DAY2_DESTROY_BITS + uo) &= 0xF0;
+                    S32(st, G_GRID_IMAGE + 4 * uo) = (U8(st, G_GRID_RANDOM + uo) & 7) + base;
+                    U8(st, G_GRID_EDGE + uo) = 0x40;
+                    U8(st, G_GRID_BITFIELDS + uo) &= 0xF0;
                     S32(st, G_UF535BC) += 1;
                 } else {
                     int16_t type = building_type(st, b);
@@ -245,7 +245,7 @@ void routing_fill_ee0c50(game_state *st, int32_t x0, int32_t y0, int32_t x1, int
                 uint32_t obj = U32(st, G_UD05720 + 4 * uo); /* floodplain object of the tile */
                 const uint8_t *flooded = obj ? state_ptr(st, obj + FLOODOBJ_FLAG, 1) : NULL;
                 if (flooded && *flooded == 0) {
-                    int32_t d = S32(st, G_IMAGE + 4 * uo) - S32(st, G_DAY2_REDRAW_GROUPS + 8u * 528);
+                    int32_t d = S32(st, G_GRID_IMAGE + 4 * uo) - S32(st, G_IMAGE_GROUPS + 8u * 528);
                     *g = d < 0x30 ? 4 : (d == 0x34 || d == 0x30 || d == 0x36 || d == 0x32) ? 0xFB : 0xFF;
                 } else if ((t & 0x10000) || (t & 0x2040011)) {
                     *g = 4;

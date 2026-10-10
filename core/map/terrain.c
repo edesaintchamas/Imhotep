@@ -177,7 +177,7 @@ void terrain_rebuild(terrain_state *t)
 void terrain_scenario_start(terrain_state *t)
 {
     /* @bin 0x004D52A0 FUN_0040f8f0(image grid, 0x32C40, 0) */
-    memset(state_ptr(t->g, G_IMAGE, 4u * GRID_TILES), 0, 4u * GRID_TILES);
+    memset(state_ptr(t->g, G_GRID_IMAGE, 4u * GRID_TILES), 0, 4u * GRID_TILES);
     terrain_rebuild(t);
     terrain_floodplain_build(t, 0, 0, MAP_W(t) - 1, MAP_H(t) - 1);
 }
@@ -185,7 +185,7 @@ void terrain_scenario_start(terrain_state *t)
 void terrain_store_groups(game_state *g, const image_groups *groups)
 {
     for (int i = 0; i < groups->group_count; i++) {
-        S32(g, G_DAY2_REDRAW_GROUPS + 8u * (uint32_t) i) = groups->group_first[i];
+        S32(g, G_IMAGE_GROUPS + 8u * (uint32_t) i) = groups->group_first[i];
     }
 }
 
@@ -193,7 +193,7 @@ enum { IN_IMAGE, IN_EDGE, IN_TERRAIN, IN_BITFIELDS, IN_RANDOM, IN_SCENARIO, IN_F
 
 /* the variables the chunks are loaded into (@bin 0x005E17D8 map schema, 0x005E09A0 save schema) */
 static const uint32_t IN_ADDR[IN_COUNT] = {
-    G_IMAGE, G_EDGE, G_GRID_TERRAIN, G_DAY2_DESTROY_BITS, G_RANDOM, G_START_YEAR, G_FERTILITY_GRID, G_GRID_VEGETATION, G_GRID_MOISTURE,
+    G_GRID_IMAGE, G_GRID_EDGE, G_GRID_TERRAIN, G_GRID_BITFIELDS, G_GRID_RANDOM, G_START_YEAR, G_FERTILITY_GRID, G_GRID_VEGETATION, G_GRID_MOISTURE,
 };
 static const uint32_t IN_SIZE[IN_COUNT] = {
     4 * GRID_TILES, GRID_TILES, 4 * GRID_TILES, GRID_TILES, GRID_TILES, 0x394, GRID_TILES, GRID_TILES, GRID_TILES,
@@ -223,7 +223,7 @@ int terrain_init_campaign(terrain_state *t, game_state *g, const map_file *m, co
     }
     /* runtime grids a saved game carries (docs/formats/save.md §3) */
     static const int OPT[2] = {CAMPAIGN_CHUNK_AQUEDUCT, CAMPAIGN_CHUNK_DESIRABILITY};
-    static const uint32_t OPT_ADDR[2] = {G_CANAL, G_DESIRABILITY_GRID};
+    static const uint32_t OPT_ADDR[2] = {G_CANAL, G_GRID_DESIRABILITY};
     for (int i = 0; i < 2; i++) {
         if ((uint32_t) OPT[i] >= m->count || !m->chunk[OPT[i]] || m->size[OPT[i]] < GRID_TILES) {
             return -1;
@@ -264,8 +264,8 @@ static int init_from(terrain_state *t, game_state *g, const map_file *m, const i
         {G_PATTERN_FLOODPLAIN, terrain_pattern_floodplain, sizeof(terrain_pattern_floodplain)},
         {G_PATTERN_SPECIAL_ROCKS, terrain_pattern_special_rocks, sizeof(terrain_pattern_special_rocks)},
         {G_PATTERN_ROADS, terrain_pattern_roads, sizeof(terrain_pattern_roads)},
-        {G_PATTERN_WALLS, terrain_pattern_walls, sizeof(terrain_pattern_walls)},
-        {G_PATTERN_WALLS_BUILDING, terrain_pattern_walls_building, sizeof(terrain_pattern_walls_building)},
+        {G_WALL_PATTERNS, terrain_pattern_walls, sizeof(terrain_pattern_walls)},
+        {G_WALL_PATTERNS_BUILDINGS, terrain_pattern_walls_building, sizeof(terrain_pattern_walls_building)},
         {G_PATTERN_CANALS, terrain_pattern_canals, sizeof(terrain_pattern_canals)},
     };
     for (size_t i = 0; i < sizeof(P) / sizeof(P[0]); i++) {

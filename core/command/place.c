@@ -37,7 +37,7 @@ static void notice(game_state *st, int32_t id)
 /* @bin 0x00472900 the bitfields grid: bits 0x50 cleared (AND 0xAF) */
 static void restore_bits(game_state *st)
 {
-    place_and_bytes(st, G_DAY2_DESTROY_BITS, 0xCB10, 0xAF);
+    place_and_bytes(st, G_GRID_BITFIELDS, 0xCB10, 0xAF);
 }
 
 /* @bin 0x00473E4D notice, then the bitfields restored */
@@ -85,8 +85,8 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
             notice(st, 0x32);
         } else if (type == 0x26 || type == 0x27) {
             restore_terrain_canals(st);
-            GAME_CALL(st, FN_COPY_BYTES, G_BITS_BACKUP, G_DAY2_DESTROY_BITS, 0xCB10);
-            GAME_CALL(st, FN_COPY_BYTES, G_EDGE_BACKUP, G_EDGE, 0xCB10);
+            GAME_CALL(st, FN_COPY_BYTES, G_BITS_BACKUP, G_GRID_BITFIELDS, 0xCB10);
+            GAME_CALL(st, FN_COPY_BYTES, G_EDGE_BACKUP, G_GRID_EDGE, 0xCB10);
             GAME_CALL(st, FN_UNDO_RESTORE_IMAGES, 0);
             notice(st, 0x32);
         } else if (type == 0x52 || type == 0x53) {
@@ -274,7 +274,7 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
                 return;
             }
             if (type == 0xB6) {
-                if (S32(st, G_WARSHIP_WHARVES) >= 6) {
+                if (S32(st, G_TYPE_B6_COUNT) >= 6) {
                     notice(st, 0x54);
                     return;
                 }
@@ -507,7 +507,7 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
                     }
                 }
                 if (type == 0xD3 || type == 0xD4) { /* @bin 0x00473C80 complex add-ons */
-                    int32_t b = GAME_CALL(st, FN_BUILDING_MAIN_PART, (int32_t) S16(st, G_BUILDING_GRID + 2u * U32(st, G_HOVER_TILE)));
+                    int32_t b = GAME_CALL(st, FN_BUILDING_MAIN_PART, (int32_t) S16(st, G_GRID_BUILDING + 2u * U32(st, G_HOVER_TILE)));
                     c = (uint32_t) city(st);
                     if (S16(st, c + CITY_U4478) == 0) {
                         fail(st, 0x49);
@@ -873,7 +873,7 @@ uint8_t place_pyramid_fits(game_state *st, int32_t offset, int32_t variant, int3
     /* @bin 0x004ED003 0x004ECEA0(variant): the entry 0x005F5D08[variant] must reach (0x004ED360,
      * result 0x00EAAE9C) → else reason bit 2 */
     if ((uint8_t) GAME_CALL(st, FN_PYRAMID_KIND_OK, variant) != 0) {
-        int32_t t = S32(st, G_PYRAMID_RAMP + 4u * (uint32_t) variant) + offset - S32(st, G_MAP_START);
+        int32_t t = S32(st, G_PYRAMID_RAMP_START + 4u * (uint32_t) variant) + offset - S32(st, G_MAP_START);
         GAME_CALL(st, FN_RAMP_WALK, t % GRID_SIZE, t / GRID_SIZE, 0, 0);
         if (S32(st, G_RAMP_LAST_TILE) == 0) {
             ok = 0;

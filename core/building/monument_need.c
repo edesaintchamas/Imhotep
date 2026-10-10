@@ -3,20 +3,23 @@
  * Check: tests/differential/oracle_function_check.py (loader entries). */
 #include <stdint.h>
 
+#include "state/layout.h"
 #include "state/ported.h"
+#include "state/records.h"
 #include "state/state.h"
-
-#define BUILDING(id) (0x007999D8u + 0x108u * (uint32_t) (id))
-#define FIGURE(id) (0x00BCD5F8u + 0x184u * (uint32_t) (id))
 
 /* @bin 0x00422A90 jump table 0x00423374: per work kind (building +0x68, 0..0x1D), the first of its
  * three 16-byte entries {key, figure type, record pointer, -} in 0x005BE508 .. 0x005BE9B8; kinds
  * 0x11, 0x12, 0x1B, 0x1C and above 0x1D have none; kind 0x1D shares kind 1's */
 static const uint32_t KIND_ENTRIES[30] = {
-    0x005BE5F8u, 0x005BE508u, 0x005BE538u, 0x005BE568u, 0x005BE748u, 0x005BE778u, 0x005BE628u, 0x005BE7A8u,
-    0x005BE7D8u, 0x005BE658u, 0x005BE688u, 0x005BE898u, 0x005BE808u, 0x005BE8C8u, 0x005BE8F8u, 0x005BE598u,
-    0x005BE5C8u, 0,           0,           0x005BE6B8u, 0x005BE6E8u, 0x005BE718u, 0x005BE838u, 0x005BE868u,
-    0x005BE928u, 0x005BE958u, 0x005BE988u, 0,           0,           0x005BE508u,
+    G_STONE_SLOTS + 0x30 * 5, G_STONE_SLOTS + 0x30 * 0, G_STONE_SLOTS + 0x30 * 1, G_STONE_SLOTS + 0x30 * 2,
+    G_STONE_SLOTS + 0x30 * 12, G_STONE_SLOTS + 0x30 * 13, G_STONE_SLOTS + 0x30 * 6, G_STONE_SLOTS + 0x30 * 14,
+    G_STONE_SLOTS + 0x30 * 15, G_STONE_SLOTS + 0x30 * 7, G_STONE_SLOTS + 0x30 * 8, G_STONE_SLOTS + 0x30 * 19,
+    G_STONE_SLOTS + 0x30 * 16, G_STONE_SLOTS + 0x30 * 20, G_STONE_SLOTS + 0x30 * 21, G_STONE_SLOTS + 0x30 * 3,
+    G_STONE_SLOTS + 0x30 * 4, 0, 0, G_STONE_SLOTS + 0x30 * 9,
+    G_STONE_SLOTS + 0x30 * 10, G_STONE_SLOTS + 0x30 * 11, G_STONE_SLOTS + 0x30 * 17, G_STONE_SLOTS + 0x30 * 18,
+    G_STONE_SLOTS + 0x30 * 22, G_STONE_SLOTS + 0x30 * 23, G_STONE_SLOTS + 0x30 * 24, 0,
+    0, G_STONE_SLOTS + 0x30 * 0,
 };
 
 /* @bin 0x00422A90 building id when building `id` (+0x64 set) has, for its work kind (+0x68), an
@@ -24,23 +27,23 @@ static const uint32_t KIND_ENTRIES[30] = {
  * record's i16 +0x12 is 0, and the building's dword +0x80 + 4 * key is > 0; else 0 */
 int32_t monument_part_takes(game_state *st, int32_t id, int32_t f)
 {
-    uint32_t b = BUILDING(id);
-    int32_t key = S32(st, b + 0x60);
-    if (S32(st, b + 0x64) == 0) {
+    uint32_t b = BUILDING_ADDR(id);
+    int32_t key = S32(st, b + BLD_TOMB_STAGE);
+    if (S32(st, b + BLD_U64) == 0) {
         return 0;
     }
-    uint32_t kind = U32(st, b + 0x68); /* unsigned compare with 0x1D */
+    uint32_t kind = U32(st, b + BLD_TOMB_STONE_SET); /* unsigned compare with 0x1D */
     if (kind > 0x1D || KIND_ENTRIES[kind] == 0) {
         return 0;
     }
     for (uint32_t e = KIND_ENTRIES[kind]; e < KIND_ENTRIES[kind] + 0x30u; e += 0x10) {
-        if (P16(st, U32(st, e + 8) + 0x12) != 0 || S32(st, e) != key) {
+        if (P16(st, U32(st, e + WORKSLOT_ANIM) + ANIMOBJ_FIGURE) != 0 || S32(st, e + WORKSLOT_KEY) != key) {
             continue;
         }
-        if (S32(st, e + 4) != (int32_t) U8(st, FIGURE(f) + 0x0A)) {
+        if (S32(st, e + WORKSLOT_FIGURE_TYPE) != (int32_t) U8(st, FIGURE_ADDR(f) + FIG_TYPE)) {
             continue;
         }
-        if (S32(st, b + 0x80 + 4u * (uint32_t) key) > 0) {
+        if (S32(st, b + BLD_TOMB_STONES + 4u * (uint32_t) key) > 0) {
             return id;
         }
     }

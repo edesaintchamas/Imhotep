@@ -86,7 +86,7 @@ void buyer_find_sources(game_state *st, int32_t fid, int32_t b)
     memset(state_ptr(st, G_CAND_BUILDING, 4 * 0x1A5E0), 0, 4 * 0x1A5E0);
     memset(state_ptr(st, G_TARGETS, 4 * NGOODS), 0, 4 * NGOODS);
     for (int32_t i = 1; i <= S32(st, G_STORAGE_HIGHEST); i++) {
-        uint32_t r = G_MARKET_RECORDS + RECORD_SIZE * (uint32_t) i;
+        uint32_t r = G_STORAGE_RECORDS + RECORD_SIZE * (uint32_t) i;
         if (U8(st, r + 4) == 0) {
             continue;
         }
@@ -563,7 +563,7 @@ void building_destroy_at_0x469140(game_state *st, int32_t x, int32_t y, int32_t 
     /* @bin 0x00469140 the building on grid offset `tile` (0x00B4E6FC; its main part 0x00475B50)
      * is removed; none: 0x004B7510 when the tile has bit 0x4000 (0x00AF598C), 0x0047C2B0 */
     static const int32_t share[5] = {0, 0x0F, 0x1E, 0x3C, 100}; /* @bin 0x00469154 by 0x00E39080 */
-    int32_t id = S16(st, G_BUILDING_GRID + 2u * (uint32_t) tile);
+    int32_t id = S16(st, G_GRID_BUILDING + 2u * (uint32_t) tile);
     if (id <= 0) {
         if (U32(st, G_GRID_TERRAIN + 4u * (uint32_t) tile) & 0x4000u) {
             GAME_CALL(st, FN_FIGURES_2A_NEAR, x, y);

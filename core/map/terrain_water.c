@@ -18,13 +18,13 @@
 #define GRID 228
 
 #define TER(o) U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (o))
-#define IMG(o) S32(st, G_IMAGE + 4u * (uint32_t) (o))
-#define EDGE(o) U8(st, G_EDGE + (uint32_t) (o))
-#define BITS(o) U8(st, G_DAY2_DESTROY_BITS + (uint32_t) (o))
-#define RND(o) U8(st, G_RANDOM + (uint32_t) (o))
+#define IMG(o) S32(st, G_GRID_IMAGE + 4u * (uint32_t) (o))
+#define EDGE(o) U8(st, G_GRID_EDGE + (uint32_t) (o))
+#define BITS(o) U8(st, G_GRID_BITFIELDS + (uint32_t) (o))
+#define RND(o) U8(st, G_GRID_RANDOM + (uint32_t) (o))
 #define FP_OBJECT(o) U32(st, G_UD05720 + 4u * (uint32_t) (o))
 #define SCR(i) S32(st, G_NEIGHBOUR_FLAGS + 4u * (uint32_t) ((i) & 7))
-#define GROUP(g) S32(st, G_DAY2_REDRAW_GROUPS + 8u * (uint32_t) (g)) /* first image of group g */
+#define GROUP(g) S32(st, G_IMAGE_GROUPS + 8u * (uint32_t) (g)) /* first image of group g */
 
 /* @bin 0x0047DB00 neighbour order of the scratch */
 static const int32_t NEIGHBOURS[8] = {-228, -227, 1, 229, 228, 227, -1, -229};

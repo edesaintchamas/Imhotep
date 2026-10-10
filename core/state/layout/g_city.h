@@ -172,7 +172,6 @@
 #define G_UEAAC2C 0x00EAAC2Cu /* @bin 0x004E81D0 u8: passed to house_mood_month, then cleared */
 #define G_UEAAE84 0x00EAAE84u /* @bin 0x004ED360 u8: the building G_UEAAE88 was reached */
 #define G_UEAAE88 0x00EAAE88u /* @bin 0x004ED360 i32: the building looked for */
-#define G_UEAAE90 0x00EAAE90u /* @bin 0x004ED360 i32: the tile found (core/building/monument.c) */
 #define G_UEAAE94 0x00EAAE94u /* @bin 0x004ED360 i32 := 2 */
 #define G_UEAAE98 0x00EAAE98u /* @bin 0x004ED360 i32: the steps, at most 20 */
 #define G_UEAAEA0 0x00EAAEA0u /* @bin 0x004ED360 i32: the step eastwards, x 2 */

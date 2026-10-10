@@ -345,7 +345,7 @@ static int open_walk_or5(game_state *st, int32_t to, int8_t v)
 static int open_walk_water(game_state *st, int32_t to, int8_t v)
 {
     return v >= 0 || (v == -1 && (U32(st, G_GRID_TERRAIN + 4u * (uint32_t) to) & 0x10004u) &&
-                      S16(st, G_BUILDING_GRID + 2u * (uint32_t) to) == 0);
+                      S16(st, G_GRID_BUILDING + 2u * (uint32_t) to) == 0);
 }
 
 /* @bin 0x0051A030, 0x0051A220 the grid 0x00EBAB20 at 0 .. 2 */

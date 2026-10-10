@@ -183,7 +183,7 @@ static void monument_anims_4e5a80(game_state *st)
     }
     int16_t type = S16(st, BUILDING_ADDR(id) + BLD_TYPE);
     int32_t n = type == 0xCF ? 10 : 18;
-    uint32_t list = type == 0xCF ? G_MONUMENT_LIST_CF : G_MONUMENT_LIST_D0;
+    uint32_t list = type == 0xCF ? G_WORK_SLOTS_CF : G_WORK_SLOTS_D0;
     for (int32_t i = 0; i < n; i++) {
         anim_step(st, U32(st, list + 0x10u * (uint32_t) i + 8));
     }

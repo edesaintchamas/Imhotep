@@ -12,7 +12,7 @@
 
 #define FIGB_CUR(st) S32(st, G_CURRENT_FIGURE)
 #define FIGB_F(st) FIGURE_ADDR(FIGB_CUR(st))
-#define FIGB_SPRITE(g) (G_DAY2_REDRAW_GROUPS + 8u * (uint32_t) (g))
+#define FIGB_SPRITE(g) (G_IMAGE_GROUPS + 8u * (uint32_t) (g))
 
 /* shared pieces (actions_b.c) */
 void figb_walker_image(game_state *st, uint32_t walk_base, uint32_t die_base);

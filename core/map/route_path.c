@@ -110,7 +110,7 @@ int32_t route_path(game_state *st, int32_t id, int32_t from_x, int32_t from_y, i
     int32_t n = 0, last = -1;
     while (d > 1) {
         d = S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) t);
-        uint32_t tie = mode == 1 ? (U8(st, G_RANDOM + (uint32_t) t) & 3u) : rnd;
+        uint32_t tie = mode == 1 ? (U8(st, G_GRID_RANDOM + (uint32_t) t) & 3u) : rnd;
         route_direction(x, y, from_x, from_y); /* 0x0051CBA0, its result unused */
         int32_t best = -1;
         for (int32_t dir = 0; dir < 8; dir += 2) {

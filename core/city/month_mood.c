@@ -313,7 +313,7 @@ int32_t house_leave_0x430060(game_state *st, int32_t id)
     for (int32_t y = y0; y <= y1; y++) {
         if (x0 <= x1) {
             for (int32_t x = x0; x <= x1; x++) {
-                int32_t o = S16(st, G_BUILDING_GRID + 2u * (g + (uint32_t) (x - x0)));
+                int32_t o = S16(st, G_GRID_BUILDING + 2u * (g + (uint32_t) (x - x0)));
                 uint32_t ob = BUILDING_ADDR(o);
                 if (o == 0 || U8(st, ob + BLD_STATE) == 0 || U8(st, ob + BLD_HOUSE_SIZE) == 0 || S16(st, ob + BLD_POPULATION) == 0) {
                     continue;

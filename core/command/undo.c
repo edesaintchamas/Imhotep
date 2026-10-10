@@ -41,8 +41,8 @@ void undo_restore_images(game_state *st, int32_t unused)
         int32_t xe = S32(st, G_ROW_END + 4u * (uint32_t) y);
         uint32_t off = U32(st, G_ROW_OFFSET + 4u * (uint32_t) y);
         for (int32_t n = xs; n < xe; n++, off++) {
-            if (S16(st, G_BUILDING_GRID + 2u * off) == 0) {
-                U32(st, G_IMAGE + 4u * off) = U32(st, G_IMAGE_BACKUP + 4u * off);
+            if (S16(st, G_GRID_BUILDING + 2u * off) == 0) {
+                U32(st, G_GRID_IMAGE + 4u * off) = U32(st, G_IMAGE_BACKUP + 4u * off);
             }
         }
     }
@@ -162,7 +162,7 @@ void undo_building_readd(game_state *st, int32_t id)
         break;
     }
     case 0xB6:
-        S32(st, G_WARSHIP_WHARVES) = S32(st, G_WARSHIP_WHARVES) + 1;
+        S32(st, G_TYPE_B6_COUNT) = S32(st, G_TYPE_B6_COUNT) + 1;
         break;
     case 0xB7: case 0xD5: case 0xDE:
         GAME_CALL(st, FN_MONUMENT_SLOT_4F4F80, id);
@@ -303,13 +303,13 @@ static void undo_fort(game_state *st, int32_t id)
     uint32_t src, dst;
     if (k == 0xD) {
         src = G_CARRY_GROUPS + 24u;
-        dst = G_CARRY_COPY_GROUPS + 24u;
+        dst = G_WAITING_SOLDIERS + 24u;
     } else if (k == 0xC) {
         src = G_CARRY_GROUPS;
-        dst = G_CARRY_COPY_GROUPS;
+        dst = G_WAITING_SOLDIERS;
     } else if (k == 0xB) {
         src = G_CARRY_GROUPS + 12u;
-        dst = G_CARRY_COPY_GROUPS + 12u;
+        dst = G_WAITING_SOLDIERS + 12u;
     } else {
         return;
     }
@@ -362,10 +362,10 @@ void undo_restore(game_state *st)
         restore_grid(st, G_TERRAIN_BACKUP, G_GRID_TERRAIN, 0x32C40);
         restore_grid(st, G_CANAL_BACKUP, G_CANAL, 0xCB10);
         restore_grid(st, G_SPRITE_BACKUP, G_SPRITE, 0xCB10);
-        restore_grid(st, G_IMAGE_BACKUP, G_IMAGE, 0x32C40);
-        restore_grid(st, G_BITS_BACKUP, G_DAY2_DESTROY_BITS, 0xCB10);
-        restore_grid(st, G_EDGE_BACKUP, G_EDGE, 0xCB10);
-        GAME_CALL(st, FN_PLACE_AND_BYTES, (int32_t) G_DAY2_DESTROY_BITS, 0xCB10, 0xAF);
+        restore_grid(st, G_IMAGE_BACKUP, G_GRID_IMAGE, 0x32C40);
+        restore_grid(st, G_BITS_BACKUP, G_GRID_BITFIELDS, 0xCB10);
+        restore_grid(st, G_EDGE_BACKUP, G_GRID_EDGE, 0xCB10);
+        GAME_CALL(st, FN_PLACE_AND_BYTES, (int32_t) G_GRID_BITFIELDS, 0xCB10, 0xAF);
         undo_houses_refresh(st);
         if (monument != 0) {
             undo_monument_de_redraw(st, monument);
@@ -384,8 +384,8 @@ void undo_restore(game_state *st)
         /* @bin 0x00485738 plaza, gardens: terrain, canal, bitfields, edge */
         restore_grid(st, G_TERRAIN_BACKUP, G_GRID_TERRAIN, 0x32C40);
         restore_grid(st, G_CANAL_BACKUP, G_CANAL, 0xCB10);
-        restore_grid(st, G_BITS_BACKUP, G_DAY2_DESTROY_BITS, 0xCB10);
-        restore_grid(st, G_EDGE_BACKUP, G_EDGE, 0xCB10);
+        restore_grid(st, G_BITS_BACKUP, G_GRID_BITFIELDS, 0xCB10);
+        restore_grid(st, G_EDGE_BACKUP, G_GRID_EDGE, 0xCB10);
         undo_restore_images(st, 1);
     } else if (S32(st, G_UNDO_COUNT) != 0) {
         if (type == 7) {

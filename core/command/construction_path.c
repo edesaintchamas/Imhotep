@@ -17,10 +17,10 @@
 #include "state/records.h"
 
 #define TER(o) U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (o))
-#define IMG(o) S32(st, G_IMAGE + 4u * (uint32_t) (o))
+#define IMG(o) S32(st, G_GRID_IMAGE + 4u * (uint32_t) (o))
 #define ROUTE(o) S8(st, G_GRID_ROUTING + (uint32_t) (o))
 #define DIST(o) S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) (o))
-#define BGRID(o) S16(st, G_BUILDING_GRID + 2u * (uint32_t) (o))
+#define BGRID(o) S16(st, G_GRID_BUILDING + 2u * (uint32_t) (o))
 #define QUEUE_LAST 0xCB0F
 #define GRID_W 228
 
@@ -39,7 +39,7 @@ int32_t terrain_0x10000_or_desirable(game_state *st, int32_t o)
     if (t & 0x10000u) {
         return 0;
     }
-    int8_t c = S8(st, G_DESIRABILITY_GRID + (uint32_t) o);
+    int8_t c = S8(st, G_GRID_DESIRABILITY + (uint32_t) o);
     if (c > 4) {
         return 1;
     }
@@ -146,7 +146,7 @@ int32_t ramp_passable(game_state *st, int32_t o)
     if (obj == 0 || P8(st, obj + 0x18) != 0) {
         return 1;
     }
-    int32_t v = IMG(o) - S32(st, G_DAY2_REDRAW_GROUPS + 8u * 528u);
+    int32_t v = IMG(o) - S32(st, G_IMAGE_GROUPS + 8u * 528u);
     int along;
     if (v == 0x34 || v == 0x30) {
         along = 0;
@@ -187,9 +187,9 @@ int32_t crossing_passable(game_state *st, int32_t o)
     int32_t img, base;
     if (TER(o) & 0x10000u) {
         img = IMG(o);
-        base = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 548u);
-    } else if (U8(st, G_DAY2_DESTROY_BITS + (uint32_t) o) & 0x80) {
-        if (IMG(o) - S32(st, G_DAY2_REDRAW_GROUPS + 8u * 437u) >= 3) {
+        base = S32(st, G_IMAGE_GROUPS + 8u * 548u);
+    } else if (U8(st, G_GRID_BITFIELDS + (uint32_t) o) & 0x80) {
+        if (IMG(o) - S32(st, G_IMAGE_GROUPS + 8u * 437u) >= 3) {
             return 0;
         }
         if (water_neighbours(st, o) > 2) {
@@ -198,10 +198,10 @@ int32_t crossing_passable(game_state *st, int32_t o)
         return (uint8_t) water_both_axes(st, o) == 0;
     } else {
         int32_t r = terrain_0x10000_or_desirable(st, o);
-        base = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 530u);
+        base = S32(st, G_IMAGE_GROUPS + 8u * 530u);
         img = IMG(o);
         if (r == 0) {
-            base = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 540u);
+            base = S32(st, G_IMAGE_GROUPS + 8u * 540u);
         }
     }
     uint32_t v = (uint32_t) (img - base);

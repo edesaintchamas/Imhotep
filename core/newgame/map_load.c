@@ -605,7 +605,7 @@ void city_clear_298c(game_state *st)
 
 void map_setup_grids(game_state *st)
 {
-    GAME_CALL(st, FN_FILL_BYTES, G_IMAGE, 0x32C40, 0); /* the image grid := 0 */
+    GAME_CALL(st, FN_FILL_BYTES, G_GRID_IMAGE, 0x32C40, 0); /* the image grid := 0 */
     GAME_CALL0(st, FN_TERRAIN_FLAG10_TO_1);
     GAME_CALLT0(st, G_FLOODPLAIN, FN_FLOODPLAIN_SETTINGS_COPY);
     if (S32(st, G_VERSION) < 0x91) {
@@ -646,7 +646,7 @@ void map_setup_grids(game_state *st)
     }
     U32(st, G_VERSION) = 0xA0;
     GAME_CALL0(st, FN_VIEW_BOUNDS);
-    U32(st, G_WARSHIP_WHARVES) = (uint32_t) GAME_CALL0(st, FN_BUILDINGS_COUNT_B6);
+    U32(st, G_TYPE_B6_COUNT) = (uint32_t) GAME_CALL0(st, FN_BUILDINGS_COUNT_B6);
     city_clear_298c(st); /* tail jump */
 }
 
@@ -657,15 +657,15 @@ void map_flagged_buildings(game_state *st)
     uint32_t off = U32(st, G_MAP_START);
     for (int32_t y = 0; y < S32(st, G_MAP_HEIGHT); y++) {
         for (int32_t x = 0; x < S32(st, G_MAP_WIDTH); x++, off++) {
-            uint32_t grid = G_BUILDING_GRID + 2 * off;
+            uint32_t grid = G_GRID_BUILDING + 2 * off;
             if (!(U32(st, G_GRID_TERRAIN + 4 * off) & 8) || U16(st, grid) != 0) {
                 continue;
             }
-            int32_t bl = U8(st, G_RANDOM + off) & 1;
+            int32_t bl = U8(st, G_GRID_RANDOM + off) & 1;
             if (U32(st, G_EDITOR) == 1) {
                 bl = 0;
             }
-            uint32_t image = G_IMAGE + 4 * off;
+            uint32_t image = G_GRID_IMAGE + 4 * off;
             int32_t img = S32(st, image), e = S32(st, G_U784CA4), type;
             if (img == e) {
                 U32(st, image) = U32(st, G_IMAGE_58_59);

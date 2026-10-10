@@ -136,25 +136,25 @@ void floodplain_tile_redraw(game_state *st, int32_t x, int32_t y, int32_t flag)
                     S32(st, G_NEIGHBOUR_FLAGS + 0x04) = 0;
                     pattern_match_by_water(st, G_PATTERN_FLOODPLAIN, 0x18);
                 }
-                int32_t g = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 528), img = g + S32(st, G_MATCH_VARIANT);
+                int32_t g = S32(st, G_IMAGE_GROUPS + 8u * 528), img = g + S32(st, G_MATCH_VARIANT);
                 S32(st, G_MATCH_OFFSET) = 0;
                 o = S32(st, G_TILE_CURSOR);
                 obj = U32(st, G_UD05720 + 4u * (uint32_t) o);
                 if (obj != 0) {
                     uint32_t t = P32(st, obj + FLOODOBJ_TILE);
                     int32_t lvl = fertility_level(U8(st, G_FERTILITY_GRID + t));
-                    lvl = (lvl & ~1) | (U8(st, G_RANDOM + t) & 1);
+                    lvl = (lvl & ~1) | (U8(st, G_GRID_RANDOM + t) & 1);
                     img += (int32_t) P32(st, P32(st, obj) + 4) + lvl * 6;
                 }
                 if (blood) {
-                    int32_t e = img - S32(st, G_DAY2_REDRAW_GROUPS + 8u * 528);
+                    int32_t e = img - S32(st, G_IMAGE_GROUPS + 8u * 528);
                     if (e >= 0x3C && e <= 0x53) {
-                        img = img + (S32(st, G_DAY2_REDRAW_GROUPS + 8u * 720) - S32(st, G_DAY2_REDRAW_GROUPS + 8u * 528)) - 0x3C;
+                        img = img + (S32(st, G_IMAGE_GROUPS + 8u * 720) - S32(st, G_IMAGE_GROUPS + 8u * 528)) - 0x3C;
                     }
                 }
-                U8(st, G_DAY2_DESTROY_BITS + (uint32_t) o) &= 0xF0;
-                S32(st, G_IMAGE + 4u * (uint32_t) o) = img;
-                U8(st, G_EDGE + (uint32_t) o) |= 0x40;
+                U8(st, G_GRID_BITFIELDS + (uint32_t) o) &= 0xF0;
+                S32(st, G_GRID_IMAGE + 4u * (uint32_t) o) = img;
+                U8(st, G_GRID_EDGE + (uint32_t) o) |= 0x40;
                 U8(st, G_CANAL + (uint32_t) o) = 0;
             }
             S32(st, G_TILE_CURSOR) += 1;

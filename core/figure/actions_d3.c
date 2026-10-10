@@ -333,7 +333,7 @@ void figure_action_6C(game_state *st)
     case 9: {
         U8(st, f + FIG_INVISIBLE) = 0;
         U8(st, f + FIG_TERRAIN_USAGE) = 3;
-        int16_t t = S16(st, G_BUILDING_GRID + 2u * U32(st, f + FIG_U28));
+        int16_t t = S16(st, G_GRID_BUILDING + 2u * U32(st, f + FIG_U28));
         if (t != 0 && monument_6c(S16(st, BUILDING_ADDR(t) + BLD_TYPE))) {
             U8(st, f + FIG_TERRAIN_USAGE) = 7;
         }
@@ -357,7 +357,7 @@ void figure_action_6C(game_state *st)
     }
     case 0x0C: {
         U8(st, f + FIG_INVISIBLE) = 0;
-        int16_t t = S16(st, G_BUILDING_GRID + 2u * U32(st, f + FIG_U28));
+        int16_t t = S16(st, G_GRID_BUILDING + 2u * U32(st, f + FIG_U28));
         if (t == 0) {
             U8(st, f + FIG_ACTION) = 8;
             S16(st, f + FIG_WAIT_TICKS) = 0;

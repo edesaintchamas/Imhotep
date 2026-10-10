@@ -378,7 +378,7 @@ void figure_roam(game_state *st, int32_t id, int32_t steps)
                     }
                 } else {
                     /* @bin 0x004B20CA the tile's turning pattern */
-                    uint8_t d = (uint8_t) ((U8(st, G_RANDOM + (uint32_t) S32(st, f + FIG_GRID_OFFSET)) + U8(st, f + FIG_U47)) & 6);
+                    uint8_t d = (uint8_t) ((U8(st, G_GRID_RANDOM + (uint32_t) S32(st, f + FIG_GRID_OFFSET)) + U8(st, f + FIG_U47)) & 6);
                     U8(st, f + FIG_DIRECTION) = d;
                     if (open_direction(st, d) && (int8_t) d != back) {
                         goto chosen;
@@ -426,7 +426,7 @@ int32_t figure_0a_divert(game_state *st, int32_t id)
      * 0x0F, when 0x0078D804 is positive: the building 0x00469A50 finds at its tile, while
      * 0x0078D7F8 is at most 25, becomes its destination (+0x5E, action 0x0C, the building's +0x30
      * the figure); returns 1 then */
-    if (S32(st, G_RUINS_FOUND) <= 0) {
+    if (S32(st, G_FIRE_LIST_COUNT) <= 0) {
         return 0;
     }
     uint32_t f = FIGURE_ADDR(id);
@@ -1038,7 +1038,7 @@ int32_t roam_open_directions(game_state *st, int32_t tile, int32_t fid)
     uint8_t type = U8(st, FIGURE_ADDR(fid) + FIG_TYPE);
     int t62 = type == 0x62;
     static const int32_t step[4] = {-228, 1, 228, -1};
-    static const uint32_t grid_step[4] = {G_BUILDING_GRID - 2u * 228u, G_BUILDING_GRID + 2u, G_BUILDING_GRID + 2u * 228u, G_BUILDING_GRID - 2u};
+    static const uint32_t grid_step[4] = {G_GRID_BUILDING - 2u * 228u, G_GRID_BUILDING + 2u, G_GRID_BUILDING + 2u * 228u, G_GRID_BUILDING - 2u};
     S32(st, G_NEIGHBOUR_FLAGS + 0x1Cu) = 0;
     S32(st, G_NEIGHBOUR_FLAGS + 0x14u) = 0;
     S32(st, G_NEIGHBOUR_FLAGS + 0xCu) = 0;
@@ -1163,7 +1163,7 @@ int32_t ferry_on_route(game_state *st, int32_t id, int32_t b)
     int32_t tile = S32(st, f + FIG_GRID_OFFSET);
     uint32_t bb = BUILDING_ADDR(b);
     for (; step < end; step++) {
-        int16_t t = S16(st, G_BUILDING_GRID + 2u * (uint32_t) tile);
+        int16_t t = S16(st, G_GRID_BUILDING + 2u * (uint32_t) tile);
         if (S16(st, BUILDING_ADDR(t) + BLD_TYPE) == 0x88 && t == S32(st, bb + BLD_FERRY_PARTNER)) {
             if (S16(st, bb + BLD_WORKERS) > 0 && S16(st, BUILDING_ADDR(S32(st, bb + BLD_FERRY_PARTNER)) + BLD_WORKERS) > 0) {
                 return 1;
@@ -1201,7 +1201,7 @@ void figure_check_next_tile(game_state *st, int32_t id)
         return;
     }
     int32_t next = S32(st, G_DIRECTION_OFFSETS + 4u * (uint32_t) (int32_t) d) + S32(st, f + FIG_GRID_OFFSET);
-    int16_t b = S16(st, G_BUILDING_GRID + 2u * (uint32_t) next);
+    int16_t b = S16(st, G_GRID_BUILDING + 2u * (uint32_t) next);
     uint32_t t = U32(st, G_GRID_TERRAIN + 4u * (uint32_t) next);
     uint32_t m = t & 0xEEFEC75Fu;
     if (U8(st, f + FIG_BOAT_MODE) != 0) {

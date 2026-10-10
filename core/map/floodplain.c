@@ -80,7 +80,7 @@ uint32_t floodplain_object_create(game_state *st, uint32_t list, int32_t offset,
         P32(st, obj) = list;
         P8(st, obj + FLOODOBJ_FLAG) = flag;
     }
-    int32_t key = U8(st, G_RANDOM + (uint32_t) offset);
+    int32_t key = U8(st, G_GRID_RANDOM + (uint32_t) offset);
     uint32_t node = state_alloc(st, 0x10);
     if (node) {
         P32(st, node + 4) = 0;

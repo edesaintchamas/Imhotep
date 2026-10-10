@@ -164,7 +164,7 @@
 #define G_SERVICE_TOP_48 0x009AB9E4u /* i32 the highest +0x48 of the last pass (0x00483000) */
 #define G_SERVICE_TOP_HOUSES 0x009AB9E8u /* i32 the largest value of the houses within 2 tiles (0x00484A90) */
 
-/* @bin 0x0053DFF0 image groups: the first image id of global image group n is at G_DAY2_REDRAW_GROUPS
+/* @bin 0x0053DFF0 image groups: the first image id of global image group n is at G_IMAGE_GROUPS
  * (0x00F55BB4) + 8 * n (docs/formats/graphics.md "What a load writes": this + 8 * group, record
  * {slot, first image id}, this = 0x00F55BB0). The groups the figure actions draw from */
 #define G_IMAGE_GROUP_39 0x00F55CECu

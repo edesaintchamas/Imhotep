@@ -89,7 +89,7 @@ int32_t tile_fort_formation(game_state *st, int32_t offset)
 {
     /* @bin 0x004B55F0 the building on the tile, in use and of type 0x36 or 0x39: its +0x50
      * (formation), else 0 */
-    int32_t b = S16(st, G_BUILDING_GRID + 2u * (uint32_t) offset);
+    int32_t b = S16(st, G_GRID_BUILDING + 2u * (uint32_t) offset);
     if (b <= 0) {
         return 0;
     }

@@ -403,7 +403,7 @@ void cart_sprite_load(game_state *st, int32_t fid)
         empty = e < 0;
     }
     if (!empty) {
-        S32(st, f + FIG_U180) = S32(st, G_DAY2_REDRAW_GROUPS + 8u * (uint32_t) cart_good_sprites(g)) + e;
+        S32(st, f + FIG_U180) = S32(st, G_IMAGE_GROUPS + 8u * (uint32_t) cart_good_sprites(g)) + e;
         return;
     }
     int turned = cart_goods_turned(g) || (g == 0 && cart_goods_turned(U8(st, f + FIG_COLLECTING)));

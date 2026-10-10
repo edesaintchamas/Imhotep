@@ -15,40 +15,11 @@
 #include "random/random.h"
 #include "sim/call.h"
 #include "sim/math.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define HIGHEST 0x0078D790u   /* highest building id in use */
-#define ROAD_X 0x00D3B4E4u    /* i32: the road tile found by 0x00480180 (and others) */
-#define ROAD_Y 0x00D3B4E0u
-#define MODEL_WORKERS 0x00705EB8u /* building model records of 0x28 bytes: +0 i32 workers needed */
 #define SKIP INT32_MIN
-
-/* building fields */
-#define B_STATE 0x00u   /* u8, 1: in use */
-#define B_OWNER 0x01u   /* u8, passed to 0x004B4800 */
-#define B_SIZE 0x03u    /* u8 */
-#define B_X 0x06u       /* i16 */
-#define B_Y 0x08u       /* i16 */
-#define B_GRID 0x0Cu    /* i32 grid offset */
-#define B_TYPE 0x10u    /* i16 */
-#define B_WORKERS 0x18u /* i16 */
-#define B_ROAD_X 0x26u  /* i16 */
-#define B_ROAD_Y 0x28u  /* i16 */
-#define B_FIGURE 0x2Au  /* i16 the walker sent out */
-#define B_COUNTER 0x32u /* u8 days since the last walker */
-#define B_STOCK 0x3Cu   /* i16 */
-#define B_EMPLOYED 0x40u /* i16 */
-#define B_FLAG 0xC3u    /* u8 */
-
-/* figure fields */
-#define F_TYPE 0x0Au
-#define F_GOOD 0x0Bu
-#define F_STATE 0x0Eu
-#define F_WAIT 0x36u     /* i16 */
-#define F_ACTION 0x38u
-#define F_BUILDING 0x5Au /* i16 */
-#define F_AMOUNT 0x74u   /* i16 */
 
 /* the original's stack frame: locals that live across the buildings of one call */
 typedef struct {
@@ -68,8 +39,8 @@ static uint32_t fig_addr(int32_t f)
 /* @bin 0x004623D1 no workers: +0xC3 := 2 */
 static void flag_no_workers(upd *u)
 {
-    if (S16(u->st, u->b + B_WORKERS) <= 0) {
-        U8(u->st, u->b + B_FLAG) = 2;
+    if (S16(u->st, u->b + BLD_SERVICE) <= 0) {
+        U8(u->st, u->b + BLD_PROBLEM_OVERLAY) = 2;
     }
 }
 
@@ -83,8 +54,8 @@ static int fig_kept(upd *u, uint32_t slot, uint8_t type)
         return 0;
     }
     uint32_t a = fig_addr(f);
-    if (U8(st, a + F_STATE) != 0 && (U8(st, a + F_TYPE) == type || U8(st, a + F_TYPE) == 0) &&
-        S16(st, a + F_BUILDING) == u->id) {
+    if (U8(st, a + FIG_STATE) != 0 && (U8(st, a + FIG_TYPE) == type || U8(st, a + FIG_TYPE) == 0) &&
+        S16(st, a + FIG_HOME) == u->id) {
         return 1;
     }
     S16(st, slot) = 0;
@@ -100,7 +71,7 @@ static void fig_slot_check(upd *u, uint32_t slot, uint8_t type)
         return;
     }
     uint32_t a = fig_addr(f);
-    if (U8(st, a + F_STATE) != 1 || U8(st, a + F_TYPE) != type) {
+    if (U8(st, a + FIG_STATE) != 1 || U8(st, a + FIG_TYPE) != type) {
         S16(st, slot) = 0;
     }
 }
@@ -108,28 +79,28 @@ static void fig_slot_check(upd *u, uint32_t slot, uint8_t type)
 static int32_t road(upd *u)
 {
     game_state *st = u->st;
-    return GAME_CALL(st, 0x00480180u, S16(st, u->b + B_X), S16(st, u->b + B_Y), U8(st, u->b + B_SIZE));
+    return GAME_CALL(st, FN_BUILDING_ROAD_ACCESS, S16(st, u->b + BLD_X), S16(st, u->b + BLD_Y), U8(st, u->b + BLD_SIZE));
 }
 
 static int32_t road3(upd *u)
 {
     game_state *st = u->st;
-    return GAME_CALL(st, 0x00480180u, S16(st, u->b + B_X), S16(st, u->b + B_Y), 3);
+    return GAME_CALL(st, FN_BUILDING_ROAD_ACCESS, S16(st, u->b + BLD_X), S16(st, u->b + BLD_Y), 3);
 }
 
 /* @bin 0x00462453 few workers (+0x18 at most `limit`) */
 static void few_workers(upd *u, int16_t limit)
 {
-    if (S16(u->st, u->b + B_WORKERS) <= limit) {
-        GAME_CALL(u->st, 0x00467220u, u->id);
+    if (S16(u->st, u->b + BLD_SERVICE) <= limit) {
+        GAME_CALL(u->st, FN_BUILDING_SPAWN_TYPE5, u->id);
     }
 }
 
 /* @bin 0x00462466 the ratio of workers (+0x40) to the type's need */
 static int32_t worker_ratio_of(game_state *st, uint32_t b)
 {
-    return GAME_CALL(st, 0x004CDE60u, S16(st, b + B_EMPLOYED),
-                     S32(st, MODEL_WORKERS + 0x28u * (uint32_t) (int32_t) S16(st, b + B_TYPE)));
+    return GAME_CALL(st, FN_CALC_RATIO_PERCENT, S16(st, b + BLD_WORKERS),
+                     S32(st, G_TYPE_WORKERS + 0x28u * (uint32_t) (int32_t) S16(st, b + BLD_TYPE)));
 }
 
 static int32_t worker_ratio(upd *u)
@@ -146,52 +117,52 @@ static int32_t by_ratio(int32_t r, int32_t v100, int32_t v75, int32_t v50, int32
 /* @bin 0x004624C6 the counter +0x32 goes up; past the delay */
 static int counter_due(upd *u, int32_t delay)
 {
-    uint8_t c = (uint8_t) (U8(u->st, u->b + B_COUNTER) + 1);
-    U8(u->st, u->b + B_COUNTER) = c;
+    uint8_t c = (uint8_t) (U8(u->st, u->b + BLD_SPAWN_DELAY) + 1);
+    U8(u->st, u->b + BLD_SPAWN_DELAY) = c;
     return (int32_t) c > delay;
 }
 
 /* @bin 0x004B4800 a new figure of `type` at (x, y) */
 static int32_t create_at(upd *u, int32_t type, int32_t x, int32_t y, int32_t dir)
 {
-    return GAME_CALL(u->st, 0x004B4800u, U8(u->st, u->b + B_OWNER), type, x, y, dir);
+    return GAME_CALL(u->st, FN_FIGURE_CREATE, U8(u->st, u->b + BLD_OWNER), type, x, y, dir);
 }
 
 /* a new figure at the road tile found last */
 static int32_t create(upd *u, int32_t type, int32_t dir)
 {
-    return create_at(u, type, S32(u->st, ROAD_X), S32(u->st, ROAD_Y), dir);
+    return create_at(u, type, S32(u->st, G_ROAD_ACCESS_X), S32(u->st, G_ROAD_ACCESS_Y), dir);
 }
 
 /* @bin 0x0046463B the figure belongs to the building; 0x004B1DF0 */
 static void tail_link(upd *u, int32_t f)
 {
-    S16(u->st, fig_addr(f) + F_BUILDING) = (int16_t) u->id;
-    GAME_CALL(u->st, 0x004B1DF0u, f);
+    S16(u->st, fig_addr(f) + FIG_HOME) = (int16_t) u->id;
+    GAME_CALL(u->st, FN_FIGURE_WALKER_START, f);
 }
 
 /* @bin 0x00463BFC slot +0x2A, action 8 */
 static void tail_8(upd *u, int32_t f)
 {
-    S16(u->st, u->b + B_FIGURE) = (int16_t) f;
-    U8(u->st, fig_addr(f) + F_ACTION) = 8;
-    S16(u->st, fig_addr(f) + F_BUILDING) = (int16_t) u->id;
+    S16(u->st, u->b + BLD_WALKER) = (int16_t) f;
+    U8(u->st, fig_addr(f) + FIG_ACTION) = 8;
+    S16(u->st, fig_addr(f) + FIG_HOME) = (int16_t) u->id;
 }
 
 /* @bin 0x00466271 slot +0x2A, action `action`, then 0x0046463B */
 static void tail_action_link(upd *u, int32_t f, uint8_t action)
 {
-    S16(u->st, u->b + B_FIGURE) = (int16_t) f;
-    U8(u->st, fig_addr(f) + F_ACTION) = action;
+    S16(u->st, u->b + BLD_WALKER) = (int16_t) f;
+    U8(u->st, fig_addr(f) + FIG_ACTION) = action;
     tail_link(u, f);
 }
 
 /* @bin 0x00466E15 slot +0x2A, action 10 */
 static void tail_10(upd *u, int32_t f)
 {
-    S16(u->st, u->b + B_FIGURE) = (int16_t) f;
-    U8(u->st, fig_addr(f) + F_ACTION) = 10;
-    S16(u->st, fig_addr(f) + F_BUILDING) = (int16_t) u->id;
+    S16(u->st, u->b + BLD_WALKER) = (int16_t) f;
+    U8(u->st, fig_addr(f) + FIG_ACTION) = 10;
+    S16(u->st, fig_addr(f) + FIG_HOME) = (int16_t) u->id;
 }
 
 enum { TAIL_8, TAIL_1 };
@@ -201,7 +172,7 @@ enum { TAIL_8, TAIL_1 };
 static void service(upd *u, uint8_t check, int16_t limit, const int32_t d[5], int32_t type, int tail)
 {
     flag_no_workers(u);
-    if (check && fig_kept(u, u->b + B_FIGURE, check)) {
+    if (check && fig_kept(u, u->b + BLD_WALKER, check)) {
         return;
     }
     if (!road(u)) {
@@ -212,7 +183,7 @@ static void service(upd *u, uint8_t check, int16_t limit, const int32_t d[5], in
     if (delay == SKIP || !counter_due(u, delay)) {
         return;
     }
-    U8(u->st, u->b + B_COUNTER) = 0;
+    U8(u->st, u->b + BLD_SPAWN_DELAY) = 0;
     int32_t f = create(u, type, 0);
     if (tail == TAIL_8) {
         tail_8(u, f);
@@ -228,15 +199,15 @@ static void upd_0x18(upd *u)
     if (!road(u)) {
         return;
     }
-    uint8_t c = (uint8_t) (U8(st, u->b + B_COUNTER) + 1);
-    U8(st, u->b + B_COUNTER) = c;
-    if (c <= 0x28 || S32(st, 0x0078D584u) != 0) {
+    uint8_t c = (uint8_t) (U8(st, u->b + BLD_SPAWN_DELAY) + 1);
+    U8(st, u->b + BLD_SPAWN_DELAY) = c;
+    if (c <= 0x28 || S32(st, G_FIGURE_28_SENT) != 0) {
         return;
     }
-    U8(st, u->b + B_COUNTER) = 0;
-    S32(st, 0x0078D584u) = 1;
+    U8(st, u->b + BLD_SPAWN_DELAY) = 0;
+    S32(st, G_FIGURE_28_SENT) = 1;
     int32_t f = create(u, 0x28, 4);
-    U8(st, fig_addr(f) + F_ACTION) = 1;
+    U8(st, fig_addr(f) + FIG_ACTION) = 1;
     tail_link(u, f);
 }
 
@@ -246,28 +217,28 @@ static void upd_0x1e(upd *u)
     game_state *st = u->st;
     uint32_t b = u->b;
     flag_no_workers(u);
-    if (GAME_CALL(st, 0x00475B50u, u->id) != u->id || !road(u)) {
+    if (GAME_CALL(st, FN_BUILDING_MAIN_PART, u->id) != u->id || !road(u)) {
         return;
     }
     few_workers(u, 0x32);
-    if (S16(st, b + 0x9E) != 0 && S16(st, b + 0xA0) != 0) {
+    if (S16(st, b + BLD_PERFORMERS) != 0 && S16(st, b + BLD_PERFORMERS + 2) != 0) {
         return;
     }
     int32_t delay = by_ratio(worker_ratio(u), 3, 7, 15, 29, 44);
     if (delay == SKIP || !counter_due(u, delay)) {
         return;
     }
-    if (U8(st, b + 0xA7) != 0 && S16(st, b + 0x9E) == 0) {
-        U8(st, b + B_COUNTER) = 0;
+    if (U8(st, b + BLD_SHOWS + 1) != 0 && S16(st, b + BLD_PERFORMERS) == 0) {
+        U8(st, b + BLD_SPAWN_DELAY) = 0;
         int32_t f = create(u, 0xF, 0);
-        S16(st, b + 0x9E) = (int16_t) f;
-        U8(st, fig_addr(f) + F_ACTION) = 0xC;
+        S16(st, b + BLD_PERFORMERS) = (int16_t) f;
+        U8(st, fig_addr(f) + FIG_ACTION) = 0xC;
         tail_link(u, f);
-    } else if (U8(st, b + 0xA8) != 0 && S16(st, b + 0xA0) == 0) {
-        U8(st, b + B_COUNTER) = 0;
+    } else if (U8(st, b + BLD_SHOWS + 2) != 0 && S16(st, b + BLD_PERFORMERS + 2) == 0) {
+        U8(st, b + BLD_SPAWN_DELAY) = 0;
         int32_t f = create(u, 0x10, 0);
-        S16(st, b + 0xA0) = (int16_t) f;
-        U8(st, fig_addr(f) + F_ACTION) = 0xC;
+        S16(st, b + BLD_PERFORMERS + 2) = (int16_t) f;
+        U8(st, fig_addr(f) + FIG_ACTION) = 0xC;
         tail_link(u, f);
     }
 }
@@ -277,15 +248,15 @@ static void upd_0x1f(upd *u)
 {
     game_state *st = u->st;
     flag_no_workers(u);
-    if (GAME_CALL(st, 0x00475B50u, u->id) != u->id || fig_kept(u, u->b + B_FIGURE, 0xF) || !road(u)) {
+    if (GAME_CALL(st, FN_BUILDING_MAIN_PART, u->id) != u->id || fig_kept(u, u->b + BLD_WALKER, 0xF) || !road(u)) {
         return;
     }
     few_workers(u, 0x32);
     int32_t delay = by_ratio(worker_ratio(u), 3, 7, 15, 29, 44);
-    if (delay == SKIP || !counter_due(u, delay) || U8(st, u->b + 0xA7) == 0) {
+    if (delay == SKIP || !counter_due(u, delay) || U8(st, u->b + BLD_SHOWS + 1) == 0) {
         return;
     }
-    U8(st, u->b + B_COUNTER) = 0;
+    U8(st, u->b + BLD_SPAWN_DELAY) = 0;
     tail_action_link(u, create(u, 0xF, 0), 0xC);
 }
 
@@ -294,7 +265,7 @@ static void upd_0x20(upd *u)
 {
     game_state *st = u->st;
     flag_no_workers(u);
-    if (fig_kept(u, u->b + B_FIGURE, 0x12) || !road(u)) {
+    if (fig_kept(u, u->b + BLD_WALKER, 0x12) || !road(u)) {
         return;
     }
     few_workers(u, 0x32);
@@ -302,13 +273,13 @@ static void upd_0x20(upd *u)
     if (delay == SKIP || !counter_due(u, delay)) {
         return;
     }
-    int32_t cost = S32(st, 0x007063C4u);
-    int16_t s = S16(st, u->b + B_STOCK);
+    int32_t cost = S32(st, G_TYPE_WALKER_COST + 0x28 * 0x20);
+    int16_t s = S16(st, u->b + BLD_STORED);
     if (s < cost) {
         return;
     }
-    S16(st, u->b + B_STOCK) = (int16_t) (s - cost);
-    U8(st, u->b + B_COUNTER) = 0;
+    S16(st, u->b + BLD_STORED) = (int16_t) (s - cost);
+    U8(st, u->b + BLD_SPAWN_DELAY) = 0;
     tail_action_link(u, create(u, 0x12, 0), 0xC);
 }
 
@@ -318,11 +289,11 @@ static void upd_0x21(upd *u)
     game_state *st = u->st;
     uint32_t b = u->b;
     flag_no_workers(u);
-    if (GAME_CALL(st, 0x00475B50u, u->id) != u->id || !road(u)) {
+    if (GAME_CALL(st, FN_BUILDING_MAIN_PART, u->id) != u->id || !road(u)) {
         return;
     }
     few_workers(u, 0x32);
-    if (S16(st, b + 0x9E) != 0 && S16(st, b + 0xA0) != 0 && S16(st, b + 0xA2) != 0) {
+    if (S16(st, b + BLD_PERFORMERS) != 0 && S16(st, b + BLD_PERFORMERS + 2) != 0 && S16(st, b + BLD_PERFORMERS + 4) != 0) {
         return;
     }
     int32_t delay = by_ratio(worker_ratio(u), 6, 12, 20, 40, 70);
@@ -330,11 +301,11 @@ static void upd_0x21(upd *u)
         return;
     }
     for (uint32_t k = 0; k < 3; k++) {
-        if (U8(st, b + 0xA7 + k) != 0 && S16(st, b + 0x9E + 2 * k) == 0) {
-            U8(st, b + B_COUNTER) = 0;
+        if (U8(st, b + BLD_SHOWS + 1 + k) != 0 && S16(st, b + BLD_PERFORMERS + 2 * k) == 0) {
+            U8(st, b + BLD_SPAWN_DELAY) = 0;
             int32_t f = create(u, (int32_t) (0xF + k), 0);
-            S16(st, b + 0x9E + 2 * k) = (int16_t) f;
-            U8(st, fig_addr(f) + F_ACTION) = 0xC;
+            S16(st, b + BLD_PERFORMERS + 2 * k) = (int16_t) f;
+            U8(st, fig_addr(f) + FIG_ACTION) = 0xC;
             tail_link(u, f);
         }
     }
@@ -346,7 +317,7 @@ static void upd_paid(upd *u, uint8_t type, int32_t cost_addr, int32_t mode, int3
 {
     game_state *st = u->st;
     flag_no_workers(u);
-    if (fig_kept(u, u->b + B_FIGURE, type) || !road(u)) {
+    if (fig_kept(u, u->b + BLD_WALKER, type) || !road(u)) {
         return;
     }
     few_workers(u, 0x32);
@@ -357,21 +328,21 @@ static void upd_paid(upd *u, uint8_t type, int32_t cost_addr, int32_t mode, int3
     }
     int32_t cost = S32(st, (uint32_t) cost_addr);
     uint32_t c = CURRENT_CITY(st);
-    if (S16(st, c + 0x4478) != 0 && GAME_CALL(st, 0x004C5120u, S32(st, c + 0x472C)) == mode &&
-        (uint8_t) GAME_CALL(st, 0x004C52D0u, S32(st, CURRENT_CITY(st) + 0x472C), mode_arg) != 0) {
+    if (S16(st, c + CITY_U4478) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_U472C)) == mode &&
+        (uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_U472C), mode_arg) != 0) {
         cost = calc_percentage(cost, S32(st, pct_addr)); /* 0x004CDE40 */
     }
-    int16_t s = S16(st, u->b + B_STOCK);
+    int16_t s = S16(st, u->b + BLD_STORED);
     if (s < cost) {
         return;
     }
-    S16(st, u->b + B_STOCK) = (int16_t) (s - cost);
-    U8(st, u->b + B_COUNTER) = 0;
-    if (type == 0x1D && S32(st, 0x00E38EBCu) == 0 && S8(st, 0x00E38EA8u) == S32(st, 0x00579600u) &&
-        U8(st, 0x007027C4u) == 0 && U8(st, 0x007027C3u) != 0) {
+    S16(st, u->b + BLD_STORED) = (int16_t) (s - cost);
+    U8(st, u->b + BLD_SPAWN_DELAY) = 0;
+    if (type == 0x1D && S32(st, G_CUSTOM) == 0 && S8(st, G_MISSION) == S32(st, G_MISSION_LISTS + 0x150) &&
+        U8(st, G_MISSION_LIST_FLAGS + 0xC) == 0 && U8(st, G_MISSION_LIST_FLAGS + 0xB) != 0) {
         /* @bin 0x00465B86 */
-        S32(st, 0x0078D828u) = 0;
-        GAME_CALL(st, 0x00417AE0u, 0xC);
+        S32(st, G_U78D828) = 0;
+        GAME_CALL(st, FN_TUTORIAL_STEP, 0xC);
     }
     tail_action_link(u, create(u, type, 0), 1);
 }
@@ -386,18 +357,18 @@ static void upd_0x3b(upd *u)
         return;
     }
     few_workers(u, 0x32);
-    if (S16(st, b + B_EMPLOYED) <= 0) {
+    if (S16(st, b + BLD_WORKERS) <= 0) {
         return;
     }
-    if (S16(st, b + 0x30) == 0 && S16(st, b + B_FIGURE) != 0) {
-        int32_t f = create_at(u, 0x3E, S16(st, b + B_X), S16(st, b + B_Y), 0);
-        S16(st, b + 0x30) = (int16_t) f;
-        S16(st, fig_addr(f) + F_BUILDING) = (int16_t) u->id;
-        U8(st, fig_addr(f) + F_ACTION) = 8;
+    if (S16(st, b + BLD_TOWER_WALKER) == 0 && S16(st, b + BLD_WALKER) != 0) {
+        int32_t f = create_at(u, 0x3E, S16(st, b + BLD_X), S16(st, b + BLD_Y), 0);
+        S16(st, b + BLD_TOWER_WALKER) = (int16_t) f;
+        S16(st, fig_addr(f) + FIG_HOME) = (int16_t) u->id;
+        U8(st, fig_addr(f) + FIG_ACTION) = 8;
     }
-    fig_kept(u, b + B_FIGURE, 0x2A);
-    if (S16(st, b + B_FIGURE) <= 0) {
-        S32(st, 0x00BCB9ACu) = 2;
+    fig_kept(u, b + BLD_WALKER, 0x2A);
+    if (S16(st, b + BLD_WALKER) <= 0) {
+        S32(st, G_TOWER_SENTRY_REQUEST) = 2;
     }
 }
 
@@ -406,45 +377,45 @@ static void upd_0x3c(upd *u)
 {
     game_state *st = u->st;
     uint32_t b = u->b;
-    if (S16(st, b + 0x38) != 0) {
+    if (S16(st, b + BLD_PREV_PART) != 0) {
         return;
     }
     flag_no_workers(u);
-    if (fig_kept(u, b + B_FIGURE, 0x1B)) {
+    if (fig_kept(u, b + BLD_WALKER, 0x1B)) {
         return;
     }
-    int32_t type = S16(st, b + B_TYPE);
+    int32_t type = S16(st, b + BLD_TYPE);
     int32_t r = type >= 0x41 && type <= 0x45
-                    ? GAME_CALL(st, 0x00480460u, S16(st, b + B_X), S16(st, b + B_Y), U8(st, b + 0xAA))
+                    ? GAME_CALL(st, FN_BUILDING_FIND_EDGE_TILE, S16(st, b + BLD_X), S16(st, b + BLD_Y), U8(st, b + BLD_ORIENTATION))
                     : road(u);
     if (!r) {
         return;
     }
     few_workers(u, 0x32);
     int32_t ratio = worker_ratio(u);
-    int32_t delay = S32(st, MODEL_WORKERS + 0x28u * (uint32_t) (int32_t) S16(st, b + B_TYPE)) <= 0
+    int32_t delay = S32(st, G_TYPE_WORKERS + 0x28u * (uint32_t) (int32_t) S16(st, b + BLD_TYPE)) <= 0
                         ? 7 /* @bin 0x004657F8 no workers needed */
                         : by_ratio(ratio, 3, 7, 10, 15, 20);
     if (delay == SKIP || !counter_due(u, delay)) {
         return;
     }
-    U8(st, b + B_COUNTER) = 0;
+    U8(st, b + BLD_SPAWN_DELAY) = 0;
     int32_t f = create(u, 0x1B, 0);
     uint32_t a = fig_addr(f);
-    S16(st, b + B_FIGURE) = (int16_t) f;
-    U8(st, a + F_ACTION) = 1;
-    S16(st, a + F_BUILDING) = (int16_t) u->id;
-    uint32_t kind = (uint32_t) GAME_CALL(st, 0x004C5120u, (int32_t) (int16_t) u->id);
+    S16(st, b + BLD_WALKER) = (int16_t) f;
+    U8(st, a + FIG_ACTION) = 1;
+    S16(st, a + FIG_HOME) = (int16_t) u->id;
+    uint32_t kind = (uint32_t) GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, (int32_t) (int16_t) u->id);
     if (kind <= 4) {
         /* @bin 0x004658C5 a counter per kind (0x00D056B0 down to 0x00D056A0), 0..15, and a value */
-        static const uint32_t counters[5] = {0x00D056B0u, 0x00D056ACu, 0x00D056A8u, 0x00D056A4u, 0x00D056A0u};
+        static const uint32_t counters[5] = {G_NAME_COUNTER_10A, G_NAME_COUNTER_10A - 4, G_NAME_COUNTER_10A - 8, G_NAME_COUNTER_10A - 0xC, G_NAME_COUNTER_10A - 0x10};
         int32_t n = S32(st, counters[kind]);
-        S16(st, a + 0x70) = (int16_t) n;
+        S16(st, a + FIG_NAME_INDEX) = (int16_t) n;
         n++;
-        S32(st, a + 0x98) = 0x10A + (int32_t) kind;
+        S32(st, a + FIG_NAME_GROUP) = 0x10A + (int32_t) kind;
         S32(st, counters[kind]) = n >= 16 ? 0 : n;
     }
-    GAME_CALL(st, 0x004B1DF0u, f);
+    GAME_CALL(st, FN_FIGURE_WALKER_START, f);
 }
 
 /* @bin 0x00464A17 types 0x46, 0xBE: walker 0x1A, buyers 0x27 (slots +0x2C, +0xB6), walker 0x1A
@@ -454,13 +425,13 @@ static void buyer(upd *u, uint32_t slot, int kind)
     game_state *st = u->st;
     if (S16(st, slot) != 0) {
         uint32_t a = fig_addr(S16(st, slot));
-        if (U8(st, a + F_STATE) != 1 || (U8(st, a + F_TYPE) != 0x27 && U8(st, a + F_TYPE) != 5)) {
+        if (U8(st, a + FIG_STATE) != 1 || (U8(st, a + FIG_TYPE) != 0x27 && U8(st, a + FIG_TYPE) != 5)) {
             S16(st, slot) = 0;
         }
         return;
     }
     /* @bin 0x00464C8E every 8 days, by the building's rank among these buildings */
-    if (S32(st, 0x0078D7C4u) % 8 != u->l1c % 8) {
+    if (S32(st, G_TICK_DAY) % 8 != u->l1c % 8) {
         return;
     }
     road(u);
@@ -471,23 +442,23 @@ static void buyer(upd *u, uint32_t slot, int kind)
     int32_t f = create(u, 0x27, 0);
     uint32_t a = fig_addr(f);
     S16(st, slot) = (int16_t) f;
-    U8(st, a + F_ACTION) = 8;
-    S16(st, a + F_BUILDING) = (int16_t) u->id;
-    S16(st, a + 0x5E) = (int16_t) dest;
+    U8(st, a + FIG_ACTION) = 8;
+    S16(st, a + FIG_HOME) = (int16_t) u->id;
+    S16(st, a + FIG_DEST_BUILDING) = (int16_t) dest;
     for (uint32_t i = 0; i < 4; i++) {
-        S32(st, a + 0x9C + 4 * i) = u->l10[i];
-        S32(st, a + 0xAC + 4 * i) = 0;
-        S32(st, a + 0xBC + 4 * i) = 0;
+        S32(st, a + FIG_BUYERS_1 + 4 * i) = u->l10[i];
+        S32(st, a + FIG_BUYERS_2 + 4 * i) = 0;
+        S32(st, a + FIG_BUYERS_3 + 4 * i) = 0;
     }
     uint32_t d = BUILDING_ADDR(dest);
-    if (GAME_CALL(st, 0x00480180u, S16(st, d + B_X), S16(st, d + B_Y), U8(st, d + B_SIZE)) ||
-        GAME_CALL(st, 0x00480180u, S16(st, d + B_X), S16(st, d + B_Y), 3)) {
-        S16(st, a + 0x24) = S16(st, ROAD_X);
-        S16(st, a + 0x26) = S16(st, ROAD_Y);
+    if (GAME_CALL(st, FN_BUILDING_ROAD_ACCESS, S16(st, d + BLD_X), S16(st, d + BLD_Y), U8(st, d + BLD_SIZE)) ||
+        GAME_CALL(st, FN_BUILDING_ROAD_ACCESS, S16(st, d + BLD_X), S16(st, d + BLD_Y), 3)) {
+        S16(st, a + FIG_DEST_X) = S16(st, G_ROAD_ACCESS_X);
+        S16(st, a + FIG_DEST_Y) = S16(st, G_ROAD_ACCESS_Y);
     } else {
-        U8(st, a + F_ACTION) = 9;
-        S16(st, a + 0x24) = S16(st, a + 0x14);
-        S16(st, a + 0x26) = S16(st, a + 0x16);
+        U8(st, a + FIG_ACTION) = 9;
+        S16(st, a + FIG_DEST_X) = S16(st, a + FIG_X);
+        S16(st, a + FIG_DEST_Y) = S16(st, a + FIG_Y);
     }
 }
 
@@ -497,7 +468,7 @@ static void upd_0x46(upd *u)
     uint32_t b = u->b;
     u->l1c++;
     u->l10[0] = u->l10[1] = u->l10[2] = u->l10[3] = -1;
-    u->l45 = (uint8_t) GAME_CALL(st, 0x004673C0u, u->id);
+    u->l45 = (uint8_t) GAME_CALL(st, FN_BUILDING_MARK_TILES_BY_LEVEL, u->id);
     flag_no_workers(u);
     if (!road(u)) {
         return;
@@ -508,42 +479,42 @@ static void upd_0x46(upd *u)
         return;
     }
     int32_t sum = 0;
-    int32_t n = S32(st, 0x00F53DD8u);
+    int32_t n = S32(st, G_GOODS_COUNT);
     for (int32_t i = 0; i < n; i++) {
-        int32_t good = S32(st, 0x00F53DDCu + 4u * (uint32_t) i);
+        int32_t good = S32(st, G_GOODS_LIST + 4u * (uint32_t) i);
         if (good != 0) {
-            sum += S16(st, b + 0x56u + 2u * (uint32_t) market_good_index(good));
+            sum += S16(st, b + BLD_INVENTORY + 2u * (uint32_t) market_good_index(good));
         }
     }
-    u->l38 = S16(st, b + 0x68) + sum + S16(st, b + 0x66) + S16(st, b + 0x6A) + S16(st, b + 0x6C);
-    if (fig_kept(u, b + B_FIGURE, 0x1A) || u->l38 == 0) {
-        GAME_CALL(st, 0x00455CC0u, u->id, 10);
+    u->l38 = S16(st, b + BLD_INVENTORY + 2 * 9) + sum + S16(st, b + BLD_INVENTORY + 2 * 8) + S16(st, b + BLD_INVENTORY + 2 * 10) + S16(st, b + BLD_INVENTORY + 2 * 11);
+    if (fig_kept(u, b + BLD_WALKER, 0x1A) || u->l38 == 0) {
+        GAME_CALL(st, FN_BUILDING_HOUSES_NEARBY, u->id, 10);
     } else {
         if (!counter_due(u, delay)) {
             return;
         }
-        U8(st, b + B_COUNTER) = 0;
+        U8(st, b + BLD_SPAWN_DELAY) = 0;
         tail_action_link(u, create(u, 0x1A, 0), 1);
     }
     u->l46 = 0;
-    buyer(u, b + 0x2C, 0);
-    buyer(u, b + 0xB6, 1);
+    buyer(u, b + BLD_WALKER2, 0);
+    buyer(u, b + BLD_SECOND_CART, 1);
     if (u->l45 == 0) {
         return;
     }
-    if (S16(st, b + 0xB4) == 0 && u->l38 != 0) {
+    if (S16(st, b + BLD_SECOND_WALKER) == 0 && u->l38 != 0) {
         int32_t f = create(u, 0x1A, 0);
-        S16(st, fig_addr(f) + F_BUILDING) = (int16_t) u->id;
-        S16(st, b + 0xB4) = (int16_t) f;
-        U8(st, fig_addr(f) + F_ACTION) = 1;
-        GAME_CALL(st, 0x004B1DF0u, f);
+        S16(st, fig_addr(f) + FIG_HOME) = (int16_t) u->id;
+        S16(st, b + BLD_SECOND_WALKER) = (int16_t) f;
+        U8(st, fig_addr(f) + FIG_ACTION) = 1;
+        GAME_CALL(st, FN_FIGURE_WALKER_START, f);
         return;
     }
-    uint32_t a = fig_addr(S16(st, b + 0xB4));
-    if (U8(st, a + F_STATE) == 1 && (U8(st, a + F_TYPE) == 0x1A || U8(st, a + F_TYPE) == 5)) {
+    uint32_t a = fig_addr(S16(st, b + BLD_SECOND_WALKER));
+    if (U8(st, a + FIG_STATE) == 1 && (U8(st, a + FIG_TYPE) == 0x1A || U8(st, a + FIG_TYPE) == 5)) {
         return;
     }
-    S16(st, b + 0xB4) = 0;
+    S16(st, b + BLD_SECOND_WALKER) = 0;
 }
 
 /* @bin 0x0046325F / 0x004635DF the most a cart takes: 400 for the goods of kind 3 (0x007900C2)
@@ -576,8 +547,8 @@ static void upd_cart(upd *u, int is48)
         u->l30 = 0;
         u->l20 = 0;
     }
-    int f1 = fig_kept(u, b + B_FIGURE, 9);
-    int f2 = fig_kept(u, b + 0xB6, 9);
+    int f1 = fig_kept(u, b + BLD_WALKER, 9);
+    int f2 = fig_kept(u, b + BLD_SECOND_CART, 9);
     u->l40 = f1;
     u->l38 = f2;
     flag_no_workers(u);
@@ -586,14 +557,14 @@ static void upd_cart(upd *u, int is48)
         /* @bin 0x004630CE the flag goes to the 8 linked parts (+0x3A) */
         int32_t cur = id;
         for (int i = 0; i < 8; i++) {
-            cur = S16(st, BUILDING_ADDR(cur) + 0x3A);
+            cur = S16(st, BUILDING_ADDR(cur) + BLD_NEXT_PART);
             if (cur != 0) {
-                U8(st, BUILDING_ADDR(cur) + B_FLAG) = U8(st, b + B_FLAG);
+                U8(st, BUILDING_ADDR(cur) + BLD_PROBLEM_OVERLAY) = U8(st, b + BLD_PROBLEM_OVERLAY);
             }
         }
         r = road(u) || road3(u);
     } else {
-        r = GAME_CALL(st, 0x004806A0u, S16(st, b + B_X), S16(st, b + B_Y));
+        r = GAME_CALL(st, FN_BUILDING_ROAD_ACCESS_4, S16(st, b + BLD_X), S16(st, b + BLD_Y));
     }
     if (!r) {
         return;
@@ -602,11 +573,11 @@ static void upd_cart(upd *u, int is48)
     if (f1 && f2) {
         return;
     }
-    int32_t rx = S32(st, ROAD_X), ry = S32(st, ROAD_Y);
+    int32_t rx = S32(st, G_ROAD_ACCESS_X), ry = S32(st, G_ROAD_ACCESS_Y);
     building_lowest_goods(st, id, &u->l3c, &u->l34, &u->l28, &u->l2c, &u->l30, &u->l20);
-    int32_t good = GAME_CALL(st, is48 ? 0x0045BF00u : 0x0045CE90u, id, u->l3c);
-    S32(st, ROAD_X) = rx;
-    S32(st, ROAD_Y) = ry;
+    int32_t good = GAME_CALL(st, is48 ? FN_STORAGE_CART_GOOD : FN_BUILDING_CART_GOOD, id, u->l3c);
+    S32(st, G_ROAD_ACCESS_X) = rx;
+    S32(st, G_ROAD_ACCESS_Y) = ry;
     if (good <= -1) {
         return;
     }
@@ -614,29 +585,29 @@ static void upd_cart(upd *u, int is48)
         if (u->l40 != 0) {
             return;
         }
-        int32_t f = create_at(u, 9, S16(st, b + B_ROAD_X), S16(st, b + B_ROAD_Y), 4);
+        int32_t f = create_at(u, 9, S16(st, b + BLD_ROAD_ACCESS_X), S16(st, b + BLD_ROAD_ACCESS_Y), 4);
         uint32_t a = fig_addr(f);
-        uint8_t kind = U8(st, 0x007900C2u + 0xC4u * U8(st, b + 0xC1) + (uint32_t) good);
-        U8(st, a + F_ACTION) = 8;
-        U8(st, a + F_GOOD) = (uint8_t) good;
+        uint8_t kind = U8(st, G_STORAGE_ORDERS + 0xC4u * U8(st, b + BLD_STORAGE_ID) + (uint32_t) good);
+        U8(st, a + FIG_ACTION) = 8;
+        U8(st, a + FIG_RESOURCE) = (uint8_t) good;
         int32_t amount;
         if (is48) {
             u->l38 = cart_limit(kind, good);
-            int32_t have = GAME_CALL(st, 0x0045D510u, id, good);
-            amount = u->l38 < have ? u->l38 : GAME_CALL(st, 0x0045D510u, id, good);
+            int32_t have = GAME_CALL(st, FN_BUILDING_PARTS_STOCK, id, good);
+            amount = u->l38 < have ? u->l38 : GAME_CALL(st, FN_BUILDING_PARTS_STOCK, id, good);
         } else {
             int32_t limit = cart_limit(kind, good);
-            int32_t have = S16(st, b + 0x56u + 2u * (uint32_t) good);
+            int32_t have = S16(st, b + BLD_INVENTORY + 2u * (uint32_t) good);
             amount = limit < have ? limit : have;
         }
-        S16(st, a + F_AMOUNT) = (int16_t) amount;
-        S16(st, a + F_BUILDING) = (int16_t) id;
-        S16(st, b + B_FIGURE) = (int16_t) f;
-        GAME_CALL(st, is48 ? 0x0045B570u : 0x0045E360u, S32(st, CURRENT_PLAYER_ADDR), id, U8(st, a + F_GOOD),
-                  S16(st, a + F_AMOUNT));
+        S16(st, a + FIG_AMOUNT) = (int16_t) amount;
+        S16(st, a + FIG_HOME) = (int16_t) id;
+        S16(st, b + BLD_WALKER) = (int16_t) f;
+        GAME_CALL(st, is48 ? FN_STORAGE_TAKE : FN_STORAGE_TAKE_STOCK, S32(st, CURRENT_PLAYER_ADDR), id, U8(st, a + FIG_RESOURCE),
+                  S16(st, a + FIG_AMOUNT));
         return;
     }
-    int32_t n = GAME_CALL(st, 0x0045BB30u, u->l3c, u->l34);
+    int32_t n = GAME_CALL(st, FN_BUILDING_COUNT_NONZERO, u->l3c, u->l34);
     if (n == 0) {
         return;
     }
@@ -658,14 +629,14 @@ static void upd_cart(upd *u, int is48)
         if (u->l30 == 0) {
             return;
         }
-        int32_t f = create_at(u, 9, S16(st, b + B_ROAD_X), S16(st, b + B_ROAD_Y), 4);
+        int32_t f = create_at(u, 9, S16(st, b + BLD_ROAD_ACCESS_X), S16(st, b + BLD_ROAD_ACCESS_Y), 4);
         uint32_t a = fig_addr(f);
-        S16(st, b + B_FIGURE) = (int16_t) f;
-        U8(st, a + F_ACTION) = 8;
-        U8(st, a + F_GOOD) = 0;
-        U8(st, a + 0x7A) = (uint8_t) u->l3c;
-        S16(st, a + F_AMOUNT) = 0;
-        S16(st, a + F_BUILDING) = (int16_t) id;
+        S16(st, b + BLD_WALKER) = (int16_t) f;
+        U8(st, a + FIG_ACTION) = 8;
+        U8(st, a + FIG_RESOURCE) = 0;
+        U8(st, a + FIG_COLLECTING) = (uint8_t) u->l3c;
+        S16(st, a + FIG_AMOUNT) = 0;
+        S16(st, a + FIG_HOME) = (int16_t) id;
         return;
     }
     /* @bin 0x0046370A */
@@ -675,14 +646,14 @@ static void upd_cart(upd *u, int is48)
     if (u->l49 != 0 ? u->l30 == 0 : u->l20 == 0) {
         return;
     }
-    int32_t f = create_at(u, 9, S16(st, b + B_ROAD_X), S16(st, b + B_ROAD_Y), 4);
+    int32_t f = create_at(u, 9, S16(st, b + BLD_ROAD_ACCESS_X), S16(st, b + BLD_ROAD_ACCESS_Y), 4);
     uint32_t a = fig_addr(f);
-    U8(st, a + F_ACTION) = 8;
-    U8(st, a + F_GOOD) = 0;
-    U8(st, a + 0x7A) = (uint8_t) (u->l49 != 0 ? u->l3c : u->l34);
-    S16(st, a + F_AMOUNT) = 0;
-    S16(st, b + 0xB6) = (int16_t) f;
-    S16(st, a + F_BUILDING) = (int16_t) id;
+    U8(st, a + FIG_ACTION) = 8;
+    U8(st, a + FIG_RESOURCE) = 0;
+    U8(st, a + FIG_COLLECTING) = (uint8_t) (u->l49 != 0 ? u->l3c : u->l34);
+    S16(st, a + FIG_AMOUNT) = 0;
+    S16(st, b + BLD_SECOND_CART) = (int16_t) f;
+    S16(st, a + FIG_HOME) = (int16_t) id;
 }
 
 /* @bin 0x004666CE type 0x4A */
@@ -695,21 +666,21 @@ static void upd_0x4a(upd *u)
         return;
     }
     few_workers(u, 0x32);
-    uint16_t req = U16(st, b + 0xB4);
+    uint16_t req = U16(st, b + BLD_REQUEST);
     uint32_t mode = req & 0xF000u;
     if (mode == 0) {
         /* @bin 0x00466A00 a new request */
         if (building_pending_request(st, u->id, &u->l18)) {
-            U16(st, b + 0xB4) = (uint16_t) (u->l18 | 0x2000);
+            U16(st, b + BLD_REQUEST) = (uint16_t) (u->l18 | 0x2000);
             return;
         }
         if (!building_missing_worker(st, &u->l18)) {
             return;
         }
-        if ((u->l18 == 0x4E || u->l18 == 0x4D) && S16(st, b + B_STOCK) < 100) {
+        if ((u->l18 == 0x4E || u->l18 == 0x4D) && S16(st, b + BLD_STORED) < 100) {
             return;
         }
-        U16(st, b + 0xB4) = (uint16_t) (u->l18 | 0x1000);
+        U16(st, b + BLD_REQUEST) = (uint16_t) (u->l18 | 0x1000);
         return;
     }
     if (mode == 0x1000) {
@@ -717,7 +688,7 @@ static void upd_0x4a(upd *u)
     } else if (mode == 0x2000) {
         u->l45 = 0;
     } else {
-        S16(st, b + 0xB4) = 0;
+        S16(st, b + BLD_REQUEST) = 0;
         return;
     }
     int32_t r = worker_ratio(u);
@@ -725,66 +696,66 @@ static void upd_0x4a(upd *u)
     int32_t step = r >= 100 ? 10 : r >= 75 ? 8 : r >= 50 ? 6 : r >= 25 ? 4 : r <= 0 ? 0 : 2;
     if (u->l45 == 0) {
         /* @bin 0x00466945 */
-        uint32_t a = fig_addr(U16(st, b + 0xB4) & 0xFFF);
-        if (U8(st, a + F_STATE) == 2) {
-            S16(st, b + 0xB4) = 0;
+        uint32_t a = fig_addr(U16(st, b + BLD_REQUEST) & 0xFFF);
+        if (U8(st, a + FIG_STATE) == 2) {
+            S16(st, b + BLD_REQUEST) = 0;
             return;
         }
-        int16_t s = S16(st, b + B_STOCK);
-        int32_t free_mode = S32(st, 0x00605A0Cu);
+        int16_t s = S16(st, b + BLD_STORED);
+        int32_t free_mode = S32(st, G_FREE_BUILD);
         if (s < 1 && free_mode == 0) {
             return;
         }
-        int32_t v = S32(st, a + 0x128) + step;
-        S32(st, a + 0x128) = v;
+        int32_t v = S32(st, a + FIG_HIT_POINTS) + step;
+        S32(st, a + FIG_HIT_POINTS) = v;
         if (free_mode == 0) {
-            S16(st, b + B_STOCK) = (int16_t) (s - 1);
+            S16(st, b + BLD_STORED) = (int16_t) (s - 1);
         }
-        if (v < S32(st, a + 0x12C)) {
+        if (v < S32(st, a + FIG_HIT_POINTS_MAX)) {
             return;
         }
-        S32(st, a + 0x128) = S32(st, a + 0x12C);
-        S16(st, b + 0xB4) = 0;
-        U8(st, a + F_ACTION) = 8;
+        S32(st, a + FIG_HIT_POINTS) = S32(st, a + FIG_HIT_POINTS_MAX);
+        S16(st, b + BLD_REQUEST) = 0;
+        U8(st, a + FIG_ACTION) = 8;
         return;
     }
-    int32_t type = U16(st, b + 0xB4) & 0xFFF;
-    u->l38 = GAME_CALL(st, 0x00460EA0u, type);
+    int32_t type = U16(st, b + BLD_REQUEST) & 0xFFF;
+    u->l38 = GAME_CALL(st, FN_BUILDING_FIND_MISSING_WORKER, type);
     if (u->l38 == 0) {
-        S16(st, b + 0xB4) = 0;
-        S16(st, b + 0x54) = 0;
+        S16(st, b + BLD_REQUEST) = 0;
+        S16(st, b + BLD_U54) = 0;
         return;
     }
-    if (S16(st, b + B_STOCK) < 100 && S32(st, 0x00605A0Cu) == 0 && type != 0x19) {
+    if (S16(st, b + BLD_STORED) < 100 && S32(st, G_FREE_BUILD) == 0 && type != 0x19) {
         step = 0;
         if (building_missing_worker(st, &u->l14) && u->l14 == 0x19) {
-            S16(st, b + 0xB4) = 0;
-            S16(st, b + 0x54) = 0;
+            S16(st, b + BLD_REQUEST) = 0;
+            S16(st, b + BLD_U54) = 0;
         }
     }
-    S16(st, b + 0x54) = (int16_t) (S16(st, b + 0x54) + step);
-    if (S16(st, b + 0x54) < 0xA0) {
+    S16(st, b + BLD_U54) = (int16_t) (S16(st, b + BLD_U54) + step);
+    if (S16(st, b + BLD_U54) < 0xA0) {
         return;
     }
-    S16(st, b + 0x54) = 0;
-    if (!GAME_CALL(st, 0x004806C0u, S16(st, b + B_X), S16(st, b + B_Y), U8(st, b + B_SIZE))) {
+    S16(st, b + BLD_U54) = 0;
+    if (!GAME_CALL(st, FN_BUILDING_FIND_ROAD_8, S16(st, b + BLD_X), S16(st, b + BLD_Y), U8(st, b + BLD_SIZE))) {
         return;
     }
     int32_t f = create(u, type, 0);
     uint32_t a = fig_addr(f);
     if (type == 0x19) {
-        U8(st, a + F_ACTION) = 8;
-        S32(st, a + 0x124) = 0;
-        S32(st, a + 0x128) = S32(st, 0x00709648u);
-        S32(st, a + 0x12C) = S32(st, 0x00709648u);
+        U8(st, a + FIG_ACTION) = 8;
+        S32(st, a + FIG_U124) = 0;
+        S32(st, a + FIG_HIT_POINTS) = S32(st, G_FIGURE_TYPES + 0x38 * 0x19);
+        S32(st, a + FIG_HIT_POINTS_MAX) = S32(st, G_FIGURE_TYPES + 0x38 * 0x19);
     } else {
-        S16(st, b + B_STOCK) = (int16_t) (S16(st, b + B_STOCK) - 100);
-        U8(st, a + F_ACTION) = 8;
-        GAME_CALL(st, type == 0x4D ? 0x004620C0u : 0x00461F90u, f);
+        S16(st, b + BLD_STORED) = (int16_t) (S16(st, b + BLD_STORED) - 100);
+        U8(st, a + FIG_ACTION) = 8;
+        GAME_CALL(st, type == 0x4D ? FN_FIGURE_INIT_TYPE_VALUES : FN_FIGURE_INIT_TYPE_VALUES_FULL, f);
     }
-    S16(st, a + F_BUILDING) = (int16_t) u->l38;
-    S16(st, BUILDING_ADDR(u->l38) + 0xB6) = (int16_t) f;
-    S16(st, b + 0xB4) = 0;
+    S16(st, a + FIG_HOME) = (int16_t) u->l38;
+    S16(st, BUILDING_ADDR(u->l38) + BLD_SECOND_CART) = (int16_t) f;
+    S16(st, b + BLD_REQUEST) = 0;
 }
 
 /* @bin 0x00466294 types 0x4B, 0xC0: up to 3 walkers 0x26 (slots +0xAE..+0xB2) by worker ratio */
@@ -801,22 +772,22 @@ static void upd_0x4b(upd *u)
     u->l38 = r <= 0 ? 0 : r < 50 ? 1 : 2 + (r >= 75);
     int32_t n = 0;
     for (uint32_t k = 0; k < 3; k++) {
-        int16_t f = S16(st, b + 0xAE + 2 * k);
+        int16_t f = S16(st, b + BLD_DOCKERS + 2 * k);
         if (f == 0) {
             continue;
         }
         uint32_t a = fig_addr(f);
-        if (U8(st, a + F_TYPE) == 0x26 && S16(st, a + F_BUILDING) == u->id) {
+        if (U8(st, a + FIG_TYPE) == 0x26 && S16(st, a + FIG_HOME) == u->id) {
             n++;
         } else {
-            S16(st, b + 0xAE + 2 * k) = 0;
+            S16(st, b + BLD_DOCKERS + 2 * k) = 0;
         }
     }
     if (n > u->l38) {
         for (int k = 2; k >= 0; k--) {
-            int16_t f = S16(st, b + 0xAE + 2u * (uint32_t) k);
+            int16_t f = S16(st, b + BLD_DOCKERS + 2u * (uint32_t) k);
             if (f != 0) {
-                U8(st, fig_addr(f) + F_STATE) = 2;
+                U8(st, fig_addr(f) + FIG_STATE) = 2;
                 break;
             }
         }
@@ -826,11 +797,11 @@ static void upd_0x4b(upd *u)
         return;
     }
     int32_t f = create(u, 0x26, 4);
-    U8(st, fig_addr(f) + F_ACTION) = 8;
-    S16(st, fig_addr(f) + F_BUILDING) = (int16_t) u->id;
+    U8(st, fig_addr(f) + FIG_ACTION) = 8;
+    S16(st, fig_addr(f) + FIG_HOME) = (int16_t) u->id;
     for (uint32_t k = 0; k < 3; k++) {
-        if (S16(st, b + 0xAE + 2 * k) == 0) {
-            S16(st, b + 0xAE + 2 * k) = (int16_t) f;
+        if (S16(st, b + BLD_DOCKERS + 2 * k) == 0) {
+            S16(st, b + BLD_DOCKERS + 2 * k) = (int16_t) f;
             break;
         }
     }
@@ -842,48 +813,48 @@ static void upd_0x4c(upd *u)
     game_state *st = u->st;
     uint32_t b = u->b;
     flag_no_workers(u);
-    fig_slot_check(u, b + 0xB4, 0x19);
+    fig_slot_check(u, b + BLD_DOCK_BOAT, 0x19);
     if (!road(u)) {
         return;
     }
     few_workers(u, 0x32);
-    if (fig_kept(u, b + B_FIGURE, 4) || U8(st, b + B_COUNTER) == 0) {
+    if (fig_kept(u, b + BLD_WALKER, 4) || U8(st, b + BLD_SPAWN_DELAY) == 0) {
         return;
     }
-    int32_t x = S32(st, ROAD_X);
-    U8(st, b + B_COUNTER) = 0;
-    S16(st, b + 0x64) = 0;
-    S32(st, CURRENT_CITY(st) + 0x4780) += 100;
-    U8(st, b + 0x43) = 7;
-    int32_t f = create_at(u, 4, x, S32(st, ROAD_Y), 4);
+    int32_t x = S32(st, G_ROAD_ACCESS_X);
+    U8(st, b + BLD_SPAWN_DELAY) = 0;
+    S16(st, b + BLD_U64) = 0;
+    S32(st, CURRENT_CITY(st) + CITY_U4780) += 100;
+    U8(st, b + BLD_OUTPUT_RESOURCE) = 7;
+    int32_t f = create_at(u, 4, x, S32(st, G_ROAD_ACCESS_Y), 4);
     uint32_t a = fig_addr(f);
     uint32_t c = CURRENT_CITY(st);
-    U8(st, a + F_ACTION) = 8;
-    S16(st, a + F_AMOUNT) = 100;
-    if (S16(st, c + 0x4478) != 0 && GAME_CALL(st, 0x004C5120u, S32(st, c + 0x472C)) == 0 &&
-        (uint8_t) GAME_CALL(st, 0x004C52D0u, S32(st, CURRENT_CITY(st) + 0x472C), 2) != 0) {
-        S16(st, a + F_AMOUNT) = (int16_t) (S16(st, a + F_AMOUNT) << 1);
+    U8(st, a + FIG_ACTION) = 8;
+    S16(st, a + FIG_AMOUNT) = 100;
+    if (S16(st, c + CITY_U4478) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_U472C)) == 0 &&
+        (uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_U472C), 2) != 0) {
+        S16(st, a + FIG_AMOUNT) = (int16_t) (S16(st, a + FIG_AMOUNT) << 1);
     }
-    U8(st, a + F_GOOD) = 7;
-    S16(st, b + B_FIGURE) = (int16_t) f;
-    S16(st, a + F_BUILDING) = (int16_t) u->id;
-    S16(st, a + F_WAIT) = 0x1E;
+    U8(st, a + FIG_RESOURCE) = 7;
+    S16(st, b + BLD_WALKER) = (int16_t) f;
+    S16(st, a + FIG_HOME) = (int16_t) u->id;
+    S16(st, a + FIG_WAIT_TICKS) = 0x1E;
 }
 
 /* @bin 0x004661A6 type 0x50 */
 static void upd_0x50(upd *u)
 {
     game_state *st = u->st;
-    if (fig_kept(u, u->b + B_FIGURE, 0x40) || !road(u) || S32(st, CURRENT_CITY(st) + 0x24) <= 0) {
+    if (fig_kept(u, u->b + BLD_WALKER, 0x40) || !road(u) || S32(st, CURRENT_CITY(st) + CITY_POPULATION) <= 0) {
         return;
     }
-    S32(st, CURRENT_CITY(st) + 0x459C) = 1;
-    uint8_t c = (uint8_t) (U8(st, u->b + B_COUNTER) + 1);
-    U8(st, u->b + B_COUNTER) = c;
+    S32(st, CURRENT_CITY(st) + CITY_U459C) = 1;
+    uint8_t c = (uint8_t) (U8(st, u->b + BLD_SPAWN_DELAY) + 1);
+    U8(st, u->b + BLD_SPAWN_DELAY) = c;
     if (c <= 1) {
         return;
     }
-    U8(st, u->b + B_COUNTER) = 0;
+    U8(st, u->b + BLD_SPAWN_DELAY) = 0;
     tail_action_link(u, create(u, 0x40, 0), 1);
 }
 
@@ -893,7 +864,7 @@ static void upd_0x54(upd *u)
 {
     game_state *st = u->st;
     flag_no_workers(u);
-    if (fig_kept(u, u->b + B_FIGURE, 7) || !road(u)) {
+    if (fig_kept(u, u->b + BLD_WALKER, 7) || !road(u)) {
         return;
     }
     few_workers(u, 0x32);
@@ -901,12 +872,12 @@ static void upd_0x54(upd *u)
     if (delay == SKIP) {
         return;
     }
-    int32_t other = worker_ratio_of(st, BUILDING_ADDR(S32(st, CURRENT_CITY(st) + 0x2790)));
+    int32_t other = worker_ratio_of(st, BUILDING_ADDR(S32(st, CURRENT_CITY(st) + CITY_U2790)));
     if (!counter_due(u, delay)) {
         return;
     }
-    U8(st, u->b + B_COUNTER) = 0;
-    int16_t type = S16(st, u->b + B_TYPE);
+    U8(st, u->b + BLD_SPAWN_DELAY) = 0;
+    int16_t type = S16(st, u->b + BLD_TYPE);
     if ((type == 0x56 || type == 0x57) && other > 0) {
         tail_8(u, create(u, 7, 0));
     }
@@ -917,20 +888,20 @@ static void upd_0x58(upd *u)
 {
     game_state *st = u->st;
     uint32_t b = u->b;
-    int32_t g = S32(st, b + B_GRID);
-    S32(st, 0x00B7482Cu + 4u * (uint32_t) g) = (U8(st, 0x00ACF85Cu + (uint32_t) g) & 1) + S32(st, 0x00F569D4u);
-    if (fig_kept(u, b + B_FIGURE, 0x29) || S16(st, b + 0x12) <= 0) {
+    int32_t g = S32(st, b + BLD_GRID_OFFSET);
+    S32(st, G_GRID_IMAGE + 4u * (uint32_t) g) = (U8(st, G_GRID_RANDOM + (uint32_t) g) & 1) + S32(st, G_IMAGE_GROUPS + 8 * 452);
+    if (fig_kept(u, b + BLD_WALKER, 0x29) || S16(st, b + BLD_SUBTYPE) <= 0) {
         return;
     }
-    if (!GAME_CALL(st, 0x004807D0u, S16(st, b + B_X), S16(st, b + B_Y), U8(st, b + B_SIZE))) {
+    if (!GAME_CALL(st, FN_BUILDING_FIND_OPEN_TILE, S16(st, b + BLD_X), S16(st, b + BLD_Y), U8(st, b + BLD_SIZE))) {
         return;
     }
-    uint8_t c = (uint8_t) (U8(st, b + B_COUNTER) + 1);
-    U8(st, b + B_COUNTER) = c;
+    uint8_t c = (uint8_t) (U8(st, b + BLD_SPAWN_DELAY) + 1);
+    U8(st, b + BLD_SPAWN_DELAY) = c;
     if (c <= 4) {
         return;
     }
-    U8(st, b + B_COUNTER) = 0;
+    U8(st, b + BLD_SPAWN_DELAY) = 0;
     tail_10(u, create(u, 0x29, 0));
 }
 
@@ -939,19 +910,19 @@ static void upd_0x59(upd *u)
 {
     game_state *st = u->st;
     uint32_t b = u->b;
-    GAME_CALL(st, 0x0047BF50u, u->id, S16(st, b + B_X), S16(st, b + B_Y), 2, 2, S32(st, 0x00F569D4u) + 2, 8);
-    if (S32(st, CURRENT_CITY(st) + 0x459C) <= 0 || fig_kept(u, b + B_FIGURE, 0x3A)) {
+    GAME_CALL(st, FN_MAP_BUILDING_TILES, u->id, S16(st, b + BLD_X), S16(st, b + BLD_Y), 2, 2, S32(st, G_IMAGE_GROUPS + 8 * 452) + 2, 8);
+    if (S32(st, CURRENT_CITY(st) + CITY_U459C) <= 0 || fig_kept(u, b + BLD_WALKER, 0x3A)) {
         return;
     }
-    if (!GAME_CALL(st, 0x004807D0u, S16(st, b + B_X), S16(st, b + B_Y), U8(st, b + B_SIZE))) {
+    if (!GAME_CALL(st, FN_BUILDING_FIND_OPEN_TILE, S16(st, b + BLD_X), S16(st, b + BLD_Y), U8(st, b + BLD_SIZE))) {
         return;
     }
-    uint8_t c = (uint8_t) (U8(st, b + B_COUNTER) + 1);
-    U8(st, b + B_COUNTER) = c;
+    uint8_t c = (uint8_t) (U8(st, b + BLD_SPAWN_DELAY) + 1);
+    U8(st, b + BLD_SPAWN_DELAY) = c;
     if (c <= 8) {
         return;
     }
-    U8(st, b + B_COUNTER) = 0;
+    U8(st, b + BLD_SPAWN_DELAY) = 0;
     tail_10(u, create(u, 0x3A, 0));
 }
 
@@ -968,10 +939,10 @@ static void upd_0x5f(upd *u)
     if (delay == SKIP || !counter_due(u, delay)) {
         return;
     }
-    U8(st, u->b + B_COUNTER) = 0;
+    U8(st, u->b + BLD_SPAWN_DELAY) = 0;
     road(u);
-    if (GAME_CALL(st, 0x004B7400u, u->id) == 0) {
-        GAME_CALL(st, 0x004B70C0u, u->id);
+    if (GAME_CALL(st, FN_BUILDING_SEND_0X2A, u->id) == 0) {
+        GAME_CALL(st, FN_BUILDING_RECRUIT, u->id);
     }
 }
 
@@ -985,42 +956,42 @@ static void upd_0x64(upd *u)
         return;
     }
     few_workers(u, 0x32);
-    if (fig_kept(u, b + B_FIGURE, 4)) {
+    if (fig_kept(u, b + BLD_WALKER, 4)) {
         return;
     }
     int32_t amount;
-    if ((uint8_t) GAME_CALLT(st, 0x00BCA350u, 0x00488030u, u->id) != 0) {
-        amount = GAME_CALLT(st, 0x00BCA350u, 0x00488400u, u->id);
+    if ((uint8_t) GAME_CALLT(st, G_BUILDING_MANAGER, FN_BUILDING_IS_TYPE_0X487F80, u->id) != 0) {
+        amount = GAME_CALLT(st, G_BUILDING_MANAGER, FN_FARM_HARVEST, u->id);
         if (amount == 0) {
             return;
         }
         u->l47 = 1; /* @bin 0x0046281C kept for the next buildings */
     } else {
-        if (GAME_CALL(st, 0x00455BF0u, u->id) == 0) {
+        if (GAME_CALL(st, FN_BUILDING_PRODUCTION_READY, u->id) == 0) {
             return;
         }
         amount = 100;
     }
-    GAME_CALL(st, 0x00455C30u, u->id);
+    GAME_CALL(st, FN_BUILDING_PRODUCTION_TAKE, u->id);
     int32_t f = create(u, 4, 4);
     uint32_t a = fig_addr(f);
-    S16(st, b + B_FIGURE) = (int16_t) f;
-    U8(st, a + F_ACTION) = 8;
-    S16(st, a + F_AMOUNT) = (int16_t) amount;
-    U8(st, a + F_GOOD) = U8(st, b + 0x43);
-    S16(st, a + F_BUILDING) = (int16_t) u->id;
-    S16(st, a + F_WAIT) = 0x1E;
-    if (u->l47 == 0 || S16(st, b + B_TYPE) != 0x66 || S16(st, CURRENT_CITY(st) + 0x28C8) != 0) {
+    S16(st, b + BLD_WALKER) = (int16_t) f;
+    U8(st, a + FIG_ACTION) = 8;
+    S16(st, a + FIG_AMOUNT) = (int16_t) amount;
+    U8(st, a + FIG_RESOURCE) = U8(st, b + BLD_OUTPUT_RESOURCE);
+    S16(st, a + FIG_HOME) = (int16_t) u->id;
+    S16(st, a + FIG_WAIT_TICKS) = 0x1E;
+    if (u->l47 == 0 || S16(st, b + BLD_TYPE) != 0x66 || S16(st, CURRENT_CITY(st) + CITY_U28C8) != 0) {
         return;
     }
     f = create(u, 4, 4);
     a = fig_addr(f);
-    S16(st, b + 0xB6) = (int16_t) f;
-    U8(st, a + F_ACTION) = 8;
-    S16(st, a + F_AMOUNT) = 100;
-    U8(st, a + F_GOOD) = 9;
-    S16(st, a + F_BUILDING) = (int16_t) u->id;
-    S16(st, a + F_WAIT) = 0x1E;
+    S16(st, b + BLD_SECOND_CART) = (int16_t) f;
+    U8(st, a + FIG_ACTION) = 8;
+    S16(st, a + FIG_AMOUNT) = 100;
+    U8(st, a + FIG_RESOURCE) = 9;
+    S16(st, a + FIG_HOME) = (int16_t) u->id;
+    S16(st, a + FIG_WAIT_TICKS) = 0x1E;
 }
 
 /* the game's random step, inline in 0x00462180 (0x00462B68): the 15-bit value of the first
@@ -1028,7 +999,7 @@ static void upd_0x64(upd *u)
 static uint32_t random_step(game_state *st)
 {
     random_next_state(st);
-    return U32(st, 0x00D3B370u);
+    return U32(st, G_R_1_15);
 }
 
 /* @bin 0x00462932 type 0x6C (good 0x14, workers 0x4B), @bin 0x00462C67 type 0xC3 (good 0x16,
@@ -1043,7 +1014,7 @@ static void upd_gatherers(upd *u, int which)
         return;
     }
     few_workers(u, which == 0x73 ? 0x64 : 0x32);
-    if (which != 0x73 && GAME_CALL(st, 0x00459240u, u->id) != 0) {
+    if (which != 0x73 && GAME_CALL(st, FN_BUILDING_RESOURCE_IN_STOCK, u->id) != 0) {
         return;
     }
     int32_t r = worker_ratio(u);
@@ -1054,75 +1025,75 @@ static void upd_gatherers(upd *u, int which)
         return;
     }
     u->l38 = n;
-    if (!fig_kept(u, b + B_FIGURE, 4)) {
-        int16_t s = S16(st, b + B_STOCK);
+    if (!fig_kept(u, b + BLD_WALKER, 4)) {
+        int16_t s = S16(st, b + BLD_STORED);
         if (which == 0x6C ? s >= 100 : which == 0xC3 ? s > 0x32 : s > 0) {
             int32_t f = create(u, 4, 4);
             uint32_t a = fig_addr(f);
             if (which == 0x73) {
                 /* @bin 0x004651F0 */
                 uint32_t c = CURRENT_CITY(st);
-                S32(st, c + 0x4774) += 100;
-                S16(st, b + B_FIGURE) = (int16_t) f;
-                U8(st, a + F_ACTION) = 8;
-                U8(st, a + F_GOOD) = 8;
-                S16(st, a + F_BUILDING) = (int16_t) u->id;
-                S16(st, a + F_WAIT) = 0x1E;
-                S16(st, a + F_AMOUNT) = 100;
-                if (S16(st, c + 0x4478) != 0 && GAME_CALL(st, 0x004C5120u, S32(st, c + 0x472C)) == 0 &&
-                    (uint8_t) GAME_CALL(st, 0x004C52D0u, S32(st, CURRENT_CITY(st) + 0x472C), 2) != 0) {
-                    S16(st, a + F_AMOUNT) = (int16_t) (S16(st, a + F_AMOUNT) << 1);
+                S32(st, c + CITY_U4774) += 100;
+                S16(st, b + BLD_WALKER) = (int16_t) f;
+                U8(st, a + FIG_ACTION) = 8;
+                U8(st, a + FIG_RESOURCE) = 8;
+                S16(st, a + FIG_HOME) = (int16_t) u->id;
+                S16(st, a + FIG_WAIT_TICKS) = 0x1E;
+                S16(st, a + FIG_AMOUNT) = 100;
+                if (S16(st, c + CITY_U4478) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_U472C)) == 0 &&
+                    (uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_U472C), 2) != 0) {
+                    S16(st, a + FIG_AMOUNT) = (int16_t) (S16(st, a + FIG_AMOUNT) << 1);
                 }
-                S16(st, b + B_STOCK) = (int16_t) (S16(st, b + B_STOCK) - 100);
-                U8(st, b + 0x43) = 8;
+                S16(st, b + BLD_STORED) = (int16_t) (S16(st, b + BLD_STORED) - 100);
+                U8(st, b + BLD_OUTPUT_RESOURCE) = 8;
             } else {
-                S16(st, b + B_FIGURE) = (int16_t) f;
-                S16(st, b + B_STOCK) = (int16_t) (S16(st, b + B_STOCK) - 100);
+                S16(st, b + BLD_WALKER) = (int16_t) f;
+                S16(st, b + BLD_STORED) = (int16_t) (S16(st, b + BLD_STORED) - 100);
                 if (which == 0x6C) {
-                    U8(st, b + 0x43) = 0x14;
+                    U8(st, b + BLD_OUTPUT_RESOURCE) = 0x14;
                 }
-                U8(st, a + F_ACTION) = 8;
-                U8(st, a + F_GOOD) = which == 0x6C ? 0x14 : 0x16;
-                S16(st, a + F_BUILDING) = (int16_t) u->id;
-                S16(st, a + F_WAIT) = 0x1E;
-                S16(st, a + F_AMOUNT) = 100;
+                U8(st, a + FIG_ACTION) = 8;
+                U8(st, a + FIG_RESOURCE) = which == 0x6C ? 0x14 : 0x16;
+                S16(st, a + FIG_HOME) = (int16_t) u->id;
+                S16(st, a + FIG_WAIT_TICKS) = 0x1E;
+                S16(st, a + FIG_AMOUNT) = 100;
             }
         }
     }
     /* @bin 0x00462AA5 at most the room left below 500, in units of 25 / 50 / 100 */
     int32_t unit = which == 0x6C ? 25 : which == 0xC3 ? 50 : 100;
-    int32_t room = 500 - S16(st, b + B_STOCK);
+    int32_t room = 500 - S16(st, b + BLD_STORED);
     if (n * unit > room) {
         n = room / unit;
         u->l38 = n;
     }
     int32_t wtype = which == 0x6C ? 0x4B : which == 0xC3 ? 0x5A : 0x49;
-    if (U8(st, b + 0xA6) > 5) {
-        U8(st, b + 0xA6) = (uint8_t) GAME_CALL(st, 0x00462140u, u->id, wtype);
+    if (U8(st, b + BLD_SHOWS) > 5) {
+        U8(st, b + BLD_SHOWS) = (uint8_t) GAME_CALL(st, FN_BUILDING_COUNT_FIGURES, u->id, wtype);
     }
     if (which == 0xC3) {
-        U8(st, b + B_COUNTER) = 0;
-        if (U8(st, 0x00978D9Au) == 0) {
+        U8(st, b + BLD_SPAWN_DELAY) = 0;
+        if (U8(st, G_LIST_DONE_C3) == 0) {
             return;
         }
     } else {
-        if ((int32_t) U8(st, b + 0xA6) >= n) {
+        if ((int32_t) U8(st, b + BLD_SHOWS) >= n) {
             return;
         }
-        if (which == 0x6C && U8(st, 0x00978D98u) == 0) {
+        if (which == 0x6C && U8(st, G_LIST_DONE_6C) == 0) {
             return;
         }
-        U8(st, b + B_COUNTER) = 0;
+        U8(st, b + BLD_SPAWN_DELAY) = 0;
     }
-    while ((int32_t) U8(st, b + 0xA6) < n) {
+    while ((int32_t) U8(st, b + BLD_SHOWS) < n) {
         int32_t f = create(u, wtype, 0);
         uint32_t a = fig_addr(f);
-        U8(st, a + F_ACTION) = which == 0x73 ? 0xE : 8;
-        S16(st, a + F_BUILDING) = (int16_t) u->id;
+        U8(st, a + FIG_ACTION) = which == 0x73 ? 0xE : 8;
+        S16(st, a + FIG_HOME) = (int16_t) u->id;
         uint32_t v = random_step(st);
         /* @bin 0x00462C23 a wait of rand % 30, @bin 0x00465421 rand & 0x1F */
-        S16(st, a + F_WAIT) = (int16_t) (which == 0x73 ? (v & 0x1F) : (uint32_t) ((int32_t) v % 30));
-        U8(st, b + 0xA6) = (uint8_t) (U8(st, b + 0xA6) + 1);
+        S16(st, a + FIG_WAIT_TICKS) = (int16_t) (which == 0x73 ? (v & 0x1F) : (uint32_t) ((int32_t) v % 30));
+        U8(st, b + BLD_SHOWS) = (uint8_t) (U8(st, b + BLD_SHOWS) + 1);
     }
 }
 
@@ -1136,7 +1107,7 @@ static void upd_0x88(upd *u)
     }
     few_workers(u, 0x32);
     int32_t r = worker_ratio(u);
-    int32_t other = S32(st, b + 0xC4);
+    int32_t other = S32(st, b + BLD_FERRY_PARTNER);
     worker_ratio_of(st, BUILDING_ADDR(other));
     if (other < 0 || r == 0) {
         return;
@@ -1145,23 +1116,23 @@ static void upd_0x88(upd *u)
     if (delay == SKIP || !counter_due(u, delay)) {
         return;
     }
-    U8(st, b + B_COUNTER) = 0;
-    if (fig_kept(u, b + B_FIGURE, 0x4C)) {
+    U8(st, b + BLD_SPAWN_DELAY) = 0;
+    if (fig_kept(u, b + BLD_WALKER, 0x4C)) {
         return;
     }
-    if (!GAME_CALL(st, 0x004806C0u, S16(st, b + B_X), S16(st, b + B_Y), U8(st, b + B_SIZE))) {
+    if (!GAME_CALL(st, FN_BUILDING_FIND_ROAD_8, S16(st, b + BLD_X), S16(st, b + BLD_Y), U8(st, b + BLD_SIZE))) {
         return;
     }
     int32_t f = create(u, 0x4C, 0);
-    int32_t slot = GAME_CALL(st, 0x0046F140u, f);
+    int32_t slot = GAME_CALL(st, FN_FIGURE_GROUP_NEW, f);
     uint32_t a = fig_addr(f);
-    S16(st, b + B_FIGURE) = (int16_t) f;
-    S32(st, a + 0x11C) = slot;
-    U8(st, a + F_ACTION) = 8;
+    S16(st, b + BLD_WALKER) = (int16_t) f;
+    S32(st, a + FIG_U11C) = slot;
+    U8(st, a + FIG_ACTION) = 8;
     for (uint32_t i = 0; i < 10; i++) {
-        S32(st, 0x009784DCu + 44u * (uint32_t) slot + 4 * i) = -1;
+        S32(st, G_FERRY_SLOTS + 4 + 44u * (uint32_t) slot + 4 * i) = -1;
     }
-    S16(st, a + F_BUILDING) = (int16_t) u->id;
+    S16(st, a + FIG_HOME) = (int16_t) u->id;
 }
 
 /* @bin 0x00465462 type 0xB4 */
@@ -1169,21 +1140,21 @@ static void upd_0xb4(upd *u)
 {
     game_state *st = u->st;
     uint32_t b = u->b;
-    GAME_CALL(st, 0x00467310u, u->id);
+    GAME_CALL(st, FN_BUILDING_UPDATE_0XB4_TILES, u->id);
     flag_no_workers(u);
-    if (fig_kept(u, b + B_FIGURE, 0x57) || !road(u) || U8(st, b + 0x35) == 0) {
+    if (fig_kept(u, b + BLD_WALKER, 0x57) || !road(u) || U8(st, b + BLD_WATER_SUPPLY) == 0) {
         return;
     }
     few_workers(u, 0x32);
     int32_t r = worker_ratio(u);
-    if (S8(st, 0x00AC2D4Cu + (uint32_t) S32(st, b + B_GRID)) < 0x1E) {
+    if (S8(st, G_GRID_DESIRABILITY + (uint32_t) S32(st, b + BLD_GRID_OFFSET)) < 0x1E) {
         r /= 2;
     }
     int32_t delay = by_ratio(r, 1, 3, 7, 15, 29);
     if (delay == SKIP || !counter_due(u, delay)) {
         return;
     }
-    U8(st, b + B_COUNTER) = 0;
+    U8(st, b + BLD_SPAWN_DELAY) = 0;
     tail_action_link(u, create(u, 0x57, 0), 1);
 }
 
@@ -1191,9 +1162,9 @@ static void upd_0xb4(upd *u)
 static void upd_0xb5(upd *u, uint8_t type)
 {
     flag_no_workers(u);
-    fig_slot_check(u, u->b + 0xB4, type);
-    if (road(u) && S16(u->st, u->b + B_WORKERS) <= 0x32) {
-        GAME_CALL(u->st, 0x00467220u, u->id);
+    fig_slot_check(u, u->b + BLD_DOCK_BOAT, type);
+    if (road(u) && S16(u->st, u->b + BLD_SERVICE) <= 0x32) {
+        GAME_CALL(u->st, FN_BUILDING_SPAWN_TYPE5, u->id);
     }
 }
 
@@ -1203,7 +1174,7 @@ static void upd_0xe2(upd *u)
     game_state *st = u->st;
     uint32_t b = u->b;
     flag_no_workers(u);
-    if (fig_kept(u, b + B_FIGURE, 0x69) || !road(u)) {
+    if (fig_kept(u, b + BLD_WALKER, 0x69) || !road(u)) {
         return;
     }
     few_workers(u, 0x32);
@@ -1211,14 +1182,14 @@ static void upd_0xe2(upd *u)
     if (delay == SKIP || !counter_due(u, delay)) {
         return;
     }
-    int32_t cost = S32(st, 0x00708214u);
-    int16_t s = S16(st, b + B_STOCK);
-    if (s < cost || S16(st, b + 0xCC) < cost) {
+    int32_t cost = S32(st, G_TYPE_WALKER_COST + 0x28 * 0xE2);
+    int16_t s = S16(st, b + BLD_STORED);
+    if (s < cost || S16(st, b + BLD_STOCK2) < cost) {
         return;
     }
-    S16(st, b + B_STOCK) = (int16_t) (s - cost);
-    S16(st, b + 0xCC) = (int16_t) (S16(st, b + 0xCC) - (int16_t) cost);
-    U8(st, b + B_COUNTER) = 0;
+    S16(st, b + BLD_STORED) = (int16_t) (s - cost);
+    S16(st, b + BLD_STOCK2) = (int16_t) (S16(st, b + BLD_STOCK2) - (int16_t) cost);
+    U8(st, b + BLD_SPAWN_DELAY) = 0;
     tail_action_link(u, create(u, 0x69, 0), 0xC);
 }
 
@@ -1226,8 +1197,8 @@ static void upd_0xe2(upd *u)
 static void upd_0x5a(upd *u)
 {
     flag_no_workers(u);
-    if (road(u) && S16(u->st, u->b + B_WORKERS) <= 0x64) {
-        GAME_CALL(u->st, 0x00467220u, u->id);
+    if (road(u) && S16(u->st, u->b + BLD_SERVICE) <= 0x64) {
+        GAME_CALL(u->st, FN_BUILDING_SPAWN_TYPE5, u->id);
     }
 }
 
@@ -1240,7 +1211,7 @@ static void update_one(upd *u)
 {
     game_state *st = u->st;
     int32_t id = u->id;
-    switch (S16(st, u->b + B_TYPE)) {
+    switch (S16(st, u->b + BLD_TYPE)) {
     case 0x18: case 0x19: case 0x1A: case 0x1B: case 0x1C: case 0x1D:
         upd_0x18(u);
         break;
@@ -1272,22 +1243,22 @@ static void update_one(upd *u)
         service(u, 0x21, 0x32, D_3_44, 0x21, TAIL_1);
         break;
     case 0x2F: /* @bin 0x00465FF6 */
-        upd_paid(u, 0x22, 0x0070661C, 3, 1, 0x00706964u);
+        upd_paid(u, 0x22, (int32_t) (G_TYPE_WALKER_COST + 0x28 * 0x2F), 3, 1, G_TYPE_WALKER_COST + 0x28 * 0x44);
         break;
     case 0x31: /* @bin 0x00465D94 */
         service(u, 0x1F, 0x32, D_3_44, 0x1F, TAIL_1);
         break;
     case 0x33: /* @bin 0x004659FB */
-        upd_paid(u, 0x1D, 0x007066BC, 2, 2, 0x0070693Cu);
+        upd_paid(u, 0x1D, (int32_t) (G_TYPE_WALKER_COST + 0x28 * 0x33), 2, 2, G_TYPE_WALKER_COST + 0x28 * 0x43);
         break;
     case 0x35: /* @bin 0x00465BE5 */
-        upd_paid(u, 0x1E, 0x0070670C, 2, 2, 0x0070693Cu);
+        upd_paid(u, 0x1E, (int32_t) (G_TYPE_WALKER_COST + 0x28 * 0x35), 2, 2, G_TYPE_WALKER_COST + 0x28 * 0x43);
         break;
     case 0x37: /* @bin 0x00463D5B */
         service(u, 0x58, 0x64, D_0_15, 0x58, TAIL_8);
         break;
     case 0x39: /* @bin 0x00466E50 */
-        GAME_CALL(st, 0x004B76B0u, id);
+        GAME_CALL(st, FN_BUILDING_FORMATION_SIZE, id);
         break;
     case 0x3B: case 0xAC: case 0xAD:
         upd_0x3b(u);
@@ -1333,7 +1304,7 @@ static void update_one(upd *u)
         upd_0x5a(u);
         break;
     case 0x5D: /* @bin 0x00466E42 */
-        GAME_CALL(st, 0x0047C260u, id);
+        GAME_CALL(st, FN_BUILDING_CYCLE_IMAGE, id);
         break;
     case 0x5F:
         upd_0x5f(u);
@@ -1356,13 +1327,13 @@ static void update_one(upd *u)
         service(u, 0xA, 0x64, D_0_15, 0xA, TAIL_8);
         break;
     case 0xB1: /* @bin 0x00462F87 */
-        GAME_CALL(st, 0x004612C0u, id);
+        GAME_CALL(st, FN_BUILDING_UPDATE_0XB1, id);
         break;
     case 0xB2: /* @bin 0x00462FA3 */
-        GAME_CALL(st, 0x004615D0u, id);
+        GAME_CALL(st, FN_BUILDING_UPDATE_0XB2, id);
         break;
     case 0xB3: /* @bin 0x00462F95 */
-        GAME_CALL(st, 0x00461490u, id);
+        GAME_CALL(st, FN_BUILDING_UPDATE_0XB3, id);
         break;
     case 0xB4:
         upd_0xb4(u);
@@ -1380,7 +1351,7 @@ static void update_one(upd *u)
         upd_gatherers(u, 0xC3);
         break;
     case 0xC7: /* @bin 0x00462FBF */
-        GAME_CALLT(st, 0x00D05720u, 0x004BED70u, id);
+        GAME_CALLT(st, G_UD05720, FN_BUILDING_UPDATE_0XC7, id);
         break;
     case 0xCE: /* @bin 0x004655C2 */
         service(u, 0x20, 0x32, D_3_44, 0x20, TAIL_1);
@@ -1389,7 +1360,7 @@ static void update_one(upd *u)
         upd_0xe2(u);
         break;
     case 0xE7: /* @bin 0x00462FB1 */
-        GAME_CALL(st, 0x00461720u, id);
+        GAME_CALL(st, FN_BUILDING_UPDATE_0XE7, id);
         break;
     default:
         break;
@@ -1404,59 +1375,59 @@ void building_update_all(game_state *st)
     u.l28 = 100;
     u.l2c = 100;
     /* l30 and l20 are not initialised by the original (stack contents) */
-    S32(st, 0x0078D584u) = 0;
-    U8(st, 0x00BCA348u) = 0;
-    if (S32(st, 0x00BCB9ACu) > 0) {
-        S32(st, 0x00BCB9ACu) -= 1;
+    S32(st, G_FIGURE_28_SENT) = 0;
+    U8(st, G_HARVEST_DOUBLED) = 0;
+    if (S32(st, G_TOWER_SENTRY_REQUEST) > 0) {
+        S32(st, G_TOWER_SENTRY_REQUEST) -= 1;
     }
-    int32_t highest = S32(st, HIGHEST);
+    int32_t highest = S32(st, G_BUILDING_HIGHEST);
     /* @bin 0x004621EE buildings of types 0xB1, 0xB2, 0xB3, 0xE7: +0xA6 := 0 */
     for (int32_t id = 1; id <= highest; id++) {
         uint32_t b = BUILDING_ADDR(id);
-        int16_t t = S16(st, b + B_TYPE);
+        int16_t t = S16(st, b + BLD_TYPE);
         if (t == 0xB3 || t == 0xB2 || t == 0xB1 || t == 0xE7) {
-            U8(st, b + 0xA6) = 0;
+            U8(st, b + BLD_SHOWS) = 0;
         }
     }
     /* @bin 0x0046221D their figures (types 0x51, 0x50, 0x4F, 0x6C) are counted in +0xA6; past 4,
      * the figure of a building of the matching type is sent back */
     for (int32_t fid = 1; fid < FIGURE_COUNT; fid++) {
         uint32_t f = FIGURE_ADDR(fid);
-        if (U8(st, f + F_STATE) == 0) {
+        if (U8(st, f + FIG_STATE) == 0) {
             continue;
         }
-        uint8_t ft = U8(st, f + F_TYPE);
+        uint8_t ft = U8(st, f + FIG_TYPE);
         int16_t match = ft == 0x51 ? 0xB3 : ft == 0x50 ? 0xB2 : ft == 0x4F ? 0xB1 : ft == 0x6C ? 0xE7 : 0;
         if (match == 0) {
             continue;
         }
-        int32_t bid = S16(st, f + F_BUILDING);
+        int32_t bid = S16(st, f + FIG_HOME);
         if (bid <= 0 || bid > highest) {
             continue;
         }
         uint32_t b = BUILDING_ADDR(bid);
-        uint8_t n = (uint8_t) (U8(st, b + 0xA6) + 1);
-        U8(st, b + 0xA6) = n;
-        if (S16(st, b + B_TYPE) == match && n > 4) {
-            U8(st, f + F_ACTION) = 4;
-            S16(st, f + 0x120) = 0;
-            U8(st, f + 0x65) = 1;
+        uint8_t n = (uint8_t) (U8(st, b + BLD_SHOWS) + 1);
+        U8(st, b + BLD_SHOWS) = n;
+        if (S16(st, b + BLD_TYPE) == match && n > 4) {
+            U8(st, f + FIG_ACTION) = 4;
+            S16(st, f + FIG_FOLLOW) = 0;
+            U8(st, f + FIG_INVISIBLE) = 1;
         }
     }
-    for (int32_t id = 1; id <= S32(st, HIGHEST); id++) {
+    for (int32_t id = 1; id <= S32(st, G_BUILDING_HIGHEST); id++) {
         uint32_t b = BUILDING_ADDR(id);
-        if (U8(st, b + B_STATE) != 1) {
+        if (U8(st, b + BLD_STATE) != 1) {
             continue;
         }
-        if (S16(st, b + B_TYPE) != 0x49) {
-            U8(st, b + B_FLAG) = 0;
+        if (S16(st, b + BLD_TYPE) != 0x49) {
+            U8(st, b + BLD_PROBLEM_OVERLAY) = 0;
         }
         u.id = id;
         u.b = b;
         update_one(&u);
     }
-    if (U8(st, 0x00BCA348u) != 0) {
-        S32(st, CURRENT_CITY(st) + 0x4994) = 0; /* @bin 0x00466FE0 ebp, 0 on every path */
+    if (U8(st, G_HARVEST_DOUBLED) != 0) {
+        S32(st, CURRENT_CITY(st) + CITY_U4994) = 0; /* @bin 0x00466FE0 ebp, 0 on every path */
     }
 }
 
@@ -1465,12 +1436,12 @@ void building_lowest_goods(game_state *st, int32_t id, int32_t *good1, int32_t *
 {
     /* @bin 0x0045B880 */
     uint32_t b = BUILDING_ADDR(id);
-    uint32_t rec = U8(st, b + 0xC1);
-    int32_t rx = S32(st, ROAD_X), ry = S32(st, ROAD_Y);
-    int16_t type = S16(st, b + B_TYPE);
+    uint32_t rec = U8(st, b + BLD_STORAGE_ID);
+    int32_t rx = S32(st, G_ROAD_ACCESS_X), ry = S32(st, G_ROAD_ACCESS_Y);
+    int16_t type = S16(st, b + BLD_TYPE);
     int big = type == 0x47 || type == 0xBF;
-    uint32_t list = big ? 0x00F53DDCu : 0x00F53E70u;
-    int32_t n = big ? S32(st, 0x00F53DD8u) : S32(st, 0x00F53E6Cu);
+    uint32_t list = big ? G_GOODS_LIST : G_STORAGE_LIST + 4;
+    int32_t n = big ? S32(st, G_GOODS_COUNT) : S32(st, G_STORAGE_LIST);
     int32_t ratio[36]; /* the original's stack array, by good (written before it is read) */
     int32_t r = 100;
     int any = 0;
@@ -1480,25 +1451,25 @@ void building_lowest_goods(game_state *st, int32_t id, int32_t *good1, int32_t *
     for (int32_t i = 0; i < n; i++) {
         int32_t good = S32(st, list + 4u * (uint32_t) i);
         if (good < 0 || good >= 36) {
-            state_unported(st, 0x0045B880u); /* outside the original's stack array */
+            state_unported(st, FN_BUILDING_LOWEST_GOODS); /* outside the original's stack array */
             return;
         }
         ratio[good] = 100;
-        if (U8(st, 0x007900C2u + 0xC4u * rec + (uint32_t) good) != 2) {
+        if (U8(st, G_STORAGE_ORDERS + 0xC4u * rec + (uint32_t) good) != 2) {
             continue;
         }
         any = 1;
         /* @bin 0x0045B958 the stock against the record's capacity (i16 at 0x00790134), in percent;
          * r is kept from the previous good when the good is not positive */
-        int16_t cap = S16(st, 0x00790134u + 0xC4u * rec + 2u * (uint32_t) good);
-        if (S16(st, b + B_TYPE) == 0x48) {
-            if (GAME_CALL(st, 0x0045D510u, id, good) >= cap) {
+        int16_t cap = S16(st, G_STORAGE_GET + 0xC4u * rec + 2u * (uint32_t) good);
+        if (S16(st, b + BLD_TYPE) == 0x48) {
+            if (GAME_CALL(st, FN_BUILDING_PARTS_STOCK, id, good) >= cap) {
                 r = 100;
             } else if (good > 0) {
-                r = GAME_CALL(st, 0x0045D510u, id, good) * 100 / cap;
+                r = GAME_CALL(st, FN_BUILDING_PARTS_STOCK, id, good) * 100 / cap;
             }
         } else {
-            int16_t s = S16(st, b + 0x56u + 2u * (uint32_t) good);
+            int16_t s = S16(st, b + BLD_INVENTORY + 2u * (uint32_t) good);
             if (s >= cap) {
                 r = 100;
             } else if (good > 0) {
@@ -1512,8 +1483,8 @@ void building_lowest_goods(game_state *st, int32_t id, int32_t *good1, int32_t *
     }
     for (int32_t i = 0; i < n; i++) {
         int32_t good = S32(st, list + 4u * (uint32_t) i);
-        int32_t dest = GAME_CALL(st, 0x0045BB50u, id, good, 0);
-        if (S32(st, 0x00EA42F8u + 4u * (U32(st, CURRENT_PLAYER_ADDR) * 0x1276u + (uint32_t) good)) != 0 || dest == 0) {
+        int32_t dest = GAME_CALL(st, FN_BUILDING_FIND_SUPPLIER, id, good, 0);
+        if (S32(st, CITY_BASE + CITY_U2A88 + 4u * (U32(st, CURRENT_PLAYER_ADDR) * 0x1276u + (uint32_t) good)) != 0 || dest == 0) {
             continue;
         }
         int32_t v = ratio[good];
@@ -1530,8 +1501,8 @@ void building_lowest_goods(game_state *st, int32_t id, int32_t *good1, int32_t *
             *dest2 = dest;
         }
     }
-    S32(st, ROAD_X) = rx;
-    S32(st, ROAD_Y) = ry;
+    S32(st, G_ROAD_ACCESS_X) = rx;
+    S32(st, G_ROAD_ACCESS_Y) = ry;
 }
 
 void building_ratio_flags(int32_t ratio1, int32_t ratio2, int32_t n, uint8_t *out1, uint8_t *out2, int32_t *out3)
@@ -1585,11 +1556,11 @@ int building_pending_request(game_state *st, int32_t id, int32_t *out)
 {
     /* @bin 0x00460F70 the queue object of entry +0xCB - 1 (0x1C bytes each), its next item
      * (0x004F68A0, thiscall) */
-    uint8_t q = U8(st, BUILDING_ADDR(id) + 0xCB);
+    uint8_t q = U8(st, BUILDING_ADDR(id) + BLD_REC4A_SLOT);
     if (q == 0) {
         return 0;
     }
-    int32_t v = GAME_CALLT0(st, 0x009783C0u + 0x1Cu * (uint32_t) (q - 1), 0x004F68A0u);
+    int32_t v = GAME_CALLT0(st, G_REC4A + 0x1C + 0x1Cu * (uint32_t) (q - 1), FN_RING_POP_4F68A0);
     *out = v;
     return v != 0;
 }
@@ -1602,8 +1573,8 @@ static int missing_slot(game_state *st, uint32_t slot, int32_t id, uint8_t type)
         return 0;
     }
     uint32_t a = FIGURE_ADDR(f);
-    if (U8(st, a + F_STATE) != 0 && (U8(st, a + F_TYPE) == type || U8(st, a + F_TYPE) == 0) &&
-        S16(st, a + F_BUILDING) == id) {
+    if (U8(st, a + FIG_STATE) != 0 && (U8(st, a + FIG_TYPE) == type || U8(st, a + FIG_TYPE) == 0) &&
+        S16(st, a + FIG_HOME) == id) {
         return 1;
     }
     S16(st, slot) = 0;
@@ -1617,24 +1588,24 @@ int building_missing_worker(game_state *st, int32_t *out)
     int32_t n4c = 0, ok4c = 0, nb5 = 0, okb5 = 0, nb6 = 0, okb6 = 0, r19 = 0, r4d = 0, r4e = 0;
     for (int32_t id = 1; id < BUILDING_COUNT; id++) {
         uint32_t b = BUILDING_ADDR(id);
-        if (U8(st, b + B_STATE) != 1 || S16(st, b + B_EMPLOYED) == 0) {
+        if (U8(st, b + BLD_STATE) != 1 || S16(st, b + BLD_WORKERS) == 0) {
             continue;
         }
-        int16_t t = S16(st, b + B_TYPE);
+        int16_t t = S16(st, b + BLD_TYPE);
         if (t == 0x4C) {
             n4c++;
-            ok4c += missing_slot(st, b + 0xB6, id, 0x19);
+            ok4c += missing_slot(st, b + BLD_SECOND_CART, id, 0x19);
         }
         if (t == 0xB5) {
             nb5++;
-            okb5 += missing_slot(st, b + 0xB6, id, 0x4D);
+            okb5 += missing_slot(st, b + BLD_SECOND_CART, id, 0x4D);
         }
         if (t == 0xB6) {
             nb6++;
-            okb6 += missing_slot(st, b + 0xB6, id, 0x4E);
+            okb6 += missing_slot(st, b + BLD_SECOND_CART, id, 0x4E);
         }
         if (t == 0x4A) {
-            int16_t r = S16(st, b + 0xB4);
+            int16_t r = S16(st, b + BLD_REQUEST);
             if (r == 0x1019) {
                 r19++;
             }

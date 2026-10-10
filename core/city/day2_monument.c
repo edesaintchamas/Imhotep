@@ -100,7 +100,7 @@ int32_t monument_d5_status(game_state *st, int32_t b, int32_t *out)
             default: break;
             }
         }
-        uint32_t role = U32(st, G_MONUMENT_PART_KINDS + 0x34u * (uint32_t) (int32_t) S16(st, r + BLD_PART));
+        uint32_t role = U32(st, G_SUN_TEMPLE_PART_KIND + 0x34u * (uint32_t) (int32_t) S16(st, r + BLD_PART));
         uint32_t v = U32(st, r + BLD_MONUMENT_STAGE);
         if (role > 0xC) {
             continue;
@@ -225,7 +225,7 @@ int32_t monument_de_status(game_state *st, int32_t b, int32_t *out)
             default: break;
             }
         }
-        uint32_t role = U32(st, G_MONUMENT_PARTS + 0x34u * (uint32_t) (int32_t) S16(st, r + BLD_PART)) & 0xFF;
+        uint32_t role = U32(st, G_MASTABA_PART_KIND + 0x34u * (uint32_t) (int32_t) S16(st, r + BLD_PART)) & 0xFF;
         uint32_t v = U32(st, r + BLD_MONUMENT_STAGE);
         if (role <= 3) {
             /* @bin 0x004DF173 16 blocks, one bit each */

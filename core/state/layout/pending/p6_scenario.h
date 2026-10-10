@@ -87,8 +87,6 @@
 #define G_LOCUST_TIMER 0x0078D79Cu /* @bin 0x004E6EB0 i32 chunk 40: locust plague timer (-1 armed; 2632 ticks) [g_city.h] */
 #define G_HAIL_TIMER 0x0078D7A0u /* @bin 0x004E6ED0 i32 chunk 46: hailstorm timer (408 ticks) [g_frame.h] */
 #define G_U78D5C8 0x0078D5C8u /* @bin 0x0046A080 i32[10]: all := 0; four of them daily by 0x0046A060 [g_city.h] */
-#define G_BUILDINGS_REPAIRED 0x0078D5C4u /* @bin 0x0046B740 i32 chunk 127: buildings repaired against the grid (count) [g_building.h] */
-#define G_BUILDINGS_NOT_FOUND 0x0078D5C0u /* @bin 0x0046B740 i32 chunk 128: buildings not found on the grid (count) [g_building.h] */
 #define G_U78D7E0 0x0078D7E0u /* @bin 0x00451BE0 i32: := 0 with the date; the debug panel's "error" (present/ui/debug_panels.c) [g_ui.h] */
 #define G_DEBUG_EVOLVE 0x0078D7DCu /* @bin 0x00534DF0 i32: debug switch, 1: the evolve counters panel [g_ui.h] */
 #define G_DEBUG_TILE 0x0078D7D8u /* @bin 0x00535080 i32: debug switch, 1: the tile under the mouse panel [g_ui.h] */
@@ -149,9 +147,7 @@
 #define G_POP_MILESTONES 0x00E951C4u /* @bin 0x00458540 u8[10] chunk 81: population milestone flags (+1 .. +9) [g_city.h] */
 #define G_IMAGE_58_59 0x00F569D4u /* @bin 0x00470990 i32: first image of types 0x58 (+0, +1) and 0x59 (+2) [g_building.h] */
 #define G_IMAGE_5D 0x00F565DCu /* @bin 0x00470990 i32: first image of type 0x5D (+ BLD_U54, 0x0047C260) [g_building.h] */
-#define G_MONUMENT_PARTS 0x005E2AE4u /* @bin 0x004DF2C0 the monument part table: 116 parts of 0x34 bytes (13 dwords; low byte of +0 the part's kind, core/building/monument.c) [g_building.h] */
-#define G_COLLAPSE_MSG_TIME 0x00E950ECu /* @bin 0x00468D75 i32: time of the last collapse message (another within 15000 does not pop up) [g_building.h] */
-#define G_FIRE_MSG_TIME 0x00E950F0u /* @bin 0x00468FB5 i32: time of the last fire message (same rule) [g_building.h] */
+#define G_MASTABA_PART_KIND 0x005E2AE4u /* @bin 0x004DF2C0 the monument part table: 116 parts of 0x34 bytes (13 dwords; low byte of +0 the part's kind, core/building/monument.c) [g_building.h] */
 #define G_NEXT_MESSAGE_INDEX 0x00E951D4u /* @bin 0x004E23E0 i32: the next-message button's place in its cycle [g_message.h] */
 #define G_NEXT_MESSAGE_TIME 0x00E951D0u /* @bin 0x00406030 u32: wall clock of the button's last use (the cycle restarts after 3 s) [g_message.h] */
 #define G_MESSAGE_COUNTERS 0x00E95174u /* @bin 0x00468B70 i32[20] chunk 82: per-category message counters / timers [g_message.h] */

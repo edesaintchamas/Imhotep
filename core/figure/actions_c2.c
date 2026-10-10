@@ -187,7 +187,7 @@ static int free_water(game_state *st, uint32_t idx)
 static int free_land(game_state *st, uint32_t idx)
 {
     int8_t r = S8(st, G_GRID_ROUTING + idx);
-    return r >= 0 && r <= 4 && (r & 1) == 0 && U16(st, G_BUILDING_GRID + 2u * idx) == 0;
+    return r >= 0 && r <= 4 && (r & 1) == 0 && U16(st, G_GRID_BUILDING + 2u * idx) == 0;
 }
 
 /* @bin 0x004467E6, 0x004AD8D0 rings of growing size around the tile (absolute grid coordinates,

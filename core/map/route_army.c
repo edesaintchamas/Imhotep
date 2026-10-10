@@ -78,7 +78,7 @@ static void building_visit(game_state *st, int32_t to, int32_t d, int32_t mode)
         return;
     }
     int8_t v = S8(st, G_EC7630 + (uint32_t) to);
-    if (v != 0 && v != 2 && !(v == 1 && S16(st, G_BUILDING_GRID + 2u * (uint32_t) to) == mode)) {
+    if (v != 0 && v != 2 && !(v == 1 && S16(st, G_GRID_BUILDING + 2u * (uint32_t) to) == mode)) {
         return;
     }
     S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) to) = d;

@@ -29,7 +29,6 @@
 #define G_DRAG_START_HEIGHT 0x00BC96CCu  /* @bin 0x00405C20 i32: the elevation of the construction's first tile */
 #define G_UBC9710 0x00BC9710u            /* @bin 0x00405200 i32: := G_FRAME_CLOCK when a building is chosen */
 #define G_UBC9720 0x00BC9720u            /* @bin 0x004728A0 i32: := 0 before a construction is charged */
-#define G_WARSHIP_WHARVES 0x00BCB9B0u    /* @bin 0x0047032A i32: the warship wharves (at most 6) */
 #define G_SCENARIO_ENEMY 0x007848FCu     /* @bin 0x004BC720 i16: the scenario's enemy (at most 11) */
 #define G_ENEMY_GRAPHICS 0x005DEF84u     /* @bin 0x004BC720 i32 per enemy: its graphics file (graphics.md) */
 #define G_ENEMY_MODELS 0x007083ACu       /* @bin 0x00540ED0 "ALL ENEMIES": 60 records of 14 i32, 5 per enemy */

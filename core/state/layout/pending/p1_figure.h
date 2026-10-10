@@ -10,14 +10,11 @@
 
 /* @bin globals of other areas used by core/figure; the function or chunk on each line */
 #define G_DIRECTIONS_DY 0x005CD97Cu /* i32: dy of the (dx, dy) pairs of G_DIRECTIONS (0x004EAB10 callers) */
-#define G_U5E4EE8 0x005E4EE8u /* i32 wait limit compared with FIG_WAIT_TICKS; with 0x005E4EEC a monument stage time */
 #define G_U7027BC 0x007027BCu /* u8 of the tutorial trigger flags (chunk 166 at 0x007027B8, +4) */
 #define G_U7058B8 0x007058B8u /* i32 > 0 tested for forts and military (0x004E3200) */
-#define G_HOUSE_GOODS_A 0x0070CDF8u /* i32 per house level (0x58 bytes): monthly amount of a good (0x00454B40) */
 #define G_HOUSE_GOODS_B 0x0070CDFCu /* i32: the next good's amount */
 #define G_HOUSE_GOODS_C 0x0070CE00u /* i32: the next good's amount */
 #define G_HOUSE_GOODS_D 0x0070CE04u /* i32: the next good's amount */
-#define G_HOUSE_LEVEL_U14 0x0070CE0Cu /* i32 per house level: reloaded into BLD +0xE4 (save.md section 5: 0x0070CE0C) */
 #define G_HOUSE_LEVEL_U1C 0x0070CE14u /* i32 per building +0x12 (0x58 bytes): amount (0x00489F70, 0x0045849B) */
 #define G_U77567C 0x0077567Cu /* i32 set: redraw by 0x0047A120 (core/building/day2_destroy.c) */
 #define G_TRADER_NEXT 0x0077AEFCu /* i32 next trader record index (chunk 95) */
@@ -29,23 +26,17 @@
 #define G_ALT_SPRITES 0x00784CBDu /* u8: the other sprite set (0x00490A54, 0x00497FC0; set at the start, newgame.md) */
 #define G_U784DC4 0x00784DC4u /* i32 x of three points (-1: none; 0x004AEAB0) */
 #define G_U784DD0 0x00784DD0u /* i32 y of the three points */
-#define G_RUIN_COUNT 0x0078D7FCu /* i32 burning-ruin building ids listed (G_RUINS; save.md chunk 96) */
-#define G_RUIN_LIST_SIZE 0x0078D800u /* i32 burning-ruin list size (chunk 85) */
-#define G_RUINS_FOUND 0x0078D804u /* i32 burning ruins found by the last scan (chunk 84) */
 #define G_STORAGE_BUILDINGS 0x0078D8D4u /* storage buildings holding more than 100, G_STORAGE_LIST_COUNT of them (0x0045DE80) */
 #define G_STORAGE_LIST_COUNT 0x0078D9A0u /* i32 entries of G_STORAGE_BUILDINGS, at most 99 */
-#define G_RUINS 0x0078DD90u /* u16 x 500 burning-ruin building ids (chunk 96) */
 #define G_STORAGE_SETTINGS_U08 0x007900C0u /* storage settings records of 0xC4 bytes by building +0xC1 (chunk 113 at 0x007900B8, +8) */
 #define G_U978D70 0x00978D70u /* i32: 1: houses do not evolve, collapse not counted (0x004539A0) */
-#define G_TREES_AVAILABLE 0x00978D98u /* u8: a free tree tile may exist (set by the scan for building type 0x6C, cleared by 0x00486810) */
-#define G_REEDS_AVAILABLE 0x00978D9Au /* u8: a free reed tile may exist (set by the scan for building type 0xC3, cleared by 0x00486810) */
 #define G_TILE_VISITS 0x00978D9Cu /* u32 per tile: ten 3-bit walker visit counters (chunk 148) */
 #define G_GRID_MOISTURE 0x00A509BCu /* u8 per tile: moisture grid (chunk 170) */
 #define G_GRID_DAMAGE 0x00A9CC1Cu /* i16 per tile: damage counter (chunk 18) */
 #define G_FLOOD_STATE 0x00D386D4u /* i32 flood state 1..3 (0x004894A0; tick.md) */
 #define G_UE95184 0x00E95184u /* i32 per-category message counter 4 (chunk 82 at 0x00E95174): message 0x72 once (0x00491E60) */
 
-/* @bin 0x0053DFF0 image groups (G_DAY2_REDRAW_GROUPS + 8 * n: the group's first image id,
+/* @bin 0x0053DFF0 image groups (G_IMAGE_GROUPS + 8 * n: the group's first image id,
  * docs/formats/graphics.md) also drawn outside core/figure */
 #define G_IMAGE_GROUP_157 0x00F5609Cu
 #define G_IMAGE_GROUP_323 0x00F565CCu

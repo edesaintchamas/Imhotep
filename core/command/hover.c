@@ -216,10 +216,10 @@ static int ferry_scan(game_state *st, int32_t d, int32_t x, int32_t y, int32_t r
             int32_t fit = shore_fit(st, tx, ty, 1, 0); /* @bin 0x0043D14C */
             int32_t origin = S32(st, G_MAP_START) + y * 0xE4 + x;
             int32_t off = S32(st, G_MAP_START) + ty * 0xE4 + tx;
-            int32_t b = S16(st, G_BUILDING_GRID + 2u * (uint32_t) off);
+            int32_t b = S16(st, G_GRID_BUILDING + 2u * (uint32_t) off);
             /* @bin 0x0043D15E another landing, not linked */
             if (ferry_landing_at_offset(st, off) != 0 && S32(st, BUILDING_ADDR(b) + BLD_FERRY_PARTNER) == -1 && off != origin &&
-                S16(st, G_BUILDING_GRID + 2u * (uint32_t) off) != S16(st, G_BUILDING_GRID + 2u * (uint32_t) origin)) {
+                S16(st, G_GRID_BUILDING + 2u * (uint32_t) off) != S16(st, G_GRID_BUILDING + 2u * (uint32_t) origin)) {
                 found = 1;
             }
             int32_t k = tile_bit4_pattern(st, tx, ty) * 2; /* @bin 0x0043D221 */
@@ -244,14 +244,14 @@ static void ferry_ghost(game_state *st, int32_t floodable)
 {
     int32_t x = S32(st, G_HOVER_X), y = S32(st, G_HOVER_Y);
     uint32_t type = U32(st, G_CONSTRUCTION_UI_TYPE);
-    int32_t img = S32(st, G_DAY2_REDRAW_GROUPS + 8u * U32(st, G_MODELS + MODELS_IMAGE_GROUP + 20u * type)) + S32(st, G_MODELS + MODELS_IMAGE_OFFSET + 20u * type);
+    int32_t img = S32(st, G_IMAGE_GROUPS + 8u * U32(st, G_MODELS + MODELS_IMAGE_GROUP + 20u * type)) + S32(st, G_MODELS + MODELS_IMAGE_OFFSET + 20u * type);
     int32_t fit = shore_fit(st, x, y, 1, floodable);
     if (S32(st, CURRENT_CITY(st) + CITY_TREASURY) <= -5000 || fit != 0) {
         return; /* @bin 0x0043DDEC / 0x0043DE3C the red ghost */
     }
-    int32_t base = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 547u);
+    int32_t base = S32(st, G_IMAGE_GROUPS + 8u * 547u);
     if (img >= base && img <= base + 0xB) {
-        U8(st, G_UBCA32C) = (uint8_t) map_area_test(st, x, y, 2, 2, 0x10000); /* @bin 0x0043DE6A */
+        U8(st, G_WATER_LIFT_FLOOD) = (uint8_t) map_area_test(st, x, y, 2, 2, 0x10000); /* @bin 0x0043DE6A */
         /* 0x00487D30 (the image) writes nothing */
     }
 }
@@ -270,7 +270,7 @@ void ferry_hover(game_state *st)
         }
         int32_t fit = shore_fit(st, x, y, 1, 0); /* @bin 0x0043D3A2 */
         int32_t hov = S32(st, G_HOVER_TILE);
-        int32_t b = S16(st, G_BUILDING_GRID + 2u * (uint32_t) hov);
+        int32_t b = S16(st, G_GRID_BUILDING + 2u * (uint32_t) hov);
         int existing = 0;
         if (ferry_landing_at_offset(st, hov) != 0 && S32(st, BUILDING_ADDR(b) + BLD_FERRY_PARTNER) == -1) {
             /* @bin 0x0043D3F5 a landing not linked under the mouse: its routes drawn */
@@ -293,7 +293,7 @@ void ferry_hover(game_state *st)
     int32_t fx = S16(st, first + BLD_X), fy = S16(st, first + BLD_Y);
     int32_t hov = S32(st, G_HOVER_TILE);
     if (ferry_landing_at_offset(st, hov) != 0) {
-        int32_t b = S16(st, G_BUILDING_GRID + 2u * (uint32_t) S32(st, G_HOVER_TILE));
+        int32_t b = S16(st, G_GRID_BUILDING + 2u * (uint32_t) S32(st, G_HOVER_TILE));
         if (b != S32(st, G_FERRY_BUILDING) && S32(st, BUILDING_ADDR(b) + BLD_FERRY_PARTNER) == -1) {
             return; /* @bin 0x0043D5BF another landing under the mouse: drawn, not valid */
         }

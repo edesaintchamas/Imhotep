@@ -65,8 +65,6 @@
 #define G_PATTERN_SHORE 0x005CA658u
 #define G_U5CA958 0x005CA958u       /* @bin 0x0046FA40 a pattern table, 0x30 entries */
 #define G_PATTERN_FLOODPLAIN 0x005CAC58u
-#define G_PATTERN_WALLS 0x005CB9D8u
-#define G_PATTERN_WALLS_BUILDING 0x005CBCD8u
 #define G_U5CBDC8 0x005CBDC8u       /* @bin 0x0046FA40 a pattern table, 0x0E entries */
 #define G_PATTERN_SPECIAL_ROCKS 0x005CBEA8u
 #define G_PATTERN_DEEP 0x005CBFB8u

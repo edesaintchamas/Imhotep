@@ -402,11 +402,11 @@ int32_t construction_undo_snapshot(game_state *st)
     }
     /* @bin 0x00484FE8 grids to their backups (0x0040F860) */
     static const uint32_t copies[6][3] = {
-        {G_IMAGE, G_IMAGE_BACKUP, 0x32C40u}, /* images */
+        {G_GRID_IMAGE, G_IMAGE_BACKUP, 0x32C40u}, /* images */
         {G_GRID_TERRAIN, G_TERRAIN_BACKUP, 0x32C40u}, /* terrain */
         {G_CANAL, G_CANAL_BACKUP, 0xCB10u},  /* canals */
-        {G_DAY2_DESTROY_BITS, G_BITS_BACKUP, 0xCB10u},  /* bitfields */
-        {G_EDGE, G_EDGE_BACKUP, 0xCB10u},  /* edge */
+        {G_GRID_BITFIELDS, G_BITS_BACKUP, 0xCB10u},  /* bitfields */
+        {G_GRID_EDGE, G_EDGE_BACKUP, 0xCB10u},  /* edge */
         {G_SPRITE, G_SPRITE_BACKUP, 0xCB10u},  /* sprite */
     };
     for (int i = 0; i < 6; i++) {
@@ -628,7 +628,7 @@ void construction_preview(game_state *st, int32_t x1, int32_t y1, int32_t x2, in
     if (S32(st, CURRENT_CITY(st) + CITY_TREASURY) <= -5000) {
         return;
     }
-    GAME_CALL(st, FN_PLACE_AND_BYTES, G_DAY2_DESTROY_BITS, 0xCB10, 0xAF);
+    GAME_CALL(st, FN_PLACE_AND_BYTES, G_GRID_BITFIELDS, 0xCB10, 0xAF);
     S32(st, G_PREVIEW_COST) = S32(st, G_MODEL_BUILDING + 40u * (uint32_t) type); /* @bin 0x0046FF46 model cost */
     int32_t size = S32(st, G_MODELS + 20u * (uint32_t) type);  /* @bin 0x0046FF4D */
     S32(st, G_CONSTRUCTION_UI_SIZE) = size;
@@ -733,7 +733,7 @@ void construction_preview(game_state *st, int32_t x1, int32_t y1, int32_t x2, in
             S32(st, G_NO_ROOM) = 1;
         }
         /* @bin 0x0047032A at most 6 warship wharves (0x00BCB9B0) */
-        if (S32(st, G_WARSHIP_WHARVES) >= 6) {
+        if (S32(st, G_TYPE_B6_COUNT) >= 6) {
             return;
         }
         r = GAME_CALL(st, FN_SHORE_FIT_47D060, x2, y2, 1);
@@ -842,13 +842,13 @@ ferry: {
             goto done;
         }
         int32_t f = S32(st, G_FERRY_STATE);
-        int32_t b = S16(st, G_BUILDING_GRID + 2u * (uint32_t) off);
+        int32_t b = S16(st, G_GRID_BUILDING + 2u * (uint32_t) off);
         if (f == 0) {
             U8(st, G_FERRY_FLAG) = 0;
             if (S32(st, BUILDING_ADDR(b) + BLD_FERRY_PARTNER) < 0) {
                 S32(st, G_FERRY_STATE) = 2;
                 U8(st, G_FERRY_FLAG) = 1;
-                S32(st, G_FERRY_BUILDING) = S16(st, G_BUILDING_GRID + 2u * (uint32_t) (y2 * GRID_W + S32(st, G_MAP_START) + x2));
+                S32(st, G_FERRY_BUILDING) = S16(st, G_GRID_BUILDING + 2u * (uint32_t) (y2 * GRID_W + S32(st, G_MAP_START) + x2));
             }
         } else if (f == 1) {
             int32_t b1 = S32(st, G_FERRY_BUILDING);
@@ -860,7 +860,7 @@ ferry: {
                                                    (int32_t) U8(st, BUILDING_ADDR(b) + BLD_ORIENTATION) << 1,
                                                    ((int32_t) U8(st, p1 + BLD_ORIENTATION) * 2 + 4) & 7, 0, &len);
                 if (ok) {
-                    int32_t b2 = S16(st, G_BUILDING_GRID + 2u * (uint32_t) off);
+                    int32_t b2 = S16(st, G_GRID_BUILDING + 2u * (uint32_t) off);
                     b1 = S32(st, G_FERRY_BUILDING);
                     S32(st, G_FERRY_STATE) = 3;
                     U8(st, G_FERRY_FLAG) = 1;

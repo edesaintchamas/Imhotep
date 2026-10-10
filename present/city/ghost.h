@@ -34,8 +34,8 @@
 #define G_TILE_W 0x0070E45Cu      /* i32 the tile's half width - 1 (view) */
 #define G_TILE_TOP 0x0070E448u
 #define G_TERRAIN 0x00AF598Cu     /* u32 per tile */
-#define G_EDGE 0x00B285CCu        /* u8 per tile */
-#define G_IMAGE 0x00B7482Cu       /* i32 per tile */
+#define G_GRID_EDGE 0x00B285CCu        /* u8 per tile */
+#define G_GRID_IMAGE 0x00B7482Cu       /* i32 per tile */
 #define G_FIGURES 0x00B350DCu     /* i16 per tile */
 #define G_BUILDINGS 0x00B4E6FCu   /* i16 per tile */
 #define G_SPRITE 0x00ADC36Cu      /* u8 per tile */

@@ -169,7 +169,7 @@ int32_t shore_fit(game_state *st, int32_t x, int32_t y, int32_t size, int32_t fl
         return 999;
     }
     int32_t state = 0; /* @bin 0x0047CCF0 the argument reused: 1 a dry floodplain tile, 2 water */
-    S32(st, G_UBC96DC) = 0;
+    S32(st, G_BUILD_TURN_VIEW) = 0;
     int32_t base = S32(st, G_MAP_START) + y * 0xE4 + x;
     for (int32_t k = 0;;) {
         int32_t count = 0, match = 0;
@@ -214,13 +214,13 @@ int32_t shore_fit(game_state *st, int32_t x, int32_t y, int32_t size, int32_t fl
             }
         }
         if (match == 4) {
-            S32(st, G_UBC96D8) = k;
-            int32_t o = S32(st, G_UBC96DC) - S32(st, G_VIEW_ORIENTATION) / 2;
-            S32(st, G_UBC96DC) = o < 0 ? o + 4 : o;
+            S32(st, G_BUILD_TURN) = k;
+            int32_t o = S32(st, G_BUILD_TURN_VIEW) - S32(st, G_VIEW_ORIENTATION) / 2;
+            S32(st, G_BUILD_TURN_VIEW) = o < 0 ? o + 4 : o;
             return count;
         }
         k++;
-        S32(st, G_UBC96DC) = k;
+        S32(st, G_BUILD_TURN_VIEW) = k;
         if (k >= 4) {
             return 999;
         }
@@ -243,9 +243,9 @@ int32_t pyramid_ramp_blocked(game_state *st, int32_t b)
     if ((uint8_t) GAME_CALL(st, FN_PYRAMID_KIND_OK, (int32_t) sz) == 0) {
         return 1;
     }
-    int32_t t = (int32_t) (U32(st, G_PYRAMID_RAMP + 4u * sz) + U32(st, BUILDING_ADDR(p) + BLD_GRID_OFFSET) - U32(st, G_MAP_START));
+    int32_t t = (int32_t) (U32(st, G_PYRAMID_RAMP_START + 4u * sz) + U32(st, BUILDING_ADDR(p) + BLD_GRID_OFFSET) - U32(st, G_MAP_START));
     GAME_CALL(st, FN_RAMP_WALK, t % 0xE4, t / 0xE4, 3, 0);
-    return S32(st, G_UEAAE90) == 0;
+    return S32(st, G_RAMP_WALK_TILE) == 0;
 }
 
 static int32_t run_ring_tile_outside(game_state *st, const int32_t *a)

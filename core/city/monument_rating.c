@@ -202,9 +202,9 @@ int32_t pyramid_part_done(game_state *st, int32_t b)
     }
     uint32_t sz = U8(st, r + BLD_MONUMENT_KIND);
     if ((uint8_t) GAME_CALL(st, FN_PYRAMID_KIND_OK, (int32_t) sz) != 0) {
-        int32_t g = (int32_t) (U32(st, G_PYRAMID_RAMP + 4u * sz) + U32(st, r + BLD_GRID_OFFSET) - U32(st, G_MAP_START));
+        int32_t g = (int32_t) (U32(st, G_PYRAMID_RAMP_START + 4u * sz) + U32(st, r + BLD_GRID_OFFSET) - U32(st, G_MAP_START));
         GAME_CALL(st, FN_RAMP_WALK, g % 0xE4, g / 0xE4, 3, 0);
-        if (S32(st, G_UEAAE90) != 0) {
+        if (S32(st, G_RAMP_WALK_TILE) != 0) {
             return 0;
         }
     }
@@ -232,10 +232,10 @@ void pyramid_status(game_state *st, int32_t b, int32_t *out)
     out[0x11] = total;
     int32_t base;
     switch (S32(st, G_PYRAMID_KIND)) {
-    case 1: base = S32(st, G_U5F5C68 + 4 * sz); break;
-    case 2: case 4: base = S32(st, G_U5F5C40 + 4 * sz); break;
-    case 3: base = S32(st, G_U5F5C54 + 4 * sz); break;
-    case 5: base = S32(st, G_U5F5C7C + 4 * sz); break;
+    case 1: base = S32(st, G_PYRAMID_WORK_CLIMATE1 + 4 * sz); break;
+    case 2: case 4: base = S32(st, G_PYRAMID_WORK_CLIMATE2 + 4 * sz); break;
+    case 3: base = S32(st, G_PYRAMID_WORK_CLIMATE3 + 4 * sz); break;
+    case 5: base = S32(st, G_PYRAMID_WORK_CLIMATE5 + 4 * sz); break;
     default: base = 0; break;
     }
     int32_t extra; /* @bin 0x004F13D3 (table 0x004F1C60) */

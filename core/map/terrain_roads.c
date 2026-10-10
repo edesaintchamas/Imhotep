@@ -12,8 +12,8 @@
 #include "state/ported.h"
 
 #define TER(o) U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (o))
-#define IMG(o) S32(st, G_IMAGE + 4u * (uint32_t) (o))
-#define BGRID(o) S16(st, G_BUILDING_GRID + 2u * (uint32_t) (o))
+#define IMG(o) S32(st, G_GRID_IMAGE + 4u * (uint32_t) (o))
+#define BGRID(o) S16(st, G_GRID_BUILDING + 2u * (uint32_t) (o))
 
 static int32_t road_paved_at(game_state *st)
 {
@@ -24,7 +24,7 @@ static int32_t road_paved_at(game_state *st)
     if (v & 0x10000) {
         return 0;
     }
-    int8_t d = S8(st, G_DESIRABILITY_GRID + (uint32_t) c);
+    int8_t d = S8(st, G_GRID_DESIRABILITY + (uint32_t) c);
     if (d > 4) {
         return 1;
     }
@@ -132,13 +132,13 @@ static void road_tile(game_state *st)
      * floodplain or a flooded floodplain tile: the floodplain road images (0x0051C5F0) or the
      * floodplain road group; else paved or plain road pattern */
     int32_t c = S32(st, G_TILE_CURSOR), img;
-    if (BGRID(c) != 0 || (U8(st, G_DAY2_DESTROY_BITS + (uint32_t) c) & 0x80)) {
+    if (BGRID(c) != 0 || (U8(st, G_GRID_BITFIELDS + (uint32_t) c) & 0x80)) {
         return;
     }
     if (S32(st, G_ALL_ROADS_PAVED) == 1) {
         land_pattern_match(st, G_PATTERN_PAVED_ROADS, 0x30, -1, 0);
         scratch_normalize(st);
-        IMG(S32(st, G_TILE_CURSOR)) = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 530) + S32(st, G_MATCH_VARIANT) + S32(st, G_MATCH_OFFSET);
+        IMG(S32(st, G_TILE_CURSOR)) = S32(st, G_IMAGE_GROUPS + 8u * 530) + S32(st, G_MATCH_VARIANT) + S32(st, G_MATCH_OFFSET);
     } else if (TER(c) & 0x100) {
         int32_t shift = (IMG(c) - S32(st, G_CANAL_BASE) < 0x30) ? 0 : 0x30;
         canal_flags(st);
@@ -169,30 +169,30 @@ static void road_tile(game_state *st)
             if (road_paved_at(st)) {
                 land_pattern_match(st, G_PATTERN_PAVED_ROADS, 0x30, -1, 0);
                 scratch_normalize(st);
-                img = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 530) + S32(st, G_MATCH_VARIANT) + S32(st, G_MATCH_OFFSET);
+                img = S32(st, G_IMAGE_GROUPS + 8u * 530) + S32(st, G_MATCH_VARIANT) + S32(st, G_MATCH_OFFSET);
             } else {
                 land_pattern_match(st, G_PATTERN_ROADS, 0x11, -1, 0);
                 scratch_normalize(st);
-                IMG(S32(st, G_TILE_CURSOR)) = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 540) + S32(st, G_MATCH_VARIANT) + S32(st, G_MATCH_OFFSET);
+                IMG(S32(st, G_TILE_CURSOR)) = S32(st, G_IMAGE_GROUPS + 8u * 540) + S32(st, G_MATCH_VARIANT) + S32(st, G_MATCH_OFFSET);
                 goto mark;
             }
         } else {
-            int32_t rel = IMG(c) - S32(st, G_DAY2_REDRAW_GROUPS + 8u * 528);
+            int32_t rel = IMG(c) - S32(st, G_IMAGE_GROUPS + 8u * 528);
             int32_t m = rel == 0x34 ? 0x56 : rel == 0x30 ? 0x54 : rel == 0x36 ? 0x57 : rel == 0x32 ? 0x55 : rel;
             if (rel == m && (rel < 0x54 || rel > 0x57)) {
                 land_pattern_match(st, G_PATTERN_ROADS, 0x11, -1, 0);
                 scratch_normalize(st);
-                img = S32(st, G_MATCH_VARIANT) + S32(st, G_DAY2_REDRAW_GROUPS + 8u * 548) + S32(st, G_MATCH_OFFSET);
+                img = S32(st, G_MATCH_VARIANT) + S32(st, G_IMAGE_GROUPS + 8u * 548) + S32(st, G_MATCH_OFFSET);
             } else {
-                img = m + S32(st, G_DAY2_REDRAW_GROUPS + 8u * 528);
+                img = m + S32(st, G_IMAGE_GROUPS + 8u * 528);
             }
         }
         IMG(S32(st, G_TILE_CURSOR)) = img;
     }
 mark:
     c = S32(st, G_TILE_CURSOR);
-    U8(st, G_DAY2_DESTROY_BITS + (uint32_t) c) &= 0xF0;
-    U8(st, G_EDGE + (uint32_t) c) |= 0x40;
+    U8(st, G_GRID_BITFIELDS + (uint32_t) c) &= 0xF0;
+    U8(st, G_GRID_EDGE + (uint32_t) c) |= 0x40;
 }
 
 void canals_rect(game_state *st, int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t dry)
@@ -234,7 +234,7 @@ void canals_rect(game_state *st, int32_t x0, int32_t y0, int32_t x1, int32_t y1,
                 land_pattern_match(st, G_PATTERN_CANALS, 0x10, -1, 0);
                 c = S32(st, G_TILE_CURSOR);
                 if (TER(c) & 0x40) {
-                    U8(st, G_DAY2_DESTROY_BITS + (uint32_t) c) &= 0x7F;
+                    U8(st, G_GRID_BITFIELDS + (uint32_t) c) &= 0x7F;
                     if (S32(st, G_MATCH_EXTRA) == 0) {
                         S32(st, G_MATCH_OFFSET) = (int32_t) ((((uint8_t) ~U8(st, G_GRID_TERRAIN + 4u * (uint32_t) (c - 228))) >> 6) & 1);
                     }
@@ -246,8 +246,8 @@ void canals_rect(game_state *st, int32_t x0, int32_t y0, int32_t x1, int32_t y1,
                     img += 0x15; /* @bin 0x0051C620 */
                 }
                 IMG(c) = img;
-                U8(st, G_DAY2_DESTROY_BITS + (uint32_t) c) &= 0xF0;
-                U8(st, G_EDGE + (uint32_t) c) |= 0x40;
+                U8(st, G_GRID_BITFIELDS + (uint32_t) c) &= 0xF0;
+                U8(st, G_GRID_EDGE + (uint32_t) c) |= 0x40;
                 U8(st, G_CANAL + (uint32_t) c) = (uint8_t) S32(st, G_MATCH_EXTRA);
             }
             S32(st, G_TILE_CURSOR) += 1;

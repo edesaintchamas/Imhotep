@@ -15,7 +15,7 @@
 
 #define G5(i) S32(st, G_GRID5 + 4u * (uint32_t) (i))
 #define TER(o) U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (o))
-#define BGRID(o) S16(st, G_BUILDING_GRID + 2u * (uint32_t) (o))
+#define BGRID(o) S16(st, G_GRID_BUILDING + 2u * (uint32_t) (o))
 #define OBJECT(o) U32(st, G_UD05720 + 4u * (uint32_t) (o))
 #define B(id) BUILDING_ADDR(id)
 
@@ -222,7 +222,7 @@ static int gate_images(game_state *st, int32_t v, int32_t *first, int32_t *secon
      * table 0x004406D8) and the part direction v; nothing written for other values (the original's
      * outputs are then its caller's uninitialised stack). The same function is ported inside
      * core/building/rest_redraw.c (package rest), where it is static. */
-    int32_t g = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 361u);
+    int32_t g = S32(st, G_IMAGE_GROUPS + 8u * 361u);
     int32_t a, c;
     switch (S32(st, G_VIEW_ORIENTATION)) {
     case 0: if (v == 0) { a = g; c = g + 1; } else if (v == 1) { a = g + 3; c = g + 2; } else { return 0; } break;
@@ -240,8 +240,8 @@ static void restore_all(game_state *st)
 {
     GAME_CALL(st, FN_COPY_BYTES, G_TERRAIN_BACKUP, G_GRID_TERRAIN, 0x32C40);
     GAME_CALL(st, FN_COPY_BYTES, G_CANAL_BACKUP, G_CANAL, 0xCB10);
-    GAME_CALL(st, FN_COPY_BYTES, G_BITS_BACKUP, G_DAY2_DESTROY_BITS, 0xCB10);
-    GAME_CALL(st, FN_COPY_BYTES, G_EDGE_BACKUP, G_EDGE, 0xCB10);
+    GAME_CALL(st, FN_COPY_BYTES, G_BITS_BACKUP, G_GRID_BITFIELDS, 0xCB10);
+    GAME_CALL(st, FN_COPY_BYTES, G_EDGE_BACKUP, G_GRID_EDGE, 0xCB10);
     GAME_CALL(st, FN_UNDO_RESTORE_IMAGES, 0);
 }
 
@@ -276,7 +276,7 @@ int32_t place_booth(game_state *st, int32_t preview, int32_t x1, int32_t y1, int
     restore_all(st);
     S32(st, G_CONSTRUCTION_COUNT) = 1;
     int32_t b = create(st, 0x1F, nx, ny);
-    int32_t img = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 383u);
+    int32_t img = S32(st, G_IMAGE_GROUPS + 8u * 383u);
     S32(st, B(b) + BLD_UD8) = 1;
     S32(st, B(b) + BLD_UD0) = off;
     tiles(st, b, nx, ny, 1, img);
@@ -331,7 +331,7 @@ int32_t place_bandstand(game_state *st, int32_t preview, int32_t x1, int32_t y1,
     S32(st, B(b2) + BLD_UD8) = 0;
     GAME_CALL(st, FN_BUILDING_KEEP_REMOVED, b2);
     int32_t b3 = create(st, 0x1F, bx, by);
-    int32_t img = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 383u);
+    int32_t img = S32(st, G_IMAGE_GROUPS + 8u * 383u);
     S32(st, B(b3) + BLD_UD8) = 0;
     S32(st, B(b3) + BLD_UD0) = off;
     tiles(st, b3, bx, by, 1, img);
@@ -373,13 +373,13 @@ int32_t place_pavilion(game_state *st, int32_t preview, int32_t x1, int32_t y1, 
     restore_all(st);
     S32(st, G_CONSTRUCTION_COUNT) = 1;
     int32_t b1 = create(st, 0x21, px, py);
-    int32_t img = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 317u);
+    int32_t img = S32(st, G_IMAGE_GROUPS + 8u * 317u);
     S32(st, B(b1) + BLD_UD8) = 1;
     S32(st, B(b1) + BLD_UD0) = off;
     tiles(st, b1, px, py, 2, img);
     GAME_CALL(st, FN_BUILDING_KEEP_REMOVED, b1);
     int32_t b2 = create(st, 0x1F, bx, by);
-    img = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 383u);
+    img = S32(st, G_IMAGE_GROUPS + 8u * 383u);
     S32(st, B(b2) + BLD_UD8) = 0;
     S32(st, B(b2) + BLD_UD0) = off;
     tiles(st, b2, bx, by, 1, img);

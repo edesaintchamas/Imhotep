@@ -71,7 +71,7 @@ void newgame_monument_slots(game_state *st)
         return;
     }
     if (mode == 4) {
-        slot(st, G_STR_ABU_SIMBEL, 0x1A); /* @bin 0x004F4759 AbuSimbel */
+        slot(st, G_E6_FILE, 0x1A); /* @bin 0x004F4759 AbuSimbel */
         slot(st, G_STR_PYRAMID_DUMMY, 0x11);
         slot(st, G_STR_CAESAREUM_DUMMY, 0x12);
         slot(st, G_STR_LT_HOUSE_DUMMY, 0x13);
@@ -95,7 +95,7 @@ void newgame_monument_slots(game_state *st)
     slot(st, G_STR_CAESAREUM1, 0x12); /* Caesareum1 */
     slot(st, G_STR_LT_HOUSE1, 0x13); /* LtHouse1 */
     slot(st, G_LIB_MAIN_A1, 0x14); /* LibMaina1 */
-    slot(st, G_LIB_MAIN_B1, 0x15); /* LibMainb1 */
+    slot(st, G_LIB_KIND0_1, 0x15); /* LibMainb1 */
     slot(st, G_LIB_MAIN_C1, 0x16); /* LibMainc1 */
     slot(st, G_LIB_EXTRA, 0x17); /* LibExtra */
     slot(st, G_STR_MAUS_CARRYOVER, 0x18); /* MausCarryover */

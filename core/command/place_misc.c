@@ -133,7 +133,7 @@ int32_t place_temple_complex_fits(game_state *st, int32_t x, int32_t y)
      * rotation 0x00BC9714 and the view / 2), its axes chosen by both: -1 when a tile is not
      * buildable (terrain & 0xEEFFD77F) or has a figure, -2 on a scenario special point; else 1 */
     int32_t rot = S32(st, G_BUILD_ORIENTATION);
-    uint32_t e = G_TEMPLE_COMPLEX_ANCHORS + 8u * (uint32_t) (rot + 4 * (S32(st, G_VIEW_ORIENTATION) / 2));
+    uint32_t e = G_COMPLEX_ORIGIN + 8u * (uint32_t) (rot + 4 * (S32(st, G_VIEW_ORIENTATION) / 2));
     int32_t x0 = S32(st, e) + x, y0 = S32(st, e + 4) + y;
     for (int32_t i = 0; i < 7; i++) {
         for (int32_t j = 0; j < 13; j++) {

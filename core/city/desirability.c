@@ -60,7 +60,7 @@ static void add_ring(game_state *st, int x, int y, int size, int r, int8_t v)
     ring_table t = ring(size, r, s1);
     int base = S32(st, G_MAP_START) + y * SIDE + x;
     S32(st, G_TILE_CURSOR) = base;
-    int8_t *g = (int8_t *) state_ptr(st, G_DESIRABILITY_GRID, GRID);
+    int8_t *g = (int8_t *) state_ptr(st, G_GRID_DESIRABILITY, GRID);
     int width = S32(st, G_MAP_WIDTH), height = S32(st, G_MAP_HEIGHT);
     if (y + size - 1 + r > height || x + size - 1 + r > width || y - r < -1 || x - r < -1) {
         /* near the edge: each tile is tested by 0x00481AA0, which for 6x6 footprints reads entry i
@@ -111,7 +111,7 @@ static void spread_model(game_state *st, int x, int y, int size, int type)
 void desirability_buildings_upto(game_state *st, int32_t last_id)
 {
     /* @bin 0x0046A0C0 clear, then buildings 1 .. highest id in use (state 1), model fields b-e */
-    memset(state_ptr(st, G_DESIRABILITY_GRID, GRID), 0, GRID);
+    memset(state_ptr(st, G_GRID_DESIRABILITY, GRID), 0, GRID);
     for (int32_t id = 1; id <= last_id; id++) {
         uint32_t b = BUILDING_ADDR(id);
         if (U8(st, b + BLD_STATE) != 1) {
@@ -134,7 +134,7 @@ void desirability_tiles(game_state *st)
     for (int y = 0; y < S32(st, G_MAP_HEIGHT); y++) {
         for (int x = 0; x < S32(st, G_MAP_WIDTH); x++, o++) {
             uint32_t t = U32(st, G_GRID_TERRAIN + 4u * (uint32_t) o);
-            uint8_t *bits = &U8(st, G_DAY2_DESTROY_BITS + (uint32_t) o);
+            uint8_t *bits = &U8(st, G_GRID_BITFIELDS + (uint32_t) o);
             if (!(*bits & 0x80)) {
                 if (t & 0x20) {
                     spread_model(st, x, y, 1, 39); /* gardens (0x007064C0 = record 39 + 4) */

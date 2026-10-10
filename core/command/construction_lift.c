@@ -19,14 +19,14 @@
 static int32_t water_lift_at(game_state *st, int32_t o)
 {
     /* @bin 0x0047F190 the tile is the corner of a whole type-0x5A building (2 x 2) */
-    int32_t b = S16(st, G_BUILDING_GRID + 2u * (uint32_t) o);
+    int32_t b = S16(st, G_GRID_BUILDING + 2u * (uint32_t) o);
     if (b == 0 || S16(st, BUILDING_ADDR(b) + BLD_TYPE) != 0x5A) {
         return 0;
     }
     for (uint32_t r = 0; r < 2; r++) {
         for (uint32_t i = 0; i < 2; i++) {
             int32_t u = o + S32(st, G_FOOTPRINT_OFFSETS + 0x30u * r + 8u * i);
-            if (b != S16(st, G_BUILDING_GRID + 2u * (uint32_t) u)) {
+            if (b != S16(st, G_GRID_BUILDING + 2u * (uint32_t) u)) {
                 return 0;
             }
         }

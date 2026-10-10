@@ -61,11 +61,11 @@ void terrain_0x00479ac0(game_state *st, int32_t x, int32_t y, int32_t mode)
         GRID(i) = t & 0x2000000u;
         return;
     }
-    int32_t v = (U8(st, G_RANDOM + (uint32_t) i) & 7) + S32(st, G_IMAGE_DUNES);
+    int32_t v = (U8(st, G_GRID_RANDOM + (uint32_t) i) & 7) + S32(st, G_IMAGE_DUNES);
     GRID(i) = t | 0x2000000u;
-    S32(st, G_IMAGE + 4u * (uint32_t) i) = v;
-    U8(st, G_DAY2_DESTROY_BITS + (uint32_t) i) &= 0xF0;
-    U8(st, G_EDGE + (uint32_t) i) |= 0x40;
+    S32(st, G_GRID_IMAGE + 4u * (uint32_t) i) = v;
+    U8(st, G_GRID_BITFIELDS + (uint32_t) i) &= 0xF0;
+    U8(st, G_GRID_EDGE + (uint32_t) i) |= 0x40;
 }
 
 void terrain_0x00477430(game_state *st, int32_t x1, int32_t y1, int32_t x2, int32_t y2)
@@ -581,9 +581,9 @@ static void mark_rect(game_state *st, int32_t x, int32_t y, int32_t size, int32_
             S32(st, G_ROAD_ACCESS_X) = n + x1;
             for (; n != 0; n--, idx++) {
                 if (set) {
-                    U8(st, G_EDGE + (uint32_t) idx) |= 0x80;
+                    U8(st, G_GRID_EDGE + (uint32_t) idx) |= 0x80;
                 } else {
-                    U8(st, G_EDGE + (uint32_t) idx) &= 0x7F;
+                    U8(st, G_GRID_EDGE + (uint32_t) idx) &= 0x7F;
                 }
             }
         }

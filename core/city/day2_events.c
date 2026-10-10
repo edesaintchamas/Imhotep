@@ -23,13 +23,13 @@ void event_tile_hit(game_state *st, int32_t x, int32_t y)
      * linked parts, 0x004695D0, and sound 0x11), what is left there gets state 5, the terrain
      * becomes 0; then the terrain and routing passes */
     int32_t t = S32(st, G_MAP_START) + y * 0xE4 + x;
-    int32_t b = S16(st, G_BUILDING_GRID + 2u * (uint32_t) t);
+    int32_t b = S16(st, G_GRID_BUILDING + 2u * (uint32_t) t);
     if (b != 0) {
         GAME_CALL(st, FN_BUILDING_COLLAPSE, b, 0);
         GAME_CALL(st, FN_BUILDING_DESTROY_LINKED, b, 1);
         GAME_CALL(st, FN_UI_SOUND, 0x11);
     }
-    b = S16(st, G_BUILDING_GRID + 2u * (uint32_t) t);
+    b = S16(st, G_GRID_BUILDING + 2u * (uint32_t) t);
     if (b != 0) {
         U8(st, BUILDING_ADDR(b) + BLD_STATE) = 5;
     }

@@ -93,7 +93,7 @@ void worker_release_4f2960(game_state *st, int32_t f)
     /* @bin 0x004F2960 the building on the figure's tile (+0x20 -> 0x00B4E6FC): 0x004EF450(its main
      * building); its worker (0x004F28E0): type 0x50 -> action 0x0C, 0x51 -> action 0x0B; its +0x2E
      * := 0 */
-    int32_t b = S16(st, G_BUILDING_GRID + 2u * U32(st, FIG(f) + 0x20));
+    int32_t b = S16(st, G_GRID_BUILDING + 2u * U32(st, FIG(f) + 0x20));
     GAME_CALL(st, FN_PYRAMID_LEVEL_PARTS, b - S16(st, BREC(b) + BLD_PART));
     int32_t g = GAME_CALL(st, FN_PYRAMID_LINKED_WORKER, b);
     if (g <= 0) {

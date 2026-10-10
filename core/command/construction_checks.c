@@ -136,7 +136,7 @@ void ghost_mark(game_state *st)
     for (int32_t r = 0; r < rows; r++) {
         for (int32_t i = 0; i < cols; i++) {
             int32_t t = c + S32(st, G_FOOTPRINT_OFFSETS + 0x30u * (uint32_t) r + 8u * (uint32_t) i);
-            U8(st, G_DAY2_DESTROY_BITS + (uint32_t) t) |= 0x10;
+            U8(st, G_GRID_BITFIELDS + (uint32_t) t) |= 0x10;
         }
     }
 }
@@ -227,7 +227,7 @@ void gatehouse_ghost(game_state *st, int32_t x, int32_t y, int32_t rotation)
     /* @bin 0x004BFA50 the four parts of a gatehouse: part ids 0x005DF78C[rotation] (4 dwords),
      * part records 0x005DF814 (16 bytes: +0 size, +4 dy / dx, +8 dx / dy by rotation 0 / 1) */
     for (uint32_t k = 0; k < 4; k++) {
-        int32_t p = S32(st, G_GATEHOUSE_PART_IDS + 16u * (uint32_t) rotation + 4u * k);
+        int32_t p = S32(st, G_GATE_PART_IDS + 16u * (uint32_t) rotation + 4u * k);
         uint32_t rec = G_GATEHOUSE_PARTS + 16u * (uint32_t) p;
         int32_t px, py;
         if (rotation == 0) {
@@ -273,14 +273,14 @@ int32_t ferry_landing_at(game_state *st, int32_t x, int32_t y)
         return 999;
     }
     int32_t t = S32(st, G_MAP_START) + y * GRID_W + x;
-    int32_t b = S16(st, G_BUILDING_GRID + 2u * (uint32_t) t);
+    int32_t b = S16(st, G_GRID_BUILDING + 2u * (uint32_t) t);
     if (b == 0 || S16(st, BUILDING_ADDR(b) + BLD_TYPE) != 0x88) {
         return 0;
     }
     for (uint32_t r = 0; r < 2; r++) {
         for (uint32_t i = 0; i < 2; i++) {
             int32_t u = S32(st, G_FOOTPRINT_OFFSETS + 0x30u * r + 8u * i) + t;
-            if (b != S16(st, G_BUILDING_GRID + 2u * (uint32_t) u)) {
+            if (b != S16(st, G_GRID_BUILDING + 2u * (uint32_t) u)) {
                 return 0;
             }
         }

@@ -84,7 +84,7 @@ int32_t ghost_51c460(game_state *st, int32_t off)
      * through the byte table 0x0051C4E0 and the jump table 0x0051C4CC */
     static const uint8_t kind[48] = {0, 1, 4, 4, 4, 4, 1, 0, 1, 0, 4, 4, 4, 4, 4, 0, 1, 0, 1, 0, 1, 2, 3, 4,
                                      4, 4, 4, 3, 2, 3, 2, 4, 4, 4, 4, 4, 2, 3, 2, 3, 2, 3, 0, 1, 0, 1, 0, 1};
-    int32_t v = S32(st, G_IMAGE + 4u * (uint32_t) off) - S32(st, 0x00F56B84u);
+    int32_t v = S32(st, G_GRID_IMAGE + 4u * (uint32_t) off) - S32(st, 0x00F56B84u);
     if (v >= 0x30) {
         v -= 0x30;
     }
@@ -228,7 +228,7 @@ static void ghost_road(game_state *st)
         if (GAME_CALL(st, 0x0051C510u, hov) == 0) {
             bad = 1;
         } else {
-            image += GAME_CALL(st, 0x0051C5F0u, hov, S32(st, G_IMAGE + 4u * (uint32_t) hov) - image);
+            image += GAME_CALL(st, 0x0051C5F0u, hov, S32(st, G_GRID_IMAGE + 4u * (uint32_t) hov) - image);
         }
     }
     t &= 0xEEFED77Fu;
@@ -242,7 +242,7 @@ static void ghost_road(game_state *st)
     } else if (t != 0) {
         bad = 1;
     } else {
-        image = (U8(st, G_EDGE + (uint32_t) hov) & 0x80) ? S32(st, 0x00F56C44u) : S32(st, 0x00F56C94u);
+        image = (U8(st, G_GRID_EDGE + (uint32_t) hov) & 0x80) ? S32(st, 0x00F56C44u) : S32(st, 0x00F56C94u);
         if (ghost_47ed30(st, S32(st, G_HOVER), 0x40) == 0 && ghost_47ed00(st, S32(st, G_HOVER), 0x40) != 0) {
             image++;
         }
@@ -306,8 +306,8 @@ static void ghost_canal(game_state *st)
             /* @bin 0x0043C8F5 */
             S32(st, 0x00BC9748u) = (int32_t) ((((uint32_t) (uint8_t) ~U8(st, 0x00AF55FCu + 4u * (uint32_t) off)) >> 6) & 1);
         }
-        if (U8(st, G_EDGE + (uint32_t) off) & 0x80) {
-            k = S32(st, G_IMAGE + 4u * (uint32_t) off) - S32(st, 0x00F56B84u);
+        if (U8(st, G_GRID_EDGE + (uint32_t) off) & 0x80) {
+            k = S32(st, G_GRID_IMAGE + 4u * (uint32_t) off) - S32(st, 0x00F56B84u);
         } else {
             GAME_CALL0(st, 0x0047B920u);
             k = S32(st, 0x00BC9748u) + 0x30;

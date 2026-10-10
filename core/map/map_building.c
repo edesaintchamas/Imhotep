@@ -29,17 +29,17 @@ void map_building_tiles(game_state *st, int32_t id, int32_t x, int32_t y, int32_
             uint32_t e = G_FOOTPRINT_OFFSETS + 0x30u * (uint32_t) r + 8u * (uint32_t) c;
             uint32_t t = (uint32_t) (S32(st, e) + base);
             U32(st, G_GRID_TERRAIN + 4 * t) = (U32(st, G_GRID_TERRAIN + 4 * t) & 0x03052E80u) | flags;
-            U16(st, G_BUILDING_GRID + 2 * t) = (uint16_t) id;
-            uint8_t s = U8(st, G_DAY2_DESTROY_BITS + t) & 0xE0;
-            U8(st, G_DAY2_DESTROY_BITS + t) = s;
+            U16(st, G_GRID_BUILDING + 2 * t) = (uint16_t) id;
+            uint8_t s = U8(st, G_GRID_BITFIELDS + t) & 0xE0;
+            U8(st, G_GRID_BITFIELDS + t) = s;
             if (sx >= 2 && sx <= 6) {
-                U8(st, G_DAY2_DESTROY_BITS + t) = (uint8_t) (s | (sx - 1)); /* @bin 0x0047C08D */
+                U8(st, G_GRID_BITFIELDS + t) = (uint8_t) (s | (sx - 1)); /* @bin 0x0047C08D */
             }
-            S32(st, G_IMAGE + 4 * t) = image;
+            S32(st, G_GRID_IMAGE + 4 * t) = image;
             uint8_t edge = U8(st, e + 4);
-            U8(st, G_EDGE + t) = edge;
+            U8(st, G_GRID_EDGE + t) = edge;
             if (c == cx && r == cy) {
-                U8(st, G_EDGE + t) = edge | 0x40;
+                U8(st, G_GRID_EDGE + t) = edge | 0x40;
             }
         }
     }

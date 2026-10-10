@@ -391,7 +391,7 @@ void day_spawn_469b90(game_state *st)
         int32_t flag = (int8_t) GAME_CALL0(st, FN_MISSION_GOALS_PENDING) != 0 && first != 0;
         building_spawn_469e40(st, id, flag);
         n--;
-        S32(st, b + BLD_CRIME_RISK) = S32(st, G_HOUSE_LEVEL_U14 + 0x58u * (uint32_t) (int32_t) S16(st, b + BLD_SUBTYPE));
+        S32(st, b + BLD_CRIME_RISK) = S32(st, G_HOUSE_LEVEL_CRIME_RISK + 0x58u * (uint32_t) (int32_t) S16(st, b + BLD_SUBTYPE));
         if (first > 0) {
             first--;
         }
@@ -514,12 +514,12 @@ void buildings_water_level(game_state *st)
         int32_t tile = S32(st, b + BLD_GRID_OFFSET);
         uint32_t size = U8(st, b + BLD_SIZE);
         if (size == 1) {
-            U8(st, b + BLD_DESIRABILITY) = U8(st, G_DESIRABILITY_GRID + (uint32_t) tile);
+            U8(st, b + BLD_DESIRABILITY) = U8(st, G_GRID_DESIRABILITY + (uint32_t) tile);
         } else {
             int32_t best = -9999;
             for (uint32_t i = 0; i < size; i++) {
                 for (uint32_t j = 0; j < size; j++) {
-                    int32_t v = S8(st, G_DESIRABILITY_GRID + (uint32_t) (tile + S32(st, G_FOOTPRINT_OFFSETS + 0x30u * i + 8u * j)));
+                    int32_t v = S8(st, G_GRID_DESIRABILITY + (uint32_t) (tile + S32(st, G_FOOTPRINT_OFFSETS + 0x30u * i + 8u * j)));
                     if (v > best) {
                         best = v;
                     }
@@ -638,19 +638,19 @@ void road_network_fill(game_state *st, int32_t tile, int32_t id)
      * (0 and 1, or 2 with terrain bit 0x400), in a ring queue; 0x0078C400 counts the tiles; the
      * second grid gets 0x0078C408, which goes up every 30 first-neighbour steps (0x0078C404) */
     for (uint32_t k = 0; k < 0x3E8; k++) {
-        S32(st, G_DAY_WATER_QUEUE + 4 * k) = 0;
+        S32(st, G_TILE_QUEUE + 4 * k) = 0;
     }
     int32_t tail = 0;
     int32_t mark = S32(st, G_U78C408);
-    S32(st, G_QUEUE_HEAD) = 0;
-    S32(st, G_QUEUE_TAIL) = 0;
+    S32(st, G_TILE_QUEUE_HEAD) = 0;
+    S32(st, G_TILE_QUEUE_TAIL) = 0;
     int32_t at = tile;
     for (int32_t steps = 1;; steps++) {
         U8(st, G_NETWORK2 + (uint32_t) at) = (uint8_t) mark;
         U8(st, G_GRID_ROAD_NETWORK + (uint32_t) at) = (uint8_t) id;
         int32_t next = -1;
         for (uint32_t d = 0; d < 4; d++) {
-            int32_t t = at + S32(st, G_U5CD678 + 4 * d);
+            int32_t t = at + S32(st, G_NEIGHBOUR4_OFFSETS + 4 * d);
             int8_t c = S8(st, G_GRID_ROUTING + (uint32_t) t);
             if (c < 0 || c > 2) {
                 continue;
@@ -668,19 +668,19 @@ void road_network_fill(game_state *st, int32_t tile, int32_t id)
                 next = t;
                 S32(st, G_U78C404) += 1;
             } else {
-                S32(st, G_DAY_WATER_QUEUE + 4u * (uint32_t) tail) = t;
+                S32(st, G_TILE_QUEUE + 4u * (uint32_t) tail) = t;
                 if (++tail >= 0x3E8) {
                     tail = 0;
                 }
             }
         }
         if (next == -1) {
-            int32_t head = S32(st, G_QUEUE_HEAD);
+            int32_t head = S32(st, G_TILE_QUEUE_HEAD);
             if (head == tail) {
                 break;
             }
-            next = S32(st, G_DAY_WATER_QUEUE + 4u * (uint32_t) head);
-            S32(st, G_QUEUE_HEAD) = head + 1 < 0x3E8 ? head + 1 : 0;
+            next = S32(st, G_TILE_QUEUE + 4u * (uint32_t) head);
+            S32(st, G_TILE_QUEUE_HEAD) = head + 1 < 0x3E8 ? head + 1 : 0;
         }
         if (S32(st, G_U78C404) > 0x1E) {
             mark++;
@@ -691,7 +691,7 @@ void road_network_fill(game_state *st, int32_t tile, int32_t id)
             break;
         }
     }
-    S32(st, G_QUEUE_TAIL) = tail;
+    S32(st, G_TILE_QUEUE_TAIL) = tail;
     S32(st, G_U78C408) = mark;
 }
 
@@ -1091,7 +1091,7 @@ void farm_draw_488c20(game_state *st, uint32_t self, int32_t id, int32_t x, int3
         state_unported(st, FN_FARM_DRAW_488C20);
         return;
     }
-    int32_t img = S32(st, G_DAY2_REDRAW_GROUPS + 8u * (uint32_t) groups[k]);
+    int32_t img = S32(st, G_IMAGE_GROUPS + 8u * (uint32_t) groups[k]);
     int32_t stage = S16(st, b + BLD_INDUSTRY_PROGRESS) / 10; /* the divisor is ftol(10.0) */
     if (building_area_test_3x3(st, id)) {
         /* @bin 0x004894D0 */

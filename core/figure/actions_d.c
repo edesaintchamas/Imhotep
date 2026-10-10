@@ -86,7 +86,7 @@ static void action_51_work(game_state *st, uint32_t hb, uint8_t *flag)
     int32_t id = cur(st);
     uint32_t f = FIGURE_ADDR(id);
     uint32_t tile = U32(st, f + FIG_U28);
-    int16_t target = S16(st, G_BUILDING_GRID + 2u * tile);
+    int16_t target = S16(st, G_GRID_BUILDING + 2u * tile);
     if (target == 0) {
         int16_t site = S16(st, f + FIG_DEST_BUILDING);
         if (S16(st, BUILDING_ADDR(site) + BLD_TYPE) == 0xB7 && (U32(st, G_GRID_TERRAIN + 4u * tile) & 0x10000000u)) {
@@ -156,7 +156,7 @@ static void action_51_wait(game_state *st)
 {
     int32_t id = cur(st);
     uint32_t f = FIGURE_ADDR(id);
-    int16_t target = S16(st, G_BUILDING_GRID + 2u * U32(st, f + FIG_U28));
+    int16_t target = S16(st, G_GRID_BUILDING + 2u * U32(st, f + FIG_U28));
     S16(st, f + FIG_WAIT_TICKS) += 1;
     if (S16(st, f + FIG_WAIT_TICKS) < 0) {
         S16(st, f + FIG_WAIT_TICKS) = 0;
@@ -288,7 +288,7 @@ void figure_action_51(game_state *st)
     case 9: {
         U8(st, f + FIG_TERRAIN_USAGE) = 7;
         uint32_t tile = U32(st, f + FIG_U28);
-        int16_t target = S16(st, G_BUILDING_GRID + 2u * tile);
+        int16_t target = S16(st, G_GRID_BUILDING + 2u * tile);
         GAME_CALL(st, FN_FIGURE_MOVE, id, speed);
         id = cur(st);
         f = FIGURE_ADDR(id);
@@ -403,7 +403,7 @@ void figure_action_51(game_state *st)
         }
     }
     case 0x0B:
-        if (flag && S16(st, f + FIG_WAIT_TICKS) < S32(st, G_U5E4EE8)) {
+        if (flag && S16(st, f + FIG_WAIT_TICKS) < S32(st, G_PYRAMID_RISE_TIME_A)) {
             S32(st, f + FIG_U04) = S32(st, G_IMAGE_GROUP_194) + 8 * U8(st, f + FIG_ANIM_FRAME) + d;
             return;
         }
@@ -661,7 +661,7 @@ void figure_action_56(game_state *st)
         default: group = 0xD3; break;
         }
     }
-    S32(st, f + FIG_U04) = S32(st, G_DAY2_REDRAW_GROUPS + 8u * group) + d;
+    S32(st, f + FIG_U04) = S32(st, G_IMAGE_GROUPS + 8u * group) + d;
 }
 
 void figure_action_60(game_state *st)
@@ -832,7 +832,7 @@ static void home_worker_states(game_state *st, uint32_t b, int16_t home, int32_t
         }
         id = cur(st);
         f = FIGURE_ADDR(id);
-        if (S16(st, G_BUILDING_GRID + 2u * U32(st, f + FIG_GRID_OFFSET)) == home) {
+        if (S16(st, G_GRID_BUILDING + 2u * U32(st, f + FIG_GRID_OFFSET)) == home) {
             U8(st, f + FIG_STATE) = 2;
             break;
         }
@@ -1252,7 +1252,7 @@ void figure_action_5B(game_state *st)
     f = fig(st);
     U8(st, f + FIG_RESOURCE) = carried;
     int32_t d = sprite_direction(st, S8(st, f + FIG_DIRECTION));
-    S32(st, f + FIG_U04) = S32(st, G_DAY2_REDRAW_GROUPS + 8u * group) + 8 * U8(st, f + FIG_ANIM_FRAME) + d;
+    S32(st, f + FIG_U04) = S32(st, G_IMAGE_GROUPS + 8u * group) + 8 * U8(st, f + FIG_ANIM_FRAME) + d;
 }
 
 void figure_action_5F(game_state *st)
@@ -1320,7 +1320,7 @@ void figure_action_62(game_state *st)
         }
         id = cur(st);
         f = FIGURE_ADDR(id);
-        if (S16(st, G_BUILDING_GRID + 2u * U32(st, f + FIG_GRID_OFFSET)) == home) {
+        if (S16(st, G_GRID_BUILDING + 2u * U32(st, f + FIG_GRID_OFFSET)) == home) {
             U8(st, f + FIG_STATE) = 2;
             break;
         }

@@ -17,14 +17,14 @@
 #include "state/pre_load.h"
 
 #define GRID 228
-#define GROUP(g) S32(st, G_DAY2_REDRAW_GROUPS + 8u * (uint32_t) (g))
+#define GROUP(g) S32(st, G_IMAGE_GROUPS + 8u * (uint32_t) (g))
 
 #define TER(o) U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (o))
-#define IMG(o) S32(st, G_IMAGE + 4u * (uint32_t) (o))
-#define EDGE(o) U8(st, G_EDGE + (uint32_t) (o))
-#define BITS(o) U8(st, G_DAY2_DESTROY_BITS + (uint32_t) (o))
-#define RND(o) U8(st, G_RANDOM + (uint32_t) (o))
-#define BGRID(o) S16(st, G_BUILDING_GRID + 2u * (uint32_t) (o))
+#define IMG(o) S32(st, G_GRID_IMAGE + 4u * (uint32_t) (o))
+#define EDGE(o) U8(st, G_GRID_EDGE + (uint32_t) (o))
+#define BITS(o) U8(st, G_GRID_BITFIELDS + (uint32_t) (o))
+#define RND(o) U8(st, G_GRID_RANDOM + (uint32_t) (o))
+#define BGRID(o) S16(st, G_GRID_BUILDING + 2u * (uint32_t) (o))
 #define BUILDING(id) BUILDING_ADDR(id)
 #define ROW_OFF(r) S32(st, G_ROW_OFFSET + 4u * (uint32_t) (r))
 #define ROW_END(r) S32(st, G_ROW_END + 4u * (uint32_t) (r))

@@ -16,10 +16,10 @@
 #include "state/records.h"
 
 #define TER(o) U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (o))
-#define IMG(o) S32(st, G_IMAGE + 4u * (uint32_t) (o))
-#define BITS(o) U8(st, G_DAY2_DESTROY_BITS + (uint32_t) (o))
-#define EDGE(o) U8(st, G_EDGE + (uint32_t) (o))
-#define BGRID(o) S16(st, G_BUILDING_GRID + 2u * (uint32_t) (o))
+#define IMG(o) S32(st, G_GRID_IMAGE + 4u * (uint32_t) (o))
+#define BITS(o) U8(st, G_GRID_BITFIELDS + (uint32_t) (o))
+#define EDGE(o) U8(st, G_GRID_EDGE + (uint32_t) (o))
+#define BGRID(o) S16(st, G_GRID_BUILDING + 2u * (uint32_t) (o))
 #define FGRID(o) S16(st, G_FIGURE_GRID + 2u * (uint32_t) (o))
 #define ROUTE(o) S8(st, G_GRID_ROUTING + (uint32_t) (o))
 #define DIST(o) S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) (o))
@@ -54,8 +54,8 @@ static void restore_grids(game_state *st, int all)
     GAME_CALL(st, FN_COPY_BYTES, G_TERRAIN_BACKUP, G_GRID_TERRAIN, 0x32C40);
     GAME_CALL(st, FN_COPY_BYTES, G_CANAL_BACKUP, G_CANAL, 0xCB10);
     if (all) {
-        GAME_CALL(st, FN_COPY_BYTES, G_BITS_BACKUP, G_DAY2_DESTROY_BITS, 0xCB10);
-        GAME_CALL(st, FN_COPY_BYTES, G_EDGE_BACKUP, G_EDGE, 0xCB10);
+        GAME_CALL(st, FN_COPY_BYTES, G_BITS_BACKUP, G_GRID_BITFIELDS, 0xCB10);
+        GAME_CALL(st, FN_COPY_BYTES, G_EDGE_BACKUP, G_GRID_EDGE, 0xCB10);
     }
     GAME_CALL(st, FN_UNDO_RESTORE_IMAGES, 0);
 }
@@ -106,7 +106,7 @@ void place_houses(game_state *st, int32_t preview, int32_t x1, int32_t y1, int32
                             GAME_CALL(st, FN_BUILDING_KEEP_REMOVED, b);
                             if (b > 0) {
                                 S32(st, G_CONSTRUCTION_COUNT) += 1;
-                                int32_t g = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 305u);
+                                int32_t g = S32(st, G_IMAGE_GROUPS + 8u * 305u);
                                 GAME_CALL(st, FN_MAP_BUILDING_TILES, b, S32(st, G_WALK_X), S32(st, G_WALK_Y), 1, 1, g, 8);
                                 if (GAME_CALL(st, FN_TERRAIN_SCAN_MASK, S32(st, G_WALK_X), S32(st, G_WALK_Y), 1, 2, 0x40) == 0) {
                                     flag = 1;
@@ -651,16 +651,16 @@ void place_wall_tile(game_state *st, int32_t x, int32_t y, int32_t mode, uint32_
                 if ((v & 0x4000u) && !(v & 8u)) {
                     GAME_CALL(st, FN_NEIGHBOURS_WITH_FLAGS, 0x4000);
                     GAME_CALL0(st, FN_SCRATCH_INVERT);
-                    GAME_CALL(st, FN_LAND_PATTERN_MATCH, G_PATTERN_WALLS, 0x30, -1, 0);
-                    int32_t img = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 407u) + S32(st, G_MATCH_VARIANT) + S32(st, G_MATCH_OFFSET);
+                    GAME_CALL(st, FN_LAND_PATTERN_MATCH, G_WALL_PATTERNS, 0x30, -1, 0);
+                    int32_t img = S32(st, G_IMAGE_GROUPS + 8u * 407u) + S32(st, G_MATCH_VARIANT) + S32(st, G_MATCH_OFFSET);
                     off = S32(st, G_TILE_CURSOR);
                     IMG(off) = img;
                     EDGE(off) |= 0x40;
                     BITS(off) &= 0xF0;
                     if (GAME_CALL0(st, FN_SCRATCH_WALLS_BUILDINGS) != 0) {
                         GAME_CALL0(st, FN_SCRATCH_ADD_WALLS);
-                        if (GAME_CALL(st, FN_LAND_PATTERN_MATCH, G_PATTERN_WALLS_BUILDING, 0xF, -1, 0) != 0) {
-                            img = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 407u) + S32(st, G_MATCH_VARIANT) + S32(st, G_MATCH_OFFSET);
+                        if (GAME_CALL(st, FN_LAND_PATTERN_MATCH, G_WALL_PATTERNS_BUILDINGS, 0xF, -1, 0) != 0) {
+                            img = S32(st, G_IMAGE_GROUPS + 8u * 407u) + S32(st, G_MATCH_VARIANT) + S32(st, G_MATCH_OFFSET);
                             IMG(S32(st, G_TILE_CURSOR)) = img;
                         } else {
                             GAME_CALL(st, FN_NOTHING, 1);

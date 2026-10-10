@@ -17,7 +17,7 @@
 void scenario_start_map(game_state *st)
 {
     /* @bin 0x004D52A0 image grid (chunk 7, 0x32C40 bytes) := 0 (0x0040F8F0) */
-    memset(state_ptr(st, G_IMAGE, 0x32C40u), 0, 0x32C40u);
+    memset(state_ptr(st, G_GRID_IMAGE, 0x32C40u), 0, 0x32C40u);
     /* @bin 0x004D52A0 0x00784F10 := (i16) scenario info +0x04, sign-extended (meaning open) */
     S32(st, G_EMPIRE_CURRENT) = S16(st, G_SCENARIO_EMPIRE);
     /* @bin 0x004D52A0 width, height, start offset, row skip from scenario info +0x2C..+0x38 */
@@ -144,15 +144,15 @@ void terrain_images_flag(game_state *st)
 {
     /* @bin 0x00476750 tiles whose image id is in [0x00F565F4, +7]: terrain |= 0x20, byte 0x00B285CC
      * &= 0x7F, byte 0x00AE8E7C := 0 */
-    int32_t base = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 328);
+    int32_t base = S32(st, G_IMAGE_GROUPS + 8u * 328);
     for (int32_t row = 0; row < S32(st, G_MAP_HEIGHT); row++) {
         int32_t lo = S32(st, G_ROW_FIRST + 4u * (uint32_t) row), hi = S32(st, G_ROW_END + 4u * (uint32_t) row);
         uint32_t o = U32(st, G_ROW_OFFSET + 4u * (uint32_t) row);
         for (int32_t n = lo; n < hi; n++, o++) {
-            int32_t image = S32(st, G_IMAGE + 4u * o);
+            int32_t image = S32(st, G_GRID_IMAGE + 4u * o);
             if (image >= base && image <= base + 7) {
                 U32(st, G_GRID_TERRAIN + 4u * o) |= 0x20u;
-                U8(st, G_DAY2_DESTROY_BITS + o) &= 0x7F;
+                U8(st, G_GRID_BITFIELDS + o) &= 0x7F;
                 U8(st, G_CANAL + o) = 0;
             }
         }
@@ -184,8 +184,8 @@ void empire_objects_images(game_state *st)
         if (U8(st, o) == 1) {
             U16(st, o + EMPOBJ_IMAGE) = (uint16_t) GAME_CALL(st, FN_EMPIRE_OBJECT_IMAGE, i);
         } else if (U8(st, o) == 0) {
-            uint16_t v = (uint16_t) (U16(st, o + EMPOBJ_U0E) + U16(st, G_DAY2_REDRAW_GROUPS + 8u * 459));
-            int32_t limit = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 460);
+            uint16_t v = (uint16_t) (U16(st, o + EMPOBJ_U0E) + U16(st, G_IMAGE_GROUPS + 8u * 459));
+            int32_t limit = S32(st, G_IMAGE_GROUPS + 8u * 460);
             U16(st, o + EMPOBJ_IMAGE) = v;
             if ((int32_t) v > limit) {
                 U16(st, o + EMPOBJ_IMAGE) = (uint16_t) limit;
@@ -394,7 +394,7 @@ void scenario_start(game_state *st)
     U8(st, G_UEAAC2C) = 1;
     empire_objects_images(st);   /* 0x00442660 */
     empire_objects_sizes(st);    /* 0x004426C0 */
-    S32(st, G_WARSHIP_WHARVES) = buildings_count_b6(st); /* 0x0046F190 */
+    S32(st, G_TYPE_B6_COUNT) = buildings_count_b6(st); /* 0x0046F190 */
     storage_yards_check(st);     /* 0x004D5AD0 */
     city_building_d1_position(st); /* 0x004D5BC0 */
     if (S32(st, G_CUSTOM) != 0) {

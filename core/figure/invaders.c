@@ -141,7 +141,7 @@ static int ring_tile_ok(game_state *st, int32_t x0, int32_t y0, const int32_t *x
         return 0;
     }
     uint32_t t = U32(st, G_TILE_CURSOR);
-    if (U8(st, G_DESIRABILITY_GRID + t) != 0 || (U32(st, G_GRID_TERRAIN + 4 * t) & 0x80000)) {
+    if (U8(st, G_GRID_DESIRABILITY + t) != 0 || (U32(st, G_GRID_TERRAIN + 4 * t) & 0x80000)) {
         return 0;
     }
     if (!invader_tile_ok(st, U32(st, G_GRID_TERRAIN + 4 * t), mode)) {
@@ -219,7 +219,7 @@ static int32_t camp_tile(game_state *st, uint32_t f, int32_t k, int32_t mode)
     for (; n < 16; n++) {
         t = (uint32_t) (S32(st, G_MAP_START) + S16(st, f + FM_U36) + S32(st, G_RING16_DX + 8u * (uint32_t) k) +
                         (S16(st, f + FM_U38) + S32(st, G_RING16_DY + 8u * (uint32_t) k)) * GRID_SIZE);
-        if (invader_tile_ok(st, U32(st, G_GRID_TERRAIN + 4 * t), mode) && S16(st, G_BUILDING_GRID + 2 * t) == 0) {
+        if (invader_tile_ok(st, U32(st, G_GRID_TERRAIN + 4 * t), mode) && S16(st, G_GRID_BUILDING + 2 * t) == 0) {
             break;
         }
         k++;
@@ -227,7 +227,7 @@ static int32_t camp_tile(game_state *st, uint32_t f, int32_t k, int32_t mode)
             k = 0;
         }
     }
-    if (n == 16 && S16(st, G_BUILDING_GRID + 2 * t) != 0) {
+    if (n == 16 && S16(st, G_GRID_BUILDING + 2 * t) != 0) {
         return -1;
     }
     if (!invader_tile_ok(st, U32(st, G_GRID_TERRAIN + 4 * t), mode)) {

@@ -46,9 +46,9 @@ void pre_load_clear(game_state *st)
 {
     /* @bin 0x0046FA40 grids cleared (address, bytes) */
     static const uint32_t grids[][2] = {
-        {G_IMAGE, 0x32C40}, {G_EDGE, 0xCB10}, {G_BUILDING_GRID, 0x19620}, {G_GRID_TERRAIN, 0x32C40},
-        {G_FERTILITY_GRID, 0xCB10}, {G_CANAL, 0xCB10}, {G_FIGURE_GRID, 0x19620}, {G_DAY2_DESTROY_BITS, 0xCB10},
-        {G_SPRITE, 0xCB10}, {G_RANDOM, 0xCB10}, {G_DESIRABILITY_GRID, 0xCB10}, {G_ELEVATION_GRID, 0xCB10},
+        {G_GRID_IMAGE, 0x32C40}, {G_GRID_EDGE, 0xCB10}, {G_GRID_BUILDING, 0x19620}, {G_GRID_TERRAIN, 0x32C40},
+        {G_FERTILITY_GRID, 0xCB10}, {G_CANAL, 0xCB10}, {G_FIGURE_GRID, 0x19620}, {G_GRID_BITFIELDS, 0xCB10},
+        {G_SPRITE, 0xCB10}, {G_GRID_RANDOM, 0xCB10}, {G_GRID_DESIRABILITY, 0xCB10}, {G_ELEVATION_GRID, 0xCB10},
         {G_GRID_DAMAGE, 0x19620}, {G_GRID_RUBBLE, 0xCB10}, {G_THREAT, 0xCB10}, {G_GRID_ROAD_NETWORK, 0xCB10},
         {G_NETWORK2, 0xCB10}, {G_GRID_MOISTURE, 0xCB10},
     };
@@ -60,8 +60,8 @@ void pre_load_clear(game_state *st)
     floodplain_manager_reset(st);
     /* @bin 0x0046FA40 tables whose entries' byte +0x0E is cleared, with their counts */
     static const uint32_t tables[][2] = {
-        {G_PATTERN_SHORE, 0x30}, {G_U5CA958, 0x30}, {G_PATTERN_FLOODPLAIN, 0x18}, {G_PATTERN_WALLS, 0x30},
-        {G_PATTERN_WALLS_BUILDING, 0x0F}, {G_U5CBDC8, 0x0E}, {G_PATTERN_SPECIAL_ROCKS, 0x11}, {G_U5CC158, 0x11},
+        {G_PATTERN_SHORE, 0x30}, {G_U5CA958, 0x30}, {G_PATTERN_FLOODPLAIN, 0x18}, {G_WALL_PATTERNS, 0x30},
+        {G_WALL_PATTERNS_BUILDINGS, 0x0F}, {G_U5CBDC8, 0x0E}, {G_PATTERN_SPECIAL_ROCKS, 0x11}, {G_U5CC158, 0x11},
         {G_PATTERN_ROADS, 0x11}, {G_PATTERN_PAVED_ROADS, 0x30}, {G_PATTERN_CANALS, 0x10},
     };
     for (size_t i = 0; i < sizeof(tables) / sizeof(tables[0]); i++) {
@@ -78,7 +78,7 @@ void pre_load_clear(game_state *st)
     /* @bin 0x0046FC80 random grid (chunk 15): one RNG step per tile, low byte of the 15-bit value */
     for (uint32_t o = 0; o < 0xE4u * 0xE4u; o++) {
         random_next_state(st);
-        U8(st, G_RANDOM + o) = (uint8_t) U32(st, G_R_1_15);
+        U8(st, G_GRID_RANDOM + o) = (uint8_t) U32(st, G_R_1_15);
     }
     /* @bin 0x00475B80 image grid := random & 7 + base image 0x00F56B54 on the map's rows, and
      * bitfields |= 0x20 where the random value is odd */
@@ -86,10 +86,10 @@ void pre_load_clear(game_state *st)
         int32_t lo = S32(st, G_ROW_FIRST + 4u * (uint32_t) r), hi = S32(st, G_ROW_END + 4u * (uint32_t) r);
         int32_t o = S32(st, G_ROW_OFFSET + 4u * (uint32_t) r);
         for (int32_t k = lo; k < hi; k++, o++) {
-            uint8_t v = U8(st, G_RANDOM + (uint32_t) o);
-            S32(st, G_IMAGE + 4u * (uint32_t) o) = (v & 7) + S32(st, G_PLAIN);
+            uint8_t v = U8(st, G_GRID_RANDOM + (uint32_t) o);
+            S32(st, G_GRID_IMAGE + 4u * (uint32_t) o) = (v & 7) + S32(st, G_PLAIN);
             if (v & 1) {
-                U8(st, G_DAY2_DESTROY_BITS + (uint32_t) o) |= 0x20;
+                U8(st, G_GRID_BITFIELDS + (uint32_t) o) |= 0x20;
             }
         }
     }

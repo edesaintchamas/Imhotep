@@ -25,7 +25,7 @@ static uint32_t fig(game_state *st)
 /* @bin image base of a sprite group: the table at 0x00F55BB4, 8 bytes per group */
 static int32_t image_group(game_state *st, uint32_t group)
 {
-    return S32(st, G_DAY2_REDRAW_GROUPS + 8u * group);
+    return S32(st, G_IMAGE_GROUPS + 8u * group);
 }
 
 /* the current figure's direction (+0x11) relative to the view, 0 .. 7 (0x00E94E00) */
@@ -833,7 +833,7 @@ static void a07_walker(game_state *st, const a07_kind *k)
             id = cur(st);
             f = FIGURE_ADDR(id);
             /* @bin 0x0048C4E3 the building grid 0x00B4E6FC at the figure's tile */
-            if (S16(st, G_BUILDING_GRID + 2u * (uint32_t) S32(st, f + FIG_GRID_OFFSET)) == bid) {
+            if (S16(st, G_GRID_BUILDING + 2u * (uint32_t) S32(st, f + FIG_GRID_OFFSET)) == bid) {
                 U8(st, f + FIG_STATE) = 2;
             } else {
                 U8(st, f + FIG_ACTION) = 0x0A;
@@ -1274,7 +1274,7 @@ void figure_action_0a(game_state *st)
         if (figure_step_straight(st, id, 1) == 1) {
             id = cur(st);
             f = FIGURE_ADDR(id);
-            if (S16(st, G_BUILDING_GRID + 2u * (uint32_t) S32(st, f + FIG_GRID_OFFSET)) == bid) {
+            if (S16(st, G_GRID_BUILDING + 2u * (uint32_t) S32(st, f + FIG_GRID_OFFSET)) == bid) {
                 U8(st, f + FIG_STATE) = 2;
             } else {
                 U8(st, f + FIG_ACTION) = 0x0A;

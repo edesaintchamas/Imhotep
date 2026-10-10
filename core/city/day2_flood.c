@@ -134,7 +134,7 @@ void flood_tile_step(game_state *st, uint32_t self, int32_t flood)
             v = x87_mul(v, x87_from_double(0x4058C00000000000ull));
             depth = (uint8_t) x87_ftol(v);
         }
-        int32_t b = S16(st, G_BUILDING_GRID + 2u * (uint32_t) t);
+        int32_t b = S16(st, G_GRID_BUILDING + 2u * (uint32_t) t);
         U8(st, G_FERTILITY_GRID + (uint32_t) t) = depth;
         uint32_t kept = ter & 0xEEFED77Fu;
         if (kept & 0x40) {
@@ -169,7 +169,7 @@ void flood_tile_step(game_state *st, uint32_t self, int32_t flood)
                         for (int k = 0; k < 3; k++, o++) {
                             uint32_t v = U32(st, terrain_at(o));
                             if (v & 8) {
-                                U8(st, G_DAY2_DESTROY_BITS + (uint32_t) o) = 0;
+                                U8(st, G_GRID_BITFIELDS + (uint32_t) o) = 0;
                                 U32(st, terrain_at(o)) = v & ~8u;
                             } else {
                                 ok = 0;
@@ -189,7 +189,7 @@ void flood_tile_step(game_state *st, uint32_t self, int32_t flood)
         figures_on_tile_flooded(st, t);
         return;
     }
-    int32_t b = S16(st, G_BUILDING_GRID + 2u * (uint32_t) t);
+    int32_t b = S16(st, G_GRID_BUILDING + 2u * (uint32_t) t);
     uint32_t ter = U32(st, terrain_at(t));
     int32_t x = (int32_t) P32(st, self + 0xC), y = (int32_t) P32(st, self + 0x10);
     if (ter & 4) {
@@ -219,7 +219,7 @@ void flood_tile_step(game_state *st, uint32_t self, int32_t flood)
         int32_t o = building_xy_tile(st, b);
         for (int row = 0; row < 3; row++, o += 0xE4) {
             for (int k = 0; k < 3; k++) {
-                U8(st, G_DAY2_DESTROY_BITS + (uint32_t) (o + k)) = 2;
+                U8(st, G_GRID_BITFIELDS + (uint32_t) (o + k)) = 2;
                 U32(st, terrain_at(o + k)) |= 8;
             }
         }

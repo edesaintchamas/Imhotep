@@ -168,7 +168,7 @@ int32_t storage_add(game_state *st, int32_t player, int32_t bid, int32_t good, i
         int32_t tile = S32(st, p + BLD_GRID_OFFSET);
         /* @bin 0x0045B436 goods below 0x1F: images from 0x00F566BC, the others from 0x00F57204 */
         int32_t base = good < 0x1F ? S32(st, G_IMAGE_GROUP_353) + good * 4 - 4 : S32(st, G_IMAGE_GROUP_714) + good * 4 - 0x7C;
-        S32(st, G_IMAGE + 4u * (uint32_t) tile) = storage_fill_level(have) + base;
+        S32(st, G_GRID_IMAGE + 4u * (uint32_t) tile) = storage_fill_level(have) + base;
     }
     return n;
 }

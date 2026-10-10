@@ -86,7 +86,7 @@ int32_t city_sum_building_1c(game_state *st, int32_t player)
 void month_0x00455530(game_state *st)
 {
     /* @bin 0x00455530 the CRT rand & 7 into 0x0078D808 (a new year) */
-    S32(st, G_WIND) = crt_rand(st) & 7;
+    S32(st, G_WIND_DIRECTION) = crt_rand(st) & 7;
 }
 
 void month_0x004E8630(game_state *st)

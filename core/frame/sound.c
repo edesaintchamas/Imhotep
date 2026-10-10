@@ -293,7 +293,7 @@ void city_random_sound(game_state *st)
     if (tile >= 0x0FFF0000) {
         return;
     }
-    int32_t building = S16(st, G_BUILDING_GRID + 2u * (uint32_t) tile);
+    int32_t building = S16(st, G_GRID_BUILDING + 2u * (uint32_t) tile);
     uint32_t terrain = U32(st, G_GRID_TERRAIN + 4u * (uint32_t) tile);
     int32_t id;
     if (building != 0) {

@@ -243,7 +243,7 @@ void plague_fire(game_state *st, int32_t times)
             int32_t r = GAME_CALL0(st, FN_MISSION_GOALS_PENDING);
             GAME_CALL(st, FN_BUILDING_SPAWN_469E40, bi, r);
             uint32_t b = BUILDING_ADDR(i);
-            S32(st, b + BLD_CRIME_RISK) = S32(st, G_HOUSE_LEVEL_U14 + 0x58u * (uint32_t) (int32_t) S16(st, b + BLD_SUBTYPE));
+            S32(st, b + BLD_CRIME_RISK) = S32(st, G_HOUSE_LEVEL_CRIME_RISK + 0x58u * (uint32_t) (int32_t) S16(st, b + BLD_SUBTYPE));
         }
     }
 }
@@ -332,8 +332,8 @@ int32_t building_destroy_first_of_type(game_state *st, int32_t type)
 /* the terrain grid 0x00AF598C (u32 by tile) and the image grid 0x00B7482C, the building grid
  * 0x00B4E6FC (i16 by tile) */
 #define TERRAIN(t) (G_GRID_TERRAIN + 4u * (uint32_t) (t))
-#define IMAGE(t) (G_IMAGE + 4u * (uint32_t) (t))
-#define BUILDING_AT(st, t) S16(st, G_BUILDING_GRID + 2u * (uint32_t) (t))
+#define IMAGE(t) (G_GRID_IMAGE + 4u * (uint32_t) (t))
+#define BUILDING_AT(st, t) S16(st, G_GRID_BUILDING + 2u * (uint32_t) (t))
 
 static int near_edge(game_state *st, int32_t x, int32_t y)
 {
@@ -389,9 +389,9 @@ void ramp_walk(game_state *st, int32_t x, int32_t y, int32_t mode, int32_t arg4)
     S32(st, G_RAMP_LAST_TILE) = 0;
     S32(st, G_UEAAE98) = 0;
     int32_t t = (int32_t) (U32(st, G_MAP_START) + (uint32_t) y * 0xE4u + (uint32_t) x);
-    S32(st, G_UEAAE90) = 0;
+    S32(st, G_RAMP_WALK_TILE) = 0;
     S32(st, G_UEAAEA4) = t;
-    S32(st, G_UEAAE8C) = 0;
+    S32(st, G_RAMP_WALK_TYPE) = 0;
     if (mode == 3 || mode == 4 || mode == 5 || mode == 6) {
         m14 = 0xEEFFD766u;
         m8 = 0xEBFFFF73u;
@@ -411,8 +411,8 @@ void ramp_walk(game_state *st, int32_t x, int32_t y, int32_t mode, int32_t arg4)
     }
     case 3:
         if (BUILDING_AT(st, t) == 0) {
-            S32(st, G_UEAAE90) = t;
-            S32(st, G_UEAAE8C) = 0xDA;
+            S32(st, G_RAMP_WALK_TILE) = t;
+            S32(st, G_RAMP_WALK_TYPE) = 0xDA;
             return;
         }
         break;
@@ -486,8 +486,8 @@ void ramp_walk(game_state *st, int32_t x, int32_t y, int32_t mode, int32_t arg4)
                     S32(st, G_RAMP_LAST_TILE) = t;
                     return;
                 }
-                S32(st, G_UEAAE90) = t;
-                S32(st, G_UEAAE8C) = 0xDC;
+                S32(st, G_RAMP_WALK_TILE) = t;
+                S32(st, G_RAMP_WALK_TYPE) = 0xDC;
                 return;
             case 5: {
                 int16_t b = BUILDING_AT(st, t);
@@ -525,8 +525,8 @@ void ramp_walk(game_state *st, int32_t x, int32_t y, int32_t mode, int32_t arg4)
             break;
         case 3:
             if (BUILDING_AT(st, t) == 0) {
-                S32(st, G_UEAAE90) = t;
-                S32(st, G_UEAAE8C) = 0xDB;
+                S32(st, G_RAMP_WALK_TILE) = t;
+                S32(st, G_RAMP_WALK_TYPE) = 0xDB;
                 return;
             }
             break;

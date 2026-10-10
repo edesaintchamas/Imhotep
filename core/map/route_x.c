@@ -69,7 +69,7 @@ static void building_visit(game_state *st, int32_t to, int32_t d, int32_t mode)
         return;
     }
     int8_t v = S8(st, G_EC7630 + (uint32_t) to);
-    if (v != 0 && v != 2 && !(v == 1 && S16(st, G_BUILDING_GRID + 2u * (uint32_t) to) == mode)) {
+    if (v != 0 && v != 2 && !(v == 1 && S16(st, G_GRID_BUILDING + 2u * (uint32_t) to) == mode)) {
         return;
     }
     set_dist(st, to, d);
@@ -364,7 +364,7 @@ int32_t route_path_ties(game_state *st, int32_t slot, int32_t x0, int32_t y0, in
         best = dist(st, cur);
         uint8_t flag = (uint8_t) ((U32(st, G_GRID_TERRAIN + 4u * (uint32_t) cur) >> 16) & 1u);
         /* @bin 0x0051DCAB mode 1: ties by the tile's value 0x00ACF85C & 3, else always taken */
-        uint32_t local = mode == 1 ? (U8(st, G_RANDOM + (uint32_t) cur) & 3u) : tick;
+        uint32_t local = mode == 1 ? (U8(st, G_GRID_RANDOM + (uint32_t) cur) & 3u) : tick;
         route_direction(x, y, x0, y0); /* @bin 0x0051DCDA its result is not used */
         int32_t dir = -1;
         for (int32_t k = 0; k < 8; k++) {

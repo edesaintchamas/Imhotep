@@ -73,8 +73,8 @@ void newgame_messages_reset(game_state *st)
     U32(st, G_MESSAGE_SCROLL_ROWS) = 0;
     U32(st, G_MESSAGE_SCROLL) = 0;
     U32(st, G_UE950E0) = 1;
-    U32(st, G_FIRE_MSG_TIME) = 0;
-    U32(st, G_COLLAPSE_MSG_TIME) = 0;
+    U32(st, G_FIRE_MESSAGE_TIME) = 0;
+    U32(st, G_COLLAPSE_MESSAGE_TIME) = 0;
     U32(st, G_UE950E8) = 0;
     U32(st, G_UE950E4) = 0;
     newgame_message_timer_reset(st);
@@ -222,7 +222,7 @@ static void monument_parts_complete_4df2c0(game_state *st, int32_t id)
      * byte < 4, else 2; +0xC := 0xFF; +8 := 3; +0x1C u8 := 1; -0x42 i16 := -1 */
     int32_t base = id - P16(st, BUILDING_ADDR(id) + BLD_PART);
     uint32_t a = BUILDING_ADDR(base) + BLD_MONUMENT_STAGE;
-    for (uint32_t e = G_MONUMENT_PARTS; e < G_MONUMENT_PARTS + 116u * 0x34u; e += 0x34, a += BUILDING_REC_SIZE) {
+    for (uint32_t e = G_MASTABA_PART_KIND; e < G_MASTABA_PART_KIND + 116u * 0x34u; e += 0x34, a += BUILDING_REC_SIZE) {
         uint32_t lo = U32(st, e) & 0xFF;
         P32(st, a) = lo < 4 ? 0xFFFFu : 2u;
         P32(st, a + 0xC) = 0xFF;

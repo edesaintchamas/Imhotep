@@ -87,7 +87,7 @@ void clear_land(game_state *st, int32_t preview, int32_t x1, int32_t y1, int32_t
         S32(st, G_WALK_X) = xmin;
         if (xmin <= xmax) {
             do {
-                int32_t bid = S16(st, G_BUILDING_GRID + 2u * (uint32_t) off);
+                int32_t bid = S16(st, G_GRID_BUILDING + 2u * (uint32_t) off);
                 uint8_t sprite = G8(st, G_SPRITE, off);
                 uint32_t bridge_bit = T32(st, off) & 4u;
                 if (bid != 0) {
@@ -216,14 +216,14 @@ int32_t bridge_figures(game_state *st, int32_t off)
     int32_t step = bridge_step(st, off);
     int32_t p = bridge_start(st, off, step);
     int32_t count = S16(st, G_FIGURE_GRID + 2u * (uint32_t) p) != 0;
-    G8(st, G_DAY2_DESTROY_BITS, p) &= 0xBF;
+    G8(st, G_GRID_BITFIELDS, p) &= 0xBF;
     if (T32(st, p + step) & 4u) {
         while (G8(st, G_SPRITE, p + step) != 0) {
             p += step;
             if (S16(st, G_FIGURE_GRID + 2u * (uint32_t) p) != 0) {
                 count++;
             }
-            G8(st, G_DAY2_DESTROY_BITS, p) &= 0xBF;
+            G8(st, G_GRID_BITFIELDS, p) &= 0xBF;
             if (!(T32(st, p + step) & 4u)) {
                 break;
             }
@@ -235,7 +235,7 @@ int32_t bridge_figures(game_state *st, int32_t off)
 static void bridge_remove_tile(game_state *st, int32_t p, int32_t preview)
 {
     if (preview != 0) {
-        G8(st, G_DAY2_DESTROY_BITS, p) |= 0x40;
+        G8(st, G_GRID_BITFIELDS, p) |= 0x40;
     } else {
         uint32_t t = T32(st, p);
         G8(st, G_SPRITE, p) = 0;
@@ -322,7 +322,7 @@ void clear_pyramid_area(game_state *st, int32_t id)
     if ((uint8_t) GAME_CALL(st, FN_PYRAMID_KIND_OK, kind) == 0) {
         return;
     }
-    int32_t rel = (int32_t) (U32(st, G_PYRAMID_RAMP + 4u * (uint32_t) kind) + U32(st, BUILDING_ADDR(main) + BLD_GRID_OFFSET) -
+    int32_t rel = (int32_t) (U32(st, G_PYRAMID_RAMP_START + 4u * (uint32_t) kind) + U32(st, BUILDING_ADDR(main) + BLD_GRID_OFFSET) -
                              U32(st, G_MAP_START));
     int32_t x = rel % 228, y = rel / 228;
     GAME_CALL(st, FN_RAMP_WALK, x, y, 5, 0);
@@ -458,7 +458,7 @@ void clear_land_apply(game_state *st, int32_t preview, int32_t x1, int32_t y1, i
                 if (t & 0x02040202u) {
                     goto next;
                 }
-                int32_t bid = S16(st, G_BUILDING_GRID + 2u * (uint32_t) off);
+                int32_t bid = S16(st, G_GRID_BUILDING + 2u * (uint32_t) off);
                 /* @bin 0x00474845 buildings: terrain 8, 0x40000000, or 0x10000000 under 0xE1 / 0xD5 */
                 int on_building = (t & 8u) || (t & 0x40000000u);
                 if (!on_building && bid != 0 && (full & 0x10000000u)) {
@@ -509,15 +509,15 @@ void clear_land_apply(game_state *st, int32_t preview, int32_t x1, int32_t y1, i
                     }
                 } else if (t != 0) {
                     /* @bin 0x004749D0 trees, rubble, ... removed */
-                    uint8_t e = G8(st, G_EDGE, off);
+                    uint8_t e = G8(st, G_GRID_EDGE, off);
                     T32(st, off) = full & 0x03052E80u;
-                    uint8_t bits = G8(st, G_DAY2_DESTROY_BITS, off) & 0xF0;
+                    uint8_t bits = G8(st, G_GRID_BITFIELDS, off) & 0xF0;
                     e |= 0x40;
-                    G8(st, G_DAY2_DESTROY_BITS, off) = bits;
-                    G8(st, G_EDGE, off) = e;
+                    G8(st, G_GRID_BITFIELDS, off) = bits;
+                    G8(st, G_GRID_EDGE, off) = e;
                     if (preview == 0) {
-                        G8(st, G_DAY2_DESTROY_BITS, off) = bits & 0x70;
-                        G8(st, G_EDGE, off) = e | 0x40;
+                        G8(st, G_GRID_BITFIELDS, off) = bits & 0x70;
+                        G8(st, G_GRID_EDGE, off) = e | 0x40;
                     }
                     S32(st, G_CONSTRUCTION_COUNT) = S32(st, G_CONSTRUCTION_COUNT) + 1;
                 }

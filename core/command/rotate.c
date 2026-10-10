@@ -55,8 +55,8 @@ void view_table_build(game_state *st, int32_t orient)
     S32(st, G_VIEW_ROW_MAX) = 0;
     int32_t tile_base = 0;
     int32_t row_base = row * (int32_t) VIEW_ROW;
-    uint32_t img = G_IMAGE;
-    while (img < G_IMAGE + 4u * GRID_TILES) {
+    uint32_t img = G_GRID_IMAGE;
+    while (img < G_GRID_IMAGE + 4u * GRID_TILES) {
         int32_t r = row, c = col, base = row_base;
         for (int32_t k = 0; k < 0xE4; k++, img += 4) {
             int32_t half = c / 2;
@@ -265,21 +265,21 @@ static void edge_draw_tiles(game_state *st)
             continue;
         }
         for (int32_t n = end - first; n > 0; n--, off++) {
-            int32_t size = U8(st, G_DAY2_DESTROY_BITS + off) & 0xF;
-            uint8_t e = U8(st, G_EDGE + off);
+            int32_t size = U8(st, G_GRID_BITFIELDS + off) & 0xF;
+            uint8_t e = U8(st, G_GRID_EDGE + off);
             int32_t pos = e & 0x3F;
             if (size == 0) {
-                U8(st, G_EDGE + off) = (uint8_t) (e | 0x40);
+                U8(st, G_GRID_EDGE + off) = (uint8_t) (e | 0x40);
                 continue;
             }
             e &= 0xBF;
-            U8(st, G_EDGE + off) = e;
+            U8(st, G_GRID_EDGE + off) = e;
             if (size > 5) {
                 continue;
             }
             int draw = o == 0 ? pos == 8 * size : o == 6 ? pos == 9 * size : o == 4 ? pos == size : o == 2 ? pos == 0 : 0;
             if (draw) {
-                U8(st, G_EDGE + off) = (uint8_t) (e | 0x40);
+                U8(st, G_GRID_EDGE + off) = (uint8_t) (e | 0x40);
             }
         }
     }

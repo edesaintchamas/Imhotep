@@ -330,7 +330,7 @@ int32_t line_of_fire_clear(game_state *st, int32_t x, int32_t y, int32_t tx, int
         if (flags & 0xC001u) {
             return 0;
         }
-        if ((flags & 8u) && (U8(st, G_DAY2_DESTROY_BITS + t) & 0x0Fu)) {
+        if ((flags & 8u) && (U8(st, G_GRID_BITFIELDS + t) & 0x0Fu)) {
             return 0;
         }
     }
@@ -829,8 +829,8 @@ void tree_image_update(game_state *st, int32_t tile)
      * the image groups of 0x00F56B5C, 0x00F56B9C, 0x00F56C3C, 0x00F57244, 0x00F5723C, 0x00F56B94,
      * which by 0x00A43EAC; + the tile's random & 7 */
     uint32_t v = U32(st, G_GRID_TERRAIN + 4u * (uint32_t) tile);
-    uint32_t rnd = U8(st, G_RANDOM + (uint32_t) tile) & 7u;
-    uint32_t img = G_IMAGE + 4u * (uint32_t) tile;
+    uint32_t rnd = U8(st, G_GRID_RANDOM + (uint32_t) tile) & 7u;
+    uint32_t img = G_GRID_IMAGE + 4u * (uint32_t) tile;
     if ((v & 1u) && !(v & 0x80000u)) {
         uint32_t m = U8(st, G_GRID_MOISTURE + (uint32_t) tile);
         if (m > 100) {
@@ -888,12 +888,12 @@ int32_t find_gatherable(game_state *st, int32_t x, int32_t y, int32_t unused, ui
     (void) unused;
     uint8_t ftype;
     if (mask == 0x40000u) {
-        if (U8(st, G_REEDS_AVAILABLE) == 0) {
+        if (U8(st, G_LIST_DONE_C3) == 0) {
             return 0;
         }
         ftype = 0x5A;
     } else {
-        if (U8(st, G_TREES_AVAILABLE) == 0) {
+        if (U8(st, G_LIST_DONE_6C) == 0) {
             return 0;
         }
         ftype = 0x4B;
@@ -944,9 +944,9 @@ int32_t find_gatherable(game_state *st, int32_t x, int32_t y, int32_t unused, ui
         goto found;
     }
     if (mask == 0x40000u) {
-        U8(st, G_REEDS_AVAILABLE) = 0;
+        U8(st, G_LIST_DONE_C3) = 0;
     } else {
-        U8(st, G_TREES_AVAILABLE) = 0;
+        U8(st, G_LIST_DONE_6C) = 0;
     }
     return 0;
 found:;
@@ -1056,14 +1056,14 @@ int32_t nearest_building_0x63(game_state *st, int32_t x, int32_t y)
      * +0x30 0 (its distance in 0x0078D7F8), else the nearest with +0x30 set when within 2 */
     int32_t best_far = 10000, any = 0, other = 0;
     S32(st, G_RUIN_DISTANCE) = 10000;
-    S32(st, G_RUIN_LIST_SIZE) = 0;
-    int32_t n = S32(st, G_RUIN_COUNT);
+    S32(st, G_FIRE_LIST_SIZE) = 0;
+    int32_t n = S32(st, G_FIRE_LIST_INDEX);
     if (n <= 0) {
         return 0;
     }
-    S32(st, G_RUIN_LIST_SIZE) = n;
+    S32(st, G_FIRE_LIST_SIZE) = n;
     for (int32_t i = 0; i < n; i++) {
-        int32_t b = S16(st, G_RUINS + 2u * (uint32_t) i);
+        int32_t b = S16(st, G_FIRE_LIST + 2u * (uint32_t) i);
         uint32_t ba = BUILDING_ADDR(b);
         if (U8(st, ba + BLD_STATE) != 1 || S16(st, ba + BLD_TYPE) != 0x63 || U8(st, ba + BLD_UBD) != 0 || S16(st, ba + BLD_DISTANCE) == 0) {
             continue;

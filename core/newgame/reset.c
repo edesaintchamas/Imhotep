@@ -157,8 +157,8 @@ static void date_reset(game_state *st)
     U32(st, G_FROGS_COUNTDOWN) = 0;
     U32(st, G_PYRAMID_CURSE_COUNTDOWN) = 0;
     U32(st, G_HAIL_TIMER) = 0;
-    U32(st, G_BUILDINGS_REPAIRED) = 0;
-    U32(st, G_BUILDINGS_NOT_FOUND) = 0;
+    U32(st, G_POSITION_SEARCHES) = 0;
+    U32(st, G_POSITION_LOST) = 0;
     U32(st, G_BUILDING_HIGHEST_EVER) = 0;
     counters_0x0078d5c8_clear(st);
     zero(st, G_U78D3EC, 0x33u * 4u);

@@ -17,12 +17,12 @@
 #define GRID 228
 
 #define TER(o) U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (o))
-#define IMG(o) S32(st, G_IMAGE + 4u * (uint32_t) (o))
-#define EDGE(o) U8(st, G_EDGE + (uint32_t) (o))
-#define BITS(o) U8(st, G_DAY2_DESTROY_BITS + (uint32_t) (o))
-#define RND(o) U8(st, G_RANDOM + (uint32_t) (o))
+#define IMG(o) S32(st, G_GRID_IMAGE + 4u * (uint32_t) (o))
+#define EDGE(o) U8(st, G_GRID_EDGE + (uint32_t) (o))
+#define BITS(o) U8(st, G_GRID_BITFIELDS + (uint32_t) (o))
+#define RND(o) U8(st, G_GRID_RANDOM + (uint32_t) (o))
 #define MOIST(o) U8(st, G_GRID_MOISTURE + (uint32_t) (o))
-#define BGRID(o) S16(st, G_BUILDING_GRID + 2u * (uint32_t) (o))
+#define BGRID(o) S16(st, G_GRID_BUILDING + 2u * (uint32_t) (o))
 #define FGRID(o) S16(st, G_FIGURE_GRID + 2u * (uint32_t) (o))
 #define FP_OBJECT(o) U32(st, G_UD05720 + 4u * (uint32_t) (o))
 #define BUILDING(id) BUILDING_ADDR(id)
@@ -204,7 +204,7 @@ int32_t land_pyramid_tile_state(game_state *st, int32_t o)
     }
     uint32_t stage = U8(st, p + BLD_U55);
     if (stage == 3) {
-        uint32_t table = S32(st, G_PYRAMID_KIND) == 5 ? G_PYRAMID_PART_LISTS_KIND5 : G_PYRAMID_PART_LISTS;
+        uint32_t table = S32(st, G_PYRAMID_KIND) == 5 ? G_PYRAMID_STAGE3_LISTS_KIND5 : G_PYRAMID_STAGE3_LISTS;
         uint32_t entry = table + 8u * U8(st, p + BLD_MONUMENT_KIND);
         int32_t n = S32(st, entry + 4);
         for (int32_t i = 0; i < n; i++) {
@@ -231,7 +231,7 @@ int32_t land_monument_tile_image(game_state *st, int32_t building, int32_t o, in
     uint32_t table, keep = 0xFF;
     int32_t base, variants = 1;
     switch (state) {
-    case 3: table = G_UEAAF60; base = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 759); keep = 0; break;
+    case 3: table = G_UEAAF60; base = S32(st, G_IMAGE_GROUPS + 8u * 759); keep = 0; break;
     case 4:
         if ((uint8_t) redo) {
             int32_t r = o - S32(st, G_MAP_START);
@@ -242,12 +242,12 @@ int32_t land_monument_tile_image(game_state *st, int32_t building, int32_t o, in
             GAME_CALL(st, FN_MEADOW_RECT, x, y, x, y);
         }
         return (uint8_t) redo;
-    case 5: table = G_MONUMENT_EDGE_IMAGES_5; base = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 753); variants = 8; break;
-    case 6: table = G_MONUMENT_EDGE_IMAGES; base = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 754); keep = 0x55; break;
-    case 7: table = G_MONUMENT_EDGE_IMAGES; base = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 755); keep = 0x55; break;
-    case 8: table = G_MONUMENT_EDGE_IMAGES; base = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 754); keep = 0x55; break;
-    case 9: table = G_MONUMENT_EDGE_IMAGES; base = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 756); keep = 0x55; break;
-    case 10: table = G_MONUMENT_EDGE_IMAGES; base = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 757); keep = 0x55; break;
+    case 5: table = G_MONUMENT_EDGE_IMAGES_5; base = S32(st, G_IMAGE_GROUPS + 8u * 753); variants = 8; break;
+    case 6: table = G_MONUMENT_EDGE_IMAGES; base = S32(st, G_IMAGE_GROUPS + 8u * 754); keep = 0x55; break;
+    case 7: table = G_MONUMENT_EDGE_IMAGES; base = S32(st, G_IMAGE_GROUPS + 8u * 755); keep = 0x55; break;
+    case 8: table = G_MONUMENT_EDGE_IMAGES; base = S32(st, G_IMAGE_GROUPS + 8u * 754); keep = 0x55; break;
+    case 9: table = G_MONUMENT_EDGE_IMAGES; base = S32(st, G_IMAGE_GROUPS + 8u * 756); keep = 0x55; break;
+    case 10: table = G_MONUMENT_EDGE_IMAGES; base = S32(st, G_IMAGE_GROUPS + 8u * 757); keep = 0x55; break;
     default: return 0;
     }
     int32_t orient = S32(st, G_VIEW_ORIENTATION);
@@ -295,7 +295,7 @@ void land_pyramids_redraw(game_state *st)
         int32_t id = S32(st, G_PYRAMID_REDRAW + 4u * (uint32_t) i);
         uint32_t kind = U8(st, BUILDING(id) + BLD_MONUMENT_KIND);
         if ((uint8_t) GAME_CALL(st, FN_PYRAMID_KIND_OK, (int32_t) kind)) {
-            int32_t r = S32(st, G_PYRAMID_RAMP + 4u * kind) + S32(st, BUILDING(id) + BLD_GRID_OFFSET) - S32(st, G_MAP_START);
+            int32_t r = S32(st, G_PYRAMID_RAMP_START + 4u * kind) + S32(st, BUILDING(id) + BLD_GRID_OFFSET) - S32(st, G_MAP_START);
             GAME_CALL(st, FN_RAMP_WALK, r % GRID, r / GRID, 4, 0);
         }
     }
@@ -372,7 +372,7 @@ static void grass_tile(game_state *st, int32_t o)
         /* @bin 0x0051C5F0 */
         idx = idx == 0x34 ? 0x56 : idx == 0x30 ? 0x54 : idx == 0x36 ? 0x57 : idx == 0x32 ? 0x55 : idx;
     }
-    IMG(o) = S32(st, G_DAY2_REDRAW_GROUPS + 8u * (uint32_t) group) + idx;
+    IMG(o) = S32(st, G_IMAGE_GROUPS + 8u * (uint32_t) group) + idx;
 }
 
 /* a monument tile (terrain 0x10000000): 1 when the pass leaves it to the monument */
@@ -479,7 +479,7 @@ void terrain_land(game_state *st, int32_t x0, int32_t y0, int32_t x1, int32_t y1
                 if ((v & 0xEEFED77Fu) || IMG(o) != 0 || (RND(o) & 0xF0)) {
                     continue;
                 }
-                int32_t g = (BITS(o) & 0x20) ? S32(st, G_DAY2_REDRAW_GROUPS + 8u * 0x1F8u) : S32(st, G_DAY2_REDRAW_GROUPS + 8u * 0x1FBu);
+                int32_t g = (BITS(o) & 0x20) ? S32(st, G_IMAGE_GROUPS + 8u * 0x1F8u) : S32(st, G_IMAGE_GROUPS + 8u * 0x1FBu);
                 land_block_place(st, b, x, y, 1, 1, (RND(o) & 7) + g, flag);
             }
             o += S32(st, G_MAP_STRIDE_EXTRA) + step;
@@ -501,16 +501,16 @@ void terrain_land(game_state *st, int32_t x0, int32_t y0, int32_t x1, int32_t y1
                 int32_t n, image;
                 if (land_block_fits(st, x, y, 4, 4, 0xFFFF, 1, 1)) {
                     n = 4;
-                    image = S32(st, G_DAY2_REDRAW_GROUPS + 8u * group) + 0x2A;
+                    image = S32(st, G_IMAGE_GROUPS + 8u * group) + 0x2A;
                 } else if (land_block_fits(st, x, y, 3, 3, 0xFFFF, 1, 1)) {
                     n = 3;
-                    image = (RND(o) & 1) * 9 + S32(st, G_DAY2_REDRAW_GROUPS + 8u * group) + 0x18;
+                    image = (RND(o) & 1) * 9 + S32(st, G_IMAGE_GROUPS + 8u * group) + 0x18;
                 } else if (land_block_fits(st, x, y, 2, 2, 0xFFFF, 1, 1)) {
                     n = 2;
-                    image = S32(st, G_DAY2_REDRAW_GROUPS + 8u * group) + (RND(o) & 3) * 4 + 8;
+                    image = S32(st, G_IMAGE_GROUPS + 8u * group) + (RND(o) & 3) * 4 + 8;
                 } else {
                     n = 1;
-                    image = (RND(o) & 7) + S32(st, G_DAY2_REDRAW_GROUPS + 8u * group);
+                    image = (RND(o) & 7) + S32(st, G_IMAGE_GROUPS + 8u * group);
                 }
                 land_block_place(st, b, x, y, n, n, image, flag);
             }
@@ -582,7 +582,7 @@ static int32_t run_pyramid_kind_ok(game_state *st, const int32_t *a)
     if (S32(st, G_PYRAMID_KIND) == 5) {
         return 0;
     }
-    return S32(st, G_PYRAMID_RAMP + 4u * (uint32_t) a[0]) != 0;
+    return S32(st, G_PYRAMID_RAMP_START + 4u * (uint32_t) a[0]) != 0;
 }
 
 static int32_t run_terrain_land(game_state *st, const int32_t *a)

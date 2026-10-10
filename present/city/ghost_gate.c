@@ -407,7 +407,7 @@ good:;
     for (int32_t b = main;;) {
         uint32_t r = BUILDING_ADDR(b);
         int32_t tile = S32(st, G_MAP_START) + S16(st, r + 8) * 0xE4 + S16(st, r + 6);
-        int32_t ti = S32(st, G_IMAGE + 4u * (uint32_t) tile);
+        int32_t ti = S32(st, G_GRID_IMAGE + 4u * (uint32_t) tile);
         int32_t k = -1;
         if (ti == img) {
             k = k0;

@@ -487,7 +487,7 @@ int32_t figb_flee_tile(game_state *st, int32_t x, int32_t y, int32_t fx, int32_t
     uint32_t base = U32(st, G_MAP_START) + 0xE4u * (uint32_t) y + (uint32_t) x;
     while (i != end) {
         uint32_t g = base + (uint32_t) grid[i];
-        if (U8(st, G_DESIRABILITY_GRID + g) == 0) {
+        if (U8(st, G_GRID_DESIRABILITY + g) == 0) {
             uint32_t t = U32(st, G_GRID_TERRAIN + 4u * g);
             if (!(t & 0x80000u) && (int8_t) GAME_CALL(st, FN_INVADER_TILE_OK, (int32_t) t, 1) != 0) {
                 *ox = dx[i] + x;

@@ -39,9 +39,6 @@
 #define G_SCENARIO_MAP_STRIDE_EXTRA 0x00784910u /* i32 (+0x38): copied to G_MAP_STRIDE_EXTRA */
 
 /* the pyramids (g_building.h) */
-#define G_PYRAMID_PART_LISTS 0x005F6CD0u    /* @bin 0x004F3D70 {u32 list, i32 count} per BLD_MONUMENT_KIND: the parts
-                                        * {i32 part, i32 offset} of a stage-3 pyramid */
-#define G_PYRAMID_PART_LISTS_KIND5 0x005F6D58u /* @bin 0x004F3D70 the same when G_PYRAMID_KIND == 5 */
 
 /* the image table (G_IMAGE_ENTRIES, 64-byte entries; g_city.h) */
 #define IMAGE_ENTRY_WIDTH 0x0Cu  /* @bin 0x004D4720 i16 */
