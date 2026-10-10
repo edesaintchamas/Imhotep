@@ -3,7 +3,10 @@
 
 Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0.
 
-  python3 tools/naming/resolve.py [--alias OLD=NEW ...] [--repair] [--dry]
+  python3 tools/naming/resolve.py [--alias OLD=NEW ...] [--from REF] [--repair] [--dry]
+
+--from REF: names the build reports undeclared (a package branched before a merge renamed them) are
+looked up in REF's headers and replaced by this tree's name for the same address.
 
 1. Aliases: a name a package renamed (OLD, no longer defined) still used by another package's code is
    replaced by NEW everywhere in core/, present/, tests/ and tools/ (C sources and headers).
@@ -99,6 +102,32 @@ def repair(path):
     return removed
 
 
+def undeclared():
+    """identifiers the libraries' build reports as undeclared"""
+    import subprocess
+    out = os.path.join(ROOT, 'build-resolve')
+    r = subprocess.run(['make', '-s', '-k', '-j2', 'BUILD=' + out, out + '/libimhotep_core.a',
+                        out + '/libimhotep_present.a'], cwd=ROOT, capture_output=True, text=True)
+    import shutil
+    shutil.rmtree(out, ignore_errors=True)
+    return sorted(set(re.findall(r"undeclared identifier '([A-Z][A-Z0-9_]*)'", r.stdout + r.stderr)))
+
+
+def names_at(ref):
+    """name -> address in the layout headers of a git revision"""
+    import subprocess
+    files = subprocess.run(['git', 'ls-tree', '-r', '--name-only', ref, 'core/state/layout', 'present/layout'],
+                           cwd=ROOT, capture_output=True, text=True).stdout.split()
+    out = {}
+    for f in files:
+        text = subprocess.run(['git', 'show', '%s:%s' % (ref, f)], cwd=ROOT, capture_output=True, text=True).stdout
+        for line in text.splitlines():
+            m = DEFINE.match(line)
+            if m:
+                out[m.group(1)] = int(m.group(2), 16)
+    return out
+
+
 def main():
     argv = sys.argv[1:]
     dry = '--dry' in argv
@@ -116,6 +145,24 @@ def main():
             if len(line) == 2:
                 aliases.append(tuple(line))
     files = sources()
+    if '--from' in argv:
+        ref = argv[argv.index('--from') + 1]
+        theirs = names_at(ref)
+        ours = {}
+        for path, _ in headers():
+            for line in open(path):
+                m = DEFINE.match(line)
+                if m:
+                    ours.setdefault(int(m.group(2), 16), m.group(1))
+        for name in undeclared():
+            addr = theirs.get(name)
+            new_name = ours.get(addr) if addr is not None else None
+            if new_name:
+                aliases.append((name, new_name))
+                with open(os.path.join(ROOT, 'tools', 'naming', 'aliases.txt'), 'a') as f:
+                    f.write('%s %s\n' % (name, new_name))
+            else:
+                print('undeclared %s: no address in %s or no name for it here' % (name, ref))
     if '--repair' in argv:
         for path, _ in headers():
             n = repair(path)
@@ -159,6 +206,9 @@ def main():
                 with open(path, 'w') as f:
                     f.write(''.join(kept))
             uses = rename_everywhere(name, keep, files, dry)
+            if not dry:
+                with open(os.path.join(ROOT, 'tools', 'naming', 'aliases.txt'), 'a') as f:
+                    f.write('%s %s\n' % (name, keep))
             print('0x%08X: kept %s, removed %s (%s, %d uses renamed)'
                   % (addr, keep, name, os.path.relpath(path, ROOT), uses))
     return 0

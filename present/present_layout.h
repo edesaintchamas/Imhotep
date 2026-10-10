@@ -10,6 +10,7 @@
 #include "layout/g_city_view.h"
 #include "layout/g_play.h"
 #include "layout/g_ui_advisors.h"
+#include "layout/g_ui_frontend.h"
 #include "layout/g_ui_info.h"
 #include "layout/g_ui_main.h"
 

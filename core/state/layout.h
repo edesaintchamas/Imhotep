@@ -39,6 +39,7 @@
 #include "state/layout/pending/p8a_ui_main.h"
 #include "state/layout/pending/p8b_ui_info.h"
 #include "state/layout/pending/p8c_ui_advisors.h"
+#include "state/layout/pending/p8d_ui_frontend.h"
 #include "state/layout/pending/p9_city_view.h"
 
 #include "state/functions.h"
