@@ -148,7 +148,7 @@
 #define G_WORKSTEP_STRIDE 24u
 /* game-time countdowns (save.md §3) */
 #define G_FROGS_COUNTDOWN 0x0078D7A8u /* @bin 0x004E70B0 i32 chunk 105: Plague of Frogs countdown */
-#define G_PYRAMID_CURSE_COUNTDOWN 0x0078D7A4u /* @bin 0x004F3AA0 i32 chunk 106: god-curse countdown from Pyramid progress (flag G_PYRAMID_CURSE_FLAG) */
+#define G_PYRAMID_CURSE_COUNTDOWN 0x0078D7A4u /* @bin 0x004F3AA0 i32 chunk 106: god-curse countdown from Pyramid progress (flag G_GOD_CURSE_ON) */
 #define G_BLOOD_RIVER_DURATION 0x0078D7ACu /* @bin 0x004E7200 i32 chunk 107: River of Blood duration */
 #define G_MUMMY_ATTACK_PARAM 0x0078D798u /* @bin 0x004E7AC0 i32 chunk 173: mummy-attack parameter (default 10) */
 

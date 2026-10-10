@@ -26,7 +26,6 @@
 #define G_DIRECTION_STEPS 0x005F811Cu    /* @bin 0x0051C930 i32 (dx, dy) per direction */
 #define G_PATH_DIRECTIONS 0x005F815Cu    /* @bin 0x0051C930 i32[4] per direction: the directions tried in order */
 #define G_PATH_TILE 0x00EAE000u          /* @bin 0x0051C930 i32: the path walk's current tile */
-#define G_MONUMENT_D5_PARTS 0x00601DD8u  /* @bin 0x00541AE0 100 records of 0x34 bytes: +0 x, +4 y, +8 size */
 #define G_DRAG_START_HEIGHT 0x00BC96CCu  /* @bin 0x00405C20 i32: the elevation of the construction's first tile */
 #define G_UBC9710 0x00BC9710u            /* @bin 0x00405200 i32: := G_FRAME_CLOCK when a building is chosen */
 #define G_UBC9720 0x00BC9720u            /* @bin 0x004728A0 i32: := 0 before a construction is charged */
@@ -43,7 +42,6 @@
 #define G_MODEL_FILES_TAX 0x00601930u    /* @bin 0x00541160 char *[5]: Tax_Sentiment_Model_<level>.txt */
 #define G_STR_MODEL_LOADED 0x00601AF4u   /* @bin 0x00540C90 " OK: model loaded" */
 #define G_STR_NO_BUILDING_MODEL 0x00601B88u /* @bin 0x00540C90 the log line when the file cannot be read */
-#define G_STR_NO_SPARE_SCREEN 0x00601BA8u /* @bin 0x00540CA1 "ERR:no spare screen for model" */
 #define G_STR_FIGURE_MODEL_LOADED 0x00601BC8u /* @bin 0x00540ED0 " OK: figure model data loaded" */
 #define G_STR_NO_FIGURE_MODEL 0x00601C60u /* @bin 0x00540ED0 the log line when the file cannot be read (also 0x00541160) */
 #define G_STR_TAX_MODEL_LOADED 0x00601C80u /* @bin 0x00541160 " OK: tax sentiment data loaded" */

@@ -53,10 +53,10 @@ int main(int argc, char **argv)
 
     FILE *f = fopen(argv[2], "wb");
     int err = !f || fwrite("IMTD", 1, 4, f) != 4 || put_u32(f, 1) != 0;
-    for (int o = 0; !err && o < GRID_SIZE; o++) {
+    for (int o = 0; !err && o < GRID_TILES; o++) {
         err = put_u32(f, U32(&gs, 0x00B7482Cu + 4u * (uint32_t) o)) != 0;
     }
-    err = err || fwrite(state_ptr(&gs, 0x00B67D1Cu, GRID_SIZE), 1, GRID_SIZE, f) != GRID_SIZE;
+    err = err || fwrite(state_ptr(&gs, 0x00B67D1Cu, GRID_TILES), 1, GRID_TILES, f) != GRID_TILES;
     if (f) {
         err |= fclose(f) != 0;
     }

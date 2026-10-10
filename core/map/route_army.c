@@ -7,61 +7,53 @@
 #include "map/route_search.h"
 #include "map/routing.h"
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define MAP_START 0x00BCA2D8u
-#define QUEUE 0x00F203A0u
 #define QUEUE_LAST 0xCB0F
-#define QUEUE_HEAD 0x00EAE00Cu
-#define QUEUE_TAIL 0x00EAE008u
-#define SEARCH_START 0x00EAE004u
-#define SEARCH_COUNT 0x00EADFD4u
-#define SEARCH_COUNT2 0x00EADFD8u
-#define FIGURE_GRID 0x00B350DCu   /* i16 per tile: the first figure there */
-#define BUILDING_GRID 0x00B4E6FCu /* i16 per tile */
 
 static int32_t dist(game_state *st, int32_t t)
 {
-    return S32(st, ROUTE_DISTANCE + 4u * (uint32_t) t);
+    return S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) t);
 }
 
 static void push(game_state *st, int32_t tile)
 {
-    int32_t tail = S32(st, QUEUE_TAIL);
-    S32(st, QUEUE + 4u * (uint32_t) tail) = tile;
+    int32_t tail = S32(st, G_ROUTE_QUEUE_TAIL);
+    S32(st, G_ROUTE_QUEUE + 4u * (uint32_t) tail) = tile;
     tail++;
-    S32(st, QUEUE_TAIL) = tail > QUEUE_LAST ? 0 : tail;
+    S32(st, G_ROUTE_QUEUE_TAIL) = tail > QUEUE_LAST ? 0 : tail;
 }
 
 static int32_t queue_at(game_state *st, int32_t i)
 {
-    return S32(st, QUEUE + 4u * (uint32_t) i);
+    return S32(st, G_ROUTE_QUEUE + 4u * (uint32_t) i);
 }
 
 int32_t route_tile_not_held(game_state *st, int32_t tile)
 {
     /* @bin 0x0051AFA0 */
-    int32_t f = S16(st, FIGURE_GRID + 2u * (uint32_t) tile);
+    int32_t f = S16(st, G_FIGURE_GRID + 2u * (uint32_t) tile);
     if (f <= 0) {
         return 1;
     }
     do {
         uint32_t a = FIGURE_ADDR(f);
-        if (U8(st, a + 0x0D) == 0 && U8(st, a + 0x38) == 5) {
+        if (U8(st, a + FIG_U0D) == 0 && U8(st, a + FIG_ACTION) == 5) {
             return 0;
         }
-        f = S16(st, a + 0x08);
+        f = S16(st, a + FIG_NEXT_ON_TILE);
     } while (f != 0);
     return 1;
 }
 
 static void start_search(game_state *st, int32_t x, int32_t y)
 {
-    memset(state_ptr(st, ROUTE_DISTANCE, 4 * GRID_TILES), 0, 4 * GRID_TILES); /* 0x0040F8F0 */
-    int32_t start = S32(st, MAP_START) + y * GRID_SIZE + x;
-    S32(st, SEARCH_START) = start;
-    S32(st, SEARCH_COUNT) += 1;
+    memset(state_ptr(st, G_GRID_ROAD_DISTANCE, 4 * GRID_TILES), 0, 4 * GRID_TILES); /* 0x0040F8F0 */
+    int32_t start = S32(st, G_MAP_START) + y * GRID_SIZE + x;
+    S32(st, G_ROUTE_START) = start;
+    S32(st, G_ROUTE_SEARCHES) += 1;
 }
 
 /* @bin 0x0051A5D9 mode 0: neighbour `to` of `cur` (grid value at `to`), cost d + 0, 10 or 40 */
@@ -70,12 +62,12 @@ static void weighted_visit(game_state *st, int32_t to, int32_t d)
     if (dist(st, to) != 0 || !route_tile_not_held(st, to)) {
         return;
     }
-    int8_t v = S8(st, ROUTING_EC7630 + (uint32_t) to);
+    int8_t v = S8(st, G_EC7630 + (uint32_t) to);
     if (v < 0 || v >= 5) {
         return;
     }
     int32_t cost = v == 3 ? 40 : v == 1 ? 10 : 0;
-    S32(st, ROUTE_DISTANCE + 4u * (uint32_t) to) = cost + d;
+    S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) to) = cost + d;
     push(st, to);
 }
 
@@ -85,11 +77,11 @@ static void building_visit(game_state *st, int32_t to, int32_t d, int32_t mode)
     if (dist(st, to) != 0 || !route_tile_not_held(st, to)) {
         return;
     }
-    int8_t v = S8(st, ROUTING_EC7630 + (uint32_t) to);
-    if (v != 0 && v != 2 && !(v == 1 && S16(st, BUILDING_GRID + 2u * (uint32_t) to) == mode)) {
+    int8_t v = S8(st, G_EC7630 + (uint32_t) to);
+    if (v != 0 && v != 2 && !(v == 1 && S16(st, G_BUILDING_GRID + 2u * (uint32_t) to) == mode)) {
         return;
     }
-    S32(st, ROUTE_DISTANCE + 4u * (uint32_t) to) = d;
+    S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) to) = d;
     push(st, to);
 }
 
@@ -97,18 +89,18 @@ int32_t route_army_distances(game_state *st, int32_t x, int32_t y, int32_t tx, i
 {
     /* @bin 0x0051A420 */
     start_search(st, x, y);
-    S32(st, SEARCH_COUNT2) += 1;
-    S32(st, ROUTE_DISTANCE + 4u * (uint32_t) S32(st, SEARCH_START)) = 1;
-    S32(st, QUEUE) = S32(st, SEARCH_START);
-    S32(st, QUEUE_HEAD) = 0;
-    S32(st, QUEUE_TAIL) = 1;
-    int32_t target = S32(st, MAP_START) + ty * GRID_SIZE + tx;
+    S32(st, G_ROUTE_SEARCHES_ENEMY) += 1;
+    S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) S32(st, G_ROUTE_START)) = 1;
+    S32(st, G_ROUTE_QUEUE) = S32(st, G_ROUTE_START);
+    S32(st, G_ROUTE_QUEUE_HEAD) = 0;
+    S32(st, G_ROUTE_QUEUE_TAIL) = 1;
+    int32_t target = S32(st, G_MAP_START) + ty * GRID_SIZE + tx;
     if (mode == 0) {
         int32_t lowest = 0, taken = 0;
         do {
             /* @bin 0x0051A4D1 the queued tile with the smallest distance (the head first; stops at
              * one not above the last smallest), swapped with the head */
-            int32_t head = S32(st, QUEUE_HEAD), tail = S32(st, QUEUE_TAIL);
+            int32_t head = S32(st, G_ROUTE_QUEUE_HEAD), tail = S32(st, G_ROUTE_QUEUE_TAIL);
             int32_t sel = head;
             int32_t best = dist(st, queue_at(st, head));
             if (best > lowest) {
@@ -149,8 +141,8 @@ int32_t route_army_distances(game_state *st, int32_t x, int32_t y, int32_t tx, i
                 lowest = best;
             }
             int32_t cur = queue_at(st, sel);
-            if (sel != S32(st, QUEUE_HEAD)) {
-                S32(st, QUEUE + 4u * (uint32_t) sel) = queue_at(st, S32(st, QUEUE_HEAD));
+            if (sel != S32(st, G_ROUTE_QUEUE_HEAD)) {
+                S32(st, G_ROUTE_QUEUE + 4u * (uint32_t) sel) = queue_at(st, S32(st, G_ROUTE_QUEUE_HEAD));
             }
             if (cur == target) {
                 break;
@@ -164,12 +156,12 @@ int32_t route_army_distances(game_state *st, int32_t x, int32_t y, int32_t tx, i
             weighted_visit(st, cur + 1, d);
             weighted_visit(st, cur + GRID_SIZE, d);
             weighted_visit(st, cur - 1, d);
-            head = S32(st, QUEUE_HEAD) + 1;
-            S32(st, QUEUE_HEAD) = head > QUEUE_LAST ? 0 : head;
-        } while (S32(st, QUEUE_HEAD) != S32(st, QUEUE_TAIL));
+            head = S32(st, G_ROUTE_QUEUE_HEAD) + 1;
+            S32(st, G_ROUTE_QUEUE_HEAD) = head > QUEUE_LAST ? 0 : head;
+        } while (S32(st, G_ROUTE_QUEUE_HEAD) != S32(st, G_ROUTE_QUEUE_TAIL));
     } else {
         do {
-            int32_t cur = queue_at(st, S32(st, QUEUE_HEAD));
+            int32_t cur = queue_at(st, S32(st, G_ROUTE_QUEUE_HEAD));
             if (cur == target) {
                 break;
             }
@@ -178,9 +170,9 @@ int32_t route_army_distances(game_state *st, int32_t x, int32_t y, int32_t tx, i
             building_visit(st, cur + 1, d, mode);
             building_visit(st, cur + GRID_SIZE, d, mode);
             building_visit(st, cur - 1, d, mode);
-            int32_t head = S32(st, QUEUE_HEAD) + 1;
-            S32(st, QUEUE_HEAD) = head > QUEUE_LAST ? 0 : head;
-        } while (S32(st, QUEUE_HEAD) != S32(st, QUEUE_TAIL));
+            int32_t head = S32(st, G_ROUTE_QUEUE_HEAD) + 1;
+            S32(st, G_ROUTE_QUEUE_HEAD) = head > QUEUE_LAST ? 0 : head;
+        } while (S32(st, G_ROUTE_QUEUE_HEAD) != S32(st, G_ROUTE_QUEUE_TAIL));
     }
     return dist(st, target) != 0;
 }
@@ -195,13 +187,13 @@ int32_t route_walk_distances(game_state *st, int32_t x, int32_t y, int32_t tx, i
 {
     /* @bin 0x005181C0 */
     start_search(st, x, y);
-    S32(st, ROUTE_DISTANCE + 4u * (uint32_t) S32(st, SEARCH_START)) = 1;
-    S32(st, QUEUE) = S32(st, SEARCH_START);
-    S32(st, QUEUE_HEAD) = 0;
-    S32(st, QUEUE_TAIL) = 1;
-    int32_t target = S32(st, MAP_START) + ty * GRID_SIZE + tx;
+    S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) S32(st, G_ROUTE_START)) = 1;
+    S32(st, G_ROUTE_QUEUE) = S32(st, G_ROUTE_START);
+    S32(st, G_ROUTE_QUEUE_HEAD) = 0;
+    S32(st, G_ROUTE_QUEUE_TAIL) = 1;
+    int32_t target = S32(st, G_MAP_START) + ty * GRID_SIZE + tx;
     do {
-        int32_t cur = queue_at(st, S32(st, QUEUE_HEAD));
+        int32_t cur = queue_at(st, S32(st, G_ROUTE_QUEUE_HEAD));
         if (cur == target) {
             break;
         }
@@ -209,20 +201,20 @@ int32_t route_walk_distances(game_state *st, int32_t x, int32_t y, int32_t tx, i
         static const int32_t step[3] = {-GRID_SIZE, 1, GRID_SIZE};
         for (int k = 0; k < 3; k++) {
             int32_t n = cur + step[k];
-            if (dist(st, n) == 0 && walk_ok(S8(st, ROUTING_EE0C50 + (uint32_t) n))) {
-                S32(st, ROUTE_DISTANCE + 4u * (uint32_t) n) = d;
+            if (dist(st, n) == 0 && walk_ok(S8(st, G_GRID_ROUTING + (uint32_t) n))) {
+                S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) n) = d;
                 push(st, n);
             }
         }
         /* @bin 0x00518367 to the left, 0x0051AFF0 too */
         int32_t n = cur - 1;
-        if (dist(st, n) == 0 && GAME_CALL(st, 0x0051AFF0u, n) != 0 && walk_ok(S8(st, ROUTING_EE0C50 + (uint32_t) n))) {
-            S32(st, ROUTE_DISTANCE + 4u * (uint32_t) n) = d;
+        if (dist(st, n) == 0 && GAME_CALL(st, FN_ROUTE_FREE_TILE, n) != 0 && walk_ok(S8(st, G_GRID_ROUTING + (uint32_t) n))) {
+            S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) n) = d;
             push(st, n);
         }
-        int32_t head = S32(st, QUEUE_HEAD) + 1;
-        S32(st, QUEUE_HEAD) = head > QUEUE_LAST ? 0 : head;
-    } while (S32(st, QUEUE_HEAD) != S32(st, QUEUE_TAIL));
+        int32_t head = S32(st, G_ROUTE_QUEUE_HEAD) + 1;
+        S32(st, G_ROUTE_QUEUE_HEAD) = head > QUEUE_LAST ? 0 : head;
+    } while (S32(st, G_ROUTE_QUEUE_HEAD) != S32(st, G_ROUTE_QUEUE_TAIL));
     return dist(st, target) != 0;
 }
 

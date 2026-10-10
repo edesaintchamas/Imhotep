@@ -422,7 +422,7 @@ void cmd_keep_governing(game_state *st)
         S32(st, c + CITY_SALARY) = 0;
         salary_estimate(st);
     }
-    U8(st, G_UE38DD8) = 0;
+    U8(st, G_CHEAT_WIN) = 0;
     U8(st, G_UE38DD9) = 0;
     U8(st, G_CHEATED) = 0;
     U8(st, G_WINDOW) = 1;

@@ -188,7 +188,7 @@ static void sound_object_ctor(game_state *st, uint32_t self)
     U32(st, self + 0x170) = 0x3D75C28Fu; /* 0.06f */
     U32(st, self + 0x174) = 0x3F000000u;
     U32(st, self + 0x164) = 5;
-    U32(st, G_SOUND_OBJECT_PTR) = self; /* @bin 0x0055E57D the sound object's address */
+    U32(st, G_SOUND_DRIVER) = self; /* @bin 0x0055E57D the sound object's address */
 }
 
 /* @bin 0x00539550 (thiscall on 0x00E39180) the music and sound tables cleared: 9 dwords at

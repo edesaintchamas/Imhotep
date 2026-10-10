@@ -130,10 +130,6 @@
 /* ---- globals of other areas ---- */
 /* P6 (g_scenario.h): the scenario info (chunk 75 at 0x007848D8) and other scenario data */
 #define G_SCENARIO_FUNDS 0x007848F8u   /* @bin 0x004DE98C i32: the scenario's initial funds */
-#define G_HERD_X 0x00784B64u           /* @bin 0x00470933 i16[4]: herd points x (core/newgame/figures.c) */
-#define G_HERD_Y 0x00784B6Cu           /* @bin 0x00470933 i16[4]: y */
-#define G_HERD2_X 0x00784CC0u          /* @bin 0x00470959 i32[4]: the second herd kind's points x */
-#define G_HERD2_Y 0x00784CD0u          /* @bin 0x00470959 i32[4]: y */
 #define G_ALLOWED_BUILDINGS 0x00784CE0u /* @bin 0x00404350 i16[100]: the scenario's allowed buildings (scenario info +0x408, save.md upgrade 117) */
 #define G_U784DB0 0x00784DB0u          /* @bin 0x00404350 i16[5]: allow the temple complexes 0x41..0x45 */
 #define G_STR_BACKSLASH 0x005761D0u    /* @bin 0x004183D0 "\" */
@@ -144,11 +140,7 @@
 /* P3 (g_city.h) */
 #define G_RATING_LOWEST_INDEX 0x00705738u /* @bin 0x00426B00 i32: the index of the lowest rating (core/city/month_ratings.c) */
 #define G_INVASION_COUNTER 0x00775900u /* @bin 0x00446A30 i16: invasion id counter (save.md chunk 126) */
-#define G_SHAKE 0x0078D7A0u            /* @bin 0x004023A0 i32: the screen shake countdown (core/frame/frame.c, events_actions.c) */
-#define G_GOD_CURSE_COUNTDOWN 0x0078D7A4u /* @bin 0x004023A0 i32: save.md chunk 106 */
 #define G_FROGS_COUNTDOWN 0x0078D7A8u  /* @bin 0x004023A0 i32: Plague of Frogs countdown, save.md chunk 105 */
-#define G_BLOOD_RIVER_REGION 0x0078D7B0u /* @bin 0x004023A0 i32: save.md chunk 131 */
-#define G_UE38DD8 0x00E38DD8u          /* @bin 0x0041CFC0 u8: := 1 by "Pharaohs Tomb", := 0 by 0x004EA770 (core/city/day_goals.c) */
 #define G_RAMP_LAST_TILE 0x00EAAE9Cu   /* @bin 0x004ED003 i32: the last tile of the ramp walk 0x004ED360 */
 #define G_UEADB28 0x00EADB28u          /* @bin 0x004F6AD0 i32: := houses_at_least(G_U784C38) */
 /* P1 (g_figure.h) */
@@ -161,8 +153,6 @@
 #define G_UBCA32C 0x00BCA32Cu          /* @bin 0x0043DE6A u8: the water-lift ghost's flag (core/building/day_water.c) */
 #define G_UNDO_COUNTDOWN 0x00BC9688u   /* @bin 0x00485200 i32: := 500, the undo's countdown (core/city/day_basic.c) */
 /* P5 (g_map.h) */
-#define G_WALL_PATTERNS 0x005CB9D8u    /* @bin 0x0047B1A0 48 records of 16 bytes: the wall patterns (core/map/terrain_tables.c) */
-#define G_WALL_PATTERNS_B 0x005CBCD8u  /* @bin 0x0047B1A0 15 records of 16 bytes */
 #define G_RAMP_OFFSETS 0x005F5D08u     /* @bin 0x004ECEA0 i32 per monument kind: the ramp tile's offset */
 #define G_UBCA328 0x00BCA328u          /* @bin 0x0046FEF0 i32: := 1 after a water lift drag (core/map/terrain_roads.c) */
 /* P7 (g_frame.h) */

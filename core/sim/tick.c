@@ -5,18 +5,11 @@
 #include "sim/tick.h"
 
 #include "random/random.h"
-
-#define TICK 0x0078D7CCu        /* tick within the day, 0..50 (chunk 34) */
-#define DAY 0x0078D7C4u         /* day within the month, 0..15 (chunk 35) */
-#define MONTH 0x0078D7C0u       /* 0..11 (chunk 36) */
-#define YEAR 0x0078D7BCu        /* chunk 37 */
-#define TOTAL_DAYS 0x0078D7C8u  /* chunk 38 */
-#define PAUSED 0x00605A3Cu
-#define CURRENT_PLAYER 0x00EAAC28u
+#include "state/layout.h"
 
 static uint32_t city(game_state *st)
 {
-    return 0x00EA1870u + 0x49D8u * U32(st, CURRENT_PLAYER);
+    return CURRENT_CITY(st);
 }
 
 static int32_t call(game_state *st, const sim_env *env, uint32_t address)
@@ -42,87 +35,89 @@ static void sound_timer(game_state *st, const sim_env *env, uint32_t timer)
 {
     if (S32(st, timer) > 0 && --S32(st, timer) == 0) {
         int32_t two = 2;
-        sim_call(st, env, 0x0055F561u, &two, 1, 0x00E92BF8u);
-        S32(st, 0x00F55B94u) = 0;
+        sim_call(st, env, FN_SOUND_STOP_STREAM, &two, 1, G_SOUND);
+        S32(st, G_UF55B94) = 0;
     }
 }
 
 void day_cascade(game_state *st, const sim_env *env)
 {
     /* @bin 0x00452370 */
-    S32(st, TOTAL_DAYS) += 1;
-    S32(st, DAY) += 1;
-    if (S32(st, DAY) > 0xF) { /* a new month */
-        S32(st, DAY) = 0;
+    S32(st, G_TOTAL_DAYS) += 1;
+    S32(st, G_TICK_DAY) += 1;
+    if (S32(st, G_TICK_DAY) > 0xF) { /* a new month */
+        S32(st, G_TICK_DAY) = 0;
         uint32_t c = city(st);
-        S32(st, c + 0x475C) = S32(st, c + 0x273C); /* 0x00EA5FCC := 0x00EA3FAC */
-        S32(st, c + 0x273C) = 0;
-        S32(st, c + 0x4760) = 0;
-        S32(st, c + 0x4764) = 0;
-        S32(st, c + 0x438C) += 1; /* 0x00EA5BFC */
-        static const uint32_t A[] = {0x004E81D0u, 0x004599D0u, 0x0045A2E0u, 0x0045A350u, 0x0045A3F0u,
-                                     0x00452160u, 0x004474E0u, 0x0045E420u, 0x004464F0u};
+        S32(st, c + CITY_U475C) = S32(st, c + CITY_U273C); /* 0x00EA5FCC := 0x00EA3FAC */
+        S32(st, c + CITY_U273C) = 0;
+        S32(st, c + CITY_U4760) = 0;
+        S32(st, c + CITY_U4764) = 0;
+        S32(st, c + CITY_U438C) += 1; /* 0x00EA5BFC */
+        static const uint32_t A[] = {FN_CITY_MOOD_MONTH, FN_MONTH_0X004599D0, FN_MONTH_0X0045A2E0,
+                                     FN_MONTH_0X0045A350, FN_MONTH_0X0045A3F0, FN_MONTH_0X00452160,
+                                     FN_MONTH_0X004474E0, FN_MONTH_0X0045E420, FN_MONTH_0X004464F0};
         for (unsigned i = 0; i < sizeof(A) / sizeof(A[0]); i++) {
             call(st, env, A[i]);
         }
-        sim_call(st, env, 0x0044BA90u, NULL, 0, 0x00785D70u);
-        call(st, env, 0x004EA740u);
-        call(st, env, 0x004B7960u);
-        call(st, env, 0x004E1850u);
-        call(st, env, 0x0047B570u);
-        call_n(st, env, 0x00475CC0u, 0, 0, S32(st, 0x00BCA2D0u) - 1, S32(st, 0x00BCA2D4u) - 1, 0, 5);
-        call(st, env, 0x00517370u);
-        call(st, env, 0x004E1640u);
-        S32(st, MONTH) += 1;
-        call(st, env, 0x004E7700u);
-        call(st, env, 0x004BC7A0u);
-        call(st, env, 0x00452200u);
-        if (S32(st, MONTH) > 0xB) { /* a new year */
-            S32(st, MONTH) = 0;
-            call(st, env, 0x0051F780u);
-            U8(st, 0x00E3908Cu) = 0;
-            S32(st, 0x00BC9694u) = 0;
-            S32(st, YEAR) += 1;
-            static const uint32_t Y[] = {0x004E8630u, 0x00459E50u, 0x0045A450u, 0x0045A490u, 0x0045A4D0u,
-                                         0x0045A500u, 0x0045A530u, 0x0045A560u, 0x0045A5A0u, 0x0045A5D0u,
-                                         0x004448E0u, 0x00455530u};
+        sim_call(st, env, FN_EVENTS_MONTH, NULL, 0, G_EVENTS);
+        call(st, env, FN_MONTH_0X004EA740);
+        call(st, env, FN_MONTH_0X004B7960);
+        call(st, env, FN_MONTH_0X004E1850);
+        call(st, env, FN_ROADS_ALL);
+        call_n(st, env, FN_WATER_PASS, 0, 0, S32(st, G_MAP_WIDTH) - 1, S32(st, G_MAP_HEIGHT) - 1, 0, 5);
+        call(st, env, FN_ROUTING_REBUILD_EE0C50);
+        call(st, env, FN_MESSAGE_SORT);
+        S32(st, G_MONTH) += 1;
+        call(st, env, FN_MONTH_0X004E7700);
+        call(st, env, FN_MONTH_0X004BC7A0);
+        call(st, env, FN_MONTH_0X00452200);
+        if (S32(st, G_MONTH) > 0xB) { /* a new year */
+            S32(st, G_MONTH) = 0;
+            call(st, env, FN_NOTHING);
+            U8(st, G_FAST_FORWARD) = 0;
+            S32(st, G_UNDO_POSSIBLE) = 0;
+            S32(st, G_YEAR) += 1;
+            static const uint32_t Y[] = {FN_MONTH_0X004E8630, FN_MONTH_0X00459E50, FN_MONTH_0X0045A450,
+                                         FN_MONTH_0X0045A490, FN_MONTH_0X0045A4D0, FN_MONTH_0X0045A500,
+                                         FN_MONTH_0X0045A530, FN_MONTH_0X0045A560, FN_MONTH_0X0045A5A0,
+                                         FN_MONTH_0X0045A5D0, FN_MONTH_0X004448E0, FN_MONTH_0X00455530};
             for (unsigned i = 0; i < sizeof(Y) / sizeof(Y[0]); i++) {
                 call(st, env, Y[i]);
             }
-            call1(st, env, 0x0046E180u, 1);
-            call(st, env, 0x004C5300u);
+            call1(st, env, FN_MONTH_0X0046E180, 1);
+            call(st, env, FN_MONTH_0X004C5300);
         } else {
-            call1(st, env, 0x0046E180u, 0);
+            call1(st, env, FN_MONTH_0X0046E180, 0);
         }
-        if (S32(st, MONTH) == 0 || S32(st, MONTH) == 6) {
-            S32(st, city(st) + 0x471C) = 2; /* 0x00EA5F8C */
+        if (S32(st, G_MONTH) == 0 || S32(st, G_MONTH) == 6) {
+            S32(st, city(st) + CITY_U471C) = 2; /* 0x00EA5F8C */
         }
-        call(st, env, 0x004E9700u);
-        call(st, env, 0x004EA000u);
-        if (U8(st, 0x00E3908Cu) == 0 && U8(st, 0x00E38EC2u) == 1) {
-            call1(st, env, 0x004D4E20u, (int32_t) 0x005DBB94u); /* the autosave, "last.sav" */
-        }
-    }
-    if (S32(st, DAY) == 0 || S32(st, DAY) == 8) {
-        call(st, env, 0x004E8840u);
-        if (S32(st, DAY) == 8) {
-            sim_call(st, env, 0x004BE640u, NULL, 0, 0x00D05720u);
+        call(st, env, FN_MONTH_0X004E9700);
+        call(st, env, FN_MONTH_0X004EA000);
+        if (U8(st, G_FAST_FORWARD) == 0 && U8(st, G_AUTOSAVE_OPTION) == 1) {
+            call1(st, env, FN_FRAME_SAVE_GAME, (int32_t) G_STR_LAST_SAV); /* the autosave, "last.sav" */
         }
     }
-    call(st, env, 0x004E8DB0u);
+    if (S32(st, G_TICK_DAY) == 0 || S32(st, G_TICK_DAY) == 8) {
+        call(st, env, FN_CITY_HEALTH_UPDATE);
+        if (S32(st, G_TICK_DAY) == 8) {
+            sim_call(st, env, FN_MONTH_0X004BE640, NULL, 0, G_UD05720);
+        }
+    }
+    call(st, env, FN_MONTH_0X004E8DB0);
     uint32_t c = city(st);
-    if (U8(st, 0x007027B8u) != 0 && S32(st, c + 0x4720) == 0) { /* 0x00EA5F90 */
-        S32(st, c + 0x4720) = 1;
-        S32(st, 0x00E950DCu) = 1;
+    if (U8(st, G_MISSION_LIST_FLAGS) != 0 && S32(st, c + CITY_U4720) == 0) { /* 0x00EA5F90 */
+        S32(st, c + CITY_U4720) = 1;
+        S32(st, G_MESSAGE_POPUP) = 1;
     }
-    if (U8(st, 0x007027BEu) != 0 && S32(st, c + 0x4724) == 0) { /* 0x00EA5F94 */
-        S32(st, c + 0x4724) = 1;
-        S32(st, 0x00E950DCu) = 1;
-        call_n(st, env, 0x004E0CF0u, 0x13E, 0, 0, 0, 0, 5);
+    if (U8(st, G_MISSION_LIST_FLAGS + 6) != 0 && S32(st, c + CITY_U4724) == 0) { /* 0x00EA5F94 */
+        S32(st, c + CITY_U4724) = 1;
+        S32(st, G_MESSAGE_POPUP) = 1;
+        call_n(st, env, FN_MESSAGE_POST, 0x13E, 0, 0, 0, 0, 5);
         c = city(st);
     }
-    if (U8(st, 0x007027B9u) == 0 && S32(st, c + 0x24) >= 0x96) {
-        call1(st, env, 0x00417AE0u, 1);
+    if (U8(st, G_MISSION_LIST_FLAGS + 1) == 0 && S32(st, c + CITY_POPULATION) >= 0x96) {
+        call1(st, env, FN_TUTORIAL_STEP, 1);
     }
 }
 
@@ -130,120 +125,120 @@ void day_dispatch(game_state *st, const sim_env *env)
 {
     /* @bin 0x00451C50 one step per tick of the day, by the tick counter */
     uint32_t c;
-    switch (S32(st, TICK)) {
-    case 0: call(st, env, 0x0051F780u); break;
-    case 1: call1(st, env, 0x004E9890u, 1); break;
-    case 2: call(st, env, 0x00443330u); break;
-    case 3: S32(st, 0x00F53FD0u) = 1; break;
-    case 4: call(st, env, 0x004460B0u); break;
-    case 5: call1(st, env, 0x004B7790u, 0); break;
-    case 6: call(st, env, 0x0051F780u); break;
-    case 7: call(st, env, 0x00468860u); break;
-    case 8: call(st, env, 0x0045E040u); break;
-    case 9: call(st, env, 0x00452150u); break;
-    case 0xA: call(st, env, 0x0045AA30u); break;
+    switch (S32(st, G_TICK)) {
+    case 0: call(st, env, FN_NOTHING); break;
+    case 1: call1(st, env, FN_GODS_UPDATE_4E9890, 1); break;
+    case 2: call(st, env, FN_DAY_STEP_0X02); break;
+    case 3: S32(st, G_UF53FD0) = 1; break;
+    case 4: call(st, env, FN_DAY_STEP_0X04); break;
+    case 5: call1(st, env, FN_FORMATIONS_DAILY, 0); break;
+    case 6: call(st, env, FN_NOTHING); break;
+    case 7: call(st, env, FN_ROAD_NETWORKS_UPDATE); break;
+    case 8: call(st, env, FN_DAY_STOCK_TOTALS_45E040); break;
+    case 9: call(st, env, FN_CLEAR_0X0078D784); break;
+    case 0xA: call(st, env, FN_BUILDINGS_HIGHEST_UPDATE); break;
     case 0xB: { /* city +0x24 := sum of the 100 i16 at +0x25C4; its maximum at +0x469C */
         c = city(st);
-        S32(st, c + 0x24) = 0;
+        S32(st, c + CITY_POPULATION) = 0;
         for (uint32_t i = 0; i < 100; i++) {
-            S32(st, c + 0x24) += S16(st, c + 0x25C4 + 2 * i);
+            S32(st, c + CITY_POPULATION) += S16(st, c + CITY_POPULATION_AGES + 2 * i);
         }
-        if (S32(st, c + 0x24) > S32(st, c + 0x469C)) {
-            S32(st, c + 0x469C) = S32(st, c + 0x24);
+        if (S32(st, c + CITY_POPULATION) > S32(st, c + CITY_POPULATION_HIGHEST)) {
+            S32(st, c + CITY_POPULATION_HIGHEST) = S32(st, c + CITY_POPULATION);
         }
         break;
     }
-    case 0xC: call(st, env, 0x004558B0u); break;
-    case 0x10: call(st, env, 0x0045AAA0u); break;
-    case 0x11: call(st, env, 0x0045D5D0u); break;
-    case 0x12: call(st, env, 0x0045E6C0u); break;
-    case 0x13: call(st, env, 0x00457A40u); break;
-    case 0x14: call(st, env, 0x00455900u); call(st, env, 0x004860D0u); break;
-    case 0x15: call(st, env, 0x00457AF0u); break;
-    case 0x16: call(st, env, 0x00458440u); break;
-    case 0x17: call(st, env, 0x00458540u); break;
-    case 0x18: call(st, env, 0x00459070u); break;
+    case 0xC: call(st, env, FN_DAY_DECAY_0X18); break;
+    case 0x10: call(st, env, FN_DAY_STEP_0X10); break;
+    case 0x11: call(st, env, FN_DAY_STEP_0X11); break;
+    case 0x12: call(st, env, FN_DAY_STEP_0X12); break;
+    case 0x13: call(st, env, FN_BUILDINGS_ENTRY_ROAD_CHECK); break;
+    case 0x14: call(st, env, FN_DAY_PRODUCTION_455900); call(st, env, FN_DAY_FERTILITY_4860D0); break;
+    case 0x15: call(st, env, FN_DAY_ROAD_ACCESS_457AF0); break;
+    case 0x16: call(st, env, FN_DAY_STEP_0X16); break;
+    case 0x17: call(st, env, FN_DAY_POPULATION_458540); break;
+    case 0x18: call(st, env, FN_DAY_LIST_45D83C); break;
     case 0x19:
-        call(st, env, 0x00459100u);
-        call(st, env, 0x00459350u);
-        call(st, env, 0x004595A0u);
-        call(st, env, 0x0051F780u);
-        call(st, env, 0x0051F780u);
-        call(st, env, 0x00459670u);
+        call(st, env, FN_LABOUR_CATEGORIES_NEED);
+        call(st, env, FN_LABOUR_UPDATE);
+        call(st, env, FN_LABOUR_BUILDING_SHARES);
+        call(st, env, FN_NOTHING);
+        call(st, env, FN_NOTHING);
+        call(st, env, FN_LABOUR_ALLOCATE);
         break;
-    case 0x1B: call(st, env, 0x004555D0u); break;
-    case 0x1C: call(st, env, 0x00455430u); break;
-    case 0x1D: call1(st, env, 0x004B7790u, 1); break;
-    case 0x1E: S32(st, 0x00F53FD0u) = 1; break;
-    case 0x1F: call(st, env, 0x00462180u); break;
-    case 0x20: call(st, env, 0x00444C20u); call(st, env, 0x0046F200u); break;
-    case 0x21: call(st, env, 0x004677C0u); call(st, env, 0x00468170u); break;
-    case 0x22: call(st, env, 0x004684E0u); break;
+    case 0x1B: call(st, env, FN_DAY_WATER_4555D0); break;
+    case 0x1C: call(st, env, FN_DAY_STEP_0X1C); break;
+    case 0x1D: call1(st, env, FN_FORMATIONS_DAILY, 1); break;
+    case 0x1E: S32(st, G_UF53FD0) = 1; break;
+    case 0x1F: call(st, env, FN_BUILDING_UPDATE_ALL); break;
+    case 0x20: call(st, env, FN_DAY_TRADE_444C20); call(st, env, FN_DAY_MONUMENTS_46F200); break;
+    case 0x21: call(st, env, FN_BUILDINGS_COUNT_4677C0); call(st, env, FN_DAY_COVERAGE_468170); break;
+    case 0x22: call(st, env, FN_DAY_SERVICE_SHARES); break;
     case 0x23:
         c = city(st);
-        if (S16(st, c + 0x4478) == 0 || call1(st, env, 0x004C5120u, S32(st, c + 0x472C)) != 4) {
-            call(st, env, 0x00454E20u);
-        } else if (S32(st, city(st) + 0x4990) != 0) { /* 0x00EA6200: every other day */
-            S32(st, city(st) + 0x4990) = 0;
+        if (S16(st, c + CITY_U4478) == 0 || call1(st, env, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_U472C)) != 4) {
+            call(st, env, FN_HOUSE_SERVICE_DECAY);
+        } else if (S32(st, city(st) + CITY_U4990) != 0) { /* 0x00EA6200: every other day */
+            S32(st, city(st) + CITY_U4990) = 0;
         } else {
-            call(st, env, 0x00454E20u);
-            S32(st, city(st) + 0x4990) = 10;
+            call(st, env, FN_HOUSE_SERVICE_DECAY);
+            S32(st, city(st) + CITY_U4990) = 10;
         }
         break;
-    case 0x24: call(st, env, 0x00454FA0u); break;
-    case 0x25: call(st, env, 0x0046A0C0u); call(st, env, 0x0046A140u); break;
-    case 0x26: call(st, env, 0x004539E0u); break;
-    case 0x27: call(st, env, 0x004528B0u); break;
-    case 0x28: call(st, env, 0x004525F0u); break;
-    case 0x2B: call(st, env, 0x00469730u); break;
-    case 0x2C: call(st, env, 0x00468B70u); break;
-    case 0x2D: call(st, env, 0x00469B90u); call(st, env, 0x0047E290u); break;
-    case 0x2E: call(st, env, 0x0051F780u); break;
-    case 0x2F: call(st, env, 0x0046A060u); break;
-    case 0x30: call(st, env, 0x004599A0u); break;
-    case 0x31: call(st, env, 0x004550E0u); break;
-    case 0x32: call(st, env, 0x0051F780u); break;
+    case 0x24: call(st, env, FN_HOUSE_ACCESS_RATINGS); break;
+    case 0x25: call(st, env, FN_DESIRABILITY_BUILDINGS); call(st, env, FN_DESIRABILITY_TILES); break;
+    case 0x26: call(st, env, FN_BUILDINGS_WATER_LEVEL); break;
+    case 0x27: call(st, env, FN_HOUSES_EVOLVE_ALL); break;
+    case 0x28: call(st, env, FN_BUILDINGS_STATES_UPDATE); break;
+    case 0x2B: call(st, env, FN_DAY_FIRES_469730); break;
+    case 0x2C: call(st, env, FN_DAY_RISKS_468B70); break;
+    case 0x2D: call(st, env, FN_DAY_SPAWN_469B90); call(st, env, FN_MAP_GRID_DECAY_978D9C); break;
+    case 0x2E: call(st, env, FN_NOTHING); break;
+    case 0x2F: call(st, env, FN_DAY_CLEAR_COUNTERS); break;
+    case 0x30: call(st, env, FN_DAY_BUILDING_COUNTDOWN); break;
+    case 0x31: call(st, env, FN_DAY_CITY_RATINGS_4550E0); break;
+    case 0x32: call(st, env, FN_NOTHING); break;
     default: break; /* 0xD..0xF, 0x1A, 0x29, 0x2A: nothing */
     }
-    sound_timer(st, env, 0x0078D79Cu);
-    sound_timer(st, env, 0x0078D7A8u);
-    if (U8(st, 0x00E38DDAu) == 1) {
-        sound_timer(st, env, 0x0078D7A0u);
+    sound_timer(st, env, G_LOCUST_TIMER);
+    sound_timer(st, env, G_FROGS_COUNTDOWN);
+    if (U8(st, G_WINDOW) == 1) {
+        sound_timer(st, env, G_HAIL_TIMER);
     }
     /* @bin 0x0045203E the map is revealed column by column while 0x0078D7B0 counts down */
-    if (S32(st, 0x0078D7B0u) > 0) {
-        int32_t left = --S32(st, 0x0078D7B0u);
-        int32_t w = S32(st, 0x00BCA2D0u), h = S32(st, 0x00BCA2D4u);
+    if (S32(st, G_BLOOD_RIVER_LEFT) > 0) {
+        int32_t left = --S32(st, G_BLOOD_RIVER_LEFT);
+        int32_t w = S32(st, G_MAP_WIDTH), h = S32(st, G_MAP_HEIGHT);
         if (left == 0) {
-            call_n(st, env, 0x00475CC0u, 0, 0, h - 1, w - 1, 1, 5);
-            call_n(st, env, 0x004776F0u, 0, 0, h - 1, w - 1, 0, 4);
-            call(st, env, 0x0046D840u);
+            call_n(st, env, FN_WATER_PASS, 0, 0, h - 1, w - 1, 1, 5);
+            call_n(st, env, FN_FLAG_0X40000_RECT, 0, 0, h - 1, w - 1, 0, 4);
+            call(st, env, FN_BUILDINGS_REDRAW);
             for (int32_t id = 1; id < 2000; id++) {
-                uint32_t f = 0x00BCD5F8u + 0x184u * (uint32_t) id;
-                if (U8(st, f + 0x0E) != 0 && U8(st, f + 0x0A) == 0x5F) {
-                    call1(st, env, 0x004B52F0u, id);
+                uint32_t f = FIGURE_ADDR(id);
+                if (U8(st, f + FIG_STATE) != 0 && U8(st, f + FIG_TYPE) == 0x5F) {
+                    call1(st, env, FN_FIGURE_TILE_LIST_ADD, id);
                 }
             }
         } else {
-            int32_t k = (S32(st, 0x0078D7ACu) - left) / 2;
+            int32_t k = (S32(st, G_BLOOD_RIVER_DURATION) - left) / 2;
             if (k < 0xE4) {
-                call_n(st, env, 0x00475CC0u, 0xE5 - k, 0, 0xE6 - k, h - 1, 1, 5);
-                call_n(st, env, 0x004776F0u, 0xE5 - k, 0, 0xE6 - k, h - 1, 0, 4);
-                call(st, env, 0x0046D840u);
+                call_n(st, env, FN_WATER_PASS, 0xE5 - k, 0, 0xE6 - k, h - 1, 1, 5);
+                call_n(st, env, FN_FLAG_0X40000_RECT, 0xE5 - k, 0, 0xE6 - k, h - 1, 0, 4);
+                call(st, env, FN_BUILDINGS_REDRAW);
             }
         }
-        U8(st, 0x00E38DCAu) = 1;
+        U8(st, G_REDRAW) = 1;
     }
-    if (S32(st, 0x0078D7A4u) > 0 && --S32(st, 0x0078D7A4u) == 0) {
-        U8(st, 0x00EAAF5Cu) = 0;
+    if (S32(st, G_PYRAMID_CURSE_COUNTDOWN) > 0 && --S32(st, G_PYRAMID_CURSE_COUNTDOWN) == 0) {
+        U8(st, G_GOD_CURSE_ON) = 0;
     }
-    S32(st, TICK) += 1;
-    if (S32(st, TICK) >= 0x33) {
-        S32(st, TICK) = 0;
+    S32(st, G_TICK) += 1;
+    if (S32(st, G_TICK) >= 0x33) {
+        S32(st, G_TICK) = 0;
         day_cascade(st, env);
     }
-    if (U8(st, 0x00EAAF5Cu) != 0) {
-        call(st, env, 0x004F3890u);
+    if (U8(st, G_GOD_CURSE_ON) != 0) {
+        call(st, env, FN_PYRAMIDS_UPDATE);
     }
 }
 
@@ -252,18 +247,18 @@ void game_tick(game_state *st, const sim_env *env)
     /* @bin 0x004D7090 the RNG step (inline in the original), two calls, the day when the game is not
      * paused, then four calls (0x004EA2C0 is a tail jump) */
     random_next_state(st);
-    call(st, env, 0x004CDC70u);
-    call(st, env, 0x00485DC0u);
-    if (S32(st, PAUSED) == 0) {
+    call(st, env, FN_ANIM_COUNTERS);
+    call(st, env, FN_UNDO_CHECK_485DC0);
+    if (S32(st, G_EDITOR) == 0) {
         day_dispatch(st, env);
-        call(st, env, 0x004E7E40u);
-        sim_call(st, env, 0x004BE770u, NULL, 0, 0x00D05720u);
-        if (S32(st, 0x00D386D4u) == 3 && S32(st, city(st) + 0x4998) == 2) { /* 0x00EA6208 */
-            S32(st, city(st) + 0x4998) = 0;
+        call(st, env, FN_COUNTDOWN_0X00EA89DC);
+        sim_call(st, env, FN_FLOOD_TICK, NULL, 0, G_UD05720);
+        if (S32(st, G_UD386D4) == 3 && S32(st, city(st) + CITY_U4998) == 2) { /* 0x00EA6208 */
+            S32(st, city(st) + CITY_U4998) = 0;
         }
     }
-    call(st, env, 0x00489B70u);
-    call(st, env, 0x0041FF60u);
-    sim_call(st, env, 0x0044BCA0u, NULL, 0, 0x00785D70u);
-    call(st, env, 0x004EA2C0u);
+    call(st, env, FN_FIGURE_UPDATE_ALL);
+    call(st, env, FN_ANIM_STEP_ALL);
+    sim_call(st, env, FN_EVENTS_TICK_44BCA0, NULL, 0, G_EVENTS);
+    call(st, env, FN_GOALS_CHECK);
 }

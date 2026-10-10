@@ -9,15 +9,11 @@
 
 #include "map/terrain_land.h"
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/pre_load.h"
 
-#define CURSOR 0x00BC9768u
-#define SCRATCH 0x00BC97C0u
-#define M_VARIANT 0x00BC9740u
-#define M_EXTRA 0x00BC9744u
-#define M_OFFSET 0x00BC9748u
-#define TER(o) U32(st, 0x00AF598Cu + 4u * (uint32_t) (o))
+#define TER(o) U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (o))
 
 /* @bin 0x0047DB00 neighbour order of the scratch */
 static const int32_t NEIGHBOURS[8] = {-228, -227, 1, 229, 228, 227, -1, -229};
@@ -25,10 +21,10 @@ static const int32_t NEIGHBOURS[8] = {-228, -227, 1, 229, 228, 227, -1, -229};
 static void neighbour_bits(game_state *st, uint32_t mask, int32_t shift)
 {
     /* @bin 0x0047DDD0 (mask, shift) scratch[i] |= (terrain & mask != 0) << shift */
-    int32_t c = S32(st, CURSOR);
+    int32_t c = S32(st, G_TILE_CURSOR);
     for (uint32_t i = 0; i < 8; i++) {
         uint32_t bit = (TER(c + NEIGHBOURS[i]) & mask) != 0;
-        S32(st, SCRATCH + 4u * i) = (int32_t) ((uint32_t) S32(st, SCRATCH + 4u * i) | (bit << shift));
+        S32(st, G_NEIGHBOUR_FLAGS + 4u * i) = (int32_t) ((uint32_t) S32(st, G_NEIGHBOUR_FLAGS + 4u * i) | (bit << shift));
     }
 }
 
@@ -36,7 +32,7 @@ static void scratch_invert(game_state *st)
 {
     /* @bin 0x00484F00 */
     for (uint32_t i = 0; i < 8; i++) {
-        S32(st, SCRATCH + 4u * i) = S32(st, SCRATCH + 4u * i) == 0;
+        S32(st, G_NEIGHBOUR_FLAGS + 4u * i) = S32(st, G_NEIGHBOUR_FLAGS + 4u * i) == 0;
     }
 }
 
@@ -50,35 +46,35 @@ int32_t pattern_match_by_water(game_state *st, uint32_t records, int32_t per_blo
     static const uint8_t BLOCK[16] = {0, 1, 3, 2, 5, 1, 4, 2, 6, 7, 1, 1, 5, 1, 1, 1};
     uint32_t mask = 0;
     for (uint32_t i = 0; i < 4; i++) {
-        if (S32(st, SCRATCH + 8u * i + 4) & 2) {
+        if (S32(st, G_NEIGHBOUR_FLAGS + 8u * i + 4) & 2) {
             mask |= 1u << ((i + 1) & 3) | 1u << i;
         }
-        if (S32(st, SCRATCH + 8u * i) & 2) {
+        if (S32(st, G_NEIGHBOUR_FLAGS + 8u * i) & 2) {
             mask |= 1u << i;
         }
     }
     int32_t block = mask ? BLOCK[mask] : 0, base = block * per_block;
-    int32_t half = S32(st, 0x00BCA2E0u) / 2;
+    int32_t half = S32(st, G_VIEW_ORIENTATION) / 2;
     for (int32_t k = 0; k < per_block; k++) {
         uint32_t r = records + 16u * (uint32_t) (base + k);
         int ok = 1;
         for (uint32_t i = 0; i < 8 && ok; i++) {
             uint8_t b = U8(st, r + i);
-            if (b != 2 && (b != 0) != ((S32(st, SCRATCH + 4u * i) & 1) != 0)) {
+            if (b != 2 && (b != 0) != ((S32(st, G_NEIGHBOUR_FLAGS + 4u * i) & 1) != 0)) {
                 ok = 0;
             }
         }
         if (!ok) {
             continue;
         }
-        S32(st, M_OFFSET) = U8(st, r + 8 + (uint32_t) half);
-        S32(st, M_EXTRA) = U8(st, r + 12);
-        uint8_t c = (uint8_t) (U8(st, r + 14) + 1);
-        U8(st, r + 14) = c;
-        if (c >= U8(st, r + 13)) {
-            U8(st, r + 14) = 0;
+        S32(st, G_MATCH_OFFSET) = U8(st, r + PATTERN_OFFSET + (uint32_t) half);
+        S32(st, G_MATCH_EXTRA) = U8(st, r + PATTERN_EXTRA);
+        uint8_t c = (uint8_t) (U8(st, r + PATTERN_COUNTER) + 1);
+        U8(st, r + PATTERN_COUNTER) = c;
+        if (c >= U8(st, r + PATTERN_VARIANTS)) {
+            U8(st, r + PATTERN_COUNTER) = 0;
         }
-        S32(st, M_VARIANT) = U8(st, r + 14);
+        S32(st, G_MATCH_VARIANT) = U8(st, r + PATTERN_COUNTER);
         return k + base + 1;
     }
     return 0;
@@ -100,71 +96,71 @@ void floodplain_tile_redraw(game_state *st, int32_t x, int32_t y, int32_t flag)
      * water bits (0x0047DDD0 (4, 1), diagonals cleared, 0x00484D70); image = group 528 + variant
      * (+ progress of the object's list + 6 * (fertility level, low bit from the random grid of the
      * object's tile)), the blood groups while the map reveal has not reached it; aqueduct grid 0 */
-    if (!map_tile_inside(st, S32(st, 0x00BCA2E8u) + x, S32(st, 0x00BCA2ECu) + y)) {
+    if (!map_tile_inside(st, S32(st, G_VIEW_DX) + x, S32(st, G_VIEW_DY) + y)) {
         return;
     }
-    int32_t c = S32(st, 0x00BCA2D8u) + y * 228 + x;
-    S32(st, CURSOR) = c;
+    int32_t c = S32(st, G_MAP_START) + y * 228 + x;
+    S32(st, G_TILE_CURSOR) = c;
     TER(c) = flag == 1 ? TER(c) | 0x10000 : TER(c) & 0xFFFEFFFFu;
     int32_t xa = x - 1, ya = y - 1, w = 3, h = 3;
     if (xa < 0) {
         w = xa + 3;
         xa = 0;
-    } else if (xa + 3 > S32(st, 0x00BCA2D0u)) {
-        w = S32(st, 0x00BCA2D0u) - xa;
+    } else if (xa + 3 > S32(st, G_MAP_WIDTH)) {
+        w = S32(st, G_MAP_WIDTH) - xa;
     }
     if (ya < 0) {
         h = ya + 3;
         ya = 0;
-    } else if (ya + 3 > S32(st, 0x00BCA2D4u)) {
-        h = S32(st, 0x00BCA2D4u) - ya;
+    } else if (ya + 3 > S32(st, G_MAP_HEIGHT)) {
+        h = S32(st, G_MAP_HEIGHT) - ya;
     }
-    int blood = (uint8_t) GAME_CALL(st, 0x0047A1C0u, xa, ya) != 0;
-    S32(st, 0x00BC9760u) = ya;
-    S32(st, CURSOR) = S32(st, 0x00BCA2D8u) + ya * 228 + xa;
-    while (S32(st, 0x00BC9760u) < ya + h) {
-        for (S32(st, 0x00BC9764u) = xa; S32(st, 0x00BC9764u) < xa + w; S32(st, 0x00BC9764u) += 1) {
-            int32_t o = S32(st, CURSOR);
+    int blood = (uint8_t) GAME_CALL(st, FN_FIGURE_NEAR_MAP_EDGE, xa, ya) != 0;
+    S32(st, G_WALK_Y) = ya;
+    S32(st, G_TILE_CURSOR) = S32(st, G_MAP_START) + ya * 228 + xa;
+    while (S32(st, G_WALK_Y) < ya + h) {
+        for (S32(st, G_WALK_X) = xa; S32(st, G_WALK_X) < xa + w; S32(st, G_WALK_X) += 1) {
+            int32_t o = S32(st, G_TILE_CURSOR);
             uint32_t v = TER(o);
             if ((v & 0x10000) && !(v & 0x148)) {
                 land_neighbour_flags(st, 0x10000);
                 scratch_invert(st);
-                uint32_t obj = U32(st, 0x00D05720u + 4u * (uint32_t) S32(st, CURSOR));
-                if (obj != 0 && P8(st, obj + 0x18) == 0) {
-                    land_pattern_match(st, 0x005CAC58u, 0x18, 0, 1);
+                uint32_t obj = U32(st, G_UD05720 + 4u * (uint32_t) S32(st, G_TILE_CURSOR));
+                if (obj != 0 && P8(st, obj + FLOODOBJ_FLAG) == 0) {
+                    land_pattern_match(st, G_PATTERN_FLOODPLAIN, 0x18, 0, 1);
                 } else {
                     neighbour_bits(st, 4, 1);
-                    S32(st, SCRATCH + 0x1C) = 0;
-                    S32(st, SCRATCH + 0x14) = 0;
-                    S32(st, SCRATCH + 0x0C) = 0;
-                    S32(st, SCRATCH + 0x04) = 0;
-                    pattern_match_by_water(st, 0x005CAC58u, 0x18);
+                    S32(st, G_NEIGHBOUR_FLAGS + 0x1C) = 0;
+                    S32(st, G_NEIGHBOUR_FLAGS + 0x14) = 0;
+                    S32(st, G_NEIGHBOUR_FLAGS + 0x0C) = 0;
+                    S32(st, G_NEIGHBOUR_FLAGS + 0x04) = 0;
+                    pattern_match_by_water(st, G_PATTERN_FLOODPLAIN, 0x18);
                 }
-                int32_t g = S32(st, 0x00F56C34u), img = g + S32(st, M_VARIANT);
-                S32(st, M_OFFSET) = 0;
-                o = S32(st, CURSOR);
-                obj = U32(st, 0x00D05720u + 4u * (uint32_t) o);
+                int32_t g = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 528), img = g + S32(st, G_MATCH_VARIANT);
+                S32(st, G_MATCH_OFFSET) = 0;
+                o = S32(st, G_TILE_CURSOR);
+                obj = U32(st, G_UD05720 + 4u * (uint32_t) o);
                 if (obj != 0) {
-                    uint32_t t = P32(st, obj + 8);
-                    int32_t lvl = fertility_level(U8(st, 0x00A5D4CCu + t));
-                    lvl = (lvl & ~1) | (U8(st, 0x00ACF85Cu + t) & 1);
+                    uint32_t t = P32(st, obj + FLOODOBJ_TILE);
+                    int32_t lvl = fertility_level(U8(st, G_GRID_FERTILITY + t));
+                    lvl = (lvl & ~1) | (U8(st, G_RANDOM + t) & 1);
                     img += (int32_t) P32(st, P32(st, obj) + 4) + lvl * 6;
                 }
                 if (blood) {
-                    int32_t e = img - S32(st, 0x00F56C34u);
+                    int32_t e = img - S32(st, G_DAY2_REDRAW_GROUPS + 8u * 528);
                     if (e >= 0x3C && e <= 0x53) {
-                        img = img + (S32(st, 0x00F57234u) - S32(st, 0x00F56C34u)) - 0x3C;
+                        img = img + (S32(st, G_DAY2_REDRAW_GROUPS + 8u * 720) - S32(st, G_DAY2_REDRAW_GROUPS + 8u * 528)) - 0x3C;
                     }
                 }
-                U8(st, 0x00B285CCu + (uint32_t) o) &= 0xF0;
-                S32(st, 0x00B7482Cu + 4u * (uint32_t) o) = img;
-                U8(st, 0x00B67D1Cu + (uint32_t) o) |= 0x40;
-                U8(st, 0x00AE8E7Cu + (uint32_t) o) = 0;
+                U8(st, G_DAY2_DESTROY_BITS + (uint32_t) o) &= 0xF0;
+                S32(st, G_IMAGE + 4u * (uint32_t) o) = img;
+                U8(st, G_EDGE + (uint32_t) o) |= 0x40;
+                U8(st, G_CANAL + (uint32_t) o) = 0;
             }
-            S32(st, CURSOR) += 1;
+            S32(st, G_TILE_CURSOR) += 1;
         }
-        S32(st, 0x00BC9760u) += 1;
-        S32(st, CURSOR) += 0xE4 - w;
+        S32(st, G_WALK_Y) += 1;
+        S32(st, G_TILE_CURSOR) += 0xE4 - w;
     }
 }
 
@@ -178,15 +174,15 @@ void floodplain_pass(game_state *st, int32_t x0, int32_t y0, int32_t x1, int32_t
     if (y0 < 0) {
         y0 = 0;
     }
-    if (x1 >= S32(st, 0x00BCA2D0u)) {
-        x1 = S32(st, 0x00BCA2D0u) - 1;
+    if (x1 >= S32(st, G_MAP_WIDTH)) {
+        x1 = S32(st, G_MAP_WIDTH) - 1;
     }
-    if (y1 >= S32(st, 0x00BCA2D4u)) {
-        y1 = S32(st, 0x00BCA2D4u) - 1;
+    if (y1 >= S32(st, G_MAP_HEIGHT)) {
+        y1 = S32(st, G_MAP_HEIGHT) - 1;
     }
     for (int32_t y = y0; y <= y1; y++) {
         for (int32_t x = x0; x <= x1; x++) {
-            uint32_t v = TER(S32(st, 0x00BCA2D8u) + y * 228 + x);
+            uint32_t v = TER(S32(st, G_MAP_START) + y * 228 + x);
             if ((v & 0x10000) && !(v & 8)) {
                 floodplain_tile_redraw(st, x, y, 1);
             }

@@ -11,16 +11,11 @@
 
 #include "building/day_access.h"
 #include "map/terrain_land.h"
+#include "state/layout.h"
 #include "state/ported.h"
 
-#define MAP_W 0x00BCA2D0u
-#define MAP_H 0x00BCA2D4u
-#define MAP_START 0x00BCA2D8u
-#define MAP_STRIDE_EXTRA 0x00BCA2DCu
-#define CURSOR 0x00BC9768u
-#define SCRATCH 0x00BC97C0u
 #define MARK 0x4000000u
-#define TER(o) U32(st, 0x00AF598Cu + 4u * (uint32_t) (o))
+#define TER(o) U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (o))
 
 int32_t map_area_lacks(game_state *st, int32_t x, int32_t y, int32_t r, uint32_t mask)
 {
@@ -28,10 +23,10 @@ int32_t map_area_lacks(game_state *st, int32_t x, int32_t y, int32_t r, uint32_t
      * & mask: 1; the row offset advances by xs - xe + 227 after each row */
     int32_t xs = x + 1 - r, xe = x + r - 1, ys = y + 1 - r, ye = y + r - 1;
     int32_t step = xs - xe + 0xE3;
-    int32_t o = S32(st, MAP_START) + ys * 228 + xs;
+    int32_t o = S32(st, G_MAP_START) + ys * 228 + xs;
     for (int32_t yy = ys; yy <= ye; yy++) {
         for (int32_t xx = xs; xx <= xe; xx++, o++) {
-            if (xx >= 0 && yy >= 0 && xx < S32(st, MAP_W) && yy < S32(st, MAP_H) && (TER(o) & mask) == 0) {
+            if (xx >= 0 && yy >= 0 && xx < S32(st, G_MAP_WIDTH) && yy < S32(st, G_MAP_HEIGHT) && (TER(o) & mask) == 0) {
                 return 1;
             }
         }
@@ -46,7 +41,7 @@ int32_t row_pair_with(game_state *st, int32_t x, int32_t y, uint32_t mask)
      * have terrain & mask */
     int32_t n = 0;
     for (int32_t xx = x - 1; xx < x + 2; xx++) {
-        if (xx >= 0 && xx < S32(st, MAP_W) && (TER(S32(st, MAP_START) + y * 228 + xx) & mask)) {
+        if (xx >= 0 && xx < S32(st, G_MAP_WIDTH) && (TER(S32(st, G_MAP_START) + y * 228 + xx) & mask)) {
             n++;
         }
     }
@@ -57,8 +52,8 @@ int32_t column_pair_with(game_state *st, int32_t x, int32_t y, uint32_t mask)
 {
     /* @bin 0x00487790 (x, y, mask) at least 2 of (x, y - 1 .. y + 1) on the map (rows only) have
      * terrain & mask */
-    int32_t n = 0, h = S32(st, MAP_H);
-    int32_t o = S32(st, MAP_START) + (y - 1) * 228 + x;
+    int32_t n = 0, h = S32(st, G_MAP_HEIGHT);
+    int32_t o = S32(st, G_MAP_START) + (y - 1) * 228 + x;
     for (int32_t yy = y - 1; yy < y + 2; yy++, o += 228) {
         if (yy >= 0 && yy < h && (TER(o) & mask)) {
             n++;
@@ -72,11 +67,11 @@ static int mark_holds(game_state *st, int32_t o)
     /* @bin 0x00487C61 the scratch (0x0047DB00 (0x4000000) at the cursor := o), read around from
      * neighbour 0: after the first unmarked one, a run of exactly 2 marked ones closed by an
      * unmarked one holds the mark (scan of at most 10 more entries, stops when a run reaches 8) */
-    S32(st, CURSOR) = o;
+    S32(st, G_TILE_CURSOR) = o;
     land_neighbour_flags(st, MARK);
     int32_t i = 0, end = 0x10, run = -1, holds = 0;
     while (run < 8) {
-        if (S32(st, SCRATCH + 4u * (uint32_t) (i & 7)) != 0) {
+        if (S32(st, G_NEIGHBOUR_FLAGS + 4u * (uint32_t) (i & 7)) != 0) {
             if (run >= 0) {
                 run++;
             }
@@ -102,11 +97,11 @@ static void check_around(game_state *st, int32_t x, int32_t y)
     /* @bin 0x00487B70 body (and 0x00487979 in 0x004877F0): the 3x3 square around (x, y), x and y
      * from max(v - 1, 0) to min(v + 1, size) inclusive; a marked tile whose row or column pair
      * test fails, or whose mark does not hold, loses it and its square is checked again */
-    int32_t w = S32(st, MAP_W);
+    int32_t w = S32(st, G_MAP_WIDTH);
     int32_t xs = x - 1 < 0 ? 0 : x - 1, xe = w < x + 1 ? w : x + 1;
-    int32_t ys = y - 1 < 0 ? 0 : y - 1, ye = S32(st, MAP_H) < y + 1 ? S32(st, MAP_H) : y + 1;
-    int32_t step = S32(st, MAP_STRIDE_EXTRA) - xe + w + xs - 1;
-    int32_t o = S32(st, MAP_START) + ys * 228 + xs;
+    int32_t ys = y - 1 < 0 ? 0 : y - 1, ye = S32(st, G_MAP_HEIGHT) < y + 1 ? S32(st, G_MAP_HEIGHT) : y + 1;
+    int32_t step = S32(st, G_MAP_STRIDE_EXTRA) - xe + w + xs - 1;
+    int32_t o = S32(st, G_MAP_START) + ys * 228 + xs;
     for (int32_t yy = ys; yy <= ye; yy++) {
         for (int32_t xx = xs; xx <= xe; xx++, o++) {
             if (!(TER(o) & MARK)) {
@@ -137,16 +132,16 @@ void coast_marks(game_state *st, int32_t x0, int32_t y0, int32_t x1, int32_t y1)
     if (y0 < 0) {
         y0 = 0;
     }
-    int32_t w = S32(st, MAP_W);
+    int32_t w = S32(st, G_MAP_WIDTH);
     if (x1 >= w) {
         x1 = w - 1;
     }
-    if (y1 >= S32(st, MAP_H)) {
-        y1 = S32(st, MAP_H) - 1;
+    if (y1 >= S32(st, G_MAP_HEIGHT)) {
+        y1 = S32(st, G_MAP_HEIGHT) - 1;
     }
     int32_t step = w - x1 + x0 - 1;
-    int32_t saved = S32(st, CURSOR);
-    int32_t o = S32(st, MAP_START) + y0 * 228 + x0;
+    int32_t saved = S32(st, G_TILE_CURSOR);
+    int32_t o = S32(st, G_MAP_START) + y0 * 228 + x0;
     for (int32_t y = y0; y <= y1; y++) {
         for (int32_t x = x0; x <= x1; x++, o++) {
             if ((TER(o) & 0x80004u) != 4) {
@@ -158,18 +153,18 @@ void coast_marks(game_state *st, int32_t x0, int32_t y0, int32_t x1, int32_t y1)
                 TER(o) &= ~MARK;
             }
         }
-        o += S32(st, MAP_STRIDE_EXTRA) + step;
+        o += S32(st, G_MAP_STRIDE_EXTRA) + step;
     }
-    o = S32(st, MAP_START) + y0 * 228 + x0;
+    o = S32(st, G_MAP_START) + y0 * 228 + x0;
     for (int32_t y = y0; y <= y1; y++) {
         for (int32_t x = x0; x <= x1; x++, o++) {
             if (TER(o) & MARK) {
                 check_around(st, x, y);
             }
         }
-        o += S32(st, MAP_STRIDE_EXTRA) + step;
+        o += S32(st, G_MAP_STRIDE_EXTRA) + step;
     }
-    S32(st, CURSOR) = saved;
+    S32(st, G_TILE_CURSOR) = saved;
 }
 
 int32_t neighbours_with_without(game_state *st, uint32_t mask, uint32_t exclude, int32_t tile)

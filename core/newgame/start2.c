@@ -13,7 +13,7 @@
 #include "state/ported.h"
 
 #define GRID(i) U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (i))
-#define STRENGTH(i) U8(st, G_MOISTURE + (uint32_t) (i))
+#define STRENGTH(i) U8(st, G_GRID_MOISTURE + (uint32_t) (i))
 #define OBJECT(i) U32(st, G_UD05720 + 4u * (uint32_t) (i))
 
 /* ---- 0x00478420 and the 0x10000 flag passes ---- */
@@ -432,14 +432,14 @@ int32_t terrain_0x00486f20(game_state *st, int32_t i)
         }
         return 0;
     }
-    S32(st, G_SCRATCH) = side_strength(st, i - 228) == 100;
-    S32(st, G_SCRATCH + 4u) = side_strength(st, i - 227) == 100;
-    S32(st, G_SCRATCH + 8u) = side_strength(st, i + 1) == 100;
-    S32(st, G_SCRATCH + 0xCu) = side_strength(st, i + 229) == 100;
-    S32(st, G_SCRATCH + 0x10u) = strength_open(st, i + 228, terrain_0x00487300(st, i + 228)) == 100;
-    S32(st, G_SCRATCH + 0x14u) = strength_open(st, i + 227, terrain_0x00487300(st, i + 227)) == 100;
-    S32(st, G_SCRATCH + 0x18u) = strength_open(st, i - 1, terrain_0x00487300(st, i - 1)) == 100;
-    S32(st, G_SCRATCH + 0x1Cu) = terrain_0x00487390(st, i, -229) == 100;
+    S32(st, G_NEIGHBOUR_FLAGS) = side_strength(st, i - 228) == 100;
+    S32(st, G_NEIGHBOUR_FLAGS + 4u) = side_strength(st, i - 227) == 100;
+    S32(st, G_NEIGHBOUR_FLAGS + 8u) = side_strength(st, i + 1) == 100;
+    S32(st, G_NEIGHBOUR_FLAGS + 0xCu) = side_strength(st, i + 229) == 100;
+    S32(st, G_NEIGHBOUR_FLAGS + 0x10u) = strength_open(st, i + 228, terrain_0x00487300(st, i + 228)) == 100;
+    S32(st, G_NEIGHBOUR_FLAGS + 0x14u) = strength_open(st, i + 227, terrain_0x00487300(st, i + 227)) == 100;
+    S32(st, G_NEIGHBOUR_FLAGS + 0x18u) = strength_open(st, i - 1, terrain_0x00487300(st, i - 1)) == 100;
+    S32(st, G_NEIGHBOUR_FLAGS + 0x1Cu) = terrain_0x00487390(st, i, -229) == 100;
     return GAME_CALL0(st, FN_NEIGHBOURS_COUNT);
 }
 
@@ -534,8 +534,8 @@ void terrain_0x00487450(game_state *st, int32_t x1, int32_t y1, int32_t x2, int3
                 uint32_t keep = U32(st, G_VIEW_ORIENTATION);
                 GRID(idx) = t & ~0x800u;
                 U32(st, G_VIEW_ORIENTATION) = 0;
-                GAME_CALL(st, FN_LAND_PATTERN_MATCH, G_U5CBFB8, 0x1A, -1, 0);
-                int32_t m = S32(st, G_M_OFFSET);
+                GAME_CALL(st, FN_LAND_PATTERN_MATCH, G_PATTERN_DEEP, 0x1A, -1, 0);
+                int32_t m = S32(st, G_MATCH_OFFSET);
                 STRENGTH(idx) = m == 0xE ? 100 : (uint8_t) (m | 0x80);
                 U32(st, G_VIEW_ORIENTATION) = keep;
             }

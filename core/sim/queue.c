@@ -9,6 +9,7 @@
  *   the lists 0x009783C0 + 0x1C * n. */
 #include "sim/queue.h"
 
+#include "state/layout.h"
 #include "state/ported.h"
 
 void queue_clear(game_state *st, uint32_t q)
@@ -110,7 +111,7 @@ static int32_t run_contains(game_state *st, const int32_t *a)
 
 static int32_t run_next(game_state *st, const int32_t *a)
 {
-    return in_state(st, (uint32_t) a[0], 0x004F65F0u) ? queue_next(st, THIS(a), (uint32_t) a[0]) : 0;
+    return in_state(st, (uint32_t) a[0], FN_QUEUE_NEXT) ? queue_next(st, THIS(a), (uint32_t) a[0]) : 0;
 }
 
 static int32_t run_pop(game_state *st, const int32_t *a)
@@ -120,7 +121,7 @@ static int32_t run_pop(game_state *st, const int32_t *a)
 
 static int32_t run_wrap(game_state *st, const int32_t *a)
 {
-    return in_state(st, (uint32_t) a[0], 0x004F6A10u) ? ring_wrap(st, THIS(a), (uint32_t) a[0]) : 0;
+    return in_state(st, (uint32_t) a[0], FN_RING_WRAP) ? ring_wrap(st, THIS(a), (uint32_t) a[0]) : 0;
 }
 
 static int32_t run_ring_pop(game_state *st, const int32_t *a)

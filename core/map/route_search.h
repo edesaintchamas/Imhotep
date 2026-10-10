@@ -5,10 +5,12 @@
 
 #include <stdint.h>
 
+#include "state/layout.h"
 #include "state/state.h"
 
-#define ROUTE_DISTANCE 0x00EED760u /* i32 per tile: distance + 1 from the search start, 0 = not reached */
-#define TERRAIN_GRID 0x00AF598Cu   /* u32 per tile: terrain flags */
+/* the names users outside core/map still read (docs/naming.md: kept until they are rewritten) */
+#define ROUTE_DISTANCE G_GRID_ROAD_DISTANCE
+#define TERRAIN_GRID G_GRID_TERRAIN
 
 /* @bin 0x0051CE90 breadth-first distances over grid 0x00ED4140 from tile (x, y); returns 0 when
  * the start tile is blocked (-4), else 1 */

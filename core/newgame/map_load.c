@@ -545,7 +545,7 @@ void map_read_chunks(game_state *st, map_stream *f)
         v = S32(st, G_VERSION);
     }
     if (v <= 0x9C) {
-        U32(st, G_U78D7B0) = 0;
+        U32(st, G_BLOOD_RIVER_LEFT) = 0;
         U32(st, G_FROGS_COUNTDOWN) = 0;
         U32(st, G_PYRAMID_CURSE_COUNTDOWN) = 0;
         U8(st, G_MONUMENT_MODE) = 1;
@@ -646,7 +646,7 @@ void map_setup_grids(game_state *st)
     }
     U32(st, G_VERSION) = 0xA0;
     GAME_CALL0(st, FN_VIEW_BOUNDS);
-    U32(st, G_BUILDINGS_B6_COUNT) = (uint32_t) GAME_CALL0(st, FN_BUILDINGS_COUNT_B6);
+    U32(st, G_WARSHIP_WHARVES) = (uint32_t) GAME_CALL0(st, FN_BUILDINGS_COUNT_B6);
     city_clear_298c(st); /* tail jump */
 }
 

@@ -8,10 +8,10 @@
 
 #include "graphics/image_groups.h"
 #include "io/map_file.h"
+#include "state/records.h"
 #include "state/state.h"
 
-#define GRID_SIDE 228
-#define GRID_SIZE (GRID_SIDE * GRID_SIDE)
+#define GRID_SIDE 228 /* tiles: GRID_TILES (state/records.h) */
 #define FLOODPLAIN_MAX_DEPTH 30
 
 typedef struct {

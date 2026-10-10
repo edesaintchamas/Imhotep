@@ -741,7 +741,7 @@ static void upgrades(ctx *c)
         st->upgrades++;
     }
     if (v < 0x9D) {
-        wr32(c, G_U78D7B0, 0); /* chunk 131, blood river region */
+        wr32(c, G_BLOOD_RIVER_LEFT, 0); /* chunk 131, blood river region */
         wr32(c, G_FROGS_COUNTDOWN, 0);
         wr32(c, G_PYRAMID_CURSE_COUNTDOWN, 0);
         wr8(c, G_MONUMENT_MODE, 1); /* scenario info +0x3E4 */
@@ -910,5 +910,5 @@ static void load_steps(ctx *cp)
         }
     }
     /* @bin 0x004D41E0 0x00EAAF5C := (0x0078D7A4 > 0): not saved (dropped in chunk mode) */
-    wr8(&c, G_PYRAMID_CURSE_FLAG, rd32(&c, G_PYRAMID_CURSE_COUNTDOWN) > 0);
+    wr8(&c, G_GOD_CURSE_ON, rd32(&c, G_PYRAMID_CURSE_COUNTDOWN) > 0);
 }

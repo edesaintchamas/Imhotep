@@ -8,27 +8,23 @@
 
 #include "map/terrain_land.h"
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 
-#define CURSOR 0x00BC9768u
-#define SCRATCH 0x00BC97C0u
-#define M_VARIANT 0x00BC9740u
-#define M_EXTRA 0x00BC9744u
-#define M_OFFSET 0x00BC9748u
-#define TER(o) U32(st, 0x00AF598Cu + 4u * (uint32_t) (o))
-#define IMG(o) S32(st, 0x00B7482Cu + 4u * (uint32_t) (o))
-#define BGRID(o) S16(st, 0x00B4E6FCu + 2u * (uint32_t) (o))
+#define TER(o) U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (o))
+#define IMG(o) S32(st, G_IMAGE + 4u * (uint32_t) (o))
+#define BGRID(o) S16(st, G_BUILDING_GRID + 2u * (uint32_t) (o))
 
 static int32_t road_paved_at(game_state *st)
 {
     /* @bin 0x0047B920 the cursor tile's road is paved: never on floodplain; desirability > 4 yes,
      * < 1 no, else terrain bit 0x2000 */
-    int32_t c = S32(st, CURSOR);
+    int32_t c = S32(st, G_TILE_CURSOR);
     uint32_t v = TER(c);
     if (v & 0x10000) {
         return 0;
     }
-    int8_t d = S8(st, 0x00AC2D4Cu + (uint32_t) c);
+    int8_t d = S8(st, G_DESIRABILITY_GRID + (uint32_t) c);
     if (d > 4) {
         return 1;
     }
@@ -42,7 +38,7 @@ static void scratch_normalize(game_state *st)
 {
     /* @bin 0x00484F20 every scratch flag := (flag != 0) */
     for (uint32_t i = 0; i < 8; i++) {
-        S32(st, SCRATCH + 4u * i) = S32(st, SCRATCH + 4u * i) != 0;
+        S32(st, G_NEIGHBOUR_FLAGS + 4u * i) = S32(st, G_NEIGHBOUR_FLAGS + 4u * i) != 0;
     }
 }
 
@@ -53,17 +49,17 @@ static void gatehouse_flags(game_state *st)
      * scratch flag of that side */
     static const struct { int32_t d; uint32_t flag; int16_t side; } N[4] = {
         {-228, 0, 1}, {1, 2, 2}, {228, 4, 1}, {-1, 6, 2}};
-    int32_t c = S32(st, CURSOR);
+    int32_t c = S32(st, G_TILE_CURSOR);
     for (int k = 0; k < 4; k++) {
         int32_t n = c + N[k].d;
         if (!(TER(n) & 0x8000)) {
             continue;
         }
-        uint32_t b = 0x007999D8u + 0x108u * (uint32_t) (int32_t) BGRID(n);
-        int16_t type = S16(st, b + 0x10);
+        uint32_t b = BUILDING_ADDR((int32_t) BGRID(n));
+        int16_t type = S16(st, b + BLD_TYPE);
         if ((type == 0x3A || type == 0xAA || type == 0xAB || type == 200 || type == 0xC9 || type == 0xCA) &&
-            S16(st, b + 0x12) == N[k].side) {
-            S32(st, SCRATCH + 4u * N[k].flag) = 1;
+            S16(st, b + BLD_SUBTYPE) == N[k].side) {
+            S32(st, G_NEIGHBOUR_FLAGS + 4u * N[k].flag) = 1;
         }
     }
 }
@@ -97,33 +93,33 @@ static void canal_flags(game_state *st)
      * on floodplain the water neighbours (terrain 4); the canal links (0x0047EB60); a Water Lift
      * (building type 0x5A, terrain 8) north / south with its +0xAA bit 0 clear, east / west with
      * it set, unless the tile and the opposite neighbour both have a road (0x40) */
-    int32_t o = S32(st, CURSOR);
+    int32_t o = S32(st, G_TILE_CURSOR);
     for (uint32_t i = 0; i < 8; i++) {
-        S32(st, SCRATCH + 4u * (7 - i)) = 0;
+        S32(st, G_NEIGHBOUR_FLAGS + 4u * (7 - i)) = 0;
     }
     if (TER(o) & 0x10000) {
         static const int32_t W[4] = {-228, 1, 228, -1};
         for (int k = 0; k < 4; k++) {
             if (TER(o + W[k]) & 4) {
-                S32(st, SCRATCH + 8u * (uint32_t) k) = 1;
+                S32(st, G_NEIGHBOUR_FLAGS + 8u * (uint32_t) k) = 1;
             }
         }
     }
     for (int dir = 0; dir < 8; dir += 2) {
         if (canal_link(st, o, dir)) {
-            S32(st, SCRATCH + 4u * (uint32_t) dir) = 1;
+            S32(st, G_NEIGHBOUR_FLAGS + 4u * (uint32_t) dir) = 1;
         }
     }
-    o = S32(st, CURSOR);
+    o = S32(st, G_TILE_CURSOR);
     static const struct { int32_t d, opposite; uint8_t bit; } L[4] = {{-228, 228, 0}, {1, -1, 1}, {228, -228, 0}, {-1, 1, 1}};
     for (int k = 0; k < 4; k++) {
         int32_t n = o + L[k].d;
         if (!(TER(n) & 8)) {
             continue;
         }
-        uint32_t b = 0x007999D8u + 0x108u * (uint32_t) (int32_t) BGRID(n);
-        if (S16(st, b + 0x10) == 0x5A && !(TER(o + L[k].opposite) & TER(o) & 0x40) && (U8(st, b + 0xAA) & 1) == L[k].bit) {
-            S32(st, SCRATCH + 8u * (uint32_t) k) = 1;
+        uint32_t b = BUILDING_ADDR((int32_t) BGRID(n));
+        if (S16(st, b + BLD_TYPE) == 0x5A && !(TER(o + L[k].opposite) & TER(o) & 0x40) && (U8(st, b + BLD_ORIENTATION) & 1) == L[k].bit) {
+            S32(st, G_NEIGHBOUR_FLAGS + 8u * (uint32_t) k) = 1;
         }
     }
 }
@@ -135,68 +131,68 @@ static void road_tile(game_state *st)
      * (0x100): bridge images of the canal group by the canal pattern (0x0047E870), paved or not;
      * floodplain or a flooded floodplain tile: the floodplain road images (0x0051C5F0) or the
      * floodplain road group; else paved or plain road pattern */
-    int32_t c = S32(st, CURSOR), img;
-    if (BGRID(c) != 0 || (U8(st, 0x00B285CCu + (uint32_t) c) & 0x80)) {
+    int32_t c = S32(st, G_TILE_CURSOR), img;
+    if (BGRID(c) != 0 || (U8(st, G_DAY2_DESTROY_BITS + (uint32_t) c) & 0x80)) {
         return;
     }
-    if (S32(st, 0x00978D74u) == 1) {
-        land_pattern_match(st, 0x005CC378u, 0x30, -1, 0);
+    if (S32(st, G_ALL_ROADS_PAVED) == 1) {
+        land_pattern_match(st, G_PATTERN_PAVED_ROADS, 0x30, -1, 0);
         scratch_normalize(st);
-        IMG(S32(st, CURSOR)) = S32(st, 0x00F56C44u) + S32(st, M_VARIANT) + S32(st, M_OFFSET);
+        IMG(S32(st, G_TILE_CURSOR)) = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 530) + S32(st, G_MATCH_VARIANT) + S32(st, G_MATCH_OFFSET);
     } else if (TER(c) & 0x100) {
-        int32_t shift = (IMG(c) - S32(st, 0x00F56B84u) < 0x30) ? 0 : 0x30;
+        int32_t shift = (IMG(c) - S32(st, G_CANAL_BASE) < 0x30) ? 0 : 0x30;
         canal_flags(st);
-        land_pattern_match(st, 0x005CC678u, 0x10, -1, 0);
-        if (S32(st, M_EXTRA) == 0) {
-            int32_t k = S32(st, CURSOR);
+        land_pattern_match(st, G_PATTERN_CANALS, 0x10, -1, 0);
+        if (S32(st, G_MATCH_EXTRA) == 0) {
+            int32_t k = S32(st, G_TILE_CURSOR);
             if (!(TER(k - 1) & 0x100)) {
-                S32(st, M_OFFSET) = 1;
+                S32(st, G_MATCH_OFFSET) = 1;
                 if (TER(k + 1) & 0x100) {
-                    S32(st, M_OFFSET) = 0;
+                    S32(st, G_MATCH_OFFSET) = 0;
                 }
             } else {
-                S32(st, M_OFFSET) = 0;
+                S32(st, G_MATCH_OFFSET) = 0;
             }
         }
         if (road_paved_at(st)) {
-            IMG(S32(st, CURSOR)) = S32(st, 0x00F56B84u) + S32(st, M_OFFSET) + shift + 0x2A;
+            IMG(S32(st, G_TILE_CURSOR)) = S32(st, G_CANAL_BASE) + S32(st, G_MATCH_OFFSET) + shift + 0x2A;
         } else {
-            img = S32(st, 0x00F56B84u) + S32(st, M_OFFSET) + shift + 0xF;
-            if (TER(S32(st, CURSOR)) & 0x10000) {
+            img = S32(st, G_CANAL_BASE) + S32(st, G_MATCH_OFFSET) + shift + 0xF;
+            if (TER(S32(st, G_TILE_CURSOR)) & 0x10000) {
                 img += 0x15; /* @bin 0x0051C620 */
             }
-            IMG(S32(st, CURSOR)) = img;
+            IMG(S32(st, G_TILE_CURSOR)) = img;
         }
     } else {
-        uint32_t obj = U32(st, 0x00D05720u + 4u * (uint32_t) c);
-        if (!(TER(c) & 0x10000) && (obj == 0 || P8(st, obj + 0x18) != 0)) {
+        uint32_t obj = U32(st, G_UD05720 + 4u * (uint32_t) c);
+        if (!(TER(c) & 0x10000) && (obj == 0 || P8(st, obj + FLOODOBJ_FLAG) != 0)) {
             if (road_paved_at(st)) {
-                land_pattern_match(st, 0x005CC378u, 0x30, -1, 0);
+                land_pattern_match(st, G_PATTERN_PAVED_ROADS, 0x30, -1, 0);
                 scratch_normalize(st);
-                img = S32(st, 0x00F56C44u) + S32(st, M_VARIANT) + S32(st, M_OFFSET);
+                img = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 530) + S32(st, G_MATCH_VARIANT) + S32(st, G_MATCH_OFFSET);
             } else {
-                land_pattern_match(st, 0x005CC268u, 0x11, -1, 0);
+                land_pattern_match(st, G_PATTERN_ROADS, 0x11, -1, 0);
                 scratch_normalize(st);
-                IMG(S32(st, CURSOR)) = S32(st, 0x00F56C94u) + S32(st, M_VARIANT) + S32(st, M_OFFSET);
+                IMG(S32(st, G_TILE_CURSOR)) = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 540) + S32(st, G_MATCH_VARIANT) + S32(st, G_MATCH_OFFSET);
                 goto mark;
             }
         } else {
-            int32_t rel = IMG(c) - S32(st, 0x00F56C34u);
+            int32_t rel = IMG(c) - S32(st, G_DAY2_REDRAW_GROUPS + 8u * 528);
             int32_t m = rel == 0x34 ? 0x56 : rel == 0x30 ? 0x54 : rel == 0x36 ? 0x57 : rel == 0x32 ? 0x55 : rel;
             if (rel == m && (rel < 0x54 || rel > 0x57)) {
-                land_pattern_match(st, 0x005CC268u, 0x11, -1, 0);
+                land_pattern_match(st, G_PATTERN_ROADS, 0x11, -1, 0);
                 scratch_normalize(st);
-                img = S32(st, M_VARIANT) + S32(st, 0x00F56CD4u) + S32(st, M_OFFSET);
+                img = S32(st, G_MATCH_VARIANT) + S32(st, G_DAY2_REDRAW_GROUPS + 8u * 548) + S32(st, G_MATCH_OFFSET);
             } else {
-                img = m + S32(st, 0x00F56C34u);
+                img = m + S32(st, G_DAY2_REDRAW_GROUPS + 8u * 528);
             }
         }
-        IMG(S32(st, CURSOR)) = img;
+        IMG(S32(st, G_TILE_CURSOR)) = img;
     }
 mark:
-    c = S32(st, CURSOR);
-    U8(st, 0x00B285CCu + (uint32_t) c) &= 0xF0;
-    U8(st, 0x00B67D1Cu + (uint32_t) c) |= 0x40;
+    c = S32(st, G_TILE_CURSOR);
+    U8(st, G_DAY2_DESTROY_BITS + (uint32_t) c) &= 0xF0;
+    U8(st, G_EDGE + (uint32_t) c) |= 0x40;
 }
 
 void canals_rect(game_state *st, int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t dry)
@@ -213,53 +209,53 @@ void canals_rect(game_state *st, int32_t x0, int32_t y0, int32_t x1, int32_t y1,
     if (xa < 0) {
         xa = 0;
     }
-    if (xb >= S32(st, 0x00BCA2D0u)) {
-        xb = S32(st, 0x00BCA2D0u) - 1;
+    if (xb >= S32(st, G_MAP_WIDTH)) {
+        xb = S32(st, G_MAP_WIDTH) - 1;
     }
     if (ya < 0) {
         ya = 0;
     }
-    if (yb >= S32(st, 0x00BCA2D4u)) {
-        yb = S32(st, 0x00BCA2D4u) - 1;
+    if (yb >= S32(st, G_MAP_HEIGHT)) {
+        yb = S32(st, G_MAP_HEIGHT) - 1;
     }
-    S32(st, 0x00BC9760u) = ya;
-    S32(st, CURSOR) = S32(st, 0x00BCA2D8u) + ya * 228 + xa;
-    while (S32(st, 0x00BC9760u) <= yb) {
-        for (S32(st, 0x00BC9764u) = xa; S32(st, 0x00BC9764u) <= xb; S32(st, 0x00BC9764u) += 1) {
-            int32_t c = S32(st, CURSOR);
+    S32(st, G_WALK_Y) = ya;
+    S32(st, G_TILE_CURSOR) = S32(st, G_MAP_START) + ya * 228 + xa;
+    while (S32(st, G_WALK_Y) <= yb) {
+        for (S32(st, G_WALK_X) = xa; S32(st, G_WALK_X) <= xb; S32(st, G_WALK_X) += 1) {
+            int32_t c = S32(st, G_TILE_CURSOR);
             uint32_t v = TER(c);
-            if ((v & 0x100) && !(v & 0xC) && U8(st, 0x00AE8E7Cu + (uint32_t) c) <= 0xF) {
-                int32_t rel = IMG(c) - S32(st, 0x00F56B84u);
+            if ((v & 0x100) && !(v & 0xC) && U8(st, G_CANAL + (uint32_t) c) <= 0xF) {
+                int32_t rel = IMG(c) - S32(st, G_CANAL_BASE);
                 int32_t shift = rel >= 0x30 ? 0x30 : (rel >= 0 ? 0 : 0x30);
                 if (dry != 0) {
                     shift = 0x30;
                 }
                 canal_flags(st);
-                land_pattern_match(st, 0x005CC678u, 0x10, -1, 0);
-                c = S32(st, CURSOR);
+                land_pattern_match(st, G_PATTERN_CANALS, 0x10, -1, 0);
+                c = S32(st, G_TILE_CURSOR);
                 if (TER(c) & 0x40) {
-                    U8(st, 0x00B285CCu + (uint32_t) c) &= 0x7F;
-                    if (S32(st, M_EXTRA) == 0) {
-                        S32(st, M_OFFSET) = (int32_t) ((((uint8_t) ~U8(st, 0x00AF598Cu + 4u * (uint32_t) (c - 228))) >> 6) & 1);
+                    U8(st, G_DAY2_DESTROY_BITS + (uint32_t) c) &= 0x7F;
+                    if (S32(st, G_MATCH_EXTRA) == 0) {
+                        S32(st, G_MATCH_OFFSET) = (int32_t) ((((uint8_t) ~U8(st, G_GRID_TERRAIN + 4u * (uint32_t) (c - 228))) >> 6) & 1);
                     }
-                    S32(st, M_OFFSET) = S32(st, M_OFFSET) + (road_paved_at(st) ? 0x2A : 0xF);
-                    c = S32(st, CURSOR);
+                    S32(st, G_MATCH_OFFSET) = S32(st, G_MATCH_OFFSET) + (road_paved_at(st) ? 0x2A : 0xF);
+                    c = S32(st, G_TILE_CURSOR);
                 }
-                int32_t img = S32(st, 0x00F56B84u) + S32(st, M_VARIANT) + S32(st, M_OFFSET) + shift;
+                int32_t img = S32(st, G_CANAL_BASE) + S32(st, G_MATCH_VARIANT) + S32(st, G_MATCH_OFFSET) + shift;
                 if (TER(c) & 0x10000) {
                     img += 0x15; /* @bin 0x0051C620 */
                 }
                 IMG(c) = img;
-                U8(st, 0x00B285CCu + (uint32_t) c) &= 0xF0;
-                U8(st, 0x00B67D1Cu + (uint32_t) c) |= 0x40;
-                U8(st, 0x00AE8E7Cu + (uint32_t) c) = (uint8_t) S32(st, M_EXTRA);
+                U8(st, G_DAY2_DESTROY_BITS + (uint32_t) c) &= 0xF0;
+                U8(st, G_EDGE + (uint32_t) c) |= 0x40;
+                U8(st, G_CANAL + (uint32_t) c) = (uint8_t) S32(st, G_MATCH_EXTRA);
             }
-            S32(st, CURSOR) += 1;
+            S32(st, G_TILE_CURSOR) += 1;
         }
-        S32(st, 0x00BC9760u) += 1;
-        S32(st, CURSOR) += 0xE4 - (xb - xa + 1);
+        S32(st, G_WALK_Y) += 1;
+        S32(st, G_TILE_CURSOR) += 0xE4 - (xb - xa + 1);
     }
-    S32(st, 0x00BCA328u) = 0;
+    S32(st, G_UBCA328) = 0;
 }
 
 void roads_rect(game_state *st, int32_t x0, int32_t y0, int32_t x1, int32_t y1)
@@ -272,34 +268,34 @@ void roads_rect(game_state *st, int32_t x0, int32_t y0, int32_t x1, int32_t y1)
     if (y0 < 0) {
         y0 = 0;
     }
-    if (x1 >= S32(st, 0x00BCA2D0u)) {
-        x1 = S32(st, 0x00BCA2D0u) - 1;
+    if (x1 >= S32(st, G_MAP_WIDTH)) {
+        x1 = S32(st, G_MAP_WIDTH) - 1;
     }
-    if (y1 >= S32(st, 0x00BCA2D4u)) {
-        y1 = S32(st, 0x00BCA2D4u) - 1;
+    if (y1 >= S32(st, G_MAP_HEIGHT)) {
+        y1 = S32(st, G_MAP_HEIGHT) - 1;
     }
-    int32_t step = S32(st, 0x00BCA2D0u) - x1 + x0 - 1;
-    S32(st, 0x00BC9760u) = y0;
-    S32(st, CURSOR) = S32(st, 0x00BCA2D8u) + y0 * 228 + x0;
-    while (S32(st, 0x00BC9760u) <= y1) {
-        for (S32(st, 0x00BC9764u) = x0; S32(st, 0x00BC9764u) <= x1; S32(st, 0x00BC9764u) += 1) {
-            uint32_t v = TER(S32(st, CURSOR));
+    int32_t step = S32(st, G_MAP_WIDTH) - x1 + x0 - 1;
+    S32(st, G_WALK_Y) = y0;
+    S32(st, G_TILE_CURSOR) = S32(st, G_MAP_START) + y0 * 228 + x0;
+    while (S32(st, G_WALK_Y) <= y1) {
+        for (S32(st, G_WALK_X) = x0; S32(st, G_WALK_X) <= x1; S32(st, G_WALK_X) += 1) {
+            uint32_t v = TER(S32(st, G_TILE_CURSOR));
             if ((v & 0x40) && !(v & 0xC)) {
                 land_neighbour_flags(st, 0x8000040u);
                 gatehouse_flags(st);
                 road_tile(st);
             }
-            S32(st, CURSOR) += 1;
+            S32(st, G_TILE_CURSOR) += 1;
         }
-        S32(st, CURSOR) += S32(st, 0x00BCA2DCu) + step;
-        S32(st, 0x00BC9760u) += 1;
+        S32(st, G_TILE_CURSOR) += S32(st, G_MAP_STRIDE_EXTRA) + step;
+        S32(st, G_WALK_Y) += 1;
     }
 }
 
 void roads_all(game_state *st)
 {
     /* @bin 0x0047B570 the whole map */
-    roads_rect(st, 0, 0, S32(st, 0x00BCA2D0u) - 1, S32(st, 0x00BCA2D4u) - 1);
+    roads_rect(st, 0, 0, S32(st, G_MAP_WIDTH) - 1, S32(st, G_MAP_HEIGHT) - 1);
 }
 
 static int32_t run_canals(game_state *st, const int32_t *a)
@@ -359,11 +355,11 @@ static int32_t run_canal_link(game_state *st, const int32_t *a)
 {
     uint8_t *count = state_ptr(st, (uint32_t) a[1], 4);
     if (!count) {
-        state_unported(st, 0x0047EB60u); /* the count lives in the caller's frame */
+        state_unported(st, FN_CANAL_LINK); /* the count lives in the caller's frame */
         return 0;
     }
-    if (canal_link(st, S32(st, CURSOR), a[0])) {
-        S32(st, SCRATCH + 4u * (uint32_t) a[0]) = 1;
+    if (canal_link(st, S32(st, G_TILE_CURSOR), a[0])) {
+        S32(st, G_NEIGHBOUR_FLAGS + 4u * (uint32_t) a[0]) = 1;
         S32(st, (uint32_t) a[1]) += 1;
     }
     return 0;

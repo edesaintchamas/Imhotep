@@ -178,19 +178,19 @@ int32_t boot_settings(game_state *st, const boot_host *host, int32_t screen_widt
     U8(st, G_GATE) = 0;
     /* @bin 0x0041493A the words 0x005C9022 / 0x005C9062 by 0x00E38EAC (2: 4, 1: 3) */
     if (S32(st, G_TIPS_ON) == 2) {
-        S16(st, G_MENU_HELP2_TEXT) = 4;
-        S16(st, G_MENU_HELP2_TEXT_B) = 4;
+        S16(st, G_MENU_TEXT_TIPS) = 4;
+        S16(st, G_MENU_TEXT_TIPS2) = 4;
     } else if (S32(st, G_TIPS_ON) == 1) {
-        S16(st, G_MENU_HELP2_TEXT) = 3;
-        S16(st, G_MENU_HELP2_TEXT_B) = 3;
+        S16(st, G_MENU_TEXT_TIPS) = 3;
+        S16(st, G_MENU_TEXT_TIPS2) = 3;
     }
     if (U8(st, G_NOTICES_ON) == 1) {
-        S16(st, G_MENU_HELP3_TEXT) = 6; /* @bin 0x00414977 */
+        S16(st, G_MENU_TEXT_WARNINGS) = 6; /* @bin 0x00414977 */
     }
     /* @bin 0x00414980 .. 0x004149C0 */
-    S16(st, G_MENU_OPTIONS8_TEXT) = (int16_t) ((S32(st, G_UE38EEC) != 0) + 9);
-    S16(st, G_MENU_OPTIONS9_TEXT) = (int16_t) ((U8(st, G_UE38EC3) != 0) + 4);
-    S16(st, G_MENU_OPTIONS6_TEXT) = (int16_t) ((U8(st, G_EMPIRE_LANGUAGE) != 0) + 7);
+    S16(st, G_MENU_TEXT_EEC) = (int16_t) ((S32(st, G_UE38EEC) != 0) + 9);
+    S16(st, G_MENU_TEXT_EC3) = (int16_t) ((U8(st, G_UE38EC3) != 0) + 4);
+    S16(st, G_MENU_TEXT_LANGUAGE) = (int16_t) ((U8(st, G_EMPIRE_LANGUAGE) != 0) + 7);
     return 1;
 }
 

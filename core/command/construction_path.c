@@ -68,7 +68,7 @@ int32_t water_neighbours(game_state *st, int32_t o)
     /* @bin 0x0047E0D0 the four neighbours (north, east, south, west: 0x00BC97C0, C8, D0, D8)
      * with terrain 0x8000040, or terrain 8 and a building of type 0x8A or 0x88; their count */
     static const int32_t step[4] = {-GRID_W, 1, GRID_W, -1};
-    static const uint32_t flag[4] = {G_SCRATCH, G_SCRATCH + 4u * 2u, G_SCRATCH + 4u * 4u, G_SCRATCH + 4u * 6u};
+    static const uint32_t flag[4] = {G_NEIGHBOUR_FLAGS, G_NEIGHBOUR_FLAGS + 4u * 2u, G_NEIGHBOUR_FLAGS + 4u * 4u, G_NEIGHBOUR_FLAGS + 4u * 6u};
     uint32_t v[4];
     for (int i = 0; i < 4; i++) {
         v[i] = TER(o + step[i]) & 0x8000040u;

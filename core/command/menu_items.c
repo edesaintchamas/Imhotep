@@ -45,10 +45,10 @@ static void menu_exit_to_main(game_state *st)
     /* @bin 0x004023A0 File 1: the chunk 175 defaults (0x004D3C40); 0x0078D7B0, 0x0078D7A8,
      * 0x0078D7A4, 0x0078D7A0, 0x006059E8, 0x00BC9694, 0x00E94E0C, 0x00E94E10 := 0 */
     chunk175_defaults(st);
-    U32(st, G_BLOOD_RIVER_REGION) = 0;
+    U32(st, G_BLOOD_RIVER_LEFT) = 0;
     U32(st, G_FROGS_COUNTDOWN) = 0;
-    U32(st, G_GOD_CURSE_COUNTDOWN) = 0;
-    U32(st, G_SHAKE) = 0;
+    U32(st, G_PYRAMID_CURSE_COUNTDOWN) = 0;
+    U32(st, G_HAIL_TIMER) = 0;
     U32(st, G_CONSTRUCTION_UI_TYPE) = 0;
     U32(st, G_UNDO_POSSIBLE) = 0;
     U32(st, G_OVERLAY) = 0;

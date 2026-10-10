@@ -110,8 +110,8 @@ void undo_building_readd(game_state *st, int32_t id)
         uint32_t k = U8(st, b + BLD_STORAGE_ID);
         if (k != 0 && U8(st, G_STORAGE_SETTINGS + 0xC4u * k) == 0) {
             U8(st, G_STORAGE_SETTINGS + 0xC4u * k) = 1;
-            if (S32(st, G_RECORDS_HIGHEST) <= (int32_t) k) {
-                S32(st, G_RECORDS_HIGHEST) = (int32_t) k;
+            if (S32(st, G_STORAGE_HIGHEST) <= (int32_t) k) {
+                S32(st, G_STORAGE_HIGHEST) = (int32_t) k;
             }
         } else {
             U8(st, b + BLD_STORAGE_ID) = (uint8_t) GAME_CALL(st, FN_STORAGE_CREATE, id);

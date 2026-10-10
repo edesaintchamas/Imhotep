@@ -211,7 +211,7 @@ uint8_t place_monument_d5_fits(game_state *st, int32_t offset)
      * +8 size) free */
     int32_t rel = offset - S32(st, G_MAP_START);
     int32_t x = rel % GRID_SIZE, y = rel / GRID_SIZE;
-    for (uint32_t e = G_MONUMENT_D5_PARTS + 4u; e < G_MONUMENT_D5_PARTS + 4u + 100u * 0x34u; e += 0x34) {
+    for (uint32_t e = G_SUN_TEMPLE_PARTS + 4u; e < G_SUN_TEMPLE_PARTS + 4u + 100u * 0x34u; e += 0x34) {
         if (!part_free(st, S32(st, e - 4) + x, S32(st, e) + y, S32(st, e + 4))) {
             return 0;
         }

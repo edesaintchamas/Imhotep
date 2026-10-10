@@ -192,7 +192,7 @@ static void surfaces_keep(game_state *st, uint32_t self, uint32_t primary, uint3
 /* @bin 0x004D0220 gfxBegin: 0x004D01E0 (nothing open yet), 0x004D0060, the clearing fills 0x00426F60 */
 static int32_t gfx_begin(game_state *st, const boot_host *host, const boot_display *d)
 {
-    U8(st, G_DD_NOT_READY) = 1;
+    U8(st, G_PRESENT_WAIT) = 1;
     if (U32(st, G_UE92E00) != 0 || S32(st, G_DD_READY) != 0) {
         state_unported(st, FN_DISPLAY_END); /* a display already open: released first */
         return 0;
@@ -218,7 +218,7 @@ static int32_t gfx_begin(game_state *st, const boot_host *host, const boot_displ
     S32(st, G_DD_READY) = 1;
     /* @bin 0x00426F60 UpdateWindow, then colour fills (black) of the back buffer and the primary surface:
      * DirectDraw's, on surfaces that are new (the oracle's fills leave them as they are) */
-    U8(st, G_DD_NOT_READY) = 0;
+    U8(st, G_PRESENT_WAIT) = 0;
     S32(st, G_APP_ACTIVE) = 1;
     U8(st, G_REDRAW) = 1;
     return 1;

@@ -682,14 +682,14 @@ uint8_t place_special_point_in(game_state *st, int32_t x1, int32_t y1, int32_t x
     int32_t ymin = y1 < y2 ? y1 : y2, ymax = y1 > y2 ? y1 : y2;
     /* @bin 0x00470933 four points of i16 x 0x00784B64[], y 0x00784B6C[] */
     for (uint32_t i = 0; i < 4; i++) {
-        int32_t px = S16(st, G_HERD_X + 2 * i), py = S16(st, G_HERD_Y + 2 * i);
+        int32_t px = S16(st, G_HERD_POINTS_X + 2 * i), py = S16(st, G_HERD_POINTS_Y + 2 * i);
         if (px >= xmin && px <= xmax && py >= ymin && py <= ymax) {
             return 1;
         }
     }
     /* @bin 0x00470959 four points of i32 x 0x00784CC0[], y 0x00784CD0[] */
     for (uint32_t i = 0; i < 4; i++) {
-        int32_t px = S32(st, G_HERD2_X + 4 * i), py = S32(st, G_HERD2_Y + 4 * i);
+        int32_t px = S32(st, G_HERD2_POINTS_X + 4 * i), py = S32(st, G_HERD2_POINTS_Y + 4 * i);
         if (px >= xmin && px <= xmax && py >= ymin && py <= ymax) {
             return 1;
         }

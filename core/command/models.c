@@ -244,7 +244,7 @@ static int model_open(game_state *st, model_file *f, uint32_t names, uint32_t no
 {
     f->data = NULL;
     if (U32(st, G_SPARE_SCREEN) == 0) {
-        GAME_CALL(st, FN_PLATFORM_LOG, G_STR_NO_SPARE_SCREEN, 0, 0); /* "ERR:no spare screen for model" */
+        GAME_CALL(st, FN_PLATFORM_LOG, G_STR_ERR_NO_SPARE_SCREEN_MODEL, 0, 0); /* "ERR:no spare screen for model" */
         return 0;
     }
     char path[261];

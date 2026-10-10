@@ -117,7 +117,7 @@ static void formations_clear(game_state *st)
     }
     U32(st, G_FORMATION_HIGHEST) = 0;
     U32(st, G_LEGION_LAST) = 0;
-    U32(st, G_LEGION_COUNT) = 0;
+    U32(st, G_FORMATION_COUNT) = 0;
 }
 
 static void rec_c8ad38_clear(game_state *st)
@@ -153,7 +153,7 @@ static void date_reset(game_state *st)
     U32(st, G_TICK_DAY) = 0;
     U32(st, G_MONTH) = 0;
     U32(st, G_YEAR) = 0x832u;
-    U32(st, G_U78D7B0) = 0;
+    U32(st, G_BLOOD_RIVER_LEFT) = 0;
     U32(st, G_FROGS_COUNTDOWN) = 0;
     U32(st, G_PYRAMID_CURSE_COUNTDOWN) = 0;
     U32(st, G_HAIL_TIMER) = 0;

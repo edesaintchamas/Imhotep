@@ -186,7 +186,7 @@ void scenario_map_load(game_state *st)
     GAME_CALL0(st, FN_MAP_ROW_RANGES);
     /* @bin 0x004DE6D5 the 16 map points (x 0x00784BC0, y 0x00784BE0): off the map -> -1, -1
      * (checked twice) */
-    for (uint32_t p = G_MAP_POINTS_Y; p < G_MAP_POINTS_Y + 0x20u; p += 2) {
+    for (uint32_t p = G_SCENARIO_POINTS_Y; p < G_SCENARIO_POINTS_Y + 0x20u; p += 2) {
         for (int k = 0; k < 2; k++) {
             int32_t x = S32(st, G_VIEW_DX) + S16(st, p - 0x20), y = S32(st, G_VIEW_DY) + S16(st, p);
             if ((GAME_CALL(st, FN_MAP_TILE_INSIDE, x, y) & 0xFF) == 0) {

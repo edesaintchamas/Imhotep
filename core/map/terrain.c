@@ -31,16 +31,17 @@
 #include "map/terrain_tables.h"
 #include "map/terrain_veg.h"
 #include "map/terrain_water.h"
+#include "state/layout.h"
 #include "state/scenario_start.h"
 
 /* Neighbour order of the 8-flag scratch at 0x00BC97C0. @bin 0x0047DB00 */
 static const int NEIGHBOURS[8] = {-228, -227, 1, 229, 228, 227, -1, -229};
 
 #define GRID_AT(t, type, base, size, o) STATE_AT((t)->g, type, (base) + (size) * (uint32_t) (o))
-#define TER(t, o) GRID_AT(t, state_u32, 0x00AF598Cu, 4u, o) /* terrain flags, chunk 10 */
-#define MAP_W(t) S32((t)->g, 0x00BCA2D0u)
-#define MAP_H(t) S32((t)->g, 0x00BCA2D4u)
-#define MAP_START_(t) S32((t)->g, 0x00BCA2D8u)
+#define TER(t, o) GRID_AT(t, state_u32, G_GRID_TERRAIN, 4u, o) /* terrain flags, chunk 10 */
+#define MAP_W(t) S32((t)->g, G_MAP_WIDTH)
+#define MAP_H(t) S32((t)->g, G_MAP_HEIGHT)
+#define MAP_START_(t) S32((t)->g, G_MAP_START)
 
 static int32_t off(const terrain_state *t, int x, int y)
 {
@@ -68,7 +69,7 @@ static int ncount(const terrain_state *t, int o, uint32_t mask, uint32_t exclude
  * @diff terrain_check */
 void terrain_floodplain_build(terrain_state *t, int32_t ax, int32_t ay, int32_t bx, int32_t by)
 {
-    static uint8_t depth[GRID_SIZE]; /* the stack buffer of 0x004BE160 */
+    static uint8_t depth[GRID_TILES]; /* the stack buffer of 0x004BE160 */
     floodplain_manager_reset(t->g);  /* @bin 0x004BE0F0 */
     memset(depth, 0, sizeof(depth));
     int32_t xa = ax <= bx ? ax : bx, xb = ax <= bx ? bx : ax;
@@ -123,18 +124,18 @@ void terrain_floodplain_build(terrain_state *t, int32_t ax, int32_t ay, int32_t 
                 TER(t, o) = (TER(t, o) & 0xFDFBF7FFu) | 0x80;
                 terrain_land_around(t->g, x, y, 1); /* @bin 0x004746D0(x, y, 1) */
                 depth[o] = (uint8_t) d;
-                U32(t->g, FLOODPLAIN_MANAGER + 4u * (uint32_t) o) = floodplain_object_create(
+                U32(t->g, G_UD05720 + 4u * (uint32_t) o) = floodplain_object_create(
                     t->g, FLOODPLAIN_LISTS + FLOODPLAIN_LIST_SIZE * (uint32_t) (d - 1), o, x, y, d, flag);
                 changed = 1;
-                U8(t->g, FLOODPLAIN_MANAGER + 0x32FBCu) = 1;
+                U8(t->g, G_UD05720 + 0x32FBCu) = 1;
                 t->stats.floodplain_objects++;
             }
         }
         marker--;
     } while (changed);
-    S32(t->g, FLOODPLAIN_MANAGER + 0x32FB8u) = 0;
+    S32(t->g, G_UD05720 + 0x32FB8u) = 0;
     for (int k = 0x1D; k >= 0 && S32(t->g, FLOODPLAIN_LISTS + FLOODPLAIN_LIST_SIZE * (uint32_t) k) != 0; k--) {
-        S32(t->g, FLOODPLAIN_MANAGER + 0x32FB8u) += 1;
+        S32(t->g, G_UD05720 + 0x32FB8u) += 1;
     }
     terrain_rebuild(t); /* @bin 0x004DEA50 */
 }
@@ -154,7 +155,7 @@ void terrain_rebuild(terrain_state *t)
     rocks_all(st);                        /* 0x00475DC0 */
     trees_rect(st, 0, 0, X1, Y1);         /* 0x00475BF0 */
     flag_0x20_all(st);                    /* 0x00476530 */
-    if (S32(st, 0x00605A3Cu) == 0) {      /* @bin 0x004DEAC7 */
+    if (S32(st, G_EDITOR) == 0) {      /* @bin 0x004DEAC7 */
         signposts_update(st, 0);          /* 0x0047D870 */
     }
     terrain_land(st, 0, 0, X1, Y1, 0, 0); /* 0x004767D0 */
@@ -176,7 +177,7 @@ void terrain_rebuild(terrain_state *t)
 void terrain_scenario_start(terrain_state *t)
 {
     /* @bin 0x004D52A0 FUN_0040f8f0(image grid, 0x32C40, 0) */
-    memset(state_ptr(t->g, 0x00B7482Cu, 4u * GRID_SIZE), 0, 4u * GRID_SIZE);
+    memset(state_ptr(t->g, G_IMAGE, 4u * GRID_TILES), 0, 4u * GRID_TILES);
     terrain_rebuild(t);
     terrain_floodplain_build(t, 0, 0, MAP_W(t) - 1, MAP_H(t) - 1);
 }
@@ -184,7 +185,7 @@ void terrain_scenario_start(terrain_state *t)
 void terrain_store_groups(game_state *g, const image_groups *groups)
 {
     for (int i = 0; i < groups->group_count; i++) {
-        S32(g, 0x00F55BB4u + 8u * (uint32_t) i) = groups->group_first[i];
+        S32(g, G_DAY2_REDRAW_GROUPS + 8u * (uint32_t) i) = groups->group_first[i];
     }
 }
 
@@ -192,10 +193,10 @@ enum { IN_IMAGE, IN_EDGE, IN_TERRAIN, IN_BITFIELDS, IN_RANDOM, IN_SCENARIO, IN_F
 
 /* the variables the chunks are loaded into (@bin 0x005E17D8 map schema, 0x005E09A0 save schema) */
 static const uint32_t IN_ADDR[IN_COUNT] = {
-    0x00B7482C, 0x00B67D1C, 0x00AF598C, 0x00B285CC, 0x00ACF85C, 0x007848D8, 0x00A5D4CC, 0x00A43EAC, 0x00A509BC,
+    G_IMAGE, G_EDGE, G_GRID_TERRAIN, G_DAY2_DESTROY_BITS, G_RANDOM, G_START_YEAR, G_GRID_FERTILITY, G_UA43EAC, G_GRID_MOISTURE,
 };
 static const uint32_t IN_SIZE[IN_COUNT] = {
-    4 * GRID_SIZE, GRID_SIZE, 4 * GRID_SIZE, GRID_SIZE, GRID_SIZE, 0x394, GRID_SIZE, GRID_SIZE, GRID_SIZE,
+    4 * GRID_TILES, GRID_TILES, 4 * GRID_TILES, GRID_TILES, GRID_TILES, 0x394, GRID_TILES, GRID_TILES, GRID_TILES,
 };
 
 static int init_from(terrain_state *t, game_state *g, const map_file *m, const int index[IN_COUNT],
@@ -222,12 +223,12 @@ int terrain_init_campaign(terrain_state *t, game_state *g, const map_file *m, co
     }
     /* runtime grids a saved game carries (docs/formats/save.md §3) */
     static const int OPT[2] = {CAMPAIGN_CHUNK_AQUEDUCT, CAMPAIGN_CHUNK_DESIRABILITY};
-    static const uint32_t OPT_ADDR[2] = {0x00AE8E7C, 0x00AC2D4C};
+    static const uint32_t OPT_ADDR[2] = {G_CANAL, G_DESIRABILITY_GRID};
     for (int i = 0; i < 2; i++) {
-        if ((uint32_t) OPT[i] >= m->count || !m->chunk[OPT[i]] || m->size[OPT[i]] < GRID_SIZE) {
+        if ((uint32_t) OPT[i] >= m->count || !m->chunk[OPT[i]] || m->size[OPT[i]] < GRID_TILES) {
             return -1;
         }
-        state_load_section(g, OPT_ADDR[i], m->chunk[OPT[i]], GRID_SIZE);
+        state_load_section(g, OPT_ADDR[i], m->chunk[OPT[i]], GRID_TILES);
     }
     return 0;
 }
@@ -245,8 +246,8 @@ static int init_from(terrain_state *t, game_state *g, const map_file *m, const i
     }
     /* scenario_info: width, height, start offset at +44, +48, +52 (map.md §5: consistent on 33/33
      * maps, and the row ranges reproduce every map's drawn area) @diff terrain_check */
-    if (S32(g, 0x00784904u) <= 0 || S32(g, 0x00784908u) <= 0 || S32(g, 0x00784904u) > GRID_SIDE - 2 ||
-        S32(g, 0x00784908u) > GRID_SIDE - 2) {
+    if (S32(g, G_SCENARIO_MAP_WIDTH) <= 0 || S32(g, G_SCENARIO_MAP_HEIGHT) <= 0 || S32(g, G_SCENARIO_MAP_WIDTH) > GRID_SIDE - 2 ||
+        S32(g, G_SCENARIO_MAP_HEIGHT) > GRID_SIDE - 2) {
         return -1;
     }
     scenario_start_map(g); /* @bin 0x004D52A0 globals, 0x0046F7B0 rows (also clears the image grid) */
@@ -258,14 +259,14 @@ static int init_from(terrain_state *t, game_state *g, const map_file *m, const i
     /* the pattern tables' counters start from the exe's values (core/map/terrain_tables.c holds
      * the same bytes, generated from the same addresses) */
     static const struct { uint32_t addr; const void *data; size_t size; } P[] = {
-        {0x005CA658u, terrain_pattern_shore, sizeof(terrain_pattern_shore)},
-        {0x005CBFB8u, terrain_pattern_deep, sizeof(terrain_pattern_deep)},
-        {0x005CAC58u, terrain_pattern_floodplain, sizeof(terrain_pattern_floodplain)},
-        {0x005CBEA8u, terrain_pattern_special_rocks, sizeof(terrain_pattern_special_rocks)},
-        {0x005CC268u, terrain_pattern_roads, sizeof(terrain_pattern_roads)},
-        {0x005CB9D8u, terrain_pattern_walls, sizeof(terrain_pattern_walls)},
-        {0x005CBCD8u, terrain_pattern_walls_building, sizeof(terrain_pattern_walls_building)},
-        {0x005CC678u, terrain_pattern_canals, sizeof(terrain_pattern_canals)},
+        {G_PATTERN_SHORE, terrain_pattern_shore, sizeof(terrain_pattern_shore)},
+        {G_PATTERN_DEEP, terrain_pattern_deep, sizeof(terrain_pattern_deep)},
+        {G_PATTERN_FLOODPLAIN, terrain_pattern_floodplain, sizeof(terrain_pattern_floodplain)},
+        {G_PATTERN_SPECIAL_ROCKS, terrain_pattern_special_rocks, sizeof(terrain_pattern_special_rocks)},
+        {G_PATTERN_ROADS, terrain_pattern_roads, sizeof(terrain_pattern_roads)},
+        {G_PATTERN_WALLS, terrain_pattern_walls, sizeof(terrain_pattern_walls)},
+        {G_PATTERN_WALLS_BUILDING, terrain_pattern_walls_building, sizeof(terrain_pattern_walls_building)},
+        {G_PATTERN_CANALS, terrain_pattern_canals, sizeof(terrain_pattern_canals)},
     };
     for (size_t i = 0; i < sizeof(P) / sizeof(P[0]); i++) {
         state_load_section(g, P[i].addr, (const uint8_t *) P[i].data, P[i].size);

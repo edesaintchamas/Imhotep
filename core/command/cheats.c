@@ -26,7 +26,7 @@ int32_t cheat_run(game_state *st, int32_t index)
 static void cheat_tomb(game_state *st)
 {
     /* @bin 0x0041CFC0 "Pharaohs Tomb" */
-    U8(st, G_UE38DD8) = 1;
+    U8(st, G_CHEAT_WIN) = 1;
     U8(st, G_CHEATED) = 1;
 }
 
