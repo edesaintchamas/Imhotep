@@ -7,6 +7,7 @@
 #include "draw.h"
 
 #include "mem.h"
+#include "present_layout.h"
 
 typedef struct {
     uint32_t base;            /* i32: the group's first image */
@@ -29,8 +30,8 @@ static void panel_tiles(game_state *st, const panel_kind *k, int32_t x, int32_t 
         for (int32_t c = 0; c < w; c++) {
             int32_t px = c * 16 + x;
             int32_t py = r * 16 + y;
-            S32(st, DRAW_X) = px;
-            S32(st, DRAW_Y) = py;
+            S32(st, G_BLIT_X) = px;
+            S32(st, G_BLIT_Y) = py;
             int32_t base = S32(st, k->base);
             int32_t id;
             if (r == 0) {
@@ -64,7 +65,7 @@ static void panel_tiles(game_state *st, const panel_kind *k, int32_t x, int32_t 
                 }
                 step = 0;
             }
-            S32(st, 0x00D3B5C0u) = id;
+            S32(st, G_GLYPH_LAST) = id;
             image_draw(st, id, px, py);
             if (variant >= k->col_wrap) {
                 variant = 0;
@@ -80,7 +81,7 @@ static void panel_tiles(game_state *st, const panel_kind *k, int32_t x, int32_t 
 void panel_draw_inner(game_state *st, int32_t x, int32_t y, int32_t w, int32_t h)
 {
     /* @bin 0x00536A30 the inner panel (group [0x00F56844]) */
-    static const panel_kind k = {0x00F56844u, 6, 7, 8, 0xD, 7, 0x2A, 0x2B, 0x30, 5, 0x23};
+    static const panel_kind k = {G_IMAGE_GROUP(402), 6, 7, 8, 0xD, 7, 0x2A, 0x2B, 0x30, 5, 0x23};
     panel_tiles(st, &k, x, y, w, h);
 }
 
@@ -95,7 +96,7 @@ void panel_draw_frame(game_state *st, int32_t kind, int32_t x, int32_t y, int32_
     int32_t rows = h / 16 + (h % 16 != 0);
     int32_t dx = cols * 16 - w;
     int32_t dy = rows * 16 - h;
-    int32_t base = S32(st, 0x00F5698Cu);
+    int32_t base = S32(st, G_IMAGE_GROUP(443));
     if (lit != 0) {
         base += 8;
     }
@@ -103,8 +104,8 @@ void panel_draw_frame(game_state *st, int32_t kind, int32_t x, int32_t y, int32_
         for (int32_t c = 0; c < cols; c++) {
             int32_t px = c * 16 + x;
             int32_t py = r * 16 + y;
-            S32(st, DRAW_X) = px;
-            S32(st, DRAW_Y) = py;
+            S32(st, G_BLIT_X) = px;
+            S32(st, G_BLIT_Y) = py;
             if (r == 0) {
                 if (c == 0) {
                     image_draw(st, base, px, py);

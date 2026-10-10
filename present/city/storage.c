@@ -7,12 +7,10 @@
  * list 0x00F53DDC (0x00F53DD8 entries) on the yard's 8 places. */
 #include "city.h"
 
+#include "present_layout.h"
 #include "sim/call.h"
 #include "state/ported.h"
 #include "state/records.h"
-
-#define GOODS_COUNT 0x00F53DD8u /* i32 */
-#define GOODS_LIST 0x00F53DDCu  /* i32 per entry: a good */
 
 int32_t storage_draw(game_state *st, int32_t b, int32_t tile, int32_t x, int32_t y)
 {
@@ -22,8 +20,8 @@ int32_t storage_draw(game_state *st, int32_t b, int32_t tile, int32_t x, int32_t
     int32_t frame[27] = {0};
     static const int32_t places[16] = {0x6E, -0x49, 0x7E, -0x40, 0x91, -0x37, 0xA1, -0x2F,
                                        0x5E, -0x42, 0x6F, -0x39, 0x82, -0x2F, 0x93, -0x26};
-    uint8_t draw = U8(st, TILE_DRAW + (uint32_t) tile);
-    GAME_CALL0(st, 0x005596D0u);
+    uint8_t draw = U8(st, G_EDGE + (uint32_t) tile);
+    GAME_CALL0(st, FN_GOODS_AVAILABLE_UPDATE);
     for (int i = 0; i < 16; i++) {
         frame[11 + i] = places[i];
     }
@@ -31,10 +29,10 @@ int32_t storage_draw(game_state *st, int32_t b, int32_t tile, int32_t x, int32_t
         return 1;
     }
     uint32_t r = BUILDING_ADDR(b);
-    int32_t n = S32(st, GOODS_COUNT);
+    int32_t n = S32(st, G_GOODS_COUNT);
     for (int32_t i = 0; i < n; i++) {
-        int32_t good = S32(st, GOODS_LIST + 4u * (uint32_t) i);
-        int16_t amount = S16(st, r + 0x56 + 2u * (uint32_t) good);
+        int32_t good = S32(st, G_GOODS_LIST + 4u * (uint32_t) i);
+        int16_t amount = S16(st, r + BLD_INVENTORY + 2u * (uint32_t) good);
         /* @bin 0x00442398 the piles: 1 up to 600 units, then one more per 400 (thresholds capped
          * at 3200), at most 8 */
         int32_t k = 0;
@@ -46,7 +44,7 @@ int32_t storage_draw(game_state *st, int32_t b, int32_t tile, int32_t x, int32_t
             if (amount <= cap) {
                 if (k < 8) {
                     if (good < -1 || good > 25) {
-                        state_unported(st, 0x00442280u);
+                        state_unported(st, FN_STORAGE_DRAW);
                         return 1;
                     }
                     frame[1 + good] = k + 1;
@@ -55,10 +53,10 @@ int32_t storage_draw(game_state *st, int32_t b, int32_t tile, int32_t x, int32_t
             }
         }
     }
-    for (int32_t i = 0; i < S32(st, GOODS_COUNT); i++) {
-        int32_t good = S32(st, GOODS_LIST + 4u * (uint32_t) i);
+    for (int32_t i = 0; i < S32(st, G_GOODS_COUNT); i++) {
+        int32_t good = S32(st, G_GOODS_LIST + 4u * (uint32_t) i);
         if (good < -1 || good > 25) {
-            state_unported(st, 0x00442280u);
+            state_unported(st, FN_STORAGE_DRAW);
             return 1;
         }
         int32_t c = frame[1 + good];
@@ -66,11 +64,11 @@ int32_t storage_draw(game_state *st, int32_t b, int32_t tile, int32_t x, int32_t
             int32_t used = frame[0];
             frame[0] = used + c;
             if (used + c > 8) {
-                state_unported(st, 0x00442280u);
+                state_unported(st, FN_STORAGE_DRAW);
                 return 1;
             }
             for (int32_t j = 0; j < c; j++) {
-                cv_image_draw(st, good - 1 + S32(st, 0x00F5648Cu), frame[11 + 2 * (used + j)] + x,
+                cv_image_draw(st, good - 1 + S32(st, G_IMAGE_GROUP(283)), frame[11 + 2 * (used + j)] + x,
                               frame[12 + 2 * (used + j)] + y);
             }
         }

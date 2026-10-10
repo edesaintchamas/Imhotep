@@ -11,17 +11,7 @@
 #include "mem.h"
 
 #include "city/text_lookup.h"
-
-#define FIELD 0x00E20990u
-#define FIELD_RESULT 0x00E20994u /* i32 0, 1 (caret at the end), 2 (field full) */
-#define FIELD_TEXT 0x00E2079Cu
-#define FIELD_CARET 0x00E207ECu
-#define FIELD_END 0x00E208A0u
-#define FIELD_MAX 0x00E208F0u
-#define FIELD_MAX_W 0x00E20850u
-#define FIELD_FONT 0x00E20940u
-#define FIELD_NO_PUNCT 0x00E2083Cu
-#define FIELD_INSERT 0x00E2079Bu /* u8 1: insert, 0: overwrite */
+#include "present_layout.h"
 
 #define AT(table, f) ((table) + 4u * (uint32_t) (f))
 
@@ -54,26 +44,26 @@ void field_check(game_state *st)
 {
     /* @bin 0x004CC1B0 the caret kept within the field (result 1 at its end, 2 at the size limit or
      * when the text is as wide as the width limit; at least 0) */
-    int32_t f = S32(st, FIELD);
-    S32(st, FIELD_RESULT) = 0;
+    int32_t f = S32(st, G_CARET_FIELD);
+    S32(st, G_TEXTEDIT_RESULT) = 0;
     if (f <= 0) {
         return;
     }
-    int32_t w = text_width(st, U32(st, AT(FIELD_TEXT, f)), S32(st, AT(FIELD_FONT, f)));
-    int32_t g = S32(st, FIELD);
-    uint32_t caret = AT(FIELD_CARET, g);
-    int32_t end = S32(st, AT(FIELD_END, g)) + 1;
+    int32_t w = text_width(st, U32(st, AT(G_TEXTEDIT_TEXT, f)), S32(st, AT(G_FONT, f)));
+    int32_t g = S32(st, G_CARET_FIELD);
+    uint32_t caret = AT(G_CARET_POS, g);
+    int32_t end = S32(st, AT(G_TEXTEDIT_END, g)) + 1;
     if (S32(st, caret) >= end) {
         S32(st, caret) = end;
-        S32(st, FIELD_RESULT) = 1;
+        S32(st, G_TEXTEDIT_RESULT) = 1;
     }
-    int32_t max = S32(st, AT(FIELD_MAX, g));
+    int32_t max = S32(st, AT(G_TEXTEDIT_MAX, g));
     if (S32(st, caret) >= max) {
         S32(st, caret) = max;
-        S32(st, FIELD_RESULT) = 2;
+        S32(st, G_TEXTEDIT_RESULT) = 2;
     }
-    if (w >= S32(st, AT(FIELD_MAX_W, g))) {
-        S32(st, FIELD_RESULT) = 2;
+    if (w >= S32(st, AT(G_MAX_W, g))) {
+        S32(st, G_TEXTEDIT_RESULT) = 2;
     }
     if (S32(st, caret) < 0) {
         S32(st, caret) = 0;
@@ -84,32 +74,32 @@ void field_insert(game_state *st, int32_t ch)
 {
     /* @bin 0x004CC400 the character at the caret (inserted when [0x00E2079B], else written over with
      * a NUL after it), the caret moved right; nothing when the field is full */
-    if (S32(st, FIELD) <= 0) {
+    if (S32(st, G_CARET_FIELD) <= 0) {
         return;
     }
     field_check(st);
-    if (S32(st, FIELD_RESULT) == 2) {
+    if (S32(st, G_TEXTEDIT_RESULT) == 2) {
         return;
     }
-    int32_t f = S32(st, FIELD);
-    if (U8(st, FIELD_INSERT) != 0) {
-        int32_t end = S32(st, AT(FIELD_END, f));
-        if (end >= S32(st, AT(FIELD_MAX, f))) {
+    int32_t f = S32(st, G_CARET_FIELD);
+    if (U8(st, G_INSERT) != 0) {
+        int32_t end = S32(st, AT(G_TEXTEDIT_END, f));
+        if (end >= S32(st, AT(G_TEXTEDIT_MAX, f))) {
             return;
         }
-        uint32_t text = U32(st, AT(FIELD_TEXT, f));
-        string_open_at(st, U32(st, AT(FIELD_CARET, f)) + text, text + (uint32_t) end + 1u);
-        f = S32(st, FIELD);
-        mem_wr8(st, U32(st, AT(FIELD_CARET, f)) + U32(st, AT(FIELD_TEXT, f)), (uint8_t) ch);
-        f = S32(st, FIELD);
-        S32(st, AT(FIELD_CARET, f)) += 1;
+        uint32_t text = U32(st, AT(G_TEXTEDIT_TEXT, f));
+        string_open_at(st, U32(st, AT(G_CARET_POS, f)) + text, text + (uint32_t) end + 1u);
+        f = S32(st, G_CARET_FIELD);
+        mem_wr8(st, U32(st, AT(G_CARET_POS, f)) + U32(st, AT(G_TEXTEDIT_TEXT, f)), (uint8_t) ch);
+        f = S32(st, G_CARET_FIELD);
+        S32(st, AT(G_CARET_POS, f)) += 1;
         return;
     }
-    mem_wr8(st, U32(st, AT(FIELD_CARET, f)) + U32(st, AT(FIELD_TEXT, f)), (uint8_t) ch);
-    f = S32(st, FIELD);
-    uint32_t caret = U32(st, AT(FIELD_CARET, f)) + 1u;
-    U32(st, AT(FIELD_CARET, f)) = caret;
-    mem_wr8(st, U32(st, AT(FIELD_TEXT, f)) + caret, 0);
+    mem_wr8(st, U32(st, AT(G_CARET_POS, f)) + U32(st, AT(G_TEXTEDIT_TEXT, f)), (uint8_t) ch);
+    f = S32(st, G_CARET_FIELD);
+    uint32_t caret = U32(st, AT(G_CARET_POS, f)) + 1u;
+    U32(st, AT(G_CARET_POS, f)) = caret;
+    mem_wr8(st, U32(st, AT(G_TEXTEDIT_TEXT, f)) + caret, 0);
 }
 
 void field_type(game_state *st, int32_t ch)
@@ -121,7 +111,7 @@ void field_type(game_state *st, int32_t ch)
     if (c == 0x20 || c == 0x2D) {
         take = 1;
     } else if (c == 0x2C || c == 0x2E || c == 0x3F || c == 0x21) {
-        take = U8(st, FIELD_NO_PUNCT + U32(st, FIELD)) == 0;
+        take = U8(st, G_NO_PUNCT + U32(st, G_CARET_FIELD)) == 0;
     } else if ((c >= 0x30 && c <= 0x39) || (c >= 0x61 && c <= 0x7A) || (c >= 0x41 && c <= 0x5A) ||
                (c >= 0x80 && c <= 0x9A) || (c >= 0xA0 && c <= 0xA7) || c == 0xE1) {
         take = 1;
@@ -135,21 +125,21 @@ void field_type(game_state *st, int32_t ch)
 void field_delete(game_state *st)
 {
     /* @bin 0x004CC4C0 the character at the caret removed (up to the field's end) */
-    int32_t f = S32(st, FIELD);
+    int32_t f = S32(st, G_CARET_FIELD);
     if (f <= 0) {
         return;
     }
-    uint32_t text = U32(st, AT(FIELD_TEXT, f));
-    string_delete_at(st, U32(st, AT(FIELD_CARET, f)) + text, U32(st, AT(FIELD_END, f)) + text);
+    uint32_t text = U32(st, AT(G_TEXTEDIT_TEXT, f));
+    string_delete_at(st, U32(st, AT(G_CARET_POS, f)) + text, U32(st, AT(G_TEXTEDIT_END, f)) + text);
     field_check(st);
 }
 
 void field_backspace(game_state *st)
 {
     /* @bin 0x004CC330 */
-    int32_t f = S32(st, FIELD);
-    if (S32(st, AT(FIELD_CARET, f)) > 0) {
-        S32(st, AT(FIELD_CARET, f)) -= 1;
+    int32_t f = S32(st, G_CARET_FIELD);
+    if (S32(st, AT(G_CARET_POS, f)) > 0) {
+        S32(st, AT(G_CARET_POS, f)) -= 1;
         field_delete(st);
     }
 }
@@ -157,39 +147,39 @@ void field_backspace(game_state *st)
 void field_left(game_state *st)
 {
     /* @bin 0x004CC370 */
-    int32_t f = S32(st, FIELD);
-    if (S32(st, AT(FIELD_CARET, f)) > 0) {
-        S32(st, AT(FIELD_CARET, f)) -= 1;
+    int32_t f = S32(st, G_CARET_FIELD);
+    if (S32(st, AT(G_CARET_POS, f)) > 0) {
+        S32(st, AT(G_CARET_POS, f)) -= 1;
     }
 }
 
 void field_right(game_state *st)
 {
     /* @bin 0x004CC390 */
-    int32_t f = S32(st, FIELD);
-    if (S32(st, AT(FIELD_CARET, f)) < S32(st, AT(FIELD_END, f))) {
-        S32(st, AT(FIELD_CARET, f)) += 1;
+    int32_t f = S32(st, G_CARET_FIELD);
+    if (S32(st, AT(G_CARET_POS, f)) < S32(st, AT(G_TEXTEDIT_END, f))) {
+        S32(st, AT(G_CARET_POS, f)) += 1;
     }
 }
 
 void field_toggle_insert(game_state *st)
 {
     /* @bin 0x004CC360 */
-    U8(st, FIELD_INSERT) ^= 1;
+    U8(st, G_INSERT) ^= 1;
 }
 
 void field_done(game_state *st)
 {
     /* @bin 0x004CC320 [0x00E20998] = 1 */
-    S32(st, 0x00E20998u) = 1;
+    S32(st, G_UE20998) = 1;
 }
 
 void text_run_reset(game_state *st)
 {
     /* @bin 0x004CC540 the run of the text draw: caret placed, characters, caret width, x, y */
-    S32(st, 0x00E20788u) = 0;
-    S32(st, 0x00E20784u) = 0;
-    S32(st, 0x00E2078Cu) = 0;
-    S32(st, 0x00E20778u) = 0;
-    S32(st, 0x00E20774u) = 0;
+    S32(st, G_CARET_SET) = 0;
+    S32(st, G_RUN_CHARS) = 0;
+    S32(st, G_CARET_W) = 0;
+    S32(st, G_TEXT_X) = 0;
+    S32(st, G_TEXT_Y) = 0;
 }

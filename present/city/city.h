@@ -10,62 +10,12 @@
 
 #include <stdint.h>
 
+#include "present_layout.h"
 #include "state/state.h"
 
-/* globals of the city view (@bin addresses in the functions that use them) */
-#define CV_ANIM_CLOCK 0x0070E3C0u   /* i32 frame clock of the last 60 ms animation step */
-#define CV_ANIM_FLAG 0x0070E3C4u    /* i32 1: the 60 ms animation step is due this frame */
-#define CV_VIEW_BOTTOM 0x0070E430u  /* i32 the viewport (clip) */
-#define CV_VIEW_TOP 0x0070E434u
-#define CV_VIEW_RIGHT 0x0070E438u
-#define CV_VIEW_LEFT 0x0070E43Cu
-#define CV_CAMERA_Y 0x0070E474u
-#define CV_CAMERA_X 0x0070E478u
-#define CV_MAP_START 0x0070E484u
-#define CLIP_BOTTOM 0x00D3B550u
-#define CLIP_TOP 0x00D3B554u
-#define CLIP_RIGHT 0x00D3B558u
-#define CLIP_LEFT 0x00D3B55Cu
-#define FRAME_CLOCK 0x00E92E0Cu
-#define OVERLAY 0x00E94E0Cu         /* i32 the overlay shown (0: none) */
-#define SCREEN_W 0x00E38DB0u
-#define SCREEN_H 0x00E38DACu
-#define GFX 0x00F55BB0u             /* the graphics object: `this` of the image draws */
+/* the globals of the city view are named in present_layout.h */
 
-#define NO_GROUND 0x006DE515u     /* u8: the overlay ground replaces the ground pass */
-#define ORIENTATION 0x00BCA2E0u   /* i32 the view orientation 0, 2, 4, 6 (as the city view reads it) */
-
-/* the view walk (0x00430EF0, 0x00436B60, ...) */
-#define VIEW_TABLE 0x0070E494u    /* i32[0x1C9][0xE7]: tile offset, or >= 0xFFF0000 (image + 0xFFF0000) */
-#define VIEW_ROW 0x0070E47Cu      /* i32 the row walked (view y) */
-#define VIEW_COL 0x0070E480u      /* i32 the column walked (view x) */
-#define VIEW_TILE 0x0070E488u     /* i32 the tile drawn */
-#define VIEW_COLS 0x0070E464u     /* i32 (+ 6: the last column walked) */
-#define VIEW_ROWS 0x0070E460u     /* i32 (+ 0xE: the rows walked) */
-#define VIEW_X0 0x0070E490u       /* i32 screen x of the first column */
-#define VIEW_Y0 0x0070E48Cu       /* i32 screen y of the first row (+ 9 tile heights) */
-#define TILE_HALF_W 0x0070E458u   /* i32 (+ 2: the column step in pixels) */
-#define TILE_H 0x0070E44Cu        /* i32 the row step in pixels */
-#define DRAW_IMAGE 0x00D3B5C0u    /* i32 the image drawn */
-#define TINT 0x0070E120u          /* u16 the tint of the tinted blitters (0: none) */
-
-/* map grids (u8 / i16 / i32 / u32 per tile) */
-#define TILE_DRAW 0x00B67D1Cu     /* u8, 0x40: the tile draws its building / terrain */
-#define BUILDING_GRID 0x00B4E6FCu /* i16 */
-#define IMAGE_GRID 0x00B7482Cu    /* i32 (chunk 7) */
-#define TERRAIN 0x00AF598Cu       /* u32 */
-#define EDGE_GRID 0x00B285CCu     /* u8: footprint corner (low 4 bits: the size), 0x10 */
-#define FIGURE_GRID 0x00B350DCu   /* i16: first figure */
-#define SPRITE_GRID 0x00ADC36Cu   /* u8 (chunk 14) */
-#define TERRAIN_PLAIN_MASK 0xEEFED77Fu /* terrain bits that make a tile "not plain" for the top redraws */
-
-/* the image index of the graphics object 0x00F55BB0 */
-#define IMAGE_ENTRIES 0x010D69F8u /* 64 bytes per image: GFX + 0x180E48 */
-#define IMAGE_COUNT 0x0126517Cu   /* i32: GFX + 0x30F5CC */
-
-/* image draw primitives (package blit) */
-#define IMAGE_DRAW 0x0053E590u
-#define IMAGE_DRAW_TOP 0x0053F250u
+#define TERRAIN_PLAIN_MASK 0xEEFED77Fu /* @bin 0x00436C62 terrain bits that make a tile "not plain" for the top redraws */
 
 void city_view_draw(game_state *st, int32_t camera_x, int32_t camera_y, int32_t map_start); /* 0x00430D30 */
 void city_ground_draw(game_state *st);                   /* 0x00430EF0 */

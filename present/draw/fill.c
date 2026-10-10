@@ -7,32 +7,18 @@
 #include "draw.h"
 
 #include "mem.h"
-
-#define LINE_ERR 0x00D3B4BCu    /* i32 the error term */
-#define LINE_END_X 0x00D3B4C0u  /* i32 */
-#define LINE_END_Y 0x00D3B4C4u  /* i32 */
-#define LINE_X 0x00D3B4C8u      /* i32 the start */
-#define LINE_Y 0x00D3B4CCu      /* i32 */
-#define LINE_DX 0x00D3B4D0u     /* i32 |x1 - x2|, counted down */
-#define LINE_DY 0x00D3B4D4u     /* i32 |y1 - y2|, counted down */
-#define LINE_STEP_X 0x00D3B4D8u /* i32 1 or -1 */
-#define LINE_STEP_Y 0x00D3B4DCu /* i32 1 or -1 */
-#define MARCH_COLOUR 0x00D3B4F0u   /* i32 the colour of the next dot of a marching rectangle */
-#define MARCH_COUNT 0x00D3B4E8u    /* i32 dots drawn in that colour */
-#define MARCH_START 0x00D3B4F4u    /* i32 the first dot's colour (cycled by 0x004CD810) */
-#define MARCH_START_COUNT 0x00E36C84u
-#define FORMAT_MASKS 0x00E3914Cu   /* i32 0x565 or 0x555 */
+#include "present_layout.h"
 
 void line_setup(game_state *st, int32_t x1, int32_t y1, int32_t x2, int32_t y2)
 {
     /* @bin 0x004CD3E0 the deltas, the start (the end with the smaller coordinate along the longer
      * axis) and the steps */
-    S32(st, LINE_STEP_Y) = 1;
-    S32(st, LINE_STEP_X) = 1;
+    S32(st, G_LINE_STEP_Y) = 1;
+    S32(st, G_LINE_STEP_X) = 1;
     int32_t dx = x1 > x2 ? x1 - x2 : x2 - x1;
-    S32(st, LINE_DX) = dx;
+    S32(st, G_LINE_DX) = dx;
     int32_t dy = y1 > y2 ? y1 - y2 : y2 - y1;
-    S32(st, LINE_DY) = dy;
+    S32(st, G_LINE_DY) = dy;
     int swap = dy > dx ? y1 > y2 : x1 > x2;
     int32_t sx, sy, ex, ey;
     if (swap) {
@@ -46,15 +32,15 @@ void line_setup(game_state *st, int32_t x1, int32_t y1, int32_t x2, int32_t y2)
         sx = x1;
         ex = x2;
     }
-    S32(st, LINE_Y) = sy;
-    S32(st, LINE_END_Y) = ey;
-    S32(st, LINE_X) = sx;
-    S32(st, LINE_END_X) = ex;
+    S32(st, G_LINE_Y) = sy;
+    S32(st, G_LINE_END_Y) = ey;
+    S32(st, G_LINE_X) = sx;
+    S32(st, G_LINE_END_X) = ex;
     if (ex < sx) {
-        S32(st, LINE_STEP_X) = -1;
+        S32(st, G_LINE_STEP_X) = -1;
     }
     if (ey < sy) {
-        S32(st, LINE_STEP_Y) = -1;
+        S32(st, G_LINE_STEP_Y) = -1;
     }
 }
 
@@ -62,17 +48,17 @@ void line_error_step(game_state *st, int32_t along_y)
 {
     /* @bin 0x004CD490 the error term after a step: + 2 (minor - major) when it is >= 0, else + 2
      * minor (minor: dx when stepping along y, else dy) */
-    int32_t e = S32(st, LINE_ERR);
-    int32_t minor = along_y ? S32(st, LINE_DX) : S32(st, LINE_DY);
-    int32_t major = along_y ? S32(st, LINE_DY) : S32(st, LINE_DX);
+    int32_t e = S32(st, G_LINE_ERR);
+    int32_t minor = along_y ? S32(st, G_LINE_DX) : S32(st, G_LINE_DY);
+    int32_t major = along_y ? S32(st, G_LINE_DY) : S32(st, G_LINE_DX);
     int32_t d = e < 0 ? minor : minor - major;
-    S32(st, LINE_ERR) = (int32_t) ((uint32_t) e + 2u * (uint32_t) d);
+    S32(st, G_LINE_ERR) = (int32_t) ((uint32_t) e + 2u * (uint32_t) d);
 }
 
 void pixel_put_screen(game_state *st, int32_t x, int32_t y, int32_t colour)
 {
     /* @bin 0x004CD4E0 the pixel when (x, y) is on the screen */
-    if (x < 0 || x >= S32(st, SCREEN_W) || y < 0 || y >= S32(st, SCREEN_H)) {
+    if (x < 0 || x >= S32(st, G_UE38D9C) || y < 0 || y >= S32(st, G_UE38D98)) {
         return;
     }
     pixel_put(st, x, y, colour);
@@ -83,43 +69,43 @@ void line_draw(game_state *st, int32_t x1, int32_t y1, int32_t x2, int32_t y2, i
     /* @bin 0x004CD510 vertical and horizontal lines directly, others by steps of one along the
      * longer axis; pixels off the screen are skipped */
     line_setup(st, x1, y1, x2, y2);
-    int32_t y = S32(st, LINE_Y);
-    int32_t x = S32(st, LINE_X);
+    int32_t y = S32(st, G_LINE_Y);
+    int32_t x = S32(st, G_LINE_X);
     if (x1 == x2) {
-        for (; y <= S32(st, LINE_END_Y); y++) {
+        for (; y <= S32(st, G_LINE_END_Y); y++) {
             pixel_put_screen(st, x1, y, colour);
         }
         return;
     }
     if (y1 == y2) {
-        for (; x <= S32(st, LINE_END_X); x++) {
+        for (; x <= S32(st, G_LINE_END_X); x++) {
             pixel_put_screen(st, x, y1, colour);
         }
         return;
     }
-    int32_t dy = S32(st, LINE_DY);
-    int32_t dx = S32(st, LINE_DX);
+    int32_t dy = S32(st, G_LINE_DY);
+    int32_t dx = S32(st, G_LINE_DX);
     if (dy > dx) {
-        S32(st, LINE_ERR) = 2 * dx - dy;
-        for (; y <= S32(st, LINE_END_Y); y++) {
+        S32(st, G_LINE_ERR) = 2 * dx - dy;
+        for (; y <= S32(st, G_LINE_END_Y); y++) {
             pixel_put_screen(st, x, y, colour);
             line_error_step(st, 1);
-            S32(st, LINE_DY) -= 1;
-            if (S32(st, LINE_ERR) >= 1) {
-                S32(st, LINE_DX) -= 1;
-                x += S32(st, LINE_STEP_X);
+            S32(st, G_LINE_DY) -= 1;
+            if (S32(st, G_LINE_ERR) >= 1) {
+                S32(st, G_LINE_DX) -= 1;
+                x += S32(st, G_LINE_STEP_X);
             }
         }
         return;
     }
-    S32(st, LINE_ERR) = 2 * dy - dx;
-    for (; x <= S32(st, LINE_END_X); x++) {
+    S32(st, G_LINE_ERR) = 2 * dy - dx;
+    for (; x <= S32(st, G_LINE_END_X); x++) {
         pixel_put_screen(st, x, y, colour);
         line_error_step(st, 0);
-        S32(st, LINE_DX) -= 1;
-        if (S32(st, LINE_ERR) >= 1) {
-            S32(st, LINE_DY) -= 1;
-            y += S32(st, LINE_STEP_Y);
+        S32(st, G_LINE_DX) -= 1;
+        if (S32(st, G_LINE_ERR) >= 1) {
+            S32(st, G_LINE_DY) -= 1;
+            y += S32(st, G_LINE_STEP_Y);
         }
     }
 }
@@ -129,19 +115,19 @@ static void clamp(game_state *st, int32_t *x, int32_t *y, int32_t *w, int32_t *h
 {
     if (*x <= 0) {
         *x = 0;
-        if (!bevel && *x + *w >= S32(st, SCREEN_W)) {
-            *w = S32(st, SCREEN_W) - *x;
+        if (!bevel && *x + *w >= S32(st, G_UE38D9C)) {
+            *w = S32(st, G_UE38D9C) - *x;
         }
-    } else if (*x + *w >= S32(st, SCREEN_W)) {
-        *w = S32(st, SCREEN_W) - *x;
+    } else if (*x + *w >= S32(st, G_UE38D9C)) {
+        *w = S32(st, G_UE38D9C) - *x;
     }
     if (*y <= 0) {
         *y = 0;
-        if (!bevel && *y + *h >= S32(st, SCREEN_H)) {
-            *h = S32(st, SCREEN_H) - *y;
+        if (!bevel && *y + *h >= S32(st, G_UE38D98)) {
+            *h = S32(st, G_UE38D98) - *y;
         }
-    } else if (*y + *h >= S32(st, SCREEN_H)) {
-        *h = S32(st, SCREEN_H) - *y;
+    } else if (*y + *h >= S32(st, G_UE38D98)) {
+        *h = S32(st, G_UE38D98) - *y;
     }
 }
 
@@ -217,7 +203,7 @@ void rect_grey(game_state *st, int32_t x, int32_t y, int32_t w, int32_t h, int32
     for (int32_t yy = y; yy < y + h; yy++) {
         for (int32_t xx = x; xx < x + w; xx++) {
             int32_t r, g;
-            if (S32(st, FORMAT_MASKS) == 0x565) {
+            if (S32(st, G_UE3914C) == 0x565) {
                 r = pixel_get_masked(st, xx, yy, 0xF800) >> 11;
                 g = pixel_get_masked(st, xx, yy, 0x7E0) >> 6;
             } else {
@@ -230,7 +216,7 @@ void rect_grey(game_state *st, int32_t x, int32_t y, int32_t w, int32_t h, int32
             int32_t hi = (int32_t) (q >> 32);
             int32_t v = (int32_t) ((uint32_t) hi + ((uint32_t) hi >> 31)) >> (shift & 31);
             pixel_and(st, xx, yy, 0);
-            if (S32(st, FORMAT_MASKS) == 0x565) {
+            if (S32(st, G_UE3914C) == 0x565) {
                 pixel_or(st, xx, yy, (int32_t) ((uint32_t) v << 11));
                 pixel_or(st, xx, yy, (int32_t) ((uint32_t) v << 6));
             } else {
@@ -254,25 +240,25 @@ static int32_t march_next(int32_t c)
 void march_step_start(game_state *st)
 {
     /* @bin 0x004CD810 every 20 calls the first colour of the marching rectangles moves on */
-    int32_t n = S32(st, MARCH_START_COUNT) + 1;
-    S32(st, MARCH_START_COUNT) = n;
+    int32_t n = S32(st, G_MARCH_START_COUNT) + 1;
+    S32(st, G_MARCH_START_COUNT) = n;
     if (n < 0x14) {
         return;
     }
-    S32(st, MARCH_START_COUNT) = 0;
-    S32(st, MARCH_START) = march_next(S32(st, MARCH_START));
+    S32(st, G_MARCH_START_COUNT) = 0;
+    S32(st, G_MARCH_START) = march_next(S32(st, G_MARCH_START));
 }
 
 void march_step(game_state *st)
 {
     /* @bin 0x004CD850 every 4 dots the colour moves on */
-    int32_t n = S32(st, MARCH_COUNT) + 1;
-    S32(st, MARCH_COUNT) = n;
+    int32_t n = S32(st, G_MARCH_COUNT) + 1;
+    S32(st, G_MARCH_COUNT) = n;
     if (n < 4) {
         return;
     }
-    S32(st, MARCH_COUNT) = 0;
-    S32(st, MARCH_COLOUR) = march_next(S32(st, MARCH_COLOUR));
+    S32(st, G_MARCH_COUNT) = 0;
+    S32(st, G_MARCH_COLOUR) = march_next(S32(st, G_MARCH_COLOUR));
 }
 
 void rect_marching(game_state *st, int32_t x, int32_t y, int32_t w, int32_t h)
@@ -281,8 +267,8 @@ void rect_marching(game_state *st, int32_t x, int32_t y, int32_t w, int32_t h)
      * bottom, left, right edges; each dot drawn when inside the clip rectangle (0x004CDC30) and
      * the screen less 32 rows (0x0040FB10). The right edge's clip test uses x + 2 w - 1 (the
      * bottom edge's loop end + w - 1) while its dots are drawn at x + w - 1. */
-    S32(st, MARCH_COLOUR) = S32(st, MARCH_START);
-    S32(st, MARCH_COUNT) = 0;
+    S32(st, G_MARCH_COLOUR) = S32(st, G_MARCH_START);
+    S32(st, G_MARCH_COUNT) = 0;
     int32_t xe = x + w;
     for (int32_t xx = x; xx < xe; xx++) {
         if (clip_contains(st, xx, y)) {

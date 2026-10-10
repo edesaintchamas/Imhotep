@@ -12,18 +12,13 @@
 
 #include "mem.h"
 
+#include "present_layout.h"
 #include "sim/call.h"
-
-#define LAYOUT_READY 0x00E94D9Cu
-#define LAYOUT_MODE 0x00E94D98u
-#define MOUSE_X 0x00E38E34u
-#define MOUSE_Y 0x00E38E30u
-#define WINDOW 0x00E38DDAu
 
 int32_t layout_window_key(game_state *st, int32_t window)
 {
     /* @bin 0x004D5D70 window 7 (the advisors) is keyed by its page [0x00605A44] + 100 */
-    return window == 7 ? S32(st, 0x00605A44u) + 100 : window;
+    return window == 7 ? S32(st, G_PAGE) + 100 : window;
 }
 
 uint32_t layout_find(game_state *st, int32_t kind, int32_t key, int32_t x, int32_t y)
@@ -31,11 +26,11 @@ uint32_t layout_find(game_state *st, int32_t kind, int32_t key, int32_t x, int32
     /* @bin 0x004D5FE0 the override node of (x, y) in list `kind` (1 texts, 2, 3 / 4 panels) of key */
     uint32_t n;
     if (kind == 1) {
-        n = U32(st, 0x00E94618u + ((uint32_t) key << 4));
+        n = U32(st, G_LAYOUT_LISTS + ((uint32_t) key << 4));
     } else if (kind == 2) {
-        n = U32(st, 0x00E9461Cu + ((uint32_t) key << 4));
+        n = U32(st, G_LAYOUT_LISTS + 4u + ((uint32_t) key << 4));
     } else if (kind == 3 || kind == 4) {
-        n = U32(st, 0x00E94620u + ((uint32_t) key << 4));
+        n = U32(st, G_LAYOUT_LISTS + 8u + ((uint32_t) key << 4));
     } else {
         return 0;
     }
@@ -55,17 +50,17 @@ void layout_highlight(game_state *st, int32_t kind, int32_t x, int32_t y, int32_
      * panel 0x004D6050, the element's place kept (0x00E945F8 .. 0x00E9460C) and two frames around it */
     int32_t px = nx + dx;
     int32_t py = ny + dy;
-    if (kind != S32(st, LAYOUT_MODE) || px >= S32(st, MOUSE_X) || px + w <= S32(st, MOUSE_X) ||
-        py >= S32(st, MOUSE_Y) || py + h <= S32(st, MOUSE_Y)) {
+    if (kind != S32(st, G_LAYOUT_MODE) || px >= S32(st, G_MOUSE_X) || px + w <= S32(st, G_MOUSE_X) ||
+        py >= S32(st, G_MOUSE_Y) || py + h <= S32(st, G_MOUSE_Y)) {
         return;
     }
     layout_mode_panel(st);
-    S32(st, 0x00E94600u) = nx;
-    S32(st, 0x00E945F8u) = x - dx;
-    S32(st, 0x00E94604u) = ny;
-    S32(st, 0x00E94608u) = w;
-    S32(st, 0x00E9460Cu) = h;
-    S32(st, 0x00E945FCu) = y - dy;
+    S32(st, G_LAYOUT_PANEL_X) = nx;
+    S32(st, G_LAYOUT_PANEL_OX) = x - dx;
+    S32(st, G_LAYOUT_PANEL_Y) = ny;
+    S32(st, G_LAYOUT_PANEL_W) = w;
+    S32(st, G_LAYOUT_PANEL_H) = h;
+    S32(st, G_LAYOUT_PANEL_OY) = y - dy;
     panel_draw_frame(st, 1, px, py, w, h, 0xFFFF);
     panel_draw_frame(st, 0, px, py, w, h, 0xFFFF);
 }
@@ -73,17 +68,17 @@ void layout_highlight(game_state *st, int32_t kind, int32_t x, int32_t y, int32_
 void layout_mode_panel(game_state *st)
 {
     /* @bin 0x004D6050 the window panel 0x00536820 (package sidebar) at (0, 0), 6 x 6 pieces */
-    GAME_CALL(st, 0x00536820u, 0, 0, 6, 6);
+    GAME_CALL(st, FN_PANEL_DRAW, 0, 0, 6, 6);
 }
 
 /* the start of every wrapper: the registry filled once, the element looked up by its place
  * relative to (dx, dy); *x, *y, *w, *h replaced by the node's (w, h only when given) */
 static void layout_place(game_state *st, int32_t kind, int32_t *x, int32_t *y, int32_t *w, int32_t *h)
 {
-    if (S32(st, LAYOUT_READY) == 0) {
-        GAME_CALL0(st, 0x004D5D90u);
+    if (S32(st, G_LAYOUT_READY) == 0) {
+        GAME_CALL0(st, FN_PLAY_LAYOUT_FILL);
     }
-    uint32_t n = layout_find(st, kind, layout_window_key(st, U8(st, WINDOW)), *x, *y);
+    uint32_t n = layout_find(st, kind, layout_window_key(st, U8(st, G_WINDOW)), *x, *y);
     if (n != 0) {
         if (w) {
             *w = (int32_t) mem_rd32(st, n + 0x10);
@@ -154,15 +149,15 @@ void layout_inner_panel(game_state *st, int32_t x, int32_t y, int32_t w, int32_t
     int32_t nx = ox, ny = oy;
     layout_place(st, 4, &nx, &ny, &w, &h);
     int32_t px = nx + dx, py = ny + dy;
-    if (S32(st, LAYOUT_MODE) == 4 && px < S32(st, MOUSE_X) && px + 16 * w > S32(st, MOUSE_X) &&
-        py < S32(st, MOUSE_Y) && py + 16 * h > S32(st, MOUSE_Y)) {
+    if (S32(st, G_LAYOUT_MODE) == 4 && px < S32(st, G_MOUSE_X) && px + 16 * w > S32(st, G_MOUSE_X) &&
+        py < S32(st, G_MOUSE_Y) && py + 16 * h > S32(st, G_MOUSE_Y)) {
         layout_mode_panel(st);
-        S32(st, 0x00E94600u) = nx;
-        S32(st, 0x00E94604u) = ny;
-        S32(st, 0x00E94608u) = w;
-        S32(st, 0x00E9460Cu) = h;
-        S32(st, 0x00E945F8u) = ox;
-        S32(st, 0x00E945FCu) = oy;
+        S32(st, G_LAYOUT_PANEL_X) = nx;
+        S32(st, G_LAYOUT_PANEL_Y) = ny;
+        S32(st, G_LAYOUT_PANEL_W) = w;
+        S32(st, G_LAYOUT_PANEL_H) = h;
+        S32(st, G_LAYOUT_PANEL_OX) = ox;
+        S32(st, G_LAYOUT_PANEL_OY) = oy;
         panel_draw_frame(st, 1, px, py, 16 * w, 16 * h, 0xFFFF);
         panel_draw_frame(st, 0, px, py, 16 * w, 16 * h, 0xFFFF);
     }

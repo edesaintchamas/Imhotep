@@ -10,6 +10,7 @@
 #include "draw.h"
 
 #include "mem.h"
+#include "present_layout.h"
 
 /* ---- clip ---- */
 
@@ -20,46 +21,46 @@ void clip_horizontal(game_state *st)
      * columns in 0x00D3B54C), 2 cut on the right (the visible width in 0x00D3B548), 5 outside or
      * width <= 0; the visible width 0x00D3B544, the source bytes skipped per row 0x00D3B540 and
      * the destination bytes from a row's end to the next 0x00D3B53C (screen width 0x00E38D9C) */
-    int16_t w16 = S16(st, IMG_W);
+    int16_t w16 = S16(st, G_UD3B5BE);
     int32_t w = w16;
     int32_t vis = w;
     int32_t cut = 0;
-    U8(st, CLIP_X) = 0;
-    S32(st, CLIP_LEFT_COLS) = 0;
-    S32(st, CLIP_RIGHT_W) = vis;
+    U8(st, G_CLIP_X) = 0;
+    S32(st, G_CLIP_LEFT_COLS) = 0;
+    S32(st, G_CLIP_RIGHT_W) = vis;
     if (w16 <= 0) {
         goto out;
     }
-    int32_t x = S32(st, DRAW_X);
-    int32_t left = S32(st, CLIP_LEFT);
+    int32_t x = S32(st, G_BLIT_X);
+    int32_t left = S32(st, G_CLIP_LEFT);
     if (x < left) {
         if (w + x <= left) {
             goto out;
         }
         cut = left - x;
-        U8(st, CLIP_X) = 1;
-        S32(st, DRAW_X) = left;
-        S32(st, CLIP_LEFT_COLS) = cut;
+        U8(st, G_CLIP_X) = 1;
+        S32(st, G_BLIT_X) = left;
+        S32(st, G_CLIP_LEFT_COLS) = cut;
     } else {
-        int32_t right = S32(st, CLIP_RIGHT);
+        int32_t right = S32(st, G_CLIP_RIGHT);
         if (x > right - w) {
             if (x >= right) {
                 goto out;
             }
-            U8(st, CLIP_X) = 2;
+            U8(st, G_CLIP_X) = 2;
             vis = right - x;
-            S32(st, CLIP_RIGHT_W) = vis;
+            S32(st, G_CLIP_RIGHT_W) = vis;
         }
     }
     vis -= cut;
     goto done;
 out:
-    U8(st, CLIP_X) = 5;
+    U8(st, G_CLIP_X) = 5;
     vis = 0;
 done:
-    S32(st, VIS_W) = vis;
-    S32(st, SRC_SKIP) = (int32_t) ((uint32_t) (w - vis) << 1);
-    S32(st, DST_SKIP) = (int32_t) ((uint32_t) (S32(st, SCREEN_W) - vis) << 1);
+    S32(st, G_VIS_W) = vis;
+    S32(st, G_SRC_SKIP) = (int32_t) ((uint32_t) (w - vis) << 1);
+    S32(st, G_DST_SKIP) = (int32_t) ((uint32_t) (S32(st, G_UE38D9C) - vis) << 1);
 }
 
 void clip_vertical(game_state *st)
@@ -68,65 +69,65 @@ void clip_vertical(game_state *st)
      * [0x00D3B554] and bottom [0x00D3B550]: state 3 cut at the top (y moves to the edge, the cut
      * rows in 0x00D3B538), 4 cut at the bottom, 5 outside (also when the horizontal state is 5);
      * the rows drawn from the top 0x00D3B534 and the visible height 0x00D3B5D4 */
-    int16_t h16 = S16(st, IMG_H);
+    int16_t h16 = S16(st, G_UD3B5BC);
     int32_t h = h16;
     int32_t cut = 0;
-    U8(st, CLIP_Y) = 0;
-    S32(st, CLIP_TOP_ROWS) = 0;
-    S32(st, CLIP_BOTTOM_H) = h;
+    U8(st, G_CLIP_Y) = 0;
+    S32(st, G_CLIP_TOP_ROWS) = 0;
+    S32(st, G_CLIP_BOTTOM_H) = h;
     if (h16 <= 0) {
         goto out;
     }
-    int32_t y = S32(st, DRAW_Y);
-    int32_t top = S32(st, CLIP_TOP);
+    int32_t y = S32(st, G_BLIT_Y);
+    int32_t top = S32(st, G_CLIP_TOP);
     if (y < top) {
         if (h + y <= top) {
             goto out;
         }
         cut = top - y;
-        S32(st, DRAW_Y) = top;
-        int32_t room = S32(st, CLIP_BOTTOM) - top;
-        U8(st, CLIP_Y) = 3;
-        S32(st, CLIP_TOP_ROWS) = cut;
+        S32(st, G_BLIT_Y) = top;
+        int32_t room = S32(st, G_CLIP_BOTTOM) - top;
+        U8(st, G_CLIP_Y) = 3;
+        S32(st, G_CLIP_TOP_ROWS) = cut;
         if (h > room + cut) {
             h = room + cut;
-            S32(st, CLIP_BOTTOM_H) = h;
+            S32(st, G_CLIP_BOTTOM_H) = h;
         }
     } else {
-        int32_t bottom = S32(st, CLIP_BOTTOM);
+        int32_t bottom = S32(st, G_CLIP_BOTTOM);
         if (y > bottom - h) {
             if (y >= bottom) {
                 goto out;
             }
-            U8(st, CLIP_Y) = 4;
+            U8(st, G_CLIP_Y) = 4;
             h = bottom - y;
-            S32(st, CLIP_BOTTOM_H) = h;
+            S32(st, G_CLIP_BOTTOM_H) = h;
         }
     }
-    S32(st, VIS_H) = h - cut;
+    S32(st, G_VIS_H) = h - cut;
     goto done;
 out:
-    U8(st, CLIP_Y) = 5;
-    S32(st, VIS_H) = cut;
+    U8(st, G_CLIP_Y) = 5;
+    S32(st, G_VIS_H) = cut;
 done:
-    if (U8(st, CLIP_X) == 5) {
-        U8(st, CLIP_Y) = 5;
+    if (U8(st, G_CLIP_X) == 5) {
+        U8(st, G_CLIP_Y) = 5;
     }
 }
 
 int32_t clip_contains(game_state *st, int32_t x, int32_t y)
 {
     /* @bin 0x004CDC30 (x, y) inside the clip rectangle, edges included */
-    return x >= S32(st, CLIP_LEFT) && x <= S32(st, CLIP_RIGHT) && y >= S32(st, CLIP_TOP) && y <= S32(st, CLIP_BOTTOM);
+    return x >= S32(st, G_CLIP_LEFT) && x <= S32(st, G_CLIP_RIGHT) && y >= S32(st, G_CLIP_TOP) && y <= S32(st, G_CLIP_BOTTOM);
 }
 
 void clip_reset(game_state *st)
 {
     /* @bin 0x005370D0 the clip rectangle back to the whole screen (0x00E38DB0 x 0x00E38DAC) */
-    S32(st, CLIP_RIGHT) = S32(st, SCREEN_W2);
-    S32(st, CLIP_LEFT) = 0;
-    S32(st, CLIP_TOP) = 0;
-    S32(st, CLIP_BOTTOM) = S32(st, SCREEN_H2);
+    S32(st, G_CLIP_RIGHT) = S32(st, G_SCREEN_W);
+    S32(st, G_CLIP_LEFT) = 0;
+    S32(st, G_CLIP_TOP) = 0;
+    S32(st, G_CLIP_BOTTOM) = S32(st, G_SCREEN_H);
 }
 
 /* ---- pixels ---- */
@@ -148,10 +149,10 @@ int32_t pixel_get_masked(game_state *st, int32_t x, int32_t y, int32_t mask)
 {
     /* @bin 0x0040FAA0 the pixel AND mask, kept in 0x00605B70 too; the upper half of the value is the
      * upper half of y * pitch (mov ax, [edi] after mul) */
-    uint32_t row = (uint32_t) y * U32(st, PITCH);
-    uint32_t a = U32(st, BACK_BUFFER) + 2u * (uint32_t) x + row;
+    uint32_t row = (uint32_t) y * U32(st, G_SCREEN_PITCH);
+    uint32_t a = U32(st, G_BACK_BUFFER) + 2u * (uint32_t) x + row;
     uint32_t v = ((row & 0xFFFF0000u) | mem_rd16(st, a)) & (uint32_t) mask;
-    U32(st, 0x00605B70u) = v;
+    U32(st, G_PIXEL_LAST) = v;
     return (int32_t) v;
 }
 
@@ -166,22 +167,22 @@ void pixel_put_checked(game_state *st, int32_t x, int32_t y)
 {
     /* @bin 0x0040FB10 the colour [0x00D3B4F0] at (x, y) when 0 <= x < width 0x00E38D9C and
      * 0 <= y < height 0x00E38D98 - 32 */
-    if (x < 0 || x >= S32(st, SCREEN_W) || y < 0 || y >= S32(st, SCREEN_H) - 0x20) {
+    if (x < 0 || x >= S32(st, G_UE38D9C) || y < 0 || y >= S32(st, G_UE38D98) - 0x20) {
         return;
     }
-    mem_wr16(st, screen_at(st, x, y), U16(st, 0x00D3B4F0u));
+    mem_wr16(st, screen_at(st, x, y), U16(st, G_MARCH_COLOUR));
 }
 
 void pixels_put2(game_state *st, uint32_t src)
 {
     /* @bin 0x0040FBE0 two pixels (a dword) from src at (0x00D3B5E0, 0x00D3B5DC) */
-    mem_wr32(st, screen_at(st, S32(st, DRAW_X), S32(st, DRAW_Y)), mem_rd32(st, src));
+    mem_wr32(st, screen_at(st, S32(st, G_BLIT_X), S32(st, G_BLIT_Y)), mem_rd32(st, src));
 }
 
 void pixels_put2_value(game_state *st, uint32_t value)
 {
     /* @bin 0x0040FC10 two pixels (a dword) at (0x00D3B5E0, 0x00D3B5DC) */
-    mem_wr32(st, screen_at(st, S32(st, DRAW_X), S32(st, DRAW_Y)), value);
+    mem_wr32(st, screen_at(st, S32(st, G_BLIT_X), S32(st, G_BLIT_Y)), value);
 }
 
 /* ---- block copies ---- */
@@ -190,13 +191,13 @@ void block_to_screen(game_state *st, uint32_t src, int32_t dst_step, int32_t src
 {
     /* @bin 0x0040F9A0 rows of i16 [0x00D3B5BE] * 2 dwords from src to (0x00D3B5E0, 0x00D3B5DC),
      * i16 [0x00D3B5BC] rows (at least one), each row then advanced by the steps */
-    uint32_t d = screen_at(st, S32(st, DRAW_X), S32(st, DRAW_Y));
-    int32_t rows = S16(st, IMG_H);
-    if (S16(st, IMG_W) < 0) {
+    uint32_t d = screen_at(st, S32(st, G_BLIT_X), S32(st, G_BLIT_Y));
+    int32_t rows = S16(st, G_UD3B5BC);
+    if (S16(st, G_UD3B5BE) < 0) {
         return; /* rep movsd of 2^32 - 2 w dwords: the original faults */
     }
     do {
-        uint32_t n = (uint32_t) (int32_t) S16(st, IMG_W) * 2u;
+        uint32_t n = (uint32_t) (int32_t) S16(st, G_UD3B5BE) * 2u;
         mem_copy(st, d, src, n * 4u);
         d += n * 4u + (uint32_t) dst_step;
         src += n * 4u + (uint32_t) src_step;
@@ -207,13 +208,13 @@ void block_to_screen(game_state *st, uint32_t src, int32_t dst_step, int32_t src
 void block_from_screen(game_state *st, uint32_t dst, int32_t screen_step, int32_t dst_step)
 {
     /* @bin 0x0040F9F0 the reverse of 0x0040F9A0: the screen block into dst */
-    uint32_t s = screen_at(st, S32(st, DRAW_X), S32(st, DRAW_Y));
-    int32_t rows = S16(st, IMG_H);
-    if (S16(st, IMG_W) < 0) {
+    uint32_t s = screen_at(st, S32(st, G_BLIT_X), S32(st, G_BLIT_Y));
+    int32_t rows = S16(st, G_UD3B5BC);
+    if (S16(st, G_UD3B5BE) < 0) {
         return; /* the original faults */
     }
     do {
-        uint32_t n = (uint32_t) (int32_t) S16(st, IMG_W) * 2u;
+        uint32_t n = (uint32_t) (int32_t) S16(st, G_UD3B5BE) * 2u;
         mem_copy(st, dst, s, n * 4u);
         s += n * 4u + (uint32_t) screen_step;
         dst += n * 4u + (uint32_t) dst_step;
@@ -226,22 +227,22 @@ void blit_opaque(game_state *st, uint32_t src)
     /* @bin 0x0040FB60 opaque copy of [0x00D3B5D4] rows (at least one) of [0x00D3B544] pixels; source
      * and destination rows advanced by 0x00D3B540 / 0x00D3B53C (bytes when the width's low byte is
      * not a multiple of 4, else dwords: the same bytes) */
-    uint32_t d = screen_at(st, S32(st, DRAW_X), S32(st, DRAW_Y));
-    int32_t rows = S32(st, VIS_H);
+    uint32_t d = screen_at(st, S32(st, G_BLIT_X), S32(st, G_BLIT_Y));
+    int32_t rows = S32(st, G_VIS_H);
     uint32_t n;
-    if ((S8(st, VIS_W) & 3) != 0) {
+    if ((S8(st, G_VIS_W) & 3) != 0) {
         do {
-            n = U32(st, VIS_W) * 2u;
+            n = U32(st, G_VIS_W) * 2u;
             mem_copy(st, d, src, n);
-            src += n + U32(st, SRC_SKIP);
-            d += n + U32(st, DST_SKIP);
+            src += n + U32(st, G_SRC_SKIP);
+            d += n + U32(st, G_DST_SKIP);
         } while (--rows > 0);
     } else {
         do {
-            n = (U32(st, VIS_W) >> 1) * 4u;
+            n = (U32(st, G_VIS_W) >> 1) * 4u;
             mem_copy(st, d, src, n);
-            src += n + U32(st, SRC_SKIP);
-            d += n + U32(st, DST_SKIP);
+            src += n + U32(st, G_SRC_SKIP);
+            d += n + U32(st, G_DST_SKIP);
         } while (--rows > 0);
     }
 }
@@ -253,10 +254,10 @@ void blit_plain(game_state *st, uint32_t src)
     /* @bin 0x0040FFD0 [0x00D3B5D4] rows (at least one) of the full width i16 [0x00D3B5BE], source
      * rows contiguous (no horizontal clip), destination rows advanced by 0x00D3B53C; a width that is
      * a multiple of 4 is copied 4 pixels at a time (4 even for width 0) */
-    uint32_t d = screen_at(st, S32(st, DRAW_X), S32(st, DRAW_Y));
-    int32_t rows = S32(st, VIS_H);
+    uint32_t d = screen_at(st, S32(st, G_BLIT_X), S32(st, G_BLIT_Y));
+    int32_t rows = S32(st, G_VIS_H);
     do {
-        int32_t n = S16(st, IMG_W);
+        int32_t n = S16(st, G_UD3B5BE);
         int step = (n & 3) != 0 ? 1 : 4;
         do {
             for (int k = 0; k < step; k++) {
@@ -269,7 +270,7 @@ void blit_plain(game_state *st, uint32_t src)
             }
             n -= step;
         } while (n > 0);
-        d += U32(st, DST_SKIP);
+        d += U32(st, G_DST_SKIP);
     } while (--rows > 0);
 }
 
@@ -277,11 +278,11 @@ void blit_plain_clipped(game_state *st, uint32_t src)
 {
     /* @bin 0x00410090 [0x00D3B5D4] rows of [0x00D3B544] pixels (both at least one), source rows
      * advanced by 0x00D3B540 */
-    uint32_t d = screen_at(st, S32(st, DRAW_X), S32(st, DRAW_Y));
-    int32_t rows = S32(st, VIS_H);
-    uint32_t skip = U32(st, SRC_SKIP);
+    uint32_t d = screen_at(st, S32(st, G_BLIT_X), S32(st, G_BLIT_Y));
+    int32_t rows = S32(st, G_VIS_H);
+    uint32_t skip = U32(st, G_SRC_SKIP);
     do {
-        int32_t n = S32(st, VIS_W);
+        int32_t n = S32(st, G_VIS_W);
         do {
             uint16_t v = mem_rd16(st, src);
             if (v != KEY) {
@@ -291,7 +292,7 @@ void blit_plain_clipped(game_state *st, uint32_t src)
             d += 2;
         } while (--n > 0);
         src += skip;
-        d += U32(st, DST_SKIP);
+        d += U32(st, G_DST_SKIP);
     } while (--rows > 0);
 }
 
@@ -299,10 +300,10 @@ void blit_plain_mirrored(game_state *st, uint32_t src)
 {
     /* @bin 0x0040FED0 right to left from x + width (one pixel right of the image's last column),
      * [0x00D3B5D4] rows of the full width */
-    uint32_t d = screen_at(st, S32(st, DRAW_X), S32(st, DRAW_Y));
-    int32_t w = S16(st, IMG_W);
+    uint32_t d = screen_at(st, S32(st, G_BLIT_X), S32(st, G_BLIT_Y));
+    int32_t w = S16(st, G_UD3B5BE);
     uint32_t w2 = 2u * (uint32_t) w;
-    if (S32(st, VIS_H) <= 0) {
+    if (S32(st, G_VIS_H) <= 0) {
         return;
     }
     int32_t row = 0;
@@ -318,24 +319,24 @@ void blit_plain_mirrored(game_state *st, uint32_t src)
                 d -= 2;
                 src += 2;
                 i++;
-            } while (i < S16(st, IMG_W));
+            } while (i < S16(st, G_UD3B5BE));
         }
-        d += U32(st, DST_SKIP) + w2;
+        d += U32(st, G_DST_SKIP) + w2;
         row++;
-    } while (row < S32(st, VIS_H));
+    } while (row < S32(st, G_VIS_H));
 }
 
 void blit_plain_mirrored_clipped(game_state *st, uint32_t src)
 {
     /* @bin 0x0040FF50 right to left, [0x00D3B5D4] rows of [0x00D3B544] pixels (counted down to 0) */
-    uint32_t d = screen_at(st, S32(st, DRAW_X), S32(st, DRAW_Y));
-    uint32_t w2 = 2u * U32(st, VIS_W);
-    uint32_t rows = U32(st, VIS_H);
+    uint32_t d = screen_at(st, S32(st, G_BLIT_X), S32(st, G_BLIT_Y));
+    uint32_t w2 = 2u * U32(st, G_VIS_W);
+    uint32_t rows = U32(st, G_VIS_H);
     if (rows == 0) {
         return;
     }
     do {
-        uint32_t n = U32(st, VIS_W);
+        uint32_t n = U32(st, G_VIS_W);
         d += w2;
         for (; n != 0; n--) {
             uint16_t v = mem_rd16(st, src);
@@ -345,19 +346,19 @@ void blit_plain_mirrored_clipped(game_state *st, uint32_t src)
             d -= 2;
             src += 2;
         }
-        d += U32(st, DST_SKIP) + w2;
-        src += U32(st, SRC_SKIP);
+        d += U32(st, G_DST_SKIP) + w2;
+        src += U32(st, G_SRC_SKIP);
     } while (--rows != 0);
 }
 
 void blit_plain_mask(game_state *st, uint32_t src, int32_t mask)
 {
     /* @bin 0x004100F0 as 0x0040FFD0, ANDing mask into the destination where the source is not the key */
-    uint32_t d = screen_at(st, S32(st, DRAW_X), S32(st, DRAW_Y));
+    uint32_t d = screen_at(st, S32(st, G_BLIT_X), S32(st, G_BLIT_Y));
     uint16_t m = (uint16_t) mask;
-    int32_t rows = S32(st, VIS_H);
+    int32_t rows = S32(st, G_VIS_H);
     do {
-        int32_t n = S16(st, IMG_W);
+        int32_t n = S16(st, G_UD3B5BE);
         int step = (n & 3) != 0 ? 1 : 4;
         do {
             for (int k = 0; k < step; k++) {
@@ -369,18 +370,18 @@ void blit_plain_mask(game_state *st, uint32_t src, int32_t mask)
             }
             n -= step;
         } while (n > 0);
-        d += U32(st, DST_SKIP);
+        d += U32(st, G_DST_SKIP);
     } while (--rows > 0);
 }
 
 void blit_plain_mask_clipped(game_state *st, uint32_t src, int32_t mask)
 {
     /* @bin 0x004101C0 as 0x00410090, ANDing mask */
-    uint32_t d = screen_at(st, S32(st, DRAW_X), S32(st, DRAW_Y));
+    uint32_t d = screen_at(st, S32(st, G_BLIT_X), S32(st, G_BLIT_Y));
     uint16_t m = (uint16_t) mask;
-    int32_t rows = S32(st, VIS_H);
+    int32_t rows = S32(st, G_VIS_H);
     do {
-        int32_t n = S32(st, VIS_W);
+        int32_t n = S32(st, G_VIS_W);
         do {
             if (mem_rd16(st, src) != KEY) {
                 mem_wr16(st, d, (uint16_t) (mem_rd16(st, d) & m));
@@ -388,8 +389,8 @@ void blit_plain_mask_clipped(game_state *st, uint32_t src, int32_t mask)
             src += 2;
             d += 2;
         } while (--n > 0);
-        src += U32(st, SRC_SKIP);
-        d += U32(st, DST_SKIP);
+        src += U32(st, G_SRC_SKIP);
+        d += U32(st, G_DST_SKIP);
     } while (--rows > 0);
 }
 
@@ -398,15 +399,15 @@ void blit_plain_mask_clipped(game_state *st, uint32_t src, int32_t mask)
 void blit_type2(game_state *st, uint32_t src)
 {
     /* @bin 0x00410F70 a dword from src at (x, y), a word from src + 2 at (x, y + 1) */
-    uint32_t d = screen_at(st, S32(st, DRAW_X), S32(st, DRAW_Y));
+    uint32_t d = screen_at(st, S32(st, G_BLIT_X), S32(st, G_BLIT_Y));
     mem_wr32(st, d, mem_rd32(st, src));
-    mem_wr16(st, d + U32(st, PITCH), mem_rd16(st, src + 2));
+    mem_wr16(st, d + U32(st, G_SCREEN_PITCH), mem_rd16(st, src + 2));
 }
 
 static void blit_square(game_state *st, uint32_t src, uint32_t n)
 {
-    uint32_t d = screen_at(st, S32(st, DRAW_X), S32(st, DRAW_Y));
-    uint32_t pitch = U32(st, PITCH);
+    uint32_t d = screen_at(st, S32(st, G_BLIT_X), S32(st, G_BLIT_Y));
+    uint32_t pitch = U32(st, G_SCREEN_PITCH);
     for (uint32_t r = 0; r < n; r++) {
         mem_copy(st, d + r * pitch, src + r * 2u * n, 2u * n);
     }
@@ -435,10 +436,10 @@ void blit_32x32(game_state *st, uint32_t src)
 uint32_t rle_skip_rows(game_state *st, uint32_t src)
 {
     /* @bin 0x00410F20 the stream after the [0x00D3B538] rows cut at the top (rows of i16 [0x00D3B5BE]) */
-    int32_t rows = S32(st, CLIP_TOP_ROWS);
+    int32_t rows = S32(st, G_CLIP_TOP_ROWS);
     while (rows > 0) {
         rows--;
-        int32_t n = S16(st, IMG_W);
+        int32_t n = S16(st, G_UD3B5BE);
         while (n > 0) {
             uint8_t c = mem_rd8(st, src);
             if (c == 0xFF) {
@@ -470,10 +471,10 @@ static void rle_full(game_state *st, uint32_t src, int op, uint16_t v)
 {
     /* the unrolled blitters: a run byte 1..16 is that many pixels, any other (0, 17..254) is 15 */
     src = rle_skip_rows(st, src);
-    uint32_t d = screen_at(st, S32(st, DRAW_X), S32(st, DRAW_Y));
-    int32_t rows = S32(st, VIS_H);
+    uint32_t d = screen_at(st, S32(st, G_BLIT_X), S32(st, G_BLIT_Y));
+    int32_t rows = S32(st, G_VIS_H);
     do {
-        int32_t n = S16(st, IMG_W);
+        int32_t n = S16(st, G_UD3B5BE);
         while (n > 0) {
             uint8_t c = mem_rd8(st, src);
             if (c == 0xFF) {
@@ -491,7 +492,7 @@ static void rle_full(game_state *st, uint32_t src, int op, uint16_t v)
             d += 2u * (uint32_t) k;
             n -= k;
         }
-        d += U32(st, DST_SKIP);
+        d += U32(st, G_DST_SKIP);
     } while (--rows > 0);
 }
 
@@ -500,11 +501,11 @@ static void rle_left(game_state *st, uint32_t src, int op, uint16_t v)
     /* cut on the left: the drawing starts 0x00D3B540 / 2 pixels left of x, pixels are written once
      * that count is used up */
     src = rle_skip_rows(st, src);
-    uint32_t d = screen_at(st, S32(st, DRAW_X), S32(st, DRAW_Y));
-    int32_t rows = S32(st, VIS_H);
+    uint32_t d = screen_at(st, S32(st, G_BLIT_X), S32(st, G_BLIT_Y));
+    int32_t rows = S32(st, G_VIS_H);
     do {
-        int32_t n = S16(st, IMG_W);
-        int32_t cut = (int32_t) (U32(st, SRC_SKIP) >> 1);
+        int32_t n = S16(st, G_UD3B5BE);
+        int32_t cut = (int32_t) (U32(st, G_SRC_SKIP) >> 1);
         uint32_t row = d;
         d -= 2u * (uint32_t) cut;
         while (n > 0) {
@@ -529,7 +530,7 @@ static void rle_left(game_state *st, uint32_t src, int op, uint16_t v)
                 cut--;
             } while (--k > 0);
         }
-        d = row + U32(st, PITCH);
+        d = row + U32(st, G_SCREEN_PITCH);
     } while (--rows > 0);
 }
 
@@ -537,11 +538,11 @@ static void rle_right(game_state *st, uint32_t src, int op, uint16_t v)
 {
     /* cut on the right: pixels are written while the visible width [0x00D3B544] lasts */
     src = rle_skip_rows(st, src);
-    uint32_t d = screen_at(st, S32(st, DRAW_X), S32(st, DRAW_Y));
-    int32_t rows = S32(st, VIS_H);
+    uint32_t d = screen_at(st, S32(st, G_BLIT_X), S32(st, G_BLIT_Y));
+    int32_t rows = S32(st, G_VIS_H);
     do {
-        int32_t n = S16(st, IMG_W);
-        int32_t left = S32(st, VIS_W);
+        int32_t n = S16(st, G_UD3B5BE);
+        int32_t left = S32(st, G_VIS_W);
         uint32_t row = d;
         while (n > 0) {
             uint8_t c = mem_rd8(st, src);
@@ -565,7 +566,7 @@ static void rle_right(game_state *st, uint32_t src, int op, uint16_t v)
                 n--;
             } while (--k > 0);
         }
-        d = row + U32(st, PITCH);
+        d = row + U32(st, G_SCREEN_PITCH);
     } while (--rows > 0);
 }
 
@@ -608,19 +609,19 @@ void blit_rle_mask_right(game_state *st, uint32_t src, int32_t mask)
 void blit_glyph(game_state *st, uint32_t src)
 {
     /* @bin 0x00410B10 type 20: the RLE image's pixels in the colour [0x00D3B51C] */
-    rle_full(st, src, RLE_FILL, U16(st, GLYPH_COLOUR));
+    rle_full(st, src, RLE_FILL, U16(st, G_GLYPH_COLOUR));
 }
 
 void blit_glyph_left(game_state *st, uint32_t src)
 {
     /* @bin 0x00410DE0 */
-    rle_left(st, src, RLE_FILL, U16(st, GLYPH_COLOUR));
+    rle_left(st, src, RLE_FILL, U16(st, G_GLYPH_COLOUR));
 }
 
 void blit_glyph_right(game_state *st, uint32_t src)
 {
     /* @bin 0x00410E80 */
-    rle_right(st, src, RLE_FILL, U16(st, GLYPH_COLOUR));
+    rle_right(st, src, RLE_FILL, U16(st, G_GLYPH_COLOUR));
 }
 
 /* ---- mirrored RLE: right to left from x + width ---- */
@@ -629,14 +630,14 @@ void blit_rle_mirrored(game_state *st, uint32_t src)
 {
     /* @bin 0x0040FC40 a run that reaches the row's end mid-way leaves its other pixels unread */
     src = rle_skip_rows(st, src);
-    uint32_t d = screen_at(st, S32(st, DRAW_X), S32(st, DRAW_Y));
-    uint32_t w2 = 2u * (uint32_t) (int32_t) S16(st, IMG_W);
-    int32_t rows = S32(st, VIS_H);
+    uint32_t d = screen_at(st, S32(st, G_BLIT_X), S32(st, G_BLIT_Y));
+    uint32_t w2 = 2u * (uint32_t) (int32_t) S16(st, G_UD3B5BE);
+    int32_t rows = S32(st, G_VIS_H);
     if (rows <= 0) {
         return;
     }
     do {
-        int32_t n = S16(st, IMG_W);
+        int32_t n = S16(st, G_UD3B5BE);
         d += w2;
         while (n > 0) {
             uint8_t c = mem_rd8(st, src++);
@@ -661,7 +662,7 @@ void blit_rle_mirrored(game_state *st, uint32_t src)
                 break;
             }
         }
-        d += U32(st, DST_SKIP) + w2;
+        d += U32(st, G_DST_SKIP) + w2;
     } while (--rows != 0);
 }
 
@@ -670,15 +671,15 @@ void blit_rle_mirrored_right(game_state *st, uint32_t src)
     /* @bin 0x0040FCF0 cut on the right (of the screen): the first width - [0x00D3B544] pixels read
      * are not written */
     src = rle_skip_rows(st, src);
-    uint32_t d = screen_at(st, S32(st, DRAW_X), S32(st, DRAW_Y));
-    uint32_t w2 = 2u * (uint32_t) (int32_t) S16(st, IMG_W);
-    int32_t rows = S32(st, VIS_H);
+    uint32_t d = screen_at(st, S32(st, G_BLIT_X), S32(st, G_BLIT_Y));
+    uint32_t w2 = 2u * (uint32_t) (int32_t) S16(st, G_UD3B5BE);
+    int32_t rows = S32(st, G_VIS_H);
     if (rows <= 0) {
         return;
     }
     do {
-        int32_t n = S16(st, IMG_W);
-        int32_t hidden = n - S32(st, VIS_W);
+        int32_t n = S16(st, G_UD3B5BE);
+        int32_t hidden = n - S32(st, G_VIS_W);
         d += w2;
         while (n > 0) {
             uint8_t c = mem_rd8(st, src);
@@ -705,7 +706,7 @@ void blit_rle_mirrored_right(game_state *st, uint32_t src)
                 hidden--;
             } while (--k != 0);
         }
-        d += U32(st, PITCH);
+        d += U32(st, G_SCREEN_PITCH);
     } while (--rows != 0);
 }
 
@@ -714,15 +715,15 @@ void blit_rle_mirrored_left(game_state *st, uint32_t src)
     /* @bin 0x0040FDD0 cut on the left (of the screen): pixels are written while width - [0x00D3B540] / 2
      * (sar) lasts */
     src = rle_skip_rows(st, src);
-    uint32_t d = screen_at(st, S32(st, DRAW_X), S32(st, DRAW_Y));
-    uint32_t w2 = 2u * (uint32_t) (int32_t) S16(st, IMG_W);
-    int32_t rows = S32(st, VIS_H);
+    uint32_t d = screen_at(st, S32(st, G_BLIT_X), S32(st, G_BLIT_Y));
+    uint32_t w2 = 2u * (uint32_t) (int32_t) S16(st, G_UD3B5BE);
+    int32_t rows = S32(st, G_VIS_H);
     if (rows <= 0) {
         return;
     }
     do {
-        int32_t n = S16(st, IMG_W);
-        int32_t skip = S32(st, SRC_SKIP);
+        int32_t n = S16(st, G_UD3B5BE);
+        int32_t skip = S32(st, G_SRC_SKIP);
         int32_t shown = n - (skip >> 1);
         uint32_t row = d;
         d += w2 - (uint32_t) skip;
@@ -751,6 +752,6 @@ void blit_rle_mirrored_left(game_state *st, uint32_t src)
                 shown--;
             } while (--k != 0);
         }
-        d = row + U32(st, PITCH);
+        d = row + U32(st, G_SCREEN_PITCH);
     } while (--rows != 0);
 }

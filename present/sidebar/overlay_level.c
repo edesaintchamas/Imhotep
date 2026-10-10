@@ -8,13 +8,10 @@
 #include "sidebar.h"
 
 #include "city/day_x87.h"
+#include "present_layout.h"
 #include "sim/call.h"
 #include "state/ported.h"
 #include "state/records.h"
-
-#define BUILDING_MANAGER 0x00BCA350u   /* `this` of 0x00488030 */
-#define TILE_EDGE 0x00B67D1Cu
-#define VIEW_TILE_CURRENT 0x0070E488u
 
 static uint32_t rec(int32_t id)
 {
@@ -23,12 +20,12 @@ static uint32_t rec(int32_t id)
 
 static int16_t type_of(game_state *st, int32_t id)
 {
-    return S16(st, rec(id) + 0x10);
+    return S16(st, rec(id) + BLD_TYPE);
 }
 
 static int occupied(game_state *st, int32_t id)
 {
-    return U8(st, rec(id) + 5) != 0;
+    return U8(st, rec(id) + BLD_HOUSE_SIZE) != 0;
 }
 
 static int32_t ten_minus_tenth(game_state *st, int32_t id, uint32_t offset)
@@ -40,7 +37,7 @@ static int32_t ten_minus_tenth(game_state *st, int32_t id, uint32_t offset)
 int32_t overlay_level_entertainment(game_state *st, int32_t tile)
 {
     /* @bin 0x004339E0 tile byte 0x00A5D4CC in steps of 10: 0 -> 0, 1..9 -> 1, ..., >= 80 -> 9 */
-    int32_t v = U8(st, 0x00A5D4CCu + (uint32_t) tile);
+    int32_t v = U8(st, G_GRID_FERTILITY + (uint32_t) tile);
     if (v == 0) {
         return 0;
     }
@@ -54,8 +51,8 @@ int32_t overlay_level_desirability(game_state *st, int32_t tile)
 {
     /* @bin 0x00433A60 tile desirability 0x00AC2D4C (i8): 0 for an empty plain tile, else 0..9 by
      * thresholds -10, -5, 0, =0, 5, 10, 15, 20, 25 */
-    uint8_t terrain = U8(st, 0x00AF598Cu + 4u * (uint32_t) tile);
-    int32_t v = S8(st, 0x00AC2D4Cu + (uint32_t) tile);
+    uint8_t terrain = U8(st, G_GRID_TERRAIN + 4u * (uint32_t) tile);
+    int32_t v = S8(st, G_DESIRABILITY_GRID + (uint32_t) tile);
     if ((terrain & 8) == 0 && v == 0) {
         return 0;
     }
@@ -111,23 +108,23 @@ int32_t overlay_level_resource(game_state *st, int32_t id, int32_t a, int32_t b)
     uint32_t k = (uint32_t) ((int32_t) t - 0x46);
     if (k <= 0x7B) {
         if (t == 0x46 || t == 0xBE) {
-            return x87_level(S16(st, rec(id) + 0x56 + 2u * (uint32_t) b), 0);
+            return x87_level(S16(st, rec(id) + BLD_INVENTORY + 2u * (uint32_t) b), 0);
         }
         if (t == 0x47 || t == 0xBF) {
-            return x87_level(S16(st, rec(id) + 0x56 + 2u * (uint32_t) a), 0);
+            return x87_level(S16(st, rec(id) + BLD_INVENTORY + 2u * (uint32_t) a), 0);
         }
         if (t == 0x48 || t == 0xC1) {
-            return x87_level(GAME_CALL(st, 0x0045D510u, id, a), 0);
+            return x87_level(GAME_CALL(st, FN_BUILDING_PARTS_STOCK, id, a), 0);
         }
         if (t == 0x49) {
-            int32_t r = GAME_CALL(st, 0x00475B50u, id, a);
-            return x87_level(GAME_CALL(st, 0x0045D510u, r, a), 0);
+            int32_t r = GAME_CALL(st, FN_BUILDING_MAIN_PART, id, a);
+            return x87_level(GAME_CALL(st, FN_BUILDING_PARTS_STOCK, r, a), 0);
         }
     }
     if (!occupied(st, id)) {
         return 0;
     }
-    return x87_level(S16(st, rec(id) + 0x54 + 2u * (uint32_t) b), 1);
+    return x87_level(S16(st, rec(id) + BLD_HOUSE_INVENTORY + 2u * (uint32_t) b), 1);
 }
 
 static int32_t walker_level(game_state *st, int32_t id, uint32_t offset)
@@ -135,9 +132,9 @@ static int32_t walker_level(game_state *st, int32_t id, uint32_t offset)
     /* @bin 0x00433C90 / 0x00433D50 for a building with a walker in (0x00488030), its drawing tile
      * only: by the view's orientation 0x00BCA2E0 (0, 2, 4, 6) the tile edge byte must be 0x50,
      * 0x40, 0x42, 0x52; the level is the word at offset / 100 */
-    if ((GAME_CALLT(st, BUILDING_MANAGER, 0x00488030u, id) & 0xFF) != 0) {
-        uint8_t edge = U8(st, TILE_EDGE + (uint32_t) S32(st, VIEW_TILE_CURRENT));
-        int32_t o = S32(st, 0x00BCA2E0u);
+    if ((GAME_CALLT(st, G_BUILDING_MANAGER, FN_BUILDING_IS_TYPE_0X487F80, id) & 0xFF) != 0) {
+        uint8_t edge = U8(st, G_EDGE + (uint32_t) S32(st, G_VIEW_TILE));
+        int32_t o = S32(st, G_VIEW_ORIENTATION);
         if (o == 0) {
             if (edge != 0x50) {
                 return 0;
@@ -172,14 +169,14 @@ int32_t overlay_level_crime(game_state *st, int32_t id)
 int32_t overlay_level_tile_word(game_state *st, int32_t tile)
 {
     /* @bin 0x00433D30 the tile grid 0x00A9CC1C (i16) / 100 */
-    return S16(st, 0x00A9CC1Cu + 2u * (uint32_t) tile) / 100;
+    return S16(st, G_GRID_DAMAGE + 2u * (uint32_t) tile) / 100;
 }
 
 int32_t overlay_level_damage(game_state *st, int32_t id)
 {
     /* @bin 0x00433D50 remembers the tile's image (0x00B7482C) in 0x00D3B5C0; the word +0x46 / 100,
      * none for type 0x51 */
-    S32(st, 0x00D3B5C0u) = S32(st, 0x00B7482Cu + 4u * (uint32_t) S32(st, VIEW_TILE_CURRENT));
+    S32(st, G_GLYPH_LAST) = S32(st, G_IMAGE + 4u * (uint32_t) S32(st, G_VIEW_TILE));
     if (type_of(st, id) == 0x51) {
         return 0;
     }
@@ -212,7 +209,7 @@ int32_t overlay_level_religion(game_state *st, int32_t id)
     /* @bin 0x00433ED0 remembers the tile's image in 0x00D3B5C0; none for types 0x1E..0x25, 0xE2
      * (jump table 0x00433F94) or with no temple in the city (the counts 0x007057B4..0x007057D0 and
      * 0x00705AC4); else 10 - (i8 +0x80) / 10 */
-    S32(st, 0x00D3B5C0u) = S32(st, 0x00B7482Cu + 4u * (uint32_t) S32(st, VIEW_TILE_CURRENT));
+    S32(st, G_GLYPH_LAST) = S32(st, G_IMAGE + 4u * (uint32_t) S32(st, G_VIEW_TILE));
     int16_t t = type_of(st, id);
     if ((t >= 0x1E && t <= 0x25) || t == 0xE2) {
         return 0;
@@ -220,13 +217,13 @@ int32_t overlay_level_religion(game_state *st, int32_t id)
     if (!occupied(st, id)) {
         return 0;
     }
-    uint32_t sum = U32(st, 0x007057D0u) + U32(st, 0x007057CCu) + U32(st, 0x007057C8u) + U32(st, 0x007057C4u) +
-                   U32(st, 0x007057C0u) + U32(st, 0x00705AC4u) + U32(st, 0x007057BCu) + U32(st, 0x007057B8u) +
-                   U32(st, 0x007057B4u);
+    uint32_t sum = U32(st, G_TYPE_COUNT + 4u * 0x25u) + U32(st, G_TYPE_COUNT + 4u * 0x24u) + U32(st, G_TYPE_COUNT + 4u * 0x23u) + U32(st, G_TYPE_COUNT + 4u * 0x22u) +
+                   U32(st, G_TYPE_COUNT + 4u * 0x21u) + U32(st, G_TYPE_COUNT + 4u * 0xE2u) + U32(st, G_TYPE_COUNT + 4u * 0x20u) + U32(st, G_TYPE_COUNT + 4u * 0x1Fu) +
+                   U32(st, G_TYPE_COUNT + 4u * 0x1Eu);
     if (sum == 0) {
         return 0;
     }
-    return 10 - (int32_t) S8(st, rec(id) + 0x80) / 10;
+    return 10 - (int32_t) S8(st, rec(id) + BLD_ENTERTAINMENT) / 10;
 }
 
 int32_t overlay_level_0x81(game_state *st, int32_t id)
@@ -237,10 +234,10 @@ int32_t overlay_level_0x81(game_state *st, int32_t id)
     if (t == 0x33 || t == 0x35 || !occupied(st, id)) {
         return 0;
     }
-    if (U32(st, 0x00705808u) + U32(st, 0x00705810u) == 0) {
+    if (U32(st, G_TYPE_COUNT + 4u * 0x33u) + U32(st, G_TYPE_COUNT + 4u * 0x35u) == 0) {
         return 0;
     }
-    uint8_t v = U8(st, rec(id) + 0x81);
+    uint8_t v = U8(st, rec(id) + BLD_EDUCATION);
     if (v == 1) {
         return 8;
     }
@@ -257,7 +254,7 @@ int32_t overlay_level_0x6C(game_state *st, int32_t id)
 {
     /* @bin 0x004340E0 */
     int16_t t = type_of(st, id);
-    if (t == 0x1F || t == 0x24 || !occupied(st, id) || U32(st, 0x007057CCu) + U32(st, 0x007057B8u) == 0) {
+    if (t == 0x1F || t == 0x24 || !occupied(st, id) || U32(st, G_TYPE_COUNT + 4u * 0x24u) + U32(st, G_TYPE_COUNT + 4u * 0x1Fu) == 0) {
         return 0;
     }
     return ten_minus_tenth(st, id, 0x6C);
@@ -268,7 +265,7 @@ int32_t overlay_level_0x6D(game_state *st, int32_t id)
     /* @bin 0x00434150 */
     int16_t t = type_of(st, id);
     if (t == 0x1E || t == 0x22 || t == 0x24 || !occupied(st, id) ||
-        U32(st, 0x007057CCu) + U32(st, 0x007057C4u) + U32(st, 0x007057B4u) == 0) {
+        U32(st, G_TYPE_COUNT + 4u * 0x24u) + U32(st, G_TYPE_COUNT + 4u * 0x22u) + U32(st, G_TYPE_COUNT + 4u * 0x1Eu) == 0) {
         return 0;
     }
     return ten_minus_tenth(st, id, 0x6D);
@@ -279,7 +276,7 @@ int32_t overlay_level_0x6F(game_state *st, int32_t id)
     /* @bin 0x004341D0 */
     int16_t t = type_of(st, id);
     if (t == 0x21 || t == 0x22 || t == 0x23 || !occupied(st, id) ||
-        U32(st, 0x007057C8u) + U32(st, 0x007057C4u) + U32(st, 0x007057C0u) == 0) {
+        U32(st, G_TYPE_COUNT + 4u * 0x23u) + U32(st, G_TYPE_COUNT + 4u * 0x22u) + U32(st, G_TYPE_COUNT + 4u * 0x21u) == 0) {
         return 0;
     }
     return ten_minus_tenth(st, id, 0x6F);
@@ -289,7 +286,7 @@ int32_t overlay_level_0x71(game_state *st, int32_t id)
 {
     /* @bin 0x00434250 */
     int16_t t = type_of(st, id);
-    if (t == 0x20 || t == 0x25 || !occupied(st, id) || U32(st, 0x007057D0u) + U32(st, 0x007057BCu) == 0) {
+    if (t == 0x20 || t == 0x25 || !occupied(st, id) || U32(st, G_TYPE_COUNT + 4u * 0x25u) + U32(st, G_TYPE_COUNT + 4u * 0x20u) == 0) {
         return 0;
     }
     return ten_minus_tenth(st, id, 0x71);
@@ -303,21 +300,21 @@ int32_t overlay_level_stock(game_state *st, int32_t id)
      * > 200 -> 0, >= 100 -> 1, > 0 -> 5, else 10; no need: 0 */
     int16_t t = type_of(st, id);
     if (t == 0x46 || t == 0xBE || t == 0x4C || t == 0x47 || t == 0xBF || !occupied(st, id) ||
-        S32(st, 0x00705854u) == 0) {
+        S32(st, G_TYPE_COUNT + 4u * 0x46u) == 0) {
         return 0;
     }
-    int32_t need = S32(st, 0x0070CDF4u + 0x58u * (uint32_t) (int32_t) S16(st, rec(id) + 0x12));
+    int32_t need = S32(st, G_HOUSE_LEVEL_U28 + 0x58u * (uint32_t) (int32_t) S16(st, rec(id) + BLD_SUBTYPE));
     if (need != 0) {
-        need = S16(st, rec(id) + 0x1C);
+        need = S16(st, rec(id) + BLD_POPULATION);
     }
     int32_t sum = 0;
     for (uint32_t i = 0; i < 8; i++) {
-        sum += S16(st, rec(id) + 0x54 + 2 * i);
+        sum += S16(st, rec(id) + BLD_HOUSE_INVENTORY + 2 * i);
     }
     if (need == 0) {
         return 0;
     }
-    int32_t r = GAME_CALL(st, 0x004CDE60u, sum, need);
+    int32_t r = GAME_CALL(st, FN_CALC_RATIO_PERCENT, sum, need);
     if (r > 200) {
         return 0;
     }
@@ -330,7 +327,7 @@ int32_t overlay_level_stock(game_state *st, int32_t id)
 int32_t overlay_level_0x77(game_state *st, int32_t id)
 {
     /* @bin 0x004343A0 */
-    if (type_of(st, id) == 0xB4 || !occupied(st, id) || S32(st, 0x00705A0Cu) == 0) {
+    if (type_of(st, id) == 0xB4 || !occupied(st, id) || S32(st, G_TYPE_COUNT + 4u * 0xB4u) == 0) {
         return 0;
     }
     return ten_minus_tenth(st, id, 0x77);
@@ -348,14 +345,14 @@ int32_t overlay_level_health(game_state *st, int32_t id)
     uint32_t sum = 0;
     for (int32_t i = 0; i < 5; i++) {
         for (int32_t j = 0; j < 3; j++) {
-            int32_t k = GAME_CALL(st, 0x004C06E0u, i, j);
-            sum += U32(st, 0x0070573Cu + 4u * (uint32_t) k);
+            int32_t k = GAME_CALL(st, FN_GOD_BUILDING_TYPE, i, j);
+            sum += U32(st, G_TYPE_COUNT + 4u * (uint32_t) k);
         }
     }
-    if (U32(st, 0x00705C78u) + sum == 0) {
+    if (U32(st, G_TYPE_COUNT + 4u * 0x14Fu) + sum == 0) {
         return 0;
     }
-    return (int32_t) S8(st, rec(id) + 0x83) * 17 / 10;
+    return (int32_t) S8(st, rec(id) + BLD_RELIGION) * 17 / 10;
 }
 
 static int32_t service_level(game_state *st, int32_t id, int16_t skip, uint32_t count, uint32_t offset)
@@ -366,13 +363,13 @@ static int32_t service_level(game_state *st, int32_t id, int16_t skip, uint32_t 
     return ten_minus_tenth(st, id, offset);
 }
 
-int32_t overlay_level_0x72(game_state *st, int32_t id) { return service_level(st, id, 0x33, 0x00705808u, 0x72); } /* @bin 0x00434510 */
-int32_t overlay_level_0x73(game_state *st, int32_t id) { return service_level(st, id, 0x35, 0x00705810u, 0x73); } /* @bin 0x00434570 */
-int32_t overlay_level_0x75(game_state *st, int32_t id) { return service_level(st, id, 0x31, 0x00705800u, 0x75); } /* @bin 0x004345D0 */
-int32_t overlay_level_0x6E(game_state *st, int32_t id) { return service_level(st, id, 0x31, 0x00705A74u, 0x6E); } /* @bin 0x00434630 */
-int32_t overlay_level_0x76(game_state *st, int32_t id) { return service_level(st, id, 0x2E, 0x007057F4u, 0x76); } /* @bin 0x00434690 */
-int32_t overlay_level_0x78(game_state *st, int32_t id) { return service_level(st, id, 0x2F, 0x007057F8u, 0x78); } /* @bin 0x004346F0 */
-int32_t overlay_level_0x70(game_state *st, int32_t id) { return service_level(st, id, 0xB8, 0x00705A1Cu, 0x70); } /* @bin 0x00434750 */
+int32_t overlay_level_0x72(game_state *st, int32_t id) { return service_level(st, id, 0x33, G_TYPE_COUNT + 4u * 0x33u, 0x72); } /* @bin 0x00434510 */
+int32_t overlay_level_0x73(game_state *st, int32_t id) { return service_level(st, id, 0x35, G_TYPE_COUNT + 4u * 0x35u, 0x73); } /* @bin 0x00434570 */
+int32_t overlay_level_0x75(game_state *st, int32_t id) { return service_level(st, id, 0x31, G_TYPE_COUNT + 4u * 0x31u, 0x75); } /* @bin 0x004345D0 */
+int32_t overlay_level_0x6E(game_state *st, int32_t id) { return service_level(st, id, 0x31, G_TYPE_COUNT + 4u * 0xCEu, 0x6E); } /* @bin 0x00434630 */
+int32_t overlay_level_0x76(game_state *st, int32_t id) { return service_level(st, id, 0x2E, G_TYPE_COUNT + 4u * 0x2Eu, 0x76); } /* @bin 0x00434690 */
+int32_t overlay_level_0x78(game_state *st, int32_t id) { return service_level(st, id, 0x2F, G_TYPE_COUNT + 4u * 0x2Fu, 0x78); } /* @bin 0x004346F0 */
+int32_t overlay_level_0x70(game_state *st, int32_t id) { return service_level(st, id, 0xB8, G_TYPE_COUNT + 4u * 0xB8u, 0x70); } /* @bin 0x00434750 */
 
 int32_t overlay_level_0x46F1C0(game_state *st, int32_t id)
 {
@@ -381,22 +378,22 @@ int32_t overlay_level_0x46F1C0(game_state *st, int32_t id)
     if (!occupied(st, id)) {
         return 0;
     }
-    if (U32(st, 0x00705A2Cu) + U32(st, 0x00705A30u) + U32(st, 0x00705A28u) + U32(st, 0x00705898u) +
-            U32(st, 0x00705894u) == 0) {
+    if (U32(st, G_TYPE_COUNT + 4u * 0xBCu) + U32(st, G_TYPE_COUNT + 4u * 0xBDu) + U32(st, G_TYPE_COUNT + 4u * 0xBBu) + U32(st, G_TYPE_COUNT + 4u * 0x57u) +
+            U32(st, G_TYPE_COUNT + 4u * 0x56u) == 0) {
         return 0;
     }
-    return GAME_CALL(st, 0x0046F1C0u, id) / 25;
+    return GAME_CALL(st, FN_BUILDING_0X46F1C0, id) / 25;
 }
 
 static int walker_on_duty(game_state *st, int32_t id)
 {
     /* the building's figure +0x2A is of type 4 with +0x38 = 8 and +0x66 set */
-    int32_t f = S16(st, rec(id) + 0x2A);
+    int32_t f = S16(st, rec(id) + BLD_WALKER);
     if (f == 0) {
         return 0;
     }
     uint32_t a = FIGURE_ADDR(f);
-    return U8(st, a + 0x0A) == 4 && U8(st, a + 0x38) == 8 && U8(st, a + 0x66) != 0;
+    return U8(st, a + FIG_TYPE) == 4 && U8(st, a + FIG_ACTION) == 8 && U8(st, a + FIG_SERVICE_MAX) != 0;
 }
 
 int32_t overlay_level_problems(game_state *st, int32_t id)
@@ -408,18 +405,18 @@ int32_t overlay_level_problems(game_state *st, int32_t id)
     if (occupied(st, id)) {
         return 0;
     }
-    int16_t t = S16(st, b + 0x10);
+    int16_t t = S16(st, b + BLD_TYPE);
     if (t == 0x5C || t == 0xB4) {
-        if (U8(st, b + 0x35) == 0) {
-            U8(st, b + 0xC3) = 1;
+        if (U8(st, b + BLD_WATER_SUPPLY) == 0) {
+            U8(st, b + BLD_PROBLEM_OVERLAY) = 1;
         }
-        return U8(st, b + 0xC3) != 0;
+        return U8(st, b + BLD_PROBLEM_OVERLAY) != 0;
     }
-    if ((GAME_CALLT(st, BUILDING_MANAGER, 0x00488030u, id) & 0xFF) != 0 || (t >= 0x6A && t <= 0x6D)) {
+    if ((GAME_CALLT(st, G_BUILDING_MANAGER, FN_BUILDING_IS_TYPE_0X487F80, id) & 0xFF) != 0 || (t >= 0x6A && t <= 0x6D)) {
         if (walker_on_duty(st, id)) {
-            U8(st, b + 0xC3) = 1;
+            U8(st, b + BLD_PROBLEM_OVERLAY) = 1;
         }
-        return U8(st, b + 0xC3) != 0;
+        return U8(st, b + BLD_PROBLEM_OVERLAY) != 0;
     }
     int listed = t >= 0x6E && t <= 0x72;
     static const int16_t types[] = {0x20, 0x2F, 0x33, 0x35, 0x4A, 0x71, 0xB1, 0xB2, 0xBB, 0xBC,
@@ -428,11 +425,11 @@ int32_t overlay_level_problems(game_state *st, int32_t id)
         listed = types[i] == t;
     }
     if (listed) {
-        if (walker_on_duty(st, id) || S16(st, b + 0x3C) <= 0) {
-            U8(st, b + 0xC3) = 1;
+        if (walker_on_duty(st, id) || S16(st, b + BLD_STORED) <= 0) {
+            U8(st, b + BLD_PROBLEM_OVERLAY) = 1;
         }
     }
-    return U8(st, b + 0xC3) != 0;
+    return U8(st, b + BLD_PROBLEM_OVERLAY) != 0;
 }
 
 int32_t overlay_level_0x18(game_state *st, int32_t id)
@@ -441,14 +438,14 @@ int32_t overlay_level_0x18(game_state *st, int32_t id)
     if (occupied(st, id)) {
         return 0;
     }
-    return GAME_CALL(st, 0x004CDE60u, S16(st, rec(id) + 0x18), 0x12C) / 10;
+    return GAME_CALL(st, FN_CALC_RATIO_PERCENT, S16(st, rec(id) + BLD_SERVICE), 0x12C) / 10;
 }
 
 int32_t overlay_level_listed(game_state *st, int32_t id)
 {
     /* @bin 0x00434A60 1 when the type is in the zero-ended list 0x005D2540 */
     int32_t t = type_of(st, id);
-    for (uint32_t a = 0x005D2540u; S32(st, a) != 0; a += 4) {
+    for (uint32_t a = G_LISTED_TYPES; S32(st, a) != 0; a += 4) {
         if (S32(st, a) == t) {
             return 1;
         }

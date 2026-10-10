@@ -7,28 +7,21 @@
  * view table 0x0070E494 (core/command/rotate.c view_table_build) and 0x004F0BA0 (core/frame/view.c). */
 #include "city.h"
 
+#include "present_layout.h"
 #include "sim/call.h"
 #include "state/ported.h"
-
-#define CAMERA_X 0x00BCA2BCu
-#define CAMERA_Y 0x00BCA2C0u
-#define MAP_START 0x00BCA2D8u
-#define SCROLLING 0x00E38DCCu
-#define FAST_SCROLL 0x005E2A60u
-#define FOUND_ROW 0x00D3B4E0u
-#define FOUND_COL 0x00D3B4E4u
 
 void city_view_draw_current(game_state *st)
 {
     /* @bin 0x004DDDC0 */
-    city_view_draw(st, S32(st, CAMERA_X), S32(st, CAMERA_Y), S32(st, MAP_START));
+    city_view_draw(st, S32(st, G_CAMERA_X), S32(st, G_CAMERA_Y), S32(st, G_MAP_START));
 }
 
 void ambient_slots_scroll(game_state *st)
 {
     /* @bin 0x0041D6F0 after a scroll: in each ambient slot (0x80 bytes from 0x00702984 to
      * 0x00704C04) the counters +8..+0x18 := 0 and +0 halved (signed) */
-    for (uint32_t a = 0x00702984u; a < 0x00704C04u; a += 0x80) {
+    for (uint32_t a = G_AMBIENT_SLOTS; a < G_AMBIENT_SLOTS_END; a += 0x80) {
         for (uint32_t k = 8; k <= 0x18; k += 4) {
             S32(st, a + k) = 0;
         }
@@ -40,54 +33,54 @@ void camera_scroll(game_state *st, int32_t dir)
 {
     /* @bin 0x004DDDE0 (direction 0..7 clockwise from up, 8: none) the camera one column / 1 (4 with
      * 0x005E2A60) rows on, then the ambient slots 0x0041D6F0 and the clamp 0x004DE080 */
-    int32_t rows = S32(st, FAST_SCROLL) != 0 ? 4 : 1;
+    int32_t rows = S32(st, G_FAST_SCROLL) != 0 ? 4 : 1;
     switch (dir) {
     case 8:
         return;
     case 0:
-        S32(st, CAMERA_Y) = S32(st, CAMERA_Y) - rows;
+        S32(st, G_CAMERA_Y) = S32(st, G_CAMERA_Y) - rows;
         break;
     case 1:
-        S32(st, CAMERA_Y) = S32(st, CAMERA_Y) - rows;
-        S32(st, CAMERA_X) = S32(st, CAMERA_X) + 1;
+        S32(st, G_CAMERA_Y) = S32(st, G_CAMERA_Y) - rows;
+        S32(st, G_CAMERA_X) = S32(st, G_CAMERA_X) + 1;
         break;
     case 2:
-        S32(st, CAMERA_X) = S32(st, CAMERA_X) + 1;
+        S32(st, G_CAMERA_X) = S32(st, G_CAMERA_X) + 1;
         break;
     case 3:
-        S32(st, CAMERA_Y) = S32(st, CAMERA_Y) + rows;
-        S32(st, CAMERA_X) = S32(st, CAMERA_X) + 1;
+        S32(st, G_CAMERA_Y) = S32(st, G_CAMERA_Y) + rows;
+        S32(st, G_CAMERA_X) = S32(st, G_CAMERA_X) + 1;
         break;
     case 4:
-        S32(st, CAMERA_Y) = S32(st, CAMERA_Y) + rows;
+        S32(st, G_CAMERA_Y) = S32(st, G_CAMERA_Y) + rows;
         break;
     case 5:
-        S32(st, CAMERA_Y) = S32(st, CAMERA_Y) + rows;
-        S32(st, CAMERA_X) = S32(st, CAMERA_X) - 1;
+        S32(st, G_CAMERA_Y) = S32(st, G_CAMERA_Y) + rows;
+        S32(st, G_CAMERA_X) = S32(st, G_CAMERA_X) - 1;
         break;
     case 6:
-        S32(st, CAMERA_X) = S32(st, CAMERA_X) - 1;
+        S32(st, G_CAMERA_X) = S32(st, G_CAMERA_X) - 1;
         break;
     case 7:
-        S32(st, CAMERA_Y) = S32(st, CAMERA_Y) - rows;
-        S32(st, CAMERA_X) = S32(st, CAMERA_X) - 1;
+        S32(st, G_CAMERA_Y) = S32(st, G_CAMERA_Y) - rows;
+        S32(st, G_CAMERA_X) = S32(st, G_CAMERA_X) - 1;
         break;
     default:
         break;
     }
     ambient_slots_scroll(st);
-    GAME_CALL0(st, 0x004DE080u);
+    GAME_CALL0(st, FN_CAMERA_CLAMP);
 }
 
 void camera_go_to(game_state *st, int32_t offset)
 {
     /* @bin 0x00430CD0 (grid offset) the camera centred on the tile's view cell (0x004304C0 finds it:
      * 0x00D3B4E0 row, 0x00D3B4E4 column), the row even; the map scrolls (0x00E38DCC); clamped */
-    GAME_CALL(st, 0x004304C0u, offset);
-    S32(st, CAMERA_X) = S32(st, FOUND_COL) - S32(st, VIEW_COLS) / 2;
-    S32(st, SCROLLING) = 1;
-    S32(st, CAMERA_Y) = (int32_t) ((uint32_t) (S32(st, FOUND_ROW) - S32(st, VIEW_ROWS) / 2) & 0xFFFEu);
-    GAME_CALL0(st, 0x004DE080u);
+    GAME_CALL(st, FN_VIEW_FIND, offset);
+    S32(st, G_CAMERA_X) = S32(st, G_ROAD_ACCESS_X) - S32(st, G_VIEW_COLS) / 2;
+    S32(st, G_SCROLLING) = 1;
+    S32(st, G_CAMERA_Y) = (int32_t) ((uint32_t) (S32(st, G_ROAD_ACCESS_Y) - S32(st, G_VIEW_ROWS) / 2) & 0xFFFEu);
+    GAME_CALL0(st, FN_CAMERA_CLAMP);
 }
 
 static int32_t run_current(game_state *st, const int32_t *a)
