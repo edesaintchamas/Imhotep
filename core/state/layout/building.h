@@ -116,4 +116,49 @@
 #define BLD_INCOMING_CARTS 0x104u  /* i16: granary incoming carts; workshops input count (0x004BC7A0) */
 #define BLD_INCOMING_AMOUNT 0x106u /* i16 */
 
+/* @bin wave 0: the other offsets the ports use (tools/naming/rename.py scan); a name with U and
+ * the offset until its meaning is established from the code that uses it */
+#define BLD_U42                0x42u
+#define BLD_U44                0x44u
+#define BLD_U50                0x50u
+#define BLD_U57                0x57u
+#define BLD_U59                0x59u
+#define BLD_U5A                0x5Au
+#define BLD_U5B                0x5Bu
+#define BLD_U5C                0x5Cu
+#define BLD_U61                0x61u
+#define BLD_U62                0x62u
+#define BLD_U64                0x64u
+#define BLD_U66                0x66u
+#define BLD_U6A                0x6Au
+#define BLD_U7C                0x7Cu
+#define BLD_U7E                0x7Eu
+#define BLD_U84                0x84u
+#define BLD_U88                0x88u
+#define BLD_U8C                0x8Cu
+#define BLD_U90                0x90u
+#define BLD_U94                0x94u
+#define BLD_U98                0x98u
+#define BLD_U9C                0x9Cu
+#define BLD_UA0                0xA0u
+#define BLD_UA2                0xA2u
+#define BLD_UA4                0xA4u
+#define BLD_UA7                0xA7u
+#define BLD_UA8                0xA8u
+#define BLD_UA9                0xA9u
+#define BLD_UAC                0xACu
+#define BLD_UAD                0xADu
+#define BLD_UBD                0xBDu
+#define BLD_UBF                0xBFu
+#define BLD_UC8                0xC8u
+#define BLD_UCA                0xCAu
+#define BLD_UCB                0xCBu
+#define BLD_UD0                0xD0u
+#define BLD_UD4                0xD4u
+#define BLD_UD8                0xD8u
+#define BLD_UDC                0xDCu
+#define BLD_UE0                0xE0u
+#define BLD_UEC                0xECu
+#define BLD_UF0                0xF0u
+
 #endif

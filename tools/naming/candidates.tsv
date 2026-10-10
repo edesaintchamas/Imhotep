@@ -1,0 +1,818 @@
+# address	name	header	status	uses	local names (defining files)	evidence
+0x0056F520	G_K_ONE	core/state/layout/g_city.h	single	3	K_ONE:1	core/city/monument_rating.c
+0x0056F5A0	G_K_ZERO	core/state/layout/g_city.h	single	1	K_ZERO:1	core/city/monument_rating.c
+0x0056F690	G_K_HALF	core/state/layout/g_city.h	single	2	K_HALF:1	core/city/monument_rating.c
+0x00570128	G_K_SCALE	core/state/layout/g_city.h	single	1	K_SCALE:1	core/city/monument_rating.c
+0x005761C4	G_STR_SAV_PATTERN	core/state/layout/g_scenario.h	single	3	STR_SAV_PATTERN:1	core/newgame/flow.c: "\\*.sav"
+0x005761FC	G_WAV_COHORT4	core/state/layout/g_command.h	single	1	WAV_COHORT4:1	core/command/military.c
+0x00576210	G_WAV_COHORT3	core/state/layout/g_command.h	single	1	WAV_COHORT3:1	core/command/military.c
+0x00576224	G_WAV_COHORT2	core/state/layout/g_command.h	single	1	WAV_COHORT2:1	core/command/military.c
+0x00576238	G_WAV_COHORT1	core/state/layout/g_command.h	single	1	WAV_COHORT1:1	core/command/military.c
+0x0057624C	G_WAV_COHORT5	core/state/layout/g_command.h	single	3	WAV_COHORT5:1	core/command/military.c
+0x00576278	G_LIB_EXTRA2	core/state/layout/g_building.h	single	11	LIB_EXTRA2:1	core/building/rest_monument.c
+0x00576284	G_LIB_EXTRA	core/state/layout/g_building.h	single	9	LIB_EXTRA:1	core/building/rest_monument.c
+0x00576290	G_LIB_MAIN_C5	core/state/layout/g_building.h	single	1	LIB_MAIN_C5:1	core/building/rest_monument.c
+0x0057629C	G_LIB_MAIN_C3	core/state/layout/g_building.h	single	2	LIB_MAIN_C3:1	core/building/rest_monument.c
+0x005762A8	G_LIB_MAIN_C2	core/state/layout/g_building.h	single	2	LIB_MAIN_C2:1	core/building/rest_monument.c
+0x005762B4	G_LIB_MAIN_C1	core/state/layout/g_building.h	single	3	LIB_MAIN_C1:1	core/building/rest_monument.c
+0x005762C0	G_LIB_MAIN_A5	core/state/layout/g_building.h	single	1	LIB_MAIN_A5:1	core/building/rest_monument.c
+0x005762CC	G_LIB_MAIN_C4	core/state/layout/g_building.h	single	3	LIB_MAIN_C4:1	core/building/rest_monument.c
+0x005762D8	G_LIB_MAIN_A4	core/state/layout/g_building.h	single	2	LIB_MAIN_A4:1	core/building/rest_monument.c
+0x005762E4	G_LIB_MAIN_A3	core/state/layout/g_building.h	single	2	LIB_MAIN_A3:1	core/building/rest_monument.c
+0x005762F0	G_LIB_MAIN_A2	core/state/layout/g_building.h	single	2	LIB_MAIN_A2:1	core/building/rest_monument.c
+0x005762FC	G_LIB_MAIN_A1	core/state/layout/g_building.h	single	3	LIB_MAIN_A1:1	core/building/rest_monument.c
+0x00578C68	G_DEBUG_OFF	core/state/layout/g_frame.h	single	2	DEBUG_OFF:1	core/frame/wndproc.c: u8 1 in the exe: the debug keys are off
+0x00578D98	G_STR_CAMPAIGN	core/state/layout/g_boot.h	single	2	STR_CAMPAIGN:1	core/newgame/flow2.c: "campaign.txt"
+0x005794B0	G_MISSION_LISTS	core/state/layout/g_city.h	single	3	MISSION_LISTS:1	core/command/menu.c: @bin 0x004050DA 26 records of 0x1C bytes
+0x0057961C	G_CHEAT_MISSION	core/state/layout/g_city.h	single	2	CHEAT_MISSION:1	core/command/menu.c
+0x0057978C	G_MISSION_LISTS_END	core/state/layout/g_command.h	single	1	MISSION_LISTS_END:1	core/command/menu.c: @bin 0x0040511C (+4: the loop runs on +4)
+0x0057BD88	G_MENU_TABLE	present/layout/g_ui_main.h	generic	2	TABLE:1	present/ui/frontend/menu.c: 5 rectangles of 0x1C: i16 x0, y0, x1, y1, callback +8, param +0x14
+0x0057BE14	G_MENU_LABELS	present/layout/g_ui_advisors.h	resolved	2	LABELS:1, TABLE_END:1	present/ui/frontend/menu.c: i32[5] the labels' string indexes in group 0x1E
+0x0057BE78	G_PERIOD_BUTTONS	present/layout/g_ui_advisors.h	single	3	PERIOD_BUTTONS:1	present/ui/frontend/campaign.c: 11 rectangles of 0x1C: 9 periods, 2 tabs
+0x0057C048	G_NUMBER_SUFFIX	present/layout/g_ui_advisors.h	majority	100	NUMBER_SUFFIX:4, SPACE_STR:3, SUFFIX:3, EMPTY_STRING:2, EMPTY:1, EMPTY_SUFFIX:1, NO_SUFFIX:1	present/sidebar/sidebar.c: the empty string given as the numbers' suffix
+0x0057C3C8	G_CHEAT_TABLE	core/state/layout/g_command.h	single	2	CHEAT_TABLE:1	core/command/cheats.c: 12-byte entries; +4 the function
+0x005BE9B8	G_PART_DESC_SETS	core/state/layout/g_city.h	resolved	2	PART_DESC:1, SETS:1	present/city/parts.c: 0xFD descriptor sets of 0x28 bytes
+0x005C4810	G_DELETE_READ_TABLE	present/layout/g_ui_main.h	single	2	DELETE_READ_TABLE:1	present/ui/messages/list.c
+0x005C4830	G_ROWS_TABLE	present/layout/g_ui_main.h	single	2	ROWS_TABLE:1	present/ui/messages/list.c
+0x005C5798	G_GOAL_RECTS	present/layout/g_ui_main.h	single	4	GOAL_RECTS:1	present/ui/frames.c: the page's rectangle table (0x1C bytes per row)
+0x005C5B48	G_SCROLL_UP	present/layout/g_ui_info.h	single	3	SCROLL_UP:1	present/ui/info/storage.c: the storage yard orders' scroll buttons
+0x005C5B60	G_SCROLL_DOWN	present/layout/g_ui_info.h	single	3	SCROLL_DOWN:1	present/ui/info/storage.c
+0x005C7B10	G_CLOSE_BUTTONS	present/layout/g_ui_main.h	single	5	CLOSE_BUTTONS:1	present/ui/info/info.c: the help and close buttons (0x24 bytes each): 2
+0x005C7E98	G_BTN_HELP	present/layout/g_ui_main.h	single	3	BTN_HELP:1	present/ui/messages/list.c
+0x005C80F0	G_BTN_CLOSE	present/layout/g_ui_main.h	single	3	BTN_CLOSE:1	present/ui/messages/list.c
+0x005C8118	G_BTN_UP	present/layout/g_ui_main.h	single	3	BTN_UP:1	present/ui/messages/list.c
+0x005C8140	G_BTN_DOWN	present/layout/g_ui_main.h	single	3	BTN_DOWN:1	present/ui/messages/list.c
+0x005C81F8	G_ORDER_BUTTONS	present/layout/g_ui_info.h	single	2	ORDER_BUTTONS:1	present/ui/info/storage.c: button tables of the order rows, 0x48 bytes per row
+0x005C8D38	G_TAX_BUTTONS	present/layout/g_ui_main.h	single	6	TAX_BUTTONS:1	present/ui/info/service.c: the image button table of the tax panels
+0x005C9350	G_RATING_TABLE	core/state/layout/g_city.h	single	2	RATING_TABLE:1	core/city/month_ratings.c: 11 records of 14 i32: index into 0x0078D5F0, 7 values, 6 limits
+0x005CC8C0	G_FOOTPRINT_OFFSETS	core/state/layout/g_building.h	resolved	31	OFFSETS:2, SQUARE:2, FOOTPRINT:1, PART_OFFSETS:1	core/map/map_building.c: rows of 6 x (i32 grid offset, u8 edge bits, 3 pad), 0x30 bytes
+0x005CC9E0	G_RING_OFFSETS	core/state/layout/g_building.h	named	7	ADJACENT:1, SIZE_OFFSETS:1	core/building/building_misc.c: per size 0x60 bytes: up to 24 i32 grid offsets around it, 0 ends
+0x005CCE98	G_RING_COORDS	core/state/layout/g_building.h	named	4	ADJACENT_XY:1, SIZE_COORDS:1	core/building/building_misc.c: per size 24 x (i32 dx, i32 dy)
+0x005CD978	G_DIRECTIONS	core/state/layout/g_command.h	single	8	DIRECTIONS:1	core/command/cheats.c: 8 (dx, dy) pairs of i32
+0x005CE3B8	G_MENU_TYPES	core/state/layout/g_command.h	single	2	MENU_TYPES:1	core/command/construction_ui.c: @bin 0x00405792 i32[submenu * 30 + item]
+0x005CE3BC	G_MENU_TYPES_1	core/state/layout/g_command.h	resolved	11	MENU_ITEMS:1, MENU_TYPES:1	core/command/menu.c: @bin 0x00404392 i32[menu * 30 + i]: the type of entry i + 1
+0x005CFCD4	G_FOOT_COUNT	present/layout/g_city_view.h	single	0	FOOT_COUNT:1	present/city/ghost.h: i32 per size: the tile count
+0x005CFCF0	G_FOOT_OFFS	present/layout/g_city_view.h	single	0	FOOT_OFFS:1	present/city/ghost.h: (dx, dy) i32 pairs: the tiles of a footprint on the screen
+0x005CFE10	G_FOOT_TILES	core/state/layout/g_command.h	single	1	FOOT_TILES:1	present/city/ghost.h: i32[36] per orientation / 2: the footprint's grid offsets
+0x005D0320	G_SALARY_BY_RANK	core/state/layout/g_command.h	single	3	SALARY_BY_RANK:1	core/command/orders.c: i32 per rank
+0x005D048C	G_DIE_FRAMES	core/state/layout/g_figure.h	resolved	14	DIE_FRAMES:1, FRAME_TABLE:1	core/figure/actions_b.h: dying animation frame by wait ticks / 2
+0x005D06DC	G_MODELS	core/state/layout/g_command.h	single	6	MODELS:1	present/city/ghost.h: 0x14 bytes per type: +0 size, +8 image group, +0xC image offset
+0x005D06EC	G_TYPE_LABOUR_CATEGORY	core/state/layout/g_city.h	named	2	TYPE_CATEGORY:1	core/city/day_labour.c: i32 labour category per building type, stride 0x14
+0x005D117C	G_FERRY_MODEL	present/layout/g_city_view.h	single	2	FERRY_MODEL:1	present/city/ghost_ferry.c: the model record of type 0x88 (0x005D06DC + 0x88 * 0x14)
+0x005D1960	G_TREASURY_PCT	core/state/layout/g_scenario.h	single	7	TREASURY_PCT:1	core/newgame/start.c: i32[5] by difficulty
+0x005D1974	G_DIFFICULTY_TAX	core/state/layout/g_command.h	single	3	DIFFICULTY_TAX:1	core/command/orders.c: i32 per difficulty
+0x005D1988	G_KINGDOM_BY_DIFF	core/state/layout/g_scenario.h	single	2	KINGDOM_BY_DIFF:1	core/newgame/start.c: i32[5] by difficulty
+0x005D19C8	G_MONUMENT_MODELS	core/state/layout/g_building.h	resolved	19	KINDS:1, MONUMENT_MODELS:1, SLOT_GOODS:1	core/command/menu.c: 16-byte records by monument code
+0x005D2A10	G_MAP_W	core/state/layout/g_scenario.h	single	1	MAP_W:1	present/ui/empire/empire.h: i32 the map picture's size
+0x005D2A14	G_MAP_H	core/state/layout/g_scenario.h	single	1	MAP_H:1	present/ui/empire/empire.h
+0x005D2A18	G_MAP_X	core/state/layout/g_scenario.h	single	5	MAP_X:1	present/ui/empire/empire.h: i32 the map's place on the screen: left
+0x005D2A1C	G_MAP_Y	core/state/layout/g_scenario.h	single	5	MAP_Y:1	present/ui/empire/empire.h: i32 top
+0x005D2A20	G_MAP_BOTTOM	core/state/layout/g_scenario.h	single	3	MAP_BOTTOM:1	present/ui/empire/empire.h: i32 room below
+0x005D2A30	G_ROUTE_SELECTED	present/layout/g_ui_main.h	resolved	8	ROUTE:1, ROUTE_CURRENT:1	present/ui/empire/editor.c: i32 the selected route
+0x005D2C48	G_PRICE_BUY	core/state/layout/g_figure.h	single	9	PRICE_BUY:1	present/ui/advisors/d_trade.c: i32 per resource (8-byte entries)
+0x005D2C4C	G_PRICE_SELL	core/state/layout/g_figure.h	single	8	PRICE_SELL:1	present/ui/advisors/d_trade.c
+0x005D2E88	G_ARMY_SEL	present/layout/g_ui_main.h	single	3	ARMY_SEL:1	present/ui/empire/empire.h: i32 the hovered / selected army marker (-1: none)
+0x005D9A18	G_FMT_D	present/layout/g_ui_main.h	single	1	FMT_D:1	present/ui/messages/keywords.c: "%d"
+0x005D9A1C	G_FMT_PERCENT	present/layout/g_ui_main.h	single	1	FMT_PERCENT:1	present/ui/messages/keywords.c: "%d%%"
+0x005D9A24	G_FMT_D_S	present/layout/g_ui_main.h	single	1	FMT_D_S:1	present/ui/messages/keywords.c: "%d %s"
+0x005DA44C	G_DEFAULT_SHARES	core/state/layout/g_city.h	single	2	DEFAULT_SHARES:1	core/city/day_labour.c: (i32 category, i32 workers)[9]
+0x005DC188	G_ENDS	core/state/layout/g_command.h	single	8	ENDS:1	core/command/construction_lift.c: @bin 4 (dx, dy) pairs
+0x005DC28C	G_ACTION_TABLE	core/state/layout/g_figure.h	single	1	ACTION_TABLE:1	core/figure/figure.c: one action function per figure type
+0x005DF810	G_GATE_PARTS	present/layout/g_city_view.h	single	2	GATE_PARTS:1	present/city/ghost_gate.c: 16 bytes per part (4): +0 u8 flag, +4 size, +8 a, +0xC b
+0x005DF9B0	G_COMPLEX_TABLE	core/state/layout/g_building.h	single	2	COMPLEX_TABLE:1	present/city/ghost_gate.c: 7 rows x 13 records of 0x14 bytes: +0 group, +4..+0x10 image by turn
+0x005E02A8	G_FILE_NAME	present/layout/g_ui_advisors.h	single	3	FILE_NAME:1	present/ui/frontend/highscore.c: "save\highscore.jas"
+0x005E03F8	G_LINE_BREAK	present/layout/g_city_view.h	single	2	LINE_BREAK:1	present/sidebar/tooltip_text.c: "@L"
+0x005E03FC	G_PERCENT_STRING	present/layout/g_ui_info.h	majority	13	PERCENT_STRING:2, EMPTY_STRING:1, PERCENT:1, SUFFIX_PERCENT:1	present/ui/frontend/options.c: the "%" suffix of the volumes
+0x005E047C	G_GLYPH_MAP	core/state/layout/g_city.h	resolved	3	GLYPH_MAP:1, GLYPH_WIDTH_MAP:1	core/city/text_lookup.c: u8 per character: glyph number (0: none)
+0x005E0494	G_STR_SAVE_DIR	core/state/layout/g_scenario.h	single	3	STR_SAVE_DIR:1	core/newgame/flow.c: "save\\"
+0x005E049C	G_GLYPH_DRAW_MAP	present/layout/g_ui_main.h	resolved	4	GLYPHS:1, GLYPH_DRAW_MAP:1	present/ui/messages/richtext.c: u8 glyph number per character - 0x20
+0x005E058C	G_POWERS	core/state/layout/g_command.h	single	1	POWERS:1	core/command/models.c: @bin 0x004CC0B3 i32 powers of ten
+0x005E09A0	G_CHUNKS	core/state/layout/g_sim.h	single	4	CHUNKS:1	core/frame/autosave.c: 181 records of 20 bytes: compressed, address, size, count, -
+0x005E17D8	G_MAP_SCHEMA	core/state/layout/g_scenario.h	single	5	MAP_SCHEMA:1	core/newgame/map_load.c: @bin 0x004D4AE0 the MAPS schema (24 records of 20 bytes)
+0x005E1DB0	G_ROUTE_DRAG	present/layout/g_ui_main.h	single	8	ROUTE_DRAG:1	present/ui/empire_editor.c: i32 the waypoint being dragged, -1 none
+0x005E2A60	G_FAST_SCROLL	present/layout/g_city_view.h	single	1	FAST_SCROLL:1	present/city/camera.c
+0x005E4C20	G_HERD_RECORDS	core/state/layout/g_scenario.h	single	6	HERD_RECORDS:1	core/newgame/figures.c: @bin 0x004BB407 records of 0x30 bytes
+0x005E4EF4	G_PYRAMID_KIND	core/state/layout/g_building.h	named	94	CLIMATE:2, PYRAMID_MODE:2, MISSION_KIND:1, MONUMENT_MODE:1, PYR_MODE:1	core/city/day2_monument.c: the scenario's pyramid kind (1..5), read by 0x004F1310 too
+0x005E68D8	G_PYR_SKIP	core/state/layout/g_building.h	single	6	PYR_SKIP:1	core/city/monument_rating.c: bytes by size * 6 + level: 1 = a level of 3, else 6
+0x005E6970	G_VARIANT	core/state/layout/g_command.h	single	12	VARIANT:1	core/command/place_nearest.c
+0x005F76E8	G_THUMB_OFFSETS	present/layout/g_ui_info.h	single	3	THUMB_OFFSETS:1	present/ui/info/figure.c: i32[7] byte offsets of the thumbnails in the spare screen
+0x005F80E8	G_STR_DAT	core/state/layout/g_scenario.h	single	1	STR_DAT:1	core/newgame/flow.c: ".dat"
+0x005F80F0	G_STR_FAMILY_PATTERN	core/state/layout/g_scenario.h	single	1	STR_FAMILY_PATTERN:1	core/newgame/flow2.c: "Save\*.dat"
+0x005F80FC	G_DIRECTION_OFFSETS	core/state/layout/g_figure.h	majority	14	DIRECTION_OFFSETS:2, NEIGHBOURS:1	core/map/route_path.c: i32 grid offset per direction 0..7
+0x005F8320	G_TABS	present/layout/g_ui_main.h	single	2	TABS:1	present/ui/advisors/advisors.h: the hall's 14 page buttons (0x24-byte entries, sidebar.h buttons_draw)
+0x00603320	G_ROUTES_RECT	present/layout/g_ui_advisors.h	single	4	ROUTES_RECT:1	present/ui/advisors/d_trade.c: page 6 rect table entry 2: the open routes' tooltip area
+0x00604950	G_CRT_RAND_STATE	core/state/layout/g_scenario.h	single	3	CRT_RAND_STATE:1	core/random/crt_rand.h: @bin 0x00562348
+0x00605768	G_LABOUR_ORDER	core/state/layout/g_command.h	single	6	LABOUR_ORDER:1	core/command/orders.c: i32[9] scratch: categories by priority
+0x00605798	G_DRAGGED	core/state/layout/g_command.h	single	3	DRAGGED:1	core/command/construction_ui.c: u8
+0x006057C8	G_FILES_LIST	core/state/layout/g_boot.h	generic	4	LIST:1	present/ui/frontend/files.c: the dialog's file list object
+0x006057CC	G_LIST_ROWS	present/layout/g_ui_advisors.h	single	1	LIST_ROWS:1	present/ui/frontend/files.c: u32
+0x006057D0	G_FILES_LIST_COUNT	present/layout/g_ui_advisors.h	generic	4	LIST_COUNT:1	present/ui/frontend/files.c: i32
+0x006057D8	G_LIST_NAMES	present/layout/g_ui_advisors.h	single	1	LIST_NAMES:1	present/ui/frontend/files.c: u32
+0x006057E4	G_REQUEST_EVENT	core/state/layout/g_command.h	named	5	REQUEST_EVENT:1	core/command/kingdom.c: i32 the event of the request popup
+0x0060596C	G_NUMPAD_TYPE	present/layout/g_ui_advisors.h	generic	5	TYPE:1	present/ui/frontend/numpad.c: i32 1, 2 or 4
+0x00605978	G_DIGITS	present/layout/g_ui_advisors.h	single	4	DIGITS:1	present/ui/frontend/numpad.c: i32
+0x0060597C	G_NUMPAD_VALUE	present/layout/g_ui_advisors.h	generic	8	VALUE:1	present/ui/frontend/numpad.c: i32
+0x00605980	G_NUMPAD_BACK	present/layout/g_ui_advisors.h	generic	4	BACK:1	present/ui/frontend/numpad.c: u8 the window to go back to
+0x00605988	G_LABOUR_SELECTED	core/state/layout/g_command.h	single	4	LABOUR_SELECTED:1	core/command/orders.c: i32 the category whose priority is being set
+0x0060598C	G_TRADE_RESOURCE	core/state/layout/g_command.h	single	37	TRADE_RESOURCE:3	core/command/trade.c
+0x00605994	G_NO_ROOM	core/state/layout/g_command.h	single	11	NO_ROOM:2	core/command/construction_checks.c
+0x006059B4	G_FLAG_B4	core/state/layout/g_command.h	single	10	FLAG_B4:1	core/command/construction_ui.c
+0x006059B8	G_FLAG_B8	core/state/layout/g_command.h	single	5	FLAG_B8:1	core/command/construction_ui.c
+0x006059BC	G_FLAG_BC	core/state/layout/g_command.h	single	5	FLAG_BC:1	core/command/construction_ui.c
+0x006059C0	G_FLAG_C0	core/state/layout/g_command.h	single	4	FLAG_C0:1	core/command/construction_ui.c
+0x006059C4	G_FLAG_C4	core/state/layout/g_command.h	single	5	FLAG_C4:1	core/command/construction_ui.c
+0x006059C8	G_FLAG_C8	core/state/layout/g_command.h	single	4	FLAG_C8:1	core/command/construction_ui.c
+0x006059CC	G_FLAG_CC	core/state/layout/g_command.h	single	6	FLAG_CC:1	core/command/construction_ui.c
+0x006059D0	G_HOVER_MARK	core/state/layout/g_command.h	majority	3	HOVER_MARK:2, START_OFFSET:1	present/city/ground.c: i32 a tile whose screen position is kept
+0x006059D4	G_CONSTRUCTION_UI_Y2	core/state/layout/g_command.h	generic	7	Y2:1	core/command/construction_ui.c
+0x006059D8	G_CONSTRUCTION_UI_Y1	core/state/layout/g_command.h	generic	12	Y1:1	core/command/construction_ui.c
+0x006059DC	G_CONSTRUCTION_UI_X2	core/state/layout/g_command.h	generic	7	X2:1	core/command/construction_ui.c
+0x006059E0	G_CONSTRUCTION_UI_X1	core/state/layout/g_command.h	generic	12	X1:1	core/command/construction_ui.c
+0x006059E4	G_CONSTRUCTION_DRAG	core/state/layout/g_command.h	resolved	12	DRAGGING:1, IN_PROGRESS:1	present/city/ghost.h: i32 1: a construction drag is in progress
+0x006059E8	G_CONSTRUCTION_UI_TYPE	core/state/layout/g_command.h	generic	37	TYPE:2, CONSTRUCTION_TYPE:1	present/city/ghost.h: i32 the building type chosen
+0x006059EC	G_BIG_LIST	present/layout/g_ui_advisors.h	single	2	BIG_LIST:1	present/ui/frontend/files.c: i32 0: 12 rows, else 15 (the thumb's bar)
+0x006059F0	G_CLICKED	present/layout/g_ui_advisors.h	single	4	CLICKED:1	present/ui/frontend/files.c: i32
+0x006059F4	G_FIRST	present/layout/g_ui_advisors.h	single	12	FIRST:1	present/ui/frontend/files.c: i32
+0x006059F8	G_FILES_ROWS	present/layout/g_ui_advisors.h	generic	6	ROWS:1	present/ui/frontend/files.c: i32
+0x00605A0C	G_FREE_BUILD	core/state/layout/g_command.h	single	11	FREE_BUILD:1	core/command/menu.c: debug "everything allowed" (start-up only)
+0x00605A30	G_EDITOR_TOOL	core/state/layout/g_command.h	single	3	EDITOR_TOOL:1	core/command/construction_ui.c
+0x00605A3C	G_EDITOR	core/state/layout/g_command.h	named	59	EDITOR:10, EDITOR_MODE:1, PAUSED:1	core/newgame/figures.c: @bin 0x004BB43B editor flag: no figures placed
+0x00605A40	G_GRAPH	core/state/layout/g_scenario.h	single	4	GRAPH:1	present/ui/advisors/b_population.c: i32 the graphs shown (0-5; saved, chunk 45; 0x0040A8A0)
+0x00605A44	G_PAGE	core/state/layout/g_frame.h	single	10	PAGE:1	present/ui/advisors/advisors.h: i32 the advisor page shown in window 7 (1-14)
+0x00605A48	G_PREDICATE	core/state/layout/g_command.h	single	11	PREDICATE:1	core/command/construction_ui.c
+0x00605A5C	G_FROZEN	core/state/layout/g_command.h	single	7	FROZEN:1	core/command/construction_ui.c: u8: the hovered tile is not updated
+0x00605B38	G_ANIM_FLAGS	core/state/layout/g_frame.h	single	5	ANIM_FLAGS:1	present/city/anim.c: u8 per timer, raised by 0x0040F270
+0x006DE510	G_MESSAGE_OPTIONS_EDIT	core/state/layout/g_command.h	single	4	MESSAGE_OPTIONS_EDIT:1	core/command/orders.c
+0x006DE514	G_MONUMENT_FLAG	core/state/layout/g_boot.h	single	4	MONUMENT_FLAG:1	present/city/ghost.c: u8 1: the type is a monument of 0xE5, 0xEA, 0xEB, 0xEC
+0x006DE515	G_NO_GROUND	core/state/layout/g_scenario.h	single	11	NO_GROUND:1	present/city/city.h: u8: the overlay ground replaces the ground pass
+0x006FDC88	G_ADVISOR_AVAILABLE	core/state/layout/g_scenario.h	resolved	16	ADVISOR_ALLOWED:1, AVAILABLE:1	core/command/advisor.c: u8 per advisor: the mission offers it
+0x006FDC98	G_CAMPAIGN_CAMPAIGN_KIND	core/state/layout/g_scenario.h	single+clash	15	CAMPAIGN_KIND:1	present/ui/frontend/campaign.c: i32 0 Pharaoh, 1 Cleopatra
+0x006FDC9C	G_SCREEN_Y	present/layout/g_ui_main.h	single	49	SCREEN_Y:1	present/ui/empire/mission.c
+0x006FDCA0	G_SCREEN_X	present/layout/g_ui_main.h	single	49	SCREEN_X:1	present/ui/empire/mission.c: i32 the screens' origin
+0x006FDCB0	G_MISSION_PICTURE_KIND	core/state/layout/g_scenario.h	single+clash	2	PICTURE_KIND:1	present/ui/empire/mission.c: i32 window 4: 0 mission start, 1 plain, 2 victory
+0x006FDCB4	G_FORMATIONS_KEEP	core/state/layout/g_scenario.h	single	7	FORMATIONS_KEEP:1	core/newgame/start.c: u8
+0x006FDCB8	G_CARRY	core/state/layout/g_scenario.h	single	3	CARRY:1	core/newgame/start.c: 10 dwords: the carry-over of the previous mission
+0x006FDCE0	G_CARRY_COPY	core/state/layout/g_scenario.h	single	7	CARRY_COPY:1	core/newgame/start.c: 10 dwords: its copy read by 0x00418BF0
+0x006FDD08	G_CAMPAIGN_TABLE	core/state/layout/g_scenario.h	majority	28	CAMPAIGN_TABLE:2, CAMPAIGN:1, CAMPAIGN_TABLE_ADDR:1, PROGRESS:1	core/frame/wndproc.c: the campaign progress object (thiscall)
+0x006FF608	G_U6FF608	core/state/layout/g_scenario.h	unresolved	8	CAMPAIGN_COUNT:1, STEP_COUNT:1	core/newgame/flow2.c: campaign table + 0x1900
+0x00700998	G_LAST_SAVE	core/state/layout/g_scenario.h	single	5	LAST_SAVE:2	core/newgame/flow.c: the last saved game's path (empty: none)
+0x007027A4	G_CHOICE	core/state/layout/g_scenario.h	single	10	CHOICE:2	core/newgame/flow2.c: the mission choice made on screen 0x34: 1, 2 (0: none)
+0x007027AC	G_CAMPAIGN_PERIOD	core/state/layout/g_scenario.h	generic	14	PERIOD:1	present/ui/frontend/campaign.c: i32 the chosen period
+0x007027B0	G_PERIOD_REACHED	core/state/layout/g_scenario.h	single	7	PERIOD_REACHED:1	present/ui/frontend/campaign.c: i32
+0x007027B4	G_CAMPAIGN_KIND	core/state/layout/g_scenario.h	single	19	CAMPAIGN_KIND:2	core/newgame/start.c: u8: 0 custom, 1 Pharaoh, 2 Cleopatra, 3 mission list
+0x007027B8	G_MISSION_LIST_FLAGS	core/state/layout/g_scenario.h	single	10	MISSION_LIST_FLAGS:1	core/command/menu.c: u8 per record
+0x007027C5	G_CHEAT_FLAG	core/state/layout/g_city.h	single	3	CHEAT_FLAG:1	core/command/menu.c
+0x007027D4	G_GOAL_SEPARATOR	core/state/layout/g_scenario.h	resolved	16	PERCENT_SUFFIX:1, SLASH:1, SUFFIX_PROGRESS:1	present/ui/frontend/scenario.c: the string between a value and its goal
+0x007027E0	G_CHEATS_ON	present/layout/g_ui_main.h	single	5	CHEATS_ON:1	present/ui/cityframe.c: u8 a cheat was typed once
+0x007027E4	G_CHEAT_HOVER	present/layout/g_ui_main.h	single	2	CHEAT_HOVER:1	present/ui/cityframe.c: i32 the OK button hovered
+0x007027EC	G_CHEAT_TEXT	core/state/layout/g_scenario.h	single	3	CHEAT_TEXT:1	present/ui/cityframe.c: char[] the typed cheat (edit field 7)
+0x00702900	G_SOUND_SLOTS	core/state/layout/g_scenario.h	generic	4	SLOTS:1	core/frame/sound.c
+0x00704C00	G_LIST_OBJECT	core/state/layout/g_scenario.h	majority	18	LIST_OBJECT:2, LIST:1	core/newgame/start.c: the scenario / mission list of screen 0x3D
+0x00704C08	G_SCENARIO_LIST_COUNT	present/layout/g_ui_advisors.h	generic	1	LIST_COUNT:1	present/ui/frontend/scenario.c
+0x00704DAC	G_SCENARIO_KIND	core/state/layout/g_scenario.h	generic	10	KIND:1	present/ui/frontend/scenario.c: i32
+0x00704DB0	G_SCENARIO_LIST_MODE	core/state/layout/g_scenario.h	resolved	31	LIST_MODE:1, MODE:1	core/newgame/flow.c: 0: .map files, 1: the missions of the campaign table
+0x00704DB4	G_SCENARIO_ROWS	core/state/layout/g_scenario.h	generic	8	ROWS:1	present/ui/frontend/scenario.c: i32
+0x00704DB8	G_SCENARIO_FIRST	core/state/layout/g_scenario.h	single+clash	12	FIRST:1	present/ui/frontend/scenario.c: i32
+0x00704DBC	G_SCENARIO_LIST_ROW	core/state/layout/g_scenario.h	resolved	8	CHOSEN:1, LIST_ROW:1	core/newgame/start.c: i32: the chosen row
+0x00704DC0	G_PART_SET_FLAG	present/layout/g_city_view.h	single	3	PART_SET_FLAG:1	present/city/parts.c: i32 0 / 2: which descriptor set 0x00596150 holds
+0x007056B8	G_HOVER_BUTTON	core/state/layout/g_scenario.h	single	14	HOVER_BUTTON:3	present/sidebar/tooltip.c: i32
+0x007056C0	G_HOVER_3	core/state/layout/g_scenario.h	resolved	3	HOVER_3:1, HOVER_RECT3:1	present/ui/ui.h: i32 a third one
+0x007056C4	G_HOVER_2	core/state/layout/g_scenario.h	resolved	9	BUTTON_HOVER2:1, HOVER_2:1, HOVER_DELETE:1, HOVER_RECT2:1, ROW_HOVER:1	present/ui/ui.h: i32 a second one
+0x007056C8	G_HOVER	core/state/layout/g_scenario.h	majority	49	HOVER:3, HOVER_ROW:2, BUTTON_HOVER:1, DIALOG_HOVER:1, FRAME_HOVER:1, HOVERED:1, HOVER_1:1, HOVER_BUTTON:1, HOVER_RECT:1, RATING_SEL:1	present/sidebar/tooltip.c: i32
+0x007056D0	G_OVL_ROW	present/layout/g_ui_main.h	single	6	OVL_ROW:1	present/ui/windows.c: i32 the open group's row in the menu
+0x007056D8	G_OVL_ROWS	present/layout/g_ui_main.h	single	5	OVL_ROWS:1	present/ui/windows.c: i32 its rows
+0x007056DC	G_OVL_GROUP	present/layout/g_ui_main.h	single	8	OVL_GROUP:1	present/ui/windows.c: i32 the open group (its id from 0x00576180), 0 none
+0x007056E8	G_MENU_Y	core/state/layout/g_command.h	single	23	MENU_Y:1	present/ui/windows.c: i32 its top
+0x007056EC	G_SUBMENU	core/state/layout/g_command.h	majority	22	SUBMENU:2, MENU_ID:1	present/ui/windows.c: i32 the build menu
+0x007056F0	G_MENU_COUNT	core/state/layout/g_command.h	single	7	MENU_COUNT:1	present/ui/windows.c: i32 its items
+0x00705704	G_POPUP_ACTION	core/state/layout/g_command.h	single	3	POPUP_ACTION:1	present/ui/windows.c: u32 the function called on "yes"
+0x00705708	G_POPUP_BUTTONS	core/state/layout/g_command.h	single	4	POPUP_BUTTONS:1	present/ui/windows.c: i32 0: a message only (right click closes), else the buttons
+0x0070570C	G_POPUP_BACK	core/state/layout/g_command.h	single	7	POPUP_BACK:1	present/ui/windows.c: u8 the window to go back to
+0x00705710	G_POPUP_TEXT	core/state/layout/g_command.h	single	5	POPUP_TEXT:1	present/ui/windows.c: i32 the title's index in text group 5 (the message: + 1)
+0x00705714	G_POPUP_Y	core/state/layout/g_command.h	single	8	POPUP_Y:1	present/ui/windows.c
+0x00705718	G_POPUP_X	core/state/layout/g_command.h	single	8	POPUP_X:1	present/ui/windows.c
+0x0070571C	G_MENU_REDRAW	core/state/layout/g_command.h	single	5	MENU_REDRAW:1	core/command/menu_items.c: the menu bar's redraw (i32)
+0x00705720	G_MENU_ITEM	present/layout/g_ui_main.h	single	4	MENU_ITEM:1	present/ui/windows.c: u32 the item being drawn / chosen
+0x00705728	G_MENU_PREV	present/layout/g_ui_main.h	single	3	MENU_PREV:1	present/ui/windows.c: u32 the window under the menu
+0x0070572C	G_MENU_HOVER	present/layout/g_ui_main.h	single	7	MENU_HOVER:1	present/ui/windows.c: i32 the hovered item, 1-based
+0x00705730	G_MENU_TITLE	present/layout/g_ui_main.h	single	8	MENU_TITLE:1	present/ui/windows.c: i32 the open menu's title, 1-based
+0x0070573C	G_TYPE_COUNT	core/state/layout/g_city.h	named	12	TYPE_WORKING:1	core/city/day_buildings.c: i32 per building type: working buildings
+0x00705AF0	G_DAY_BUILDINGS_TYPE_COUNT	core/state/layout/g_city.h	single+clash	9	TYPE_COUNT:1	core/city/day_buildings.c: i32 per building type: buildings
+0x00705C1C	G_DOCK_COUNT	core/state/layout/g_city.h	single	10	DOCK_COUNT:1	core/building/day2_docks.c: i32
+0x00705EA4	G_MODEL_BUILDING	core/state/layout/g_command.h	single	5	MODEL_BUILDING:1	core/city/desirability.h: building model: 0x28-byte records (model.md)
+0x00705EB8	G_TYPE_WORKERS	core/state/layout/g_figure.h	named	28	TYPE_WORKERS:2, MODEL_WORKERS:1, TYPE_TABLE:1	core/city/day_buildings.c: i32 workers needed per building type, stride 0x28
+0x007090CC	G_PROPS	core/state/layout/g_figure.h	single	6	PROPS:1	core/figure/actions_b.h: figure property table, 0x38 bytes per type
+0x007090D0	G_FIGURE_TYPES	core/state/layout/g_figure.h	single	10	FIGURE_TYPES:1	core/building/building_misc.c: records of 0x38 bytes per figure type
+0x007090E4	G_TYPE_TABLE	core/state/layout/g_figure.h	single	3	TYPE_TABLE:1	core/figure/actions_d4.c: @bin per figure type, 0x38 bytes: +0 range, +4, +8 speed, +0x10
+0x0070A8DC	G_MENU_AVAIL	core/state/layout/g_command.h	single	18	MENU_AVAIL:1	core/command/menu.c: @bin 0x00404398 i32[menu * 30 + i]
+0x0070CDCC	G_HOUSE_LEVELS	core/state/layout/g_building.h	resolved	4	HOUSE_LEVELS:1, LEVELS:1	core/building/day_houses.c: 0x58 bytes per house level
+0x0070CE18	G_HOUSE_TAX_VALUE	core/state/layout/g_figure.h	single	3	HOUSE_TAX_VALUE:1	core/command/orders.c: i32 house model field per level, stride 0x58
+0x0070E120	G_TINT	present/layout/g_city_view.h	single	2	TINT:4	present/sidebar/minimap.c: u16 colour tint of the tinted blitters
+0x0070E13C	G_BRIDGE_COUNT	present/layout/g_city_view.h	single	5	BRIDGE_COUNT:1	present/city/ghost.c: i32 the draws recorded
+0x0070E140	G_BRIDGE_RECS	present/layout/g_city_view.h	single	2	BRIDGE_RECS:1	present/city/ghost.c: 16 bytes each: image, x, y of the draw (0x00D3B580 / 7C / 78)
+0x0070E3C0	G_CV_ANIM_CLOCK	present/layout/g_city_view.h	single	0	CV_ANIM_CLOCK:1	present/city/city.h: i32 frame clock of the last 60 ms animation step
+0x0070E3C4	G_CV_ANIM_FLAG	present/layout/g_city_view.h	single	0	CV_ANIM_FLAG:1	present/city/city.h: i32 1: the 60 ms animation step is due this frame
+0x0070E3D8	G_MINIMAP_FIRST_ROW	present/layout/g_city_view.h	single	7	MINIMAP_FIRST_ROW:1	present/sidebar/minimap.c: i32
+0x0070E3DC	G_MINIMAP_FIRST_COLUMN	present/layout/g_city_view.h	single	7	MINIMAP_FIRST_COLUMN:1	present/sidebar/minimap.c: i32
+0x0070E3E0	G_SELECTED_Y	present/layout/g_ui_info.h	single	2	SELECTED_Y:1	present/city/figures.c
+0x0070E3E4	G_SELECTED_X	present/layout/g_ui_info.h	single	2	SELECTED_X:1	present/city/figures.c: i32 the screen position of the figure drawn by number
+0x0070E3E8	G_HOVER_MARK_Y	present/layout/g_city_view.h	single	2	HOVER_MARK_Y:2	present/city/ground.c
+0x0070E3EC	G_HOVER_MARK_X	present/layout/g_city_view.h	single	2	HOVER_MARK_X:2	present/city/ground.c
+0x0070E430	G_CV_VIEW_BOTTOM	core/state/layout/g_scenario.h	single	3	CV_VIEW_BOTTOM:1	present/city/city.h: i32 the viewport (clip)
+0x0070E434	G_CV_VIEW_TOP	core/state/layout/g_scenario.h	single	3	CV_VIEW_TOP:1	present/city/city.h
+0x0070E438	G_CV_VIEW_RIGHT	core/state/layout/g_scenario.h	single	3	CV_VIEW_RIGHT:1	present/city/city.h
+0x0070E43C	G_CV_VIEW_LEFT	core/state/layout/g_scenario.h	single	3	CV_VIEW_LEFT:1	present/city/city.h
+0x0070E440	G_CORNER_H4	core/state/layout/g_scenario.h	single	13	CORNER_H4:1	present/city/overlay.c
+0x0070E444	G_CORNER_H3	core/state/layout/g_scenario.h	single	7	CORNER_H3:1	present/city/overlay.c
+0x0070E448	G_U70E448	core/state/layout/g_city.h	unresolved	14	CORNER_H2:1, TILE_H2:1, TILE_TOP:1	core/city/day2_farm.c
+0x0070E44C	G_TILE_H	core/state/layout/g_frame.h	majority	26	TILE_H:4, CORNER_H1:1	present/city/city.h: i32 the row step in pixels
+0x0070E450	G_CORNER_W4	core/state/layout/g_scenario.h	single	9	CORNER_W4:1	present/city/overlay.c
+0x0070E454	G_CORNER_W3	core/state/layout/g_scenario.h	single	5	CORNER_W3:1	present/city/overlay.c
+0x0070E458	G_U70E458	core/state/layout/g_frame.h	unresolved	26	CORNER_W2:1, TILE_HALF_W:1, VIEW_COLS2:1	present/city/city.h: i32 (+ 2: the column step in pixels)
+0x0070E45C	G_TILE_W	core/state/layout/g_city.h	majority	31	TILE_W:2, CORNER_W1:1, TILE_W1:1	core/frame/view.c: tile width - 1 (the step is +1)
+0x0070E460	G_VIEW_ROWS	core/state/layout/g_frame.h	majority	13	VIEW_ROWS:2, VIEW_W:1	core/command/rotate.c: i32 view size (0x00430CB0)
+0x0070E464	G_VIEW_COLS	core/state/layout/g_frame.h	majority	15	VIEW_COLS:2, VIEW_H:1	core/command/rotate.c: i32 view size (0x00430CA0)
+0x0070E474	G_U70E474	core/state/layout/g_frame.h	unresolved	7	CV_CAMERA_Y:1, VIEW_ROW:1	core/frame/view.c
+0x0070E478	G_U70E478	core/state/layout/g_frame.h	unresolved	7	CV_CAMERA_X:1, VIEW_COL:1	core/frame/view.c
+0x0070E47C	G_U70E47C	present/layout/g_city_view.h	unresolved	6	MINIMAP_ROW:1, VIEW_ROW:1	present/sidebar/minimap.c: i32 current row
+0x0070E480	G_U70E480	present/layout/g_city_view.h	unresolved	6	MINIMAP_COLUMN:1, VIEW_COL:1	present/sidebar/minimap.c: i32 current column of the walk
+0x0070E484	G_CV_MAP_START	present/layout/g_ui_info.h	single	1	CV_MAP_START:1	present/city/city.h
+0x0070E488	G_U70E488	present/layout/g_city_view.h	unresolved	12	MINIMAP_TILE:1, VIEW_TILE:1, VIEW_TILE_CURRENT:1	present/sidebar/minimap.c: i32 current grid offset
+0x0070E48C	G_U70E48C	core/state/layout/g_frame.h	unresolved	8	VIEW_Y:1, VIEW_Y0:1	present/city/city.h: i32 screen y of the first row (+ 9 tile heights)
+0x0070E490	G_U70E490	core/state/layout/g_frame.h	unresolved	8	VIEW_X:1, VIEW_X0:1	present/city/city.h: i32 screen x of the first column
+0x0070E494	G_VIEW_TABLE	core/state/layout/g_command.h	majority	10	VIEW_TABLE:3, VIEW_TILE:1	core/frame/view.c: i32 [rows][0xE7]
+0x00775610	G_VIEW_COUNTDOWN	present/layout/g_city_view.h	single	3	VIEW_COUNTDOWN:1	present/city/view.c
+0x00775614	G_GRID5	core/state/layout/g_command.h	single	1	GRID5:1	core/command/place_ent.c: @bin 0x004413E9 5 x 5 dwords
+0x00775678	G_FESTIVAL_TENTH	core/state/layout/g_building.h	single	2	FESTIVAL_TENTH:1	core/command/orders.c
+0x00775688	G_DRAW_COUNTER	present/layout/g_city_view.h	single	2	DRAW_COUNTER:1	present/city/upper.c: u16, +1 per upper pass
+0x00775810	G_DEFAULT_LIMIT	core/state/layout/g_figure.h	single	5	DEFAULT_LIMIT:1	core/command/trade.c: i32 per resource, hundredths
+0x0077590C	G_SCROLL_Y	core/state/layout/g_scenario.h	single	8	SCROLL_Y:1	present/ui/empire/empire.h: i32 map scroll (pixels)
+0x00775910	G_SCROLL_X	core/state/layout/g_scenario.h	single	8	SCROLL_X:1	present/ui/empire/empire.h: i32
+0x0077591C	G_EDITOR_OBJECT	present/layout/g_ui_main.h	generic	13	OBJECT:1	present/ui/empire/editor.c: i32 the selected object
+0x00775920	G_PICTURE_KIND	present/layout/g_ui_main.h	single	7	PICTURE_KIND:1	present/ui/empire/editor.c: i32 0..2
+0x00775924	G_OBJECT_IMAGE	present/layout/g_ui_main.h	single	5	OBJECT_IMAGE:1	present/ui/empire/editor.c: i32 the object picture chosen
+0x00775928	G_EDITOR_MODE	present/layout/g_ui_main.h	generic	15	MODE:2	present/ui/empire/editor.c: i32 the editor's mode
+0x0077592C	G_TRADE_DONE	core/state/layout/g_figure.h	single	6	TRADE_DONE:1	present/ui/empire/empire.c: i32 [route * 0x24 + resource]
+0x0077646C	G_TRADE_ROUTE_LIMITS	core/state/layout/g_city.h	resolved	10	ROUTE_LIMITS:1, TRADE_LIMITS:1	core/city/goods.c: chunk 114, i32[route][36]
+0x00776FB0	G_ROUTES	core/state/layout/g_scenario.h	majority	20	ROUTES:4, ARMIES:1	core/io/save_load.c: chunk 143, 50 x 324
+0x007770F0	G_ARMIES	core/state/layout/g_command.h	single	8	ARMIES:1	core/command/kingdom.c: u8 kind per army record of 0x144 bytes
+0x0077AEF8	G_ROUTES_END	core/state/layout/g_scenario.h	single	2	ROUTES_END:1	core/newgame/map_load.c
+0x0077DE00	G_EMPIRE_CITIES	core/state/layout/g_city.h	majority	10	EMPIRE_CITIES:2, CITIES:1, EMPIRE_CITY:1	core/city/goods.c: chunk 50, 61 x 0x6A
+0x0077F742	G_EMPIRE_CITY_END	core/state/layout/g_command.h	single	1	EMPIRE_CITY_END:1	core/command/trade.c: @bin 0x00443A67 the scan stops before this record (61 cities)
+0x0077F748	G_EMPIRE_OBJECTS	core/state/layout/g_scenario.h	resolved	18	EMPIRE_OBJECTS:2, OBJECTS:2, CITIES:1, EMPIRE_OBJ:1	core/city/route_points.c: empire cities, records of 0x62 bytes, to 0x007843D8
+0x007843D8	G_EMPIRE_OBJECTS_END	core/state/layout/g_scenario.h	majority	10	EMPIRE_OBJECTS_END:2, CITIES_END:1	core/city/route_points.c
+0x007848D8	G_START_YEAR	core/state/layout/g_city.h	majority	29	START_YEAR:2, SCENARIO:1	core/io/save_load.c: chunk 75
+0x007848E2	G_GOD_MODE	core/state/layout/g_command.h	named	11	GODS_AVAILABLE:1, GODS_IN_CITY:1	core/command/orders.c: i16 per god (scenario)
+0x00784B94	G_INVASION_SUB	core/state/layout/g_figure.h	single	7	INVASION_SUB:1	core/figure/invaders.c: i16
+0x00784BBC	G_U784BBC	core/state/layout/g_figure.h	unresolved	12	GRANARY_SPECIAL:1, TRADE_HALTED:1	core/figure/actions_a2.c: non-zero: no goods are moved to the storage yards
+0x00784C8C	G_ENTRY_X	core/state/layout/g_figure.h	single	16	ENTRY_X:2	core/figure/actions_d4.c: @bin the map's river entry / exit points (s16 each)
+0x00784C8E	G_ENTRY_Y	core/state/layout/g_figure.h	single	17	ENTRY_Y:2	core/building/daily.c: i16
+0x00784C90	G_EXIT_X	core/state/layout/g_figure.h	single	13	EXIT_X:1	core/figure/actions_d4.c
+0x00784C92	G_EXIT_Y	core/state/layout/g_figure.h	single	13	EXIT_Y:1	core/figure/actions_d4.c
+0x00784CB0	G_U784CB0	core/state/layout/g_figure.h	unresolved	27	CLIMATE:1, INVASION:1	core/figure/invaders.c: low byte: the invasion kind (records of 0x30 bytes at 0x005E4C20)
+0x00784CBC	G_MONUMENT_MODE	core/state/layout/g_scenario.h	single	4	MONUMENT_MODE:1	core/newgame/graphics.c: @bin 0x004F4520 byte
+0x00784D32	G_SCENARIO_FLAG_10	core/state/layout/g_city.h	single	3	SCENARIO_FLAG_10:1	core/city/goods.c: i16, tested for good 10 (scenario info +0x45A)
+0x00784D34	G_SCENARIO_FLAG_1C	core/state/layout/g_city.h	single	3	SCENARIO_FLAG_1C:1	core/city/goods.c: i16, tested for good 0x1C (scenario info +0x45C)
+0x00784DE0	G_MONUMENT_SLOTS	core/state/layout/g_building.h	resolved	22	MONUMENT_SLOTS:1, SLOTS:1	core/command/menu.c: i16[3]: the scenario's monument codes
+0x00784DE8	G_GOODS_NEEDED	core/state/layout/g_command.h	single	7	GOODS_NEEDED:1	core/command/kingdom.c: i32 per resource: grave goods asked by the scenario
+0x00784E78	G_U784E78	core/state/layout/g_command.h	unresolved	8	GOAL_COUNTERS:1, GOODS_SENT:1	core/command/kingdom.c: i32 per resource: grave goods sent
+0x00784F14	G_SELECTED	core/state/layout/g_scenario.h	single	6	SELECTED:1	present/ui/empire/empire.h: i32 the selected object + 1 (0: none)
+0x00784F18	G_EMPIRE_SELECTED	core/state/layout/g_command.h	resolved	10	CITY:1, EMPIRE_SELECTED:1	core/command/trade.c: i32 empire city of the empire window
+0x00784F20	G_STRINGS_THIS	core/state/layout/g_boot.h	single	2	STRINGS_THIS:1	present/ui/messages/expand.c: @bin 0x00448344 `this` of 0x004CBDB0: +4 entries, +0x0C count
+0x00784F34	G_KEYWORDS_THIS	core/state/layout/g_boot.h	majority	4	KEYWORDS_THIS:2, KEYWORDS_SELF:1	present/ui/messages/expand.c: @bin 0x00448358 `this` of 0x004CB980: [this] = the keyword table
+0x007854A4	G_MSG_NESTED	present/layout/g_ui_main.h	single	6	MSG_NESTED:1	present/ui/messages/keywords.c: u8 1 while the reason phrase (0x00447B10) expands: its own fields
+0x00785D70	G_EVENTS	core/state/layout/g_city.h	majority	72	EVENTS:10, EVENTS_COUNT:1, EVENT_COUNT:1, EVENT_LIST:1, GROUPS:1	core/city/day_city.h: the event list: i32 count, then records of 0x7C bytes
+0x00785D74	G_KINGDOM_EVENTS	core/state/layout/g_scenario.h	single+clash	14	EVENTS:2	present/ui/messages/window.c: records of 0x7C bytes
+0x0078C414	G_DAY_WATER_QUEUE	core/state/layout/g_building.h	generic	6	QUEUE:2	core/city/day_buildings.c: i32[1000]
+0x0078D590	G_GOODS_SUM	core/state/layout/g_building.h	single	4	GOODS_SUM:1	core/building/day_houses.c: i32[12]: goods of merged houses
+0x0078D5EC	G_TOP_COUNTER	present/layout/g_city_view.h	single	4	TOP_COUNTER:1	present/city/marks.c: i32 0..4, stepped when the animation flag 0x00605B3D is up
+0x0078D64C	G_INDUSTRY_WORKING	core/state/layout/g_city.h	single	4	INDUSTRY_WORKING:1	present/ui/advisors/d_trade.c: i32 per resource
+0x0078D6DC	G_U78D6DC	core/state/layout/g_city.h	unresolved	5	INDUSTRY_COUNT:1, INDUSTRY_TOTAL:1	core/command/trade.c: i32 per resource
+0x0078D76C	G_MERGE_Y	core/state/layout/g_building.h	single	6	MERGE_Y:1	core/building/day_houses.c
+0x0078D770	G_MERGE_X	core/state/layout/g_building.h	single	6	MERGE_X:1	core/building/day_houses.c
+0x0078D788	G_RECORDS_HIGHEST	core/state/layout/g_sim.h	majority	11	RECORDS_HIGHEST:2, STORAGE_HIGHEST:1	core/figure/helpers_xa.c
+0x0078D78C	G_BUILDING_HIGHEST_EVER	core/state/layout/g_scenario.h	single	6	BUILDING_HIGHEST_EVER:1	core/city/day_buildings.c
+0x0078D790	G_BUILDING_HIGHEST	core/state/layout/g_city.h	named	89	BUILDING_HIGHEST:15, HIGHEST:2, MAX_BUILDING_ID:2, BUILDINGS_LAST:1, BUILDING_MAX:1	core/city/desirability.h: chunk 93
+0x0078D7BC	G_YEAR	core/state/layout/g_city.h	named	28	YEAR:3	core/sim/tick.c: chunk 37
+0x0078D7C0	G_MONTH	core/state/layout/g_city.h	named	39	MONTH:4	core/command/orders.c: i32 month of the year, 0..11
+0x0078D7C4	G_TICK_DAY	core/state/layout/g_building.h	generic	20	DAY:1	core/sim/tick.c: day within the month, 0..15 (chunk 35)
+0x0078D7C8	G_TOTAL_DAYS	core/state/layout/g_scenario.h	single	3	TOTAL_DAYS:1	core/sim/tick.c: chunk 38
+0x0078D7CC	G_TICK	core/state/layout/g_sim.h	single	11	TICK:2	core/sim/tick.c: tick within the day, 0..50 (chunk 34)
+0x0078D7E4	G_HOUSE_RESULT	core/state/layout/g_building.h	single	5	HOUSE_RESULT:1	core/building/day_houses.c: i32: the evolution check's result (-1, 0, 1)
+0x0078D7F0	G_WORK_COUNT	core/state/layout/g_figure.h	single	18	WORK_COUNT:1	core/figure/actions_d2.c: @bin candidates found by 0x004BEEB0
+0x0078D7F4	G_WORK_INDEX	core/state/layout/g_city.h	single	9	WORK_INDEX:1	core/figure/actions_d2.c: @bin the candidate being examined
+0x0078D838	G_HOUSE_ID	core/state/layout/g_building.h	single	21	HOUSE_ID:1	core/building/day_houses.c: the house being evolved (global loop counter)
+0x0078D83C	G_HOUSE_LIST_COUNT	core/state/layout/g_city.h	resolved	18	HOUSES_COUNT:1, LIST_COUNT:1	core/city/day_labour.c
+0x0078D840	G_HOUSE_LIST_INDEX	core/state/layout/g_city.h	resolved	27	HOUSES_INDEX:1, LIST_INDEX:1	core/city/day_labour.c
+0x0078D9A8	G_WORK_LIST	core/state/layout/g_figure.h	single	8	WORK_LIST:1	core/figure/actions_d2.c: @bin candidate building ids (s16, at most 500)
+0x0078E178	G_HOUSE_LIST	core/state/layout/g_city.h	resolved	15	HOUSES:1, LIST:1	core/city/day_labour.c: i16 list of the used houses (0x004583F0)
+0x007900B8	G_STORAGE	core/state/layout/g_sim.h	single	11	STORAGE:2	core/io/save_load.c: chunk 113, 200 x 196
+0x007900BC	G_MARKET_RECORDS	core/state/layout/g_building.h	generic	3	RECORDS:2	core/figure/helpers_xa.c: records of 0xC4 bytes: +0 i16 building, +4 u8 in use
+0x007900C2	G_STORAGE_ORDERS	core/state/layout/g_building.h	resolved	18	RECORD_KIND:2, STORAGE_ORDERS:2	core/figure/helpers_xa.c: u8 per good of the record selected by building +0xC1
+0x007900EC	G_STORAGE_FILL	core/state/layout/g_command.h	resolved	7	STORAGE_ACCEPT:1, STORAGE_FILL:1	core/command/orders_storage.c: i16 fill limit per resource (order 0)
+0x00790134	G_STORAGE_GET	core/state/layout/g_figure.h	single	9	STORAGE_GET:2	core/command/orders_storage.c: i16 fill limit per resource (other orders)
+0x007999D8	BUILDING_ADDR(0) + 0x0	core/state/layout/g_map.h	record	16	BUILDINGS:5	core/city/desirability.h: 4000 x 264 bytes, chunk 32
+0x0089B6D8	G_TARGETS	core/state/layout/g_figure.h	single	8	TARGETS:2	core/figure/helpers_xa.c: 27 i32: the chosen source per good index
+0x0089B744	G_CAND_TILE	core/state/layout/g_figure.h	single	6	CAND_TILE:2	core/figure/helpers_xa.c: 27 x 4000 i32: each candidate's road tile
+0x00904EC4	G_CAND_BUILDING	core/state/layout/g_figure.h	single	6	CAND_BUILDING:2	core/figure/helpers_xa.c: 27 x 4000 i32: each candidate's building
+0x0096E644	G_COUNTS	core/state/layout/g_building.h	single	16	COUNTS:2	core/figure/helpers_xa.c: 27 i32: candidates per good index
+0x0096E6B0	G_CANDIDATES	core/state/layout/g_figure.h	single	43	CANDIDATES:1	core/figure/actions_a2.c: count, then the candidates' map offsets (0x0096E6B4 ..)
+0x0096E6B4	G_FULL_LIST	core/state/layout/g_figure.h	single	10	FULL_LIST:1	core/building/day_water.c: i32[4000]: tiles at 255, floodplain from the start, others from the end
+0x00972530	G_CANDIDATE_IDS	core/state/layout/g_figure.h	single	13	CANDIDATE_IDS:1	core/figure/actions_a2.c: the candidates' building ids, 1-based like the offsets
+0x009783A4	G_REC4A	core/state/layout/g_sim.h	single	10	REC4A:1	core/state/post_load.c
+0x009784D8	G_FERRY_SLOTS	core/state/layout/g_figure.h	single	10	FERRY_SLOTS:1	core/figure/actions_c.c
+0x00978D78	G_NO_FIGURES	present/layout/g_city_view.h	single	1	NO_FIGURES:1	present/city/figures.c: i32 1: figures are not drawn
+0x009AB9EC	G_EDGE_BACKUP	core/state/layout/g_command.h	single	6	EDGE_BACKUP:1	core/command/undo.c
+0x009B84FC	G_BITS_BACKUP	core/state/layout/g_command.h	single	6	BITS_BACKUP:1	core/command/undo.c
+0x009C500C	G_SPRITE_BACKUP	core/state/layout/g_command.h	single	4	SPRITE_BACKUP:1	core/command/undo.c
+0x009D1B1C	G_CANAL_BACKUP	core/state/layout/g_command.h	single	11	CANAL_BACKUP:1	core/command/undo.c
+0x009DE62C	G_TERRAIN_BACKUP	core/state/layout/g_command.h	single	11	TERRAIN_BACKUP:1	core/command/undo.c
+0x00A1126C	G_IMAGE_BACKUP	core/state/layout/g_command.h	single	3	IMAGE_BACKUP:1	core/command/undo.c
+0x00A43EAC	G_UA43EAC	core/state/layout/g_figure.h	unresolved	14	FERTILITY:1, GRID_A43EAC:1	core/figure/actions_c.c: byte grid (0xFF: a tree being cut?)
+0x00A69FDC	G_NETWORK2	core/state/layout/g_city.h	single	5	NETWORK2:1	core/city/day_buildings.c
+0x00A76AEC	G_GRID_ROAD_NETWORK	core/state/layout/g_building.h	named	14	NETWORK:1, NETWORK_GRID:1	core/city/day_buildings.c: u8 per tile: road network id
+0x00A835FC	G_THREAT	core/state/layout/g_figure.h	single	9	THREAT:1	core/figure/enemies.c: u8 per tile: threat of the player's soldiers
+0x00AB623C	G_ELEVATION_GRID	core/state/layout/g_city.h	single	5	ELEVATION_GRID:1	core/command/construction_ui.c: u8 per tile
+0x00AC2D4C	G_DESIRABILITY_GRID	core/state/layout/g_building.h	single	17	DESIRABILITY_GRID:1	core/city/desirability.h: i8 per tile, chunk 16 (written)
+0x00ACF85C	G_RANDOM	core/state/layout/g_building.h	majority	46	RANDOM:5, GRID_RANDOM:1, TILE_RANDOM:1	core/map/route_x.c: u8 per tile
+0x00ADC36C	G_SPRITE	core/state/layout/g_command.h	majority	44	SPRITE:4, SPRITE_GRID:2, GRID_SPRITE:1	core/command/clear.c: u8
+0x00AE8E7C	G_CANAL	core/state/layout/g_command.h	majority	40	CANAL:2, WATER_SEEN:1	core/command/clear.c: u8
+0x00AF598C	G_GRID_TERRAIN	core/state/layout/g_building.h	named	166	TERRAIN:23, TERRAIN_GRID:9, GRID_TERRAIN:4, TERRAIN_GRID_ADDR:1	core/city/day2_flood.c: u32 per tile
+0x00B285CC	G_DAY2_DESTROY_BITS	core/state/layout/g_building.h	generic	63	BITS:7, BITFIELDS:3, BITFIELDS_GRID:2, EDGE:1, EDGE_GRID:1, GRID_SIZE_FLAGS:1	core/city/day2_flood.c: u8 per tile
+0x00B350DC	G_FIGURE_GRID	core/state/layout/g_figure.h	majority	40	FIGURE_GRID:9, GRID_FIGURE:4, FIGURES:1, GRID_B350DC:1	core/city/day2_flood.c: i16 per tile: first figure
+0x00B4E6FC	G_BUILDING_GRID	core/state/layout/g_building.h	majority	102	BUILDING_GRID:22, FIGURE_GRID2:2, GRID_BUILDING:2, BUILDINGS:1	core/city/day2_flood.c: i16 per tile
+0x00B67D1C	G_EDGE	core/state/layout/g_building.h	majority	56	EDGE:6, EDGE_GRID:1, GRID_EDGE:1, TILE_DRAW:1, TILE_EDGE:1	core/command/clear.c: u8
+0x00B7482C	G_IMAGE	core/state/layout/g_building.h	majority	54	IMAGE:7, IMAGE_GRID:2	core/command/rotate.c: i32 per tile
+0x00BA746C	G_UNDO_IDS	core/state/layout/g_command.h	single	13	UNDO_IDS:1	core/command/undo.c
+0x00BA7888	G_UNDO_RECORDS	core/state/layout/g_command.h	single	7	UNDO_RECORDS:1	core/command/undo.c
+0x00BC95F0	G_UNDO_COUNT	core/state/layout/g_command.h	single	13	UNDO_COUNT:1	core/command/undo.c: buildings kept for undo: ids (i16) and their records
+0x00BC95F4	G_UNDO_GOODS	core/state/layout/g_command.h	single	2	UNDO_GOODS:1	core/command/undo.c: 0x24 dwords: goods consumed, by resource
+0x00BC9684	G_UNDO_COST	core/state/layout/g_command.h	single	3	UNDO_COST:1	core/command/undo.c
+0x00BC968C	G_UNDO_READY	core/state/layout/g_command.h	single	8	UNDO_READY:1	core/command/undo.c
+0x00BC9690	G_UNDO_TYPE	core/state/layout/g_building.h	single	5	UNDO_TYPE:1	core/command/undo.c
+0x00BC9694	G_UNDO_POSSIBLE	core/state/layout/g_command.h	named	29	UNDO_OK:2, UNDO_POSSIBLE:1	core/command/clear.c
+0x00BC9698	G_RECT_Y2	core/state/layout/g_command.h	single	2	RECT_Y2:1	core/command/clear.c
+0x00BC969C	G_RECT_X2	core/state/layout/g_command.h	single	2	RECT_X2:1	core/command/clear.c
+0x00BC96A0	G_RECT_Y1	core/state/layout/g_command.h	single	2	RECT_Y1:1	core/command/clear.c
+0x00BC96A4	G_RECT_X1	core/state/layout/g_command.h	single	2	RECT_X1:1	core/command/clear.c: rectangle kept for the confirmation callbacks
+0x00BC96A8	G_OK_TEMPLE	core/state/layout/g_command.h	single	3	OK_TEMPLE:1	core/command/clear.c
+0x00BC96AC	G_OK_MONUMENT	core/state/layout/g_command.h	single	3	OK_MONUMENT:1	core/command/clear.c: confirmation answers: 1 yes, -1 no, 0 not asked
+0x00BC96B0	G_OK_BRIDGE	core/state/layout/g_command.h	single	3	OK_BRIDGE:1	core/command/clear.c
+0x00BC96B4	G_OK_FORT	core/state/layout/g_command.h	single	4	OK_FORT:1	core/command/clear.c
+0x00BC96C8	G_ROTATE_LAST	core/state/layout/g_command.h	single	4	ROTATE_LAST:1	core/command/orders.c
+0x00BC96D0	G_CONSTRUCTION_UI_SIZE	core/state/layout/g_command.h	generic	13	SIZE:2	core/command/place.c: @bin 0x00472EEF the type's size
+0x00BC96E0	G_REACH_DIR	core/state/layout/g_command.h	single	7	REACH_DIR:2	core/command/hover.c
+0x00BC96E4	G_REACH_LEN	core/state/layout/g_command.h	single	11	REACH_LEN:2	core/command/hover.c
+0x00BC96E8	G_REACH_END	core/state/layout/g_command.h	single	2	REACH_END:1	core/command/hover.c
+0x00BC96EC	G_REACH_STEP	core/state/layout/g_command.h	single	2	REACH_STEP:1	core/command/hover.c
+0x00BC96F0	G_REACH_START	core/state/layout/g_command.h	single	1	REACH_START:1	core/command/hover.c
+0x00BC96F4	G_BRIDGE_DIR	core/state/layout/g_command.h	single	9	BRIDGE_DIR:2	core/command/hover.c
+0x00BC96F8	G_BRIDGE_LENGTH	core/state/layout/g_command.h	resolved	20	BRIDGE_LEN:2, BRIDGE_LENGTH:2	core/command/place.c: @bin 0x00472E5D
+0x00BC96FC	G_BRIDGE_END	core/state/layout/g_command.h	single	5	BRIDGE_END:2	core/command/hover.c
+0x00BC9700	G_BRIDGE_STEP	core/state/layout/g_command.h	single	3	BRIDGE_STEP:1	core/command/hover.c
+0x00BC9704	G_BRIDGE_START	core/state/layout/g_command.h	single	1	BRIDGE_START:1	core/command/hover.c
+0x00BC9708	G_END2	core/state/layout/g_command.h	single	5	END2:1	core/command/construction_lift.c
+0x00BC970C	G_END1	core/state/layout/g_command.h	single	5	END1:1	core/command/construction_lift.c: 0 none, 1 new lift, 2 existing lift, -1 blocked
+0x00BC9714	G_BUILD_ORIENTATION	core/state/layout/g_command.h	resolved	13	BUILD_ORIENT:1, ROTATION:1	present/city/ghost.h: i32 the building orientation (R key)
+0x00BC9718	G_REFUND	core/state/layout/g_command.h	single	5	REFUND:3	core/command/place.c: @bin 0x004728CC subtracted from the cost
+0x00BC971C	G_CONSTRUCTION_LIFT_COUNT	core/state/layout/g_command.h	generic	36	COUNT:3, CLEARED:1, DRAG_COUNT:1	core/command/clear.c: count of cleared items (charged by 0x004728A0)
+0x00BC9724	G_CONSTRUCTION_LIFT_COST	core/state/layout/g_command.h	generic	18	COST:2	core/command/construction_lift.c
+0x00BC9728	G_PLACE_COST	core/state/layout/g_command.h	generic	11	COST:1	core/command/place.c: @bin 0x004728C6 the construction's cost
+0x00BC9734	G_OUT_OF_MAP	core/state/layout/g_building.h	single	5	OUT_OF_MAP:2	core/building/day2_destroy.c
+0x00BC9738	G_FOOTPRINT_ROWS	core/state/layout/g_building.h	resolved	19	FOOT_ROWS:1, SIZE_Y:1	core/command/construction_checks.c
+0x00BC973C	G_FOOTPRINT_COLS	core/state/layout/g_building.h	resolved	20	FOOT_COLS:1, SIZE_X:1	core/command/construction_checks.c
+0x00BC9740	G_M_VARIANT	core/state/layout/g_map.h	single	24	M_VARIANT:8	core/map/last_terrain.c
+0x00BC9744	G_M_EXTRA	core/state/layout/g_map.h	single	8	M_EXTRA:4	core/map/last_terrain.c
+0x00BC9748	G_M_OFFSET	core/state/layout/g_map.h	single	37	M_OFFSET:8	core/map/last_terrain.c
+0x00BC9760	G_WALK_Y	core/state/layout/g_command.h	majority	58	WALK_Y:3, CUR_Y:2, LOOP_Y:1	core/command/clear.c: the game's loop globals
+0x00BC9764	G_WALK_X	core/state/layout/g_command.h	majority	58	WALK_X:3, CUR_X:2, LOOP_X:1	core/map/last_terrain.c
+0x00BC9768	G_TILE_CURSOR	core/state/layout/g_map.h	named	228	CURSOR:15, CUR_OFF:2, GRID_CURSOR:2, CANAL_TILE:1, DESIRABILITY_BASE:1, LOOP_OFF:1, SCAN_TILE:1, SEARCH_TILE:1, TILE_INDEX:1	core/city/desirability.h: grid offset of the last footprint (written)
+0x00BC97C0	G_SCRATCH	core/state/layout/g_map.h	majority	75	SCRATCH:8, ROAD_DIRECTIONS:1	core/figure/actions_a3.c: per direction (0 .. 7): non-zero when open (0x0047E340)
+0x00BC9800	G_FERRY_BUILDING	core/state/layout/g_command.h	single	13	FERRY_BUILDING:3	present/city/ghost_ferry.c: i32 the first landing
+0x00BC9804	G_ROW_OFFSET	core/state/layout/g_sim.h	majority	11	ROW_OFFSET:2, ROW_START:1	core/command/rotate.c: i32 per row: first grid offset
+0x00BC9B94	G_ROW_END	core/state/layout/g_sim.h	majority	11	ROW_END:2, ROW_X_END:1	core/command/rotate.c: i32 per row
+0x00BC9F24	G_ROW_FIRST	core/state/layout/g_sim.h	majority	11	ROW_FIRST:2, ROW_X_START:1	core/state/scenario_start.c: per map row: first column, last column + 1, grid offset
+0x00BCA2BC	G_CAMERA_X	core/state/layout/g_command.h	single	29	CAMERA_X:2	core/command/rotate.c
+0x00BCA2C0	G_CAMERA_Y	core/state/layout/g_command.h	single	30	CAMERA_Y:2	core/command/rotate.c
+0x00BCA2C4	G_MOUSE_OFFSET	core/state/layout/g_command.h	majority	27	MOUSE_OFFSET:2, HOVER_TILE:1, MOUSE_TILE:1	present/sidebar/tooltip.c: i32 grid offset under the mouse
+0x00BCA2C8	G_CHEATS_MOUSE_X	core/state/layout/g_command.h	single+clash	13	MOUSE_X:2	core/command/cheats.c
+0x00BCA2CC	G_CHEATS_MOUSE_Y	core/state/layout/g_command.h	single+clash	13	MOUSE_Y:2	core/command/cheats.c
+0x00BCA2D0	G_MAP_WIDTH	core/state/layout/g_map.h	named	164	MAP_W:23, MAP_WIDTH:8	core/city/desirability.h: map size and grid offsets, set at scenario start
+0x00BCA2D4	G_MAP_HEIGHT	core/state/layout/g_map.h	named	178	MAP_H:24, MAP_HEIGHT:8, MAP_ROWS:1	core/command/rotate.c: i32 map rows
+0x00BCA2D8	G_MAP_START	core/state/layout/g_building.h	named	298	MAP_START:56, MAP_ORIGIN:3, BASE:1, GRID_OFFSET_BASE:1, MAP_BASE:1, MAP_OFFSET:1	core/city/desirability.h: grid offset of (0, 0)
+0x00BCA2DC	G_MAP_STRIDE_EXTRA	core/state/layout/g_map.h	majority	28	MAP_STRIDE_EXTRA:5, MAP_ROW_SKIP:3, BORDER:1, ROW_EXTRA:1	core/city/desirability.h: 228 - width
+0x00BCA2E0	G_VIEW_ORIENTATION	core/state/layout/g_building.h	named	106	ORIENT:7, ORIENTATION:6, VIEW_ORIENTATION:6, VIEW:1, VIEW_DIR:1	core/figure/actions_a.c: subtracted from figure directions for the sprites
+0x00BCA2E4	G_DRAG_OFFSET	core/state/layout/g_command.h	single	2	DRAG_OFFSET:1	core/command/construction_ui.c
+0x00BCA2E8	G_VIEW_DX	core/state/layout/g_command.h	majority	28	VIEW_DX:2, CAMERA_TX:1, MAP_XS:1	core/figure/actions_c2.c: the map's area in the 228 x 228 grid: first x
+0x00BCA2EC	G_VIEW_DY	core/state/layout/g_command.h	majority	27	VIEW_DY:2, CAMERA_TY:1, MAP_YS:1	core/figure/actions_c2.c: first y
+0x00BCA2F0	G_MAP_XE	core/state/layout/g_sim.h	single	9	MAP_XE:1	core/figure/actions_c2.c: last x
+0x00BCA2F4	G_MAP_YE	core/state/layout/g_figure.h	single	9	MAP_YE:1	core/figure/actions_c2.c: last y
+0x00BCA300	G_HOVER_TILE	core/state/layout/g_command.h	resolved	13	HOVER:2, HOVER_OFFSET:2	present/city/ghost.h: i32 the hovered tile's grid offset (0: none)
+0x00BCA304	G_HOVER_X	core/state/layout/g_command.h	single	9	HOVER_X:3	core/command/construction_ui.c
+0x00BCA308	G_HOVER_Y	core/state/layout/g_command.h	single	9	HOVER_Y:3	core/command/construction_ui.c
+0x00BCA310	G_FERRY_STATE	core/state/layout/g_command.h	single	23	FERRY_STATE:3	present/city/ghost_ferry.c: i32 1: the first landing is placed
+0x00BCA314	G_FERRY_VALID	core/state/layout/g_command.h	single	9	FERRY_VALID:2	core/command/hover.c: u8
+0x00BCA315	G_FERRY_FLAG	core/state/layout/g_command.h	single	5	FERRY_FLAG:1	core/command/construction_ui.c: u8
+0x00BCA350	G_BUILDING_MANAGER	core/state/layout/g_city.h	named	70	BUILDING_MANAGER:2, BUILDINGS:1, BUILDINGS_OBJ:1, FARMS:1, MAP:1	core/figure/actions_d2.c: @bin `this` of the building tests 0x00488030, 0x004894A0
+0x00BCA850	G_PROF_STATS	core/state/layout/g_figure.h	single	2	PROF_STATS:1	core/figure/figure.c
+0x00BCB610	G_PROF_TYPE	core/state/layout/g_figure.h	single	2	PROF_TYPE:1	core/figure/figure.c
+0x00BCB614	G_PROF_START	core/state/layout/g_figure.h	single	2	PROF_START:1	core/figure/figure.c
+0x00BCB618	G_PROF_END	core/state/layout/g_figure.h	single	2	PROF_END:1	core/figure/figure.c
+0x00BCB9C0	G_FORMATION	core/state/layout/g_command.h	majority	15	FORMATION:2, COMPANIES:1, SEL_FORMATION:1	core/frame/frame.c: i32 the current formation; records of 0x90 bytes from here
+0x00BCB9C8	G_FORMATION_BASE	core/state/layout/g_figure.h	majority	17	FORMATION_BASE:3, FORMATIONS:2	core/io/save_load.c: chunk 24, 50 x 144
+0x00BCBA24	G_FORMATION_FLAG	core/state/layout/g_figure.h	single	2	FORMATION_FLAG:1	core/figure/actions_b6.c: i16 in the 0x90-byte records indexed by figure +0x60
+0x00BCD5EC	G_BEST_DISTANCE	core/state/layout/g_figure.h	resolved	23	BEST_DIST:1, BEST_DISTANCE:1	core/figure/actions_c2.c: the target searches' best distance so far
+0x00BCD5F0	G_FIGURE_HIGHEST	core/state/layout/g_figure.h	single	4	FIGURE_HIGHEST:1	core/figure/figure_create.c: highest figure id created
+0x00BCD5F8	FIGURE_ADDR(0) + 0x0	core/state/layout/g_scenario.h	record	4	FIGURES:1	core/io/save_load.c: chunk 21, 2000 x 388
+0x00BCD630	FIGURE_ADDR(0) + 0x38	core/state/layout/g_frame.h	record	4	FIGURE_TYPE:1	core/frame/frame.c: u8 figure type, records of 0x184 bytes
+0x00C8AD38	G_FIGURE_PATHS	core/state/layout/g_figure.h	single	9	FIGURE_PATHS:2	core/map/route_path.c: 500 bytes per figure
+0x00C8AD42	G_FIGURES_END	core/state/layout/g_city.h	single	4	FIGURES_END:1	present/ui/info/queries.c: the loops' bound for +0x12 of the 0x184-byte figure records from 0x00BCD5F0
+0x00D04E58	G_ROUTE_OWNERS	core/state/layout/g_figure.h	single	10	ROUTE_OWNERS:1	core/figure/actions_a3.c: route slot -> the figure using it (i16)
+0x00D056F4	G_FIGURES_UPDATED	core/state/layout/g_figure.h	single	3	FIGURES_UPDATED:1	core/figure/figure.c: live figures counted by the last update
+0x00D056F8	G_CURRENT_FIGURE	core/state/layout/g_figure.h	majority	38	CURRENT_FIGURE:11, CURRENT:1	core/figure/actions_b.h: the figure being updated
+0x00D056FC	G_FIGURE_SERIAL	core/state/layout/g_figure.h	single	3	FIGURE_SERIAL:1	core/figure/figure_create.c: creation counter, kept at +0x86
+0x00D05700	G_SEL_TRANSPORT	core/state/layout/g_command.h	single	8	SEL_TRANSPORT:1	core/command/military.c
+0x00D05704	G_SEL_WARSHIP	core/state/layout/g_command.h	single	7	SEL_WARSHIP:1	core/command/military.c
+0x00D05708	G_TRANSPORT_MODE	core/state/layout/g_command.h	single	15	TRANSPORT_MODE:1	core/command/military.c
+0x00D0570C	G_WARSHIP_MODE	core/state/layout/g_command.h	single	12	WARSHIP_MODE:1	core/command/military.c
+0x00D05710	G_PROF_PRECISE	core/state/layout/g_figure.h	single	3	PROF_PRECISE:1	core/figure/figure.c: QueryPerformanceCounter available
+0x00D05718	G_DAY_FLOOD_PERIOD	core/state/layout/g_city.h	generic	2	PERIOD:1	core/city/day_flood.c: double: days between two floods
+0x00D05720	G_UD05720	core/state/layout/g_city.h	unresolved	43	FLOOD:2, OBJECT_GRID:2, FLOODPLAIN_MANAGER:1, LABOR_OBJECT:1	core/city/month.c: `this` of 0x004BE640, 0x004BE770
+0x00D38360	G_FLOODPLAIN	core/state/layout/g_scenario.h	named	16	FLOOD:1	core/io/save_load.c: chunk 147
+0x00D38700	G_HIGHSCORE_RESULT	present/layout/g_ui_advisors.h	generic	8	RESULT:1	present/ui/frontend/highscore.c: i32 what 0x004C5A40 did: 1 cheated, 2 new, 3 / 6 not better, 4 / 5 better
+0x00D38708	G_HIGHSCORE_TABLE	present/layout/g_ui_advisors.h	generic	11	TABLE:1	present/ui/frontend/highscore.c: the high score records (0x4C bytes each)
+0x00D3A4B8	G_HIGHSCORE_FIRST	present/layout/g_ui_main.h	single+clash	8	FIRST:1	present/ui/frontend/highscore.c: i32 the first row shown
+0x00D3A4BC	G_HIGHSCORE_ROWS	present/layout/g_ui_advisors.h	generic	8	ROWS:1	present/ui/frontend/highscore.c: i32 the records in use
+0x00D3A4C0	G_TIP_TEXT	present/layout/g_city_view.h	single	12	TIP_TEXT:1	present/sidebar/tooltip_text.c: char[] the tooltip buffer
+0x00D3A6C0	G_TIP_KIND	core/state/layout/g_frame.h	single	5	TIP_KIND:1	present/sidebar/tooltip.c: i32
+0x00D3A6C4	G_TIP_WINDOW	core/state/layout/g_frame.h	single	7	TIP_WINDOW:1	present/sidebar/tooltip.c: i32 the window it was asked in
+0x00D3A6C8	G_TIP_SINCE	present/layout/g_city_view.h	single	6	TIP_SINCE:1	present/sidebar/tooltip.c: i32 clock of the last move
+0x00D3A6CC	G_TIP_H	present/layout/g_city_view.h	single	13	TIP_H:1	present/sidebar/tooltip_draw.c
+0x00D3A6D0	G_TIP_W	present/layout/g_city_view.h	single	18	TIP_W:1	present/sidebar/tooltip_draw.c
+0x00D3A6D4	G_TIP_Y	present/layout/g_city_view.h	single	21	TIP_Y:1	present/sidebar/tooltip_draw.c
+0x00D3A6D8	G_TIP_X	present/layout/g_city_view.h	single	20	TIP_X:1	present/sidebar/tooltip_draw.c
+0x00D3A6E4	G_TIP_ID	core/state/layout/g_frame.h	single	70	TIP_ID:1	present/sidebar/tooltip.c: i32 the tooltip's text (group 0x44), 0: none
+0x00D3A6E8	G_MESSAGE_ADVISOR	core/state/layout/g_command.h	named	3	ADVISOR:1	present/ui/msgwin.c
+0x00D3A6EC	G_LINKS_COUNT	core/state/layout/g_command.h	single	4	LINKS_COUNT:1	present/ui/messages/richtext.c
+0x00D3A6F0	G_LINKS_NEXT	core/state/layout/g_command.h	single	3	LINKS_NEXT:1	present/ui/messages/richtext.c
+0x00D3A6F8	G_LINKS	core/state/layout/g_command.h	single	3	LINKS:1	present/ui/messages/richtext.c: 50 entries of 5 i32: x1, x2, y1, y2, target
+0x00D3AAE0	G_HISTORY	core/state/layout/g_command.h	single	8	HISTORY:1	present/ui/msgwin.c
+0x00D3B124	G_MW_TYPE	core/state/layout/g_command.h	majority	13	MW_TYPE:2, ENTRY:1	present/ui/messages/window.c: i32 the message type
+0x00D3B128	G_MW_THUMB_Y	present/layout/g_ui_main.h	single	5	MW_THUMB_Y:1	present/ui/messages/window.c: i32 the scroll thumb while dragged
+0x00D3B12C	G_MW_DRAGGING	core/state/layout/g_command.h	single	6	MW_DRAGGING:1	present/ui/messages/window.c: i32
+0x00D3B130	G_SCROLL	core/state/layout/g_command.h	majority	22	SCROLL:2, MW_SCROLL:1	present/ui/messages/richtext.c: i32 first line drawn
+0x00D3B134	G_MESSAGE_WINDOW_SCROLL_MAX	present/layout/g_ui_main.h	resolved	10	LINES:1, MW_SCROLL_MAX:1	present/ui/messages/window.c: i32 lines beyond the box (0: no scroll bar)
+0x00D3B138	G_TEXT_LINES	core/state/layout/g_command.h	resolved	23	LINES:1, MW_LINES:1, TEXT_LINES:1	present/sidebar/tooltip_draw.c: i32 lines written by 0x004C8070
+0x00D3B13C	G_MESSAGE_WINDOW_VISIBLE	present/layout/g_ui_main.h	resolved	18	MW_VISIBLE:1, VISIBLE:1	present/ui/messages/richtext.c: i32 lines drawn
+0x00D3B140	G_MW_NO_CITY	core/state/layout/g_command.h	single	3	MW_NO_CITY:1	present/ui/messages/window.c: i32 != 0: the city is not drawn behind
+0x00D3B144	G_MW_FOOT	present/layout/g_ui_main.h	single	4	MW_FOOT:1	present/ui/messages/window.c: i32 room below the box: 0x30, 0x20 for kinds != 0
+0x00D3B148	G_MESSAGE_WINDOW_BOX_H	present/layout/g_ui_main.h	resolved	10	MW_BOX_H:1, TEXT_H:1	present/ui/messages/window.c: i32 the body box's height in pieces
+0x00D3B14C	G_MESSAGE_WINDOW_BOX_W	present/layout/g_ui_main.h	resolved	26	BOX_W:1, MW_BOX_W:1, TEXT_W:1	present/ui/messages/richtext.c: i32 the text box's width in pieces
+0x00D3B150	G_MESSAGE_WINDOW_BOX_Y	present/layout/g_ui_main.h	resolved	46	MW_BOX_Y:1, TEXT_Y:1	present/ui/messages/window.c: i32 the body box's y
+0x00D3B154	G_MESSAGE_WINDOW_BOX_X	present/layout/g_ui_main.h	resolved	27	MW_BOX_X:1, TEXT_X:1	present/ui/messages/window.c: i32 the body box's x
+0x00D3B158	G_MW_SUB_W	present/layout/g_ui_main.h	single	1	MW_SUB_W:1	present/ui/messages/window.c: i32 the subtitle's width
+0x00D3B15C	G_MESSAGE_WINDOW_Y	present/layout/g_ui_main.h	resolved	53	MSG_Y:1, MW_Y:1	present/ui/messages/window.c: i32 the window's y
+0x00D3B160	G_MESSAGE_WINDOW_X	present/layout/g_ui_main.h	resolved	56	MSG_X:1, MW_X:1	present/ui/messages/window.c: i32 the window's x
+0x00D3B164	G_MESSAGE_WINDOW_FONT_LINK	present/layout/g_ui_main.h	resolved	6	FONT_LINK:1, MW_FONT_LINK:1	present/ui/messages/richtext.c: i32 link font
+0x00D3B168	G_MESSAGE_WINDOW_FONT_TEXT	present/layout/g_ui_main.h	resolved	8	FONT_TEXT:1, MW_FONT_TEXT:1	present/ui/messages/richtext.c: i32 text font
+0x00D3B16C	G_MESSAGE_WINDOW_PARAM_B	core/state/layout/g_command.h	named	4	MW_PARAM_IMG:1	present/ui/messages/window.c: i32 the message's picture parameter
+0x00D3B170	G_MESSAGE_WINDOW_PARAM_A	core/state/layout/g_command.h	named	10	MW_PARAM:1	present/ui/messages/window.c: i32 the message's parameter (event, god, amount, ...)
+0x00D3B174	G_MESSAGE_WINDOW_MONTH	core/state/layout/g_command.h	named	4	MW_MONTH:1	present/ui/messages/window.c: i32 the message's month
+0x00D3B178	G_MESSAGE_WINDOW_YEAR	core/state/layout/g_command.h	named	4	MW_YEAR:1	present/ui/messages/window.c: i32 the message's year
+0x00D3B180	G_MESSAGE_WINDOW_VIDEO	core/state/layout/g_command.h	resolved	11	MW_VIDEO:1, VIDEO:1	present/ui/messages/window.c: i32 != 0: the video layout (0x004C6C70)
+0x00D3B184	G_MW_FROM_LIST	core/state/layout/g_command.h	single	3	MW_FROM_LIST:1	present/ui/messages/window.c: u8 the message comes from the list (texts may be expanded)
+0x00D3B186	G_MESSAGE_WINDOW_REPLIES	core/state/layout/g_command.h	resolved	7	MW_REPLIES:1, OPTIONS:1, REPLIES_ALLOWED:1	core/command/orders_messages.c: u8 bits 1, 2, 4: replies offered by the message window
+0x00D3B18C	G_KEYWORD_CURRENT	present/layout/g_ui_main.h	single	6	KEYWORD_CURRENT:2	present/ui/messages/expand.c: u32 the keyword entry whose handler runs
+0x00D3B194	G_PARAM2	core/state/layout/g_command.h	majority	12	PARAM2:4, CMD_PARAM2:1	core/command/orders.h: i32 callback parameter 2
+0x00D3B198	G_PARAM1	core/state/layout/g_command.h	majority	85	PARAM1:6, PARAM:2, CMD_PARAM1:1, ITEM:1, ROW:1	core/frame/wndproc.c: the button / command parameter
+0x00D3B1B3	G_NOT_FOUND	core/state/layout/g_scenario.h	single	11	NOT_FOUND:1	present/ui/frontend/files.c: u8 frames of the "not found" title
+0x00D3B1BC	G_BACK_WINDOW	present/layout/g_ui_advisors.h	single	4	BACK_WINDOW:1	present/ui/frontend/files.c: i32
+0x00D3B1C0	G_FILES_MODE	core/state/layout/g_scenario.h	generic	11	MODE:1	present/ui/frontend/files.c: u8 0 save, 1 load, 2 delete
+0x00D3B1C4	G_R_POOL_INDEX	core/state/layout/g_city.h	single	6	R_POOL_INDEX:1	core/city/month_events.c
+0x00D3B1C8	G_R_POOL	core/state/layout/g_city.h	single	5	R_POOL:1	core/city/month_events.c
+0x00D3B370	G_R_1_15	core/state/layout/g_figure.h	single	47	R_1_15:1	core/city/month_events.c
+0x00D3B374	G_R_1_7	core/state/layout/g_city.h	single	11	R_1_7:1	core/city/month_events.c
+0x00D3B380	G_R_IV2	core/state/layout/g_city.h	single	6	R_IV2:1	core/city/month_events.c
+0x00D3B384	G_R_IV1	core/state/layout/g_figure.h	single	15	R_IV1:1	core/city/month_events.c
+0x00D3B439	G_CONFIRM_ANSWER	core/state/layout/g_command.h	resolved	4	ANSWER:1, CMD_ANSWER:1	core/command/orders.h: u8 confirmation popup answer (1 = yes)
+0x00D3B4BC	G_LINE_ERR	present/layout/g_city_view.h	single	6	LINE_ERR:1	present/draw/fill.c: i32 the error term
+0x00D3B4C0	G_LINE_END_X	present/layout/g_city_view.h	single	3	LINE_END_X:1	present/draw/fill.c: i32
+0x00D3B4C4	G_LINE_END_Y	present/layout/g_city_view.h	single	3	LINE_END_Y:1	present/draw/fill.c: i32
+0x00D3B4C8	G_LINE_X	present/layout/g_city_view.h	single	2	LINE_X:1	present/draw/fill.c: i32 the start
+0x00D3B4CC	G_LINE_Y	present/layout/g_city_view.h	single	2	LINE_Y:1	present/draw/fill.c: i32
+0x00D3B4D0	G_LINE_DX	present/layout/g_city_view.h	single	6	LINE_DX:1	present/draw/fill.c: i32 |x1 - x2|, counted down
+0x00D3B4D4	G_LINE_DY	present/layout/g_city_view.h	single	6	LINE_DY:1	present/draw/fill.c: i32 |y1 - y2|, counted down
+0x00D3B4D8	G_LINE_STEP_X	present/layout/g_city_view.h	single	3	LINE_STEP_X:1	present/draw/fill.c: i32 1 or -1
+0x00D3B4DC	G_LINE_STEP_Y	present/layout/g_city_view.h	single	3	LINE_STEP_Y:1	present/draw/fill.c: i32 1 or -1
+0x00D3B4E0	G_ROAD_ACCESS_Y	core/state/layout/g_figure.h	named	156	ROAD_Y:8, SCAN_Y:5, FOUND_ROW:2, FOUND_Y:2, CUR_Y:1, OUT_Y:1, ROAD_ACCESS_Y:1, ROUTE_DEST_Y:1, TARGET_Y:1	core/figure/service_a.c: the scans keep their row, column and grid offset in globals
+0x00D3B4E4	G_ROAD_ACCESS_X	core/state/layout/g_figure.h	named	153	ROAD_X:8, SCAN_X:5, FOUND_COL:2, FOUND_X:2, CUR_X:1, OUT_X:1, ROAD_ACCESS_X:1, ROUTE_DEST_X:1, TARGET_X:1	core/figure/actions_a2.c: the tile a search found (read as words by the actions)
+0x00D3B4E8	G_MARCH_COUNT	present/layout/g_city_view.h	single	4	MARCH_COUNT:1	present/draw/fill.c: i32 dots drawn in that colour
+0x00D3B4F0	G_MARCH_COLOUR	present/layout/g_city_view.h	single	4	MARCH_COLOUR:1	present/draw/fill.c: i32 the colour of the next dot of a marching rectangle
+0x00D3B4F4	G_MARCH_START	present/layout/g_city_view.h	single	3	MARCH_START:1	present/draw/fill.c: i32 the first dot's colour (cycled by 0x004CD810)
+0x00D3B4F8	G_DIST_Y	core/state/layout/g_figure.h	single	31	DIST_Y:4	core/figure/actions_d2.c: @bin |dy| of the last distance
+0x00D3B4FC	G_DIST_X	core/state/layout/g_figure.h	single	31	DIST_X:4	core/figure/actions_a.c: the last distances computed (kept by the original in globals)
+0x00D3B500	G_FONT_HEIGHT	present/layout/g_city_view.h	single	8	FONT_HEIGHT:3	present/ui/info/monument.c: i32 the font's line height
+0x00D3B504	G_TEXT_FLAG_504	present/layout/g_city_view.h	single	7	TEXT_FLAG_504:1	present/draw/text.c
+0x00D3B510	G_TEXT_OUTLINE	core/state/layout/g_boot.h	single	6	TEXT_OUTLINE:1	present/draw/text.c: i32 != 0: plain (the other styles off)
+0x00D3B514	G_TEXT_SHADOW	present/layout/g_city_view.h	single	1	TEXT_SHADOW:1	present/draw/text.c: i32 != 0: a black copy one pixel right and down
+0x00D3B518	G_TEXT_SHADOW_V	core/state/layout/g_boot.h	single	2	TEXT_SHADOW_V:1	present/draw/text.c: i32 != 0: black copies one pixel above and below
+0x00D3B51C	G_GLYPH_COLOUR	present/layout/g_city_view.h	majority	18	GLYPH_COLOUR:2, TEXT_COLOUR:1	present/sidebar/tooltip_draw.c: u16 the text colour of 0x004CC770
+0x00D3B530	G_CLIP_Y	present/layout/g_ui_main.h	single	1	CLIP_Y:1	present/draw/mem.h: u8 vertical clip: 0 none, 3 top, 4 bottom, 5 out
+0x00D3B531	G_CLIP_X	present/layout/g_ui_main.h	single	2	CLIP_X:1	present/draw/mem.h: u8 horizontal clip: 0 none, 1 left, 2 right, 5 out
+0x00D3B534	G_CLIP_BOTTOM_H	present/layout/g_city_view.h	single	0	CLIP_BOTTOM_H:1	present/draw/mem.h: i32 the height (the visible rows from the top when cut at the bottom)
+0x00D3B538	G_CLIP_TOP_ROWS	present/layout/g_city_view.h	single	0	CLIP_TOP_ROWS:1	present/draw/mem.h: i32 rows cut at the top
+0x00D3B53C	G_DST_SKIP	present/layout/g_city_view.h	single	0	DST_SKIP:1	present/draw/mem.h: i32 destination bytes from a row's end to the next row's start
+0x00D3B540	G_SRC_SKIP	present/layout/g_city_view.h	single	0	SRC_SKIP:1	present/draw/mem.h: i32 source bytes to skip per row (clipped columns)
+0x00D3B544	G_VIS_W	present/layout/g_city_view.h	single	0	VIS_W:1	present/draw/mem.h: i32 visible width after the horizontal clip
+0x00D3B548	G_CLIP_RIGHT_W	present/layout/g_city_view.h	single	0	CLIP_RIGHT_W:1	present/draw/mem.h: i32 the width (the visible width when cut on the right)
+0x00D3B54C	G_CLIP_LEFT_COLS	present/layout/g_city_view.h	single	0	CLIP_LEFT_COLS:1	present/draw/mem.h: i32 columns cut on the left
+0x00D3B550	G_CLIP_BOTTOM	core/state/layout/g_boot.h	single	24	CLIP_BOTTOM:7	present/ui/advisors/b_population.c: i32 the clip rectangle's bottom
+0x00D3B554	G_CLIP_TOP	core/state/layout/g_boot.h	single	18	CLIP_TOP:6	present/ui/messages/window.c
+0x00D3B558	G_CLIP_RIGHT	core/state/layout/g_boot.h	single	21	CLIP_RIGHT:6	present/ui/messages/window.c
+0x00D3B55C	G_CLIP_LEFT	core/state/layout/g_boot.h	single	18	CLIP_LEFT:6	present/ui/messages/window.c
+0x00D3B568	G_PIC_Y	present/layout/g_ui_main.h	single	12	PIC_Y:1	present/ui/empire/mission.c
+0x00D3B56C	G_PIC_X	present/layout/g_ui_main.h	single	12	PIC_X:1	present/ui/empire/mission.c: i32 the source offset of a full-screen picture (1024 x 768)
+0x00D3B570	G_PIC_H	present/layout/g_ui_main.h	single	12	PIC_H:1	present/ui/empire/mission.c
+0x00D3B574	G_PIC_W	present/layout/g_ui_main.h	single	12	PIC_W:1	present/ui/empire/mission.c
+0x00D3B578	G_LAST_Y	present/layout/g_city_view.h	single	2	LAST_Y:1	present/city/ghost.c
+0x00D3B57C	G_LAST_X	present/layout/g_city_view.h	single	2	LAST_X:1	present/city/ghost.c
+0x00D3B580	G_LAST_IMAGE	present/layout/g_city_view.h	single	2	LAST_IMAGE:1	present/city/ghost.c: i32 the last draw's image, x, y (0x0053E590)
+0x00D3B5B4	G_IMG_TYPE	present/layout/g_city_view.h	single	0	IMG_TYPE:1	present/draw/mem.h: u8 the image's type (+50)
+0x00D3B5B8	G_MEM_SRC	present/layout/g_city_view.h	generic	0	SRC:1	present/draw/mem.h: u32 the image's pixel data (later the clipped start)
+0x00D3B5BC	G_UD3B5BC	present/layout/g_ui_main.h	unresolved	8	BLIT_W:1, IMG_H:1	present/ui/info/figure.c: i16 columns
+0x00D3B5BE	G_UD3B5BE	present/layout/g_ui_main.h	unresolved	6	BLIT_H:1, IMG_W:1	present/ui/info/figure.c: i16 rows
+0x00D3B5C0	G_GLYPH_LAST	core/state/layout/g_city.h	majority	32	GLYPH_LAST:3, DRAW_IMAGE:1	core/city/text_lookup.c: the last glyph looked up
+0x00D3B5D4	G_VIS_H	present/layout/g_city_view.h	single	0	VIS_H:1	present/draw/mem.h: i32 visible height after the vertical clip
+0x00D3B5DC	G_BLIT_Y	present/layout/g_ui_info.h	resolved	22	BLIT_Y:1, DRAW_Y:1, IMG_Y:1	present/ui/info/figure.c: i32 the copy's destination y
+0x00D3B5E0	G_BLIT_X	present/layout/g_ui_info.h	resolved	21	BLIT_X:1, DRAW_X:1, IMG_X:1	present/ui/info/figure.c: i32 the copy's destination x
+0x00DD0001	G_HANDLE_DDRAW	core/state/layout/g_frame.h	single	1	HANDLE_DDRAW:1	core/frame/display.c
+0x00DD0002	G_HANDLE_PRIMARY	core/state/layout/g_frame.h	single	1	HANDLE_PRIMARY:1	core/frame/display.c
+0x00DD0003	G_HANDLE_CLIPPER	core/state/layout/g_frame.h	single	1	HANDLE_CLIPPER:1	core/frame/display.c
+0x00E20760	G_WORD_CHARS	present/layout/g_ui_main.h	single	18	WORD_CHARS:4	present/ui/messages/richtext.c: i32 bytes the last measured word takes
+0x00E20764	G_TEXT_PTR2	core/state/layout/g_command.h	majority	12	TEXT_PTR2:3, TEXT_CURSOR_2:1	present/ui/frontend/family.c: u32 the string 0x004CC160 found
+0x00E20768	G_TEXT_CURSOR	core/state/layout/g_scenario.h	named	41	TEXT_PTR:5, TEXT_CURSOR:2, TEXT_STRING:2, TEXT_CURSOR_1:1	core/city/text_lookup.h: address of the current string
+0x00E2076C	G_LINE_MAX_W	present/layout/g_ui_main.h	majority	8	LINE_MAX_W:3, TEXT_MAX_X:1	present/ui/messages/richtext.c: i32 widest line
+0x00E20774	G_TEXT_Y	present/layout/g_ui_info.h	majority	94	TEXT_Y:3, RUN_Y:1, TEXT_CURSOR_Y:1, TEXT_LINE:1	present/ui/messages/richtext.c: i32 the height laid out (+16 per line)
+0x00E20778	G_TEXT_X	present/layout/g_ui_advisors.h	majority	465	TEXT_X:12, TEXT_CURSOR:9, TEXT_CURSOR_X:3, TEXT_WIDTH:3, TX:2, CURSOR_X:1, RUN_X:1	present/sidebar/sidebar.h: i32 text cursor x after a draw (text: package blit)
+0x00E2077C	G_RUN_EDIT	present/layout/g_city_view.h	single	5	RUN_EDIT:1	present/draw/text.c: i32 != 0: characters come from the edited string, from this index
+0x00E20780	G_RUN_HASH	present/layout/g_city_view.h	single	6	RUN_HASH:2	present/draw/text.c: i32 1: '#' starts the edited string
+0x00E20784	G_RUN_CHARS	present/layout/g_city_view.h	single	3	RUN_CHARS:1	present/draw/text.c: i32 characters drawn
+0x00E20788	G_CARET_SET	present/layout/g_city_view.h	single	5	CARET_SET:1	present/draw/text.c: i32 1: the caret was placed
+0x00E2078C	G_CARET_W	present/layout/g_city_view.h	single	4	CARET_W:1	present/draw/text.c
+0x00E20790	G_CARET_X	present/layout/g_ui_advisors.h	single	6	CARET_X:1	present/draw/text.c
+0x00E20794	G_CARET_Y	core/state/layout/g_scenario.h	single	7	CARET_Y:1	present/draw/text.c
+0x00E20798	G_RUN_SPACES	present/layout/g_city_view.h	single	1	RUN_SPACES:1	present/draw/text.c: u8 != 0: collapse repeated spaces
+0x00E20799	G_RUN_NO_COLLAPSE	present/layout/g_city_view.h	single	6	RUN_NO_COLLAPSE:2	present/ui/info/monument.c
+0x00E2079A	G_VICTORY_LIT	present/layout/g_ui_advisors.h	generic	1	LIT:1	present/ui/frontend/victory.c: u8 the last button's lit state
+0x00E2079B	G_INSERT	present/layout/g_city_view.h	single	3	INSERT:1	present/draw/textedit.c: u8 1: insert, 0: overwrite
+0x00E2079C	G_TEXTEDIT_TEXT	core/state/layout/g_scenario.h	generic	8	TEXT:1	present/draw/textedit.c
+0x00E207EC	G_CARET_POS	core/state/layout/g_scenario.h	resolved	18	CARET:1, CARET_POS:1	present/draw/text.c: i32 per field: the caret's character index
+0x00E2083C	G_NO_PUNCT	core/state/layout/g_scenario.h	single	2	NO_PUNCT:1	present/draw/textedit.c
+0x00E20850	G_MAX_W	core/state/layout/g_scenario.h	single	2	MAX_W:1	present/draw/textedit.c
+0x00E208A0	G_TEXTEDIT_END	core/state/layout/g_scenario.h	generic	8	END:1	present/draw/textedit.c
+0x00E208F0	G_TEXTEDIT_MAX	core/state/layout/g_scenario.h	generic	4	MAX:1	present/draw/textedit.c
+0x00E20940	G_FONT	core/state/layout/g_scenario.h	single	2	FONT:1	present/draw/textedit.c
+0x00E20970	G_ORDERS_MESSAGES_MESSAGE_TYPES	core/state/layout/g_command.h	single+clash	2	MESSAGE_TYPES:2	core/command/orders_messages.c: message type records, 0x50 bytes (+0x4A kind)
+0x00E20990	G_CARET_FIELD	core/state/layout/g_scenario.h	resolved	18	CARET_FIELD:1, FIELD:1, TEXT_BOX:1	core/newgame/flow2.c: the text box being edited
+0x00E20994	G_TEXTEDIT_RESULT	core/state/layout/g_scenario.h	generic	6	RESULT:1	present/draw/textedit.c: i32 0, 1 (caret at the end), 2 (field full)
+0x00E209B8	G_MSGWIN_TABLE	present/layout/g_ui_main.h	generic	1	TABLE:1	present/ui/msgwin.c
+0x00E34238	G_NUMBER_TEXT	present/layout/g_city_view.h	resolved	24	NUMBER_BUF:1, NUMBER_TEXT:1	present/sidebar/tooltip_text.c: char[] the number written by 0x004CC5C0
+0x00E34338	G_EDIT_TEXT	present/layout/g_city_view.h	single	1	EDIT_TEXT:1	present/draw/text.c: the edited string
+0x00E3439C	G_LINE_BUF	present/layout/g_ui_main.h	single	12	LINE_BUF:4	present/ui/messages/richtext.c: char[200] the line being laid out
+0x00E34C38	G_TEXT_GROUPS	core/state/layout/g_city.h	single	3	TEXT_GROUPS:2	core/city/text_lookup.c: 1000 group entries of 8 bytes: +0 offset into the text
+0x00E36C70	G_TEXT_BUFFER	core/state/layout/g_frame.h	single	6	TEXT_BUFFER:2	core/city/text_lookup.c: pointer to the text from byte 0x1F5C of the file (0x004CEC40)
+0x00E36C74	G_MM_TEXT	core/state/layout/g_frame.h	named	8	TEXT_BASE:1	present/ui/messages/messages.h: u32 base of the message texts (type +0x8C: offset)
+0x00E36C84	G_MARCH_START_COUNT	present/layout/g_city_view.h	single	3	MARCH_START_COUNT:1	present/draw/fill.c
+0x00E36C90	G_LOG_LINE	core/state/layout/g_scenario.h	single	4	LOG_LINE:1	core/newgame/flow.c: the log line buffer (0x004CE6E0; presentation, excluded.py)
+0x00E37078	G_MAP_NAME	core/state/layout/g_scenario.h	single	27	MAP_NAME:3	core/newgame/setup.c: char[65]
+0x00E370BC	G_LAST_NAME	core/state/layout/g_boot.h	single	3	LAST_NAME:1	present/ui/frontend/files.c: char[] the last saved game's name
+0x00E37100	G_FILES_NAME	core/state/layout/g_boot.h	generic	11	NAME:1	present/ui/frontend/files.c: char[0x40] the typed saved game's name (field 2)
+0x00E38AEC	G_START_EXT	core/state/layout/g_scenario.h	generic	30	EXT:2	core/newgame/start.c: char[4]: the current file extension
+0x00E38D94	G_SCREEN_PITCH	core/state/layout/g_frame.h	resolved	7	PITCH:1, SCREEN_PITCH:1	present/ui/info/figure.c: i32 the back buffer's pitch in bytes
+0x00E38D98	G_UE38D98	core/state/layout/g_frame.h	unresolved	19	SCREEN_H:1, SCREEN_HEIGHT2:1, SCR_H0:1	present/sidebar/sidebar.h: i32, the same value (set together by 0x004CF960)
+0x00E38D9C	G_UE38D9C	core/state/layout/g_boot.h	unresolved	17	SCREEN_W:1, SCR_W0:1	present/ui/empire/empire.c: i32 the screen width (set-up copy)
+0x00E38DA4	G_LAYOUT_DY	core/state/layout/g_command.h	majority	41	LAYOUT_DY:7, DY:5	present/sidebar/sidebar.h: i32 (height - 480) / 2
+0x00E38DA8	G_LAYOUT_DX	core/state/layout/g_command.h	majority	38	LAYOUT_DX:7, DX:5	present/sidebar/sidebar.h: i32 (width - 640) / 2
+0x00E38DAC	G_SCREEN_H	core/state/layout/g_boot.h	majority	61	SCREEN_H:5, SCR_H:4, SCREEN_H2:1, SCREEN_HEIGHT:1	present/sidebar/sidebar.h: i32
+0x00E38DB0	G_SCREEN_W	core/state/layout/g_frame.h	majority	56	SCREEN_W:6, SCR_W:4, SCREEN_W2:1, SCREEN_WIDTH:1	core/frame/display.c: the mode's width and height
+0x00E38DB4	G_DESKTOP_H	core/state/layout/g_boot.h	single	10	DESKTOP_H:1	core/frame/display.c
+0x00E38DB8	G_DESKTOP_W	core/state/layout/g_boot.h	single	11	DESKTOP_W:1	core/frame/display.c: the screen's size (GetSystemMetrics, WM_DISPLAYCHANGE)
+0x00E38DC8	G_PRESENT_NOW	core/state/layout/g_frame.h	single	14	PRESENT_NOW:1	core/frame/frame.c: u8 present at the next present call
+0x00E38DC9	G_REDRAW_SIDEBAR	present/layout/g_ui_advisors.h	named	12	REDRAW_SIDEBAR:4, REDRAW_BUTTONS:1	present/sidebar/sidebar.h: u8
+0x00E38DCA	G_REDRAW	core/state/layout/g_command.h	named	158	REDRAW:14, REDRAW_ALL:6, UI_REDRAW:1	core/frame/frame.c: u8 full redraw of the window's background
+0x00E38DCC	G_SCROLLING	core/state/layout/g_frame.h	single	16	SCROLLING:2	core/frame/frame.c: i32 the map scrolls (0x004CF660)
+0x00E38DD9	G_UE38DD9	core/state/layout/g_city.h	unresolved	29	RESULT:1, WINDOW_PREV:1	core/city/day_goals.c: i8: 1 won, -1 (0xFF) lost, 0 neither
+0x00E38DDA	G_WINDOW	core/state/layout/g_command.h	named	153	WINDOW:13, WINDOW_ID:7, SCREEN:3, UI_WINDOW:1	core/frame/frame.c: u8 the current window id
+0x00E38DF7	G_RIGHT_PRESSED	core/state/layout/g_frame.h	single	7	RIGHT_PRESSED:2	present/ui/ui.h: u8
+0x00E38DF8	G_RIGHT_RELEASED	core/state/layout/g_frame.h	single	10	RIGHT_RELEASED:5	present/ui/ui.h: u8
+0x00E38E00	G_LEFT_HELD	core/state/layout/g_frame.h	single	14	LEFT_HELD:6	present/ui/ui.h: u8
+0x00E38E02	G_LEFT_LATCH	core/state/layout/g_frame.h	single	6	LEFT_LATCH:1	present/sidebar/input.c
+0x00E38E03	G_LEFT_PRESSED	core/state/layout/g_frame.h	single	11	LEFT_PRESSED:2	present/ui/ui.h: u8
+0x00E38E04	G_LEFT_RELEASED	core/state/layout/g_frame.h	majority	7	LEFT_RELEASED:2, MOUSE_LEFT_RELEASED:1	present/ui/ui.h: u8
+0x00E38E07	G_BUTTONS	core/state/layout/g_frame.h	single	7	BUTTONS:1	core/frame/wndproc.c: u8 bit 0 left, bit 1 right
+0x00E38E28	G_HIT_Y	present/layout/g_ui_main.h	single	6	HIT_Y:1	present/sidebar/input.c
+0x00E38E2C	G_HIT_X	present/layout/g_ui_main.h	single	6	HIT_X:1	present/sidebar/input.c
+0x00E38E30	G_MOUSE_Y	core/state/layout/g_frame.h	single	34	MOUSE_Y:9	present/ui/ui.h: i32
+0x00E38E34	G_MOUSE_X	core/state/layout/g_frame.h	single	35	MOUSE_X:9	present/sidebar/tooltip.c: i32 the cursor on the screen
+0x00E38E5C	G_FULLSCREEN	core/state/layout/g_frame.h	single	20	FULLSCREEN:2	core/frame/display.c: i32 the option: fullscreen (1) or windowed
+0x00E38E60	G_GATE	core/state/layout/g_command.h	single	23	GATE:2	core/command/construction_ui.c: u8
+0x00E38E62	G_DRIVE	core/state/layout/g_boot.h	single	6	DRIVE:1	core/boot/sound.c: the CD drive's letter
+0x00E38E63	G_SOUND_EFFECTS_ON	core/state/layout/g_sim.h	resolved	9	EFFECTS_ON:1, SOUND_ON:1, SOUND_OPTION:1	core/sim/platform.c: sound effects option
+0x00E38E64	G_MUSIC_ON	core/state/layout/g_command.h	resolved	13	MUSIC_ON:1, MUSIC_OPTION:1	core/frame/sound.c: u8 option: music
+0x00E38E65	G_SPEECH_ON	core/state/layout/g_boot.h	single	8	SPEECH_ON:1	present/ui/frontend/options.c: u8
+0x00E38E68	G_RESOLUTION	core/state/layout/g_boot.h	majority	20	RESOLUTION:2, SCREEN_MODE:1	core/frame/display.c: i32 1: 640 x 480, 2: 800 x 600, 3: 1024 x 768
+0x00E38E6C	G_GAME_SPEED	core/state/layout/g_frame.h	single	12	GAME_SPEED:1	present/ui/frontend/options.c: i32
+0x00E38E70	G_SCROLL_SPEED	core/state/layout/g_boot.h	single	7	SCROLL_SPEED:1	present/ui/frontend/options.c: i32
+0x00E38E74	G_PLAYER_NAME	core/state/layout/g_scenario.h	majority	31	PLAYER_NAME:6, NAME:1	core/newgame/flow.c: char[32]
+0x00E38E94	G_DEBUG_GRID	core/state/layout/g_frame.h	single	5	DEBUG_GRID:1	present/city/marks.c: i32 which grid the debug display shows
+0x00E38EA8	G_MISSION	core/state/layout/g_scenario.h	named	67	MISSION:9	core/city/text_lookup.c: i8: the current mission
+0x00E38EA9	G_FLOW2_PERIOD	core/state/layout/g_scenario.h	generic	10	PERIOD:2	core/newgame/start.c: u8
+0x00E38EAA	G_STEP_PREV	core/state/layout/g_scenario.h	majority	10	STEP_PREV:2, PREV_STEP:1	core/newgame/start.c: u8
+0x00E38EAB	G_STEP	core/state/layout/g_scenario.h	single	15	STEP:4	core/newgame/start.c: u8
+0x00E38EAC	G_TIPS_ON	core/state/layout/g_command.h	single	10	TIPS_ON:1	present/sidebar/tooltip.c: i32 0 off, 2 on (options)
+0x00E38EB0	G_KINGDOM_START	core/state/layout/g_scenario.h	single	5	KINGDOM_START:1	core/newgame/start.c: i32
+0x00E38EB4	G_KINGDOM_CARRY	core/state/layout/g_scenario.h	single	8	KINGDOM_CARRY:1	core/newgame/start.c: i32
+0x00E38EB8	G_PLAYED	core/state/layout/g_scenario.h	single	6	PLAYED:1	core/newgame/start.c: i32 (only its low byte survives the start)
+0x00E38EBC	G_CUSTOM	core/state/layout/g_city.h	named	52	CUSTOM:5	core/newgame/start.c: i32: != 0 custom scenario
+0x00E38EC0	G_CITY_SOUNDS_ON	core/state/layout/g_frame.h	resolved	9	CITY_ON:1, CITY_SOUNDS:1	core/frame/sound.c: u8 option: city sounds
+0x00E38EC4	G_EFFECTS_VOLUME	core/state/layout/g_sim.h	resolved	8	EFFECTS_VOL:1, SOUND_VOLUME:1	present/ui/frontend/options.c: i32
+0x00E38EC8	G_MUSIC_VOLUME	core/state/layout/g_frame.h	resolved	10	MUSIC_VOL:1, MUSIC_VOLUME:1	present/ui/frontend/options.c: i32
+0x00E38ECC	G_SPEECH_VOLUME	core/state/layout/g_command.h	resolved	13	SPEECH_VOL:1, SPEECH_VOLUME:1	present/ui/frontend/options.c: i32
+0x00E38ED0	G_CITY_VOLUME	core/state/layout/g_frame.h	resolved	10	CITY_VOL:1, CITY_VOLUME:1	present/ui/frontend/options.c: i32
+0x00E38EF0	G_MESSAGE_SETTINGS	core/state/layout/g_command.h	named	2	MESSAGE_OPTIONS:1	core/command/orders.c
+0x00E39080	G_DIFFICULTY	core/state/layout/g_command.h	named	51	DIFFICULTY:7	core/figure/actions_b2.c: 0..4
+0x00E39088	G_EMPIRE_LANGUAGE	core/state/layout/g_command.h	single	11	EMPIRE_LANGUAGE:1	present/ui/empire/empire.c: u8: the city names' group, 0x15 (set) or 0xC3
+0x00E3908C	G_FAST_FORWARD	core/state/layout/g_frame.h	named	8	FAST_FORWARD:1	core/frame/frame.c: u8 set by the day cascade 0x00452370
+0x00E390DC	G_CURSOR	core/state/layout/g_command.h	single	2	CURSOR:1	core/command/military.c
+0x00E390E0	G_DD_READY	core/state/layout/g_boot.h	single	6	DD_READY:1	core/frame/display.c: the set-up succeeded
+0x00E39130	G_CLIENT_RECT	core/state/layout/g_frame.h	single	6	CLIENT_RECT:1	core/frame/display.c: left, top, right, bottom of the client area on the screen
+0x00E39140	G_HWND	core/state/layout/g_boot.h	resolved	6	HWND:1, WINDOW:1	core/boot/display.c
+0x00E39148	G_DDRAW	core/state/layout/g_frame.h	resolved	9	DDRAW:1, DD_OBJECT:1	core/boot/display.c
+0x00E3914C	G_UE3914C	core/state/layout/g_boot.h	unresolved	6	FORMAT_MASKS:1, FORMAT_NAME:1	core/frame/display.c: 0x555, 0x565, 0x556, 0x655
+0x00E39170	G_DD_CLIPPER	core/state/layout/g_boot.h	resolved	4	CLIPPER:1, DD_CLIPPER:1	core/boot/display.c
+0x00E39174	G_DD_BACK	core/state/layout/g_frame.h	resolved	7	BACK:1, DD_BACK:1	core/boot/display.c
+0x00E39178	G_DD_PRIMARY	core/state/layout/g_frame.h	resolved	7	DD_PRIMARY:1, PRIMARY:1	core/boot/display.c
+0x00E39180	G_MUSIC	core/state/layout/g_boot.h	single	6	MUSIC:1	core/boot/sound.c: the music tables
+0x00E92BF8	G_SOUND	core/state/layout/g_frame.h	majority	92	SOUND:6, SOUND_OBJECT:1	core/boot/sound.c: the sound object
+0x00E92DA8	G_REQUEST	core/state/layout/g_sim.h	majority	24	REQUEST:2, SOUND_REQUEST:1	core/sim/platform.c: the sample request block: owner, sound, volume, pan, loops
+0x00E92DFC	G_PIXEL_FORMAT	core/state/layout/g_frame.h	majority	22	PIXEL_FORMAT:3, FORMAT:1	core/frame/display.c: 0: RGB 555, 2: RGB 565 (1, 3: 556, 655, never kept)
+0x00E92E0C	G_FRAME_CLOCK	core/state/layout/g_frame.h	named	15	FRAME_CLOCK:5, CLOCK:1	core/frame/frame.c: the frame's timeGetTime
+0x00E92E18	G_BACK_BUFFER	core/state/layout/g_frame.h	resolved	10	BACK_BUFFER:1, BACK_PIXELS:1	present/draw/mem.h: u32 address of the back buffer (16-bit pixels)
+0x00E92E1C	G_SPARE_SCREEN	core/state/layout/g_boot.h	majority	21	SPARE_SCREEN:3, SPARE:1	present/ui/info/figure.c: i32 the spare screen's address
+0x00E92E20	G_CTRL	core/state/layout/g_frame.h	single	12	CTRL:1	core/frame/wndproc.c: i32 Ctrl held (WM_KEYDOWN / WM_KEYUP)
+0x00E92E24	G_SHIFT	core/state/layout/g_frame.h	single	2	SHIFT:1	core/frame/wndproc.c
+0x00E92E50	G_FILE_SCHEMA	core/state/layout/g_frame.h	resolved	9	FILE_SCHEMA:1, SCHEMA:1	core/frame/autosave.c: chunk 6: 0x5DC dwords
+0x00E945C0	G_VERSION	core/state/layout/g_scenario.h	single	21	VERSION:1	core/newgame/map_load.c: chunk 1 of a map: the file version
+0x00E945C4	G_USE_FILE_SCHEMA	core/state/layout/g_scenario.h	resolved	8	SCHEMA_COUNT:1, USE_FILE_SCHEMA:1	core/newgame/map_load.c: chunk 2 of a map: != 0, compare with the file's schema
+0x00E94D98	G_LAYOUT_MODE	core/state/layout/g_frame.h	single	6	LAYOUT_MODE:2	present/ui/frontend/options.c
+0x00E94D9C	G_LAYOUT_READY	present/layout/g_play.h	single	3	LAYOUT_READY:2	present/ui/frontend/options.c
+0x00E94E00	G_SPRITE_DIRECTION	core/state/layout/g_figure.h	majority	42	SPRITE_DIRECTION:2, DIR_REL:1, FIGURE_DIR:1, VIEW_DIRECTION:1	core/figure/actions_a.c: the current figure's direction relative to the view
+0x00E94E04	G_UE94E04	core/state/layout/g_command.h	unresolved	27	ORIENTATION:2, VIEW_ORIENTATION:2, VIEW_ORIENT:1	core/map/routing.c: 0, 2, 4, 6
+0x00E94E0C	G_OVERLAY	core/state/layout/g_frame.h	single	24	OVERLAY:1	present/city/city.h: i32 the overlay shown (0: none)
+0x00E95080	G_MESSAGE_PENDING	core/state/layout/g_scenario.h	named	2	QUEUE:1	present/ui/messages/popup.c: i32 [20] message ids waiting for their pop-up
+0x00E950D0	G_QUEUE_END	core/state/layout/g_scenario.h	single	2	QUEUE_END:1	present/ui/messages/popup.c
+0x00E950D8	G_MESSAGE_ROWS	present/layout/g_play.h	single	3	MESSAGE_ROWS:1	present/ui/info/info.c: i32 the message list's rows (> 0: the click resets them)
+0x00E950DC	G_MESSAGE_POPUP	core/state/layout/g_city.h	named	62	POPUP:5, MESSAGE_FORCED:1	core/city/day2_events.c
+0x00E950E0	G_UE950E0	core/state/layout/g_building.h	named	7	SOUND_GOD:1	core/city/rest_gods.c
+0x00E950F4	G_MSGLIST_IN_H	present/layout/g_ui_main.h	single	0	MSGLIST_IN_H:1	present/ui/messages/messages.h: i32 inner panel height in pieces
+0x00E950F8	G_MSGLIST_IN_W	present/layout/g_ui_main.h	single	0	MSGLIST_IN_W:1	present/ui/messages/messages.h: i32 inner panel width in pieces
+0x00E950FC	G_MSGLIST_IN_Y	present/layout/g_ui_main.h	single	0	MSGLIST_IN_Y:1	present/ui/messages/messages.h: i32 inner panel y
+0x00E95100	G_MSGLIST_IN_X	present/layout/g_ui_main.h	single	0	MSGLIST_IN_X:1	present/ui/messages/messages.h: i32 inner panel x
+0x00E95104	G_MSGLIST_H	present/layout/g_ui_main.h	single	0	MSGLIST_H:1	present/ui/messages/messages.h: i32 outer panel height in pieces
+0x00E95108	G_MSGLIST_W	present/layout/g_ui_main.h	single	0	MSGLIST_W:1	present/ui/messages/messages.h: i32 outer panel width in 16-pixel pieces
+0x00E9510C	G_MSGLIST_Y	present/layout/g_ui_main.h	single	0	MSGLIST_Y:1	present/ui/messages/messages.h: i32 outer panel y
+0x00E95110	G_MSGLIST_X	present/layout/g_ui_main.h	single	0	MSGLIST_X:1	present/ui/messages/messages.h: i32 outer panel x
+0x00E95114	G_MSGLIST_THUMB_Y	present/layout/g_ui_main.h	single	0	MSGLIST_THUMB_Y:1	present/ui/messages/messages.h: i32 the scroll thumb's offset while dragged
+0x00E95118	G_MSGLIST_DRAGGING	present/layout/g_ui_main.h	single	1	MSGLIST_DRAGGING:1	present/ui/messages/messages.h: i32 1 while the thumb is dragged
+0x00E9511C	G_MESSAGE_SCROLL_ROWS	core/state/layout/g_command.h	named	5	MESSAGE_ROWS:1, MSGLIST_ROWS:1	core/command/orders_messages.c: i32 rows the window shows (set by its drawing)
+0x00E95120	G_MESSAGE_SCROLL	core/state/layout/g_command.h	named	15	MESSAGE_SCROLL:1, MSGLIST_SCROLL:1	core/command/orders_messages.c: i32 first row shown
+0x00E951DC	G_MESSAGE_SHOWN_ID	core/state/layout/g_command.h	named	2	MESSAGE_TYPE_CUR:1, MSG_TYPE_CUR:1	present/ui/messages/messages.h: i32 the type of the row being drawn
+0x00E951E4	G_MESSAGE_CURRENT	core/state/layout/g_command.h	named	6	MESSAGE_CURRENT:1, MSG_CURRENT:1, MSG_INDEX:1	present/ui/messages/keywords.c: i32 the current message (records of 0x30 bytes)
+0x00E951E8	G_MESSAGE_SLOT	core/state/layout/g_command.h	named	6	MESSAGE_CLICKED:1	core/command/orders_messages.c
+0x00E951EC	G_MESSAGE_TOTAL	core/state/layout/g_command.h	named	7	MESSAGE_COUNT_NOW:1, MSG_COUNT:1	core/command/orders_messages.c: i32 messages in the list
+0x00E95228	MESSAGE_ADDR(0) + 0x0	core/state/layout/g_command.h	record	13	MESSAGES:3	core/io/save_load.c: chunk 77, 1000 x 48
+0x00EA0DA8	G_POPUP_DELAY	core/state/layout/g_scenario.h	named	4	DELAY:1	present/ui/messages/popup.c: i32 frames before the next pop-up
+0x00EA184C	G_CITY_PLAYER_NAME	core/state/layout/g_sim.h	single	5	CITY_PLAYER_NAME:1	core/newgame/start.c
+0x00EA1870	CITY_ADDR(0) + 0x0	core/state/layout/g_scenario.h	record	11	CITY_BASE:3, CITY:1, CITY_DATA:1	core/city/goods.c: chunk 28, 2 x 0x49D8
+0x00EA624A	CITY_ADDR(1) + 0x2	core/state/layout/g_city.h	record	6	CITY1_FLAG:2	core/city/day_basic.c: u8: city record 1, +0x2
+0x00EAAC28	G_PLAYER	core/state/layout/g_figure.h	majority	132	PLAYER:8, CURRENT_PLAYER:5, CITY_INDEX:4, CITY:1	core/city/goods.c: chunk 31
+0x00EAAC30	G_PYRAMIDS	core/state/layout/g_map.h	single	3	PYRAMIDS:1	core/map/terrain_land.c
+0x00EAAC44	G_PLACES	core/state/layout/g_building.h	single	18	PLACES:1	core/figure/builders.c
+0x00EAAF58	G_PLACE_COUNT	core/state/layout/g_building.h	single	20	PLACE_COUNT:1	core/figure/builders.c
+0x00EAAF64	G_PYRAMID_COUNT	core/state/layout/g_map.h	single	5	PYRAMID_COUNT:1	core/map/terrain_land.c
+0x00EAAF68	G_REC88	core/state/layout/g_figure.h	single	19	REC88:1	core/state/post_load.c
+0x00EADB30	G_COURSE_SECOND	present/layout/g_ui_info.h	single	9	COURSE_SECOND:1	present/ui/messages/keywords.c: i32 the resource of the secondary course
+0x00EADB34	G_COURSE_MAIN	present/layout/g_ui_info.h	single	19	COURSE_MAIN:1	present/ui/messages/keywords.c: i32 the resource of the monument's main course
+0x00EADC48	G_PYRAMID_STATUS	present/layout/g_ui_info.h	single	2	PYRAMID_STATUS:1	present/ui/info/monument.c: the pyramid's status record (0x1C i32, by 0x004F1310 at the open)
+0x00EADCB8	G_YARD_NOTICE	present/layout/g_ui_info.h	single	2	YARD_NOTICE:1	present/ui/info/storage.c: i32 1 / 2: the storage yard's notice (texts 0x63/0xD, 0x63/0xE)
+0x00EADCC0	G_ORDERS	core/state/layout/g_command.h	single	4	ORDERS:1	present/ui/info/info.h: i32 1: the storage orders sub-panel is shown
+0x00EADCC4	G_INFO_WARSHIP	core/state/layout/g_frame.h	resolved	5	CTX_WARSHIP:1, WARSHIP:1	present/ui/info/info.h: i32 the warship figure (kind 5)
+0x00EADCC8	G_INFO_TRANSPORT	core/state/layout/g_command.h	resolved	3	CTX_TRANSPORT:1, TRANSPORT:1	present/ui/info/info.h: i32 the transport ship figure (kind 6)
+0x00EADCCC	G_INFO_FORMATION	core/state/layout/g_command.h	resolved	5	CTX_FORMATION:1, FORMATION:1	present/ui/info/info.h: i32 the formation (kinds 4..6: the panel's argument)
+0x00EADCDC	G_PHRASE	core/state/layout/g_command.h	single	36	PHRASE:1	present/ui/info/phrase.c: i32 the phrase chosen (figure +0x7D)
+0x00EADCE0	G_SPEECH_KIND	present/layout/g_ui_info.h	single	4	SPEECH_KIND:1	present/ui/info/phrase.c: i32 the speech table's entry for the figure's type, - 0xC9
+0x00EADCE4	G_FIGURE_ROW	core/state/layout/g_command.h	single	1	FIGURE_ROW:1	present/ui/info/info.h: i32 the selected figure of the list
+0x00EADD24	G_FIGURES	core/state/layout/g_command.h	single	1	FIGURES:1	present/ui/info/info.h: i32[7] the figures on the tile
+0x00EADD40	G_FIGURE_COUNT	present/layout/g_ui_info.h	single	0	FIGURE_COUNT:1	present/ui/info/info.h: i32 figures listed in INFO_FIGURES (0..7)
+0x00EADD44	G_DISTRIBUTION	present/layout/g_ui_advisors.h	single	2	DISTRIBUTION:1	present/ui/info/info.h: i32 bazaar / storage view toggle (0x004062D0)
+0x00EADD48	G_FIGURE_VIEW	present/layout/g_ui_info.h	single	0	FIGURE_VIEW:1	present/ui/info/info.h: i32 1: the figure list is shown (kind 1 with figures)
+0x00EADD4C	G_TERRAIN_KIND	present/layout/g_ui_info.h	single	0	TERRAIN_KIND:1	present/ui/info/info.h: i32 the terrain kind of kind 1 (no figures): its text
+0x00EADD50	G_INFO_KIND	core/state/layout/g_command.h	generic	5	KIND:1	present/ui/info/info.h: i32 0 ?, 1 terrain or figures, 2 building, 4 legion, 5 warship, 6 transport
+0x00EADD54	G_HELP	present/layout/g_ui_info.h	single	0	HELP:1	present/ui/info/info.h: i32 the help message the help button opens (0x00511C50)
+0x00EADD58	G_ROAD	present/layout/g_ui_info.h	single	0	ROAD:1	present/ui/info/info.h: i32 1: the building has road access
+0x00EADD5C	G_WORKERS	present/layout/g_ui_info.h	single	0	WORKERS:1	present/ui/info/info.h: i32 the building's workers in percent of its need (0x004CDE60)
+0x00EADD60	G_TILE_BYTE	present/layout/g_ui_info.h	single	0	TILE_BYTE:1	present/ui/info/info.h: i32 the tile's 0x00AE8E7C byte
+0x00EADD64	G_TILE_FLAG	present/layout/g_ui_info.h	single	0	TILE_FLAG:1	present/ui/info/info.h: i32 the tile's 0x00AF598C bit 0x80
+0x00EADD68	G_TERRAIN	present/layout/g_ui_info.h	single	0	TERRAIN:1	present/ui/info/info.h: i32 the tile's terrain image byte (0x00A9010C grid)
+0x00EADD6C	G_INFO_BUILDING	core/state/layout/g_command.h	resolved	16	BUILDING:1, MSG_BUILDING:1, WINDOW_BUILDING:1	core/command/orders_storage.c: i32 the building of the info window
+0x00EADD78	G_TILE_Y	present/layout/g_ui_info.h	single	0	TILE_Y:1	present/ui/info/info.h: i32
+0x00EADD7C	G_TILE_X	present/layout/g_ui_info.h	single	0	TILE_X:1	present/ui/info/info.h: i32
+0x00EADD80	G_TILE	present/layout/g_ui_info.h	single	0	TILE:1	present/ui/info/info.h: i32 grid offset of the clicked tile (the building's for a building)
+0x00EADD84	G_INFO_H	present/layout/g_play.h	single	2	INFO_H:1	present/ui/info/info.h: i32 the panel's height in 16-pixel blocks
+0x00EADD88	G_INFO_W	present/layout/g_ui_info.h	single	0	INFO_W:1	present/ui/info/info.h: i32 the panel's width in 16-pixel blocks
+0x00EADD8C	G_INFO_Y	present/layout/g_ui_main.h	single	8	INFO_Y:1	present/ui/info/info.h: i32 the panel's y
+0x00EADD90	G_INFO_X	present/layout/g_ui_main.h	single	10	INFO_X:1	present/ui/info/info.h: i32 the panel's x
+0x00EADD94	G_INFO_SOUND	present/layout/g_ui_info.h	single+clash	0	SOUND:1	present/ui/info/info.h: i32 1 until the first draw (the building's sound plays once)
+0x00EADDA0	G_PROGRESS_PATH	core/state/layout/g_scenario.h	single	4	PROGRESS_PATH:1	core/newgame/flow.c: char[0x104]
+0x00EADEA4	G_FAMILY_DIR	core/state/layout/g_scenario.h	single	3	FAMILY_DIR:2	present/ui/frontend/files.c: char[0x104] built by 0x005169C0
+0x00EADFA8	G_FAMILY_LIST	core/state/layout/g_boot.h	single	1	FAMILY_LIST:1	core/newgame/flow2.h
+0x00EADFAC	G_FAMILY_ROWS	present/layout/g_ui_advisors.h	single	1	FAMILY_ROWS:1	present/ui/frontend/family.c: u32 the rows' offsets (an array of the heap)
+0x00EADFB0	G_FAMILY_COUNT	present/layout/g_ui_advisors.h	single	4	FAMILY_COUNT:1	present/ui/frontend/family.c: i32
+0x00EADFB8	G_FAMILY_NAMES	present/layout/g_ui_advisors.h	single	1	FAMILY_NAMES:1	present/ui/frontend/family.c: u32 base added to a row's offset
+0x00EADFC8	G_FAMILY_SCROLL	core/state/layout/g_scenario.h	resolved	11	FAMILY_FIRST:1, FAMILY_SCROLL:1	present/ui/frontend/family.c: i32 the first row shown
+0x00EADFCC	G_FAMILY_CHOSEN	core/state/layout/g_scenario.h	single	4	FAMILY_CHOSEN:2	present/ui/frontend/family.c: i32
+0x00EADFD4	G_ROUTE_SEARCHES	core/state/layout/g_map.h	named	13	SEARCH_COUNT:3, SEARCHES:1	core/figure/route_a.c: searches made
+0x00EADFD8	G_SEARCH_COUNT2	core/state/layout/g_map.h	single	4	SEARCH_COUNT2:2	core/map/route_army.c
+0x00EAE004	G_ROUTE_START	core/state/layout/g_map.h	named	43	SEARCH_START:6, START:2	core/figure/route_a.c
+0x00EAE008	G_ROUTE_QUEUE_TAIL	core/state/layout/g_map.h	named	60	QUEUE_TAIL:6, TAIL:2	core/figure/route_a.c
+0x00EAE00C	G_ROUTE_QUEUE_HEAD	core/state/layout/g_map.h	named	86	QUEUE_HEAD:6, HEAD:2	core/figure/route_a.c
+0x00EAE010	G_VISITS	core/state/layout/g_map.h	single	5	VISITS:1	core/map/route_search.c: u8 per tile: times a -2 tile was taken from the queue
+0x00EBAB20	G_EBAB20	core/state/layout/g_figure.h	single	5	EBAB20:1	core/map/routing.h
+0x00EC7630	G_EC7630	core/state/layout/g_figure.h	single	3	EC7630:1	core/map/routing.h
+0x00ED4140	G_GRID_ROUTING_WATER	core/state/layout/g_figure.h	resolved	10	ED4140:1, GRID_ED4140:1, ROUTING_ED4140:1	core/figure/actions_c2.c: i8 per tile: routing (water)
+0x00EE0C50	G_GRID_ROUTING	core/state/layout/g_figure.h	named	18	EE0C50:1, GRID_EE0C50:1, NEAR_GRID:1, ROUTING_EE0C50:1, TERRAIN:1	core/figure/actions_c2.c: i8 per tile: routing (land)
+0x00EED760	G_GRID_ROAD_DISTANCE	core/state/layout/g_figure.h	named	32	DISTANCE:1, DISTANCES:1, GRID_EED760:1, ROUTE_DIST:1, ROUTE_DISTANCE:1	core/figure/actions_c2.c: i32 per tile: distance from the last search (0x0051CE90)
+0x00F203A0	G_ROUTE_QUEUE	core/state/layout/g_map.h	named	41	QUEUE:8	core/figure/route_a.c: i32 ring of 0xCB10 tile offsets
+0x00F533C8	G_PATH_BUFFER	core/state/layout/g_map.h	single	7	PATH_BUFFER:2	core/map/route_path.c: u8 x 500: the directions, last step first
+0x00F535D0	G_MARKERS	present/layout/g_ui_main.h	single	0	MARKERS:1	present/ui/empire/empire.h: 100 army markers of 5 i32: event, x, y, w, h
+0x00F53DB4	G_PANEL_Y	present/layout/g_ui_advisors.h	single	37	PANEL_Y:2	present/ui/frontend/highscore.c
+0x00F53DB8	G_PANEL_X	present/layout/g_ui_advisors.h	single	37	PANEL_X:2	present/ui/frontend/highscore.c
+0x00F53DC8	G_SCALE_SHIFT	present/layout/g_ui_advisors.h	single	14	SCALE_SHIFT:1	present/ui/advisors/b_population.c: i32 its shift (-1: doubled)
+0x00F53DCC	G_SCALE_MAX	present/layout/g_ui_advisors.h	single	4	SCALE_MAX:1	present/ui/advisors/b_population.c: i32 the graph's top value (0x00527AD0)
+0x00F53DD8	G_GOODS_COUNT	core/state/layout/g_building.h	majority	25	GOODS_COUNT:2, LIST_A:1, STORAGE_ROWS:1	core/command/orders_storage.c: i32 count, then i32 resources (granaries, bazaars)
+0x00F53DDC	G_GOODS_LIST	core/state/layout/g_building.h	single	19	GOODS_LIST:2	core/building/market.c: i32 per entry: a good (1..0x13), 0: none
+0x00F53E6C	G_D_CALLBACKS_LIST_COUNT	core/state/layout/g_command.h	generic	30	LIST_COUNT:2, LIST_B:1, STORAGE_LIST:1	core/command/orders_storage.c: i32 count, then i32 resources (storage yards)
+0x00F53F00	G_PANEL_H	present/layout/g_ui_main.h	single	6	PANEL_H:1	present/ui/advisors/advisors.h: i32 the page panel's height in 16-px pieces
+0x00F53F04	G_PANEL_W	present/layout/g_ui_main.h	single	2	PANEL_W:1	present/ui/advisors/advisors.h: i32 the page panel's width in 16-px pieces
+0x00F53F08	G_ADVISOR_Y	present/layout/g_ui_main.h	resolved	0	ADVISOR_Y:1, PANEL_Y:1	present/ui/advisors/advisors.h: i32
+0x00F53F0C	G_ADVISOR_X	present/layout/g_ui_main.h	resolved	0	ADVISOR_X:1, PANEL_X:1	present/ui/ui.h: i32 the advisor windows' origin
+0x00F53F10	G_BUTTON_STYLE	present/layout/g_play.h	single	4	BUTTON_STYLE:2	present/ui/frontend/menu.c: i32[] the large buttons' style by kind
+0x00F53F48	G_ADVISOR_SLIDE	core/state/layout/g_command.h	resolved	15	ADV_OPENING:1, ADV_SLIDE:1, ANIM:1, PANEL_SLIDE:1	present/ui/advisors/a.h: i32 the window's slide-in step (pages draw a black frame while < 5)
+0x00F53F60	G_SIDEBAR_X_COLLAPSED	core/state/layout/g_sim.h	single	4	SIDEBAR_X_COLLAPSED:2	present/sidebar/sidebar.h: i32 x of the collapsed sidebar
+0x00F53F64	G_SIDEBAR_X	core/state/layout/g_sim.h	single	5	SIDEBAR_X:2	present/sidebar/sidebar.h: i32 x of the expanded sidebar (0x0051E930)
+0x00F53F78	G_SIDEBAR_COLLAPSED	core/state/layout/g_sim.h	single	10	SIDEBAR_COLLAPSED:2	present/sidebar/sidebar.h: i32 0 expanded, 1 collapsed
+0x00F53FDC	G_MARKER_COUNT	present/layout/g_ui_main.h	single	2	MARKER_COUNT:1	present/ui/empire/empire.h
+0x00F53FE4	G_CARET_TIME	present/layout/g_ui_advisors.h	single	3	CARET_TIME:1	present/ui/frontend/family.c: i32 the frame clock at the last change
+0x00F53FE8	G_CARET_PHASE	present/layout/g_ui_advisors.h	single	3	CARET_PHASE:1	present/ui/frontend/family.c: i32 0 hidden, 1 shown
+0x00F5467C	G_BUILDING_SOUNDS	core/state/layout/g_boot.h	single	2	BUILDING_SOUNDS:1	present/ui/info/info.c: i32 per type (stride 0x14): the sound of the type's panel, -1: none
+0x00F55A20	G_SPEECH_PATH	present/layout/g_ui_info.h	single	4	SPEECH_PATH:1	present/ui/info/phrase.c: char[] the speech file's path (0x00539A70)
+0x00F55B84	G_AMBIENT_TOTAL	core/state/layout/g_frame.h	single	3	AMBIENT_TOTAL:1	present/city/ground.c
+0x00F55B88	G_SOUND_ON	core/state/layout/g_frame.h	single	16	SOUND_ON:2	core/sim/platform.c: sound system initialised (0x005394F0: the start-up's result)
+0x00F55BA4	G_MOOD	core/state/layout/g_command.h	single	9	MOOD:1	present/ui/info/phrase.c: u8[8] the city's mood per category (0x0053D3A0)
+0x00F55BB0	G_GRAPHICS_GFX	core/state/layout/g_building.h	generic	65	GFX:11, IMAGES:10, GRAPHICS:3, IMAGES_THIS:2, GFX_OBJECT:1, SPRITES:1	core/city/day2_farm.c: `this` of 0x0053E590
+0x00F55BB4	G_DAY2_REDRAW_GROUPS	core/state/layout/g_building.h	generic	26	GROUPS:5, IMAGE_GROUPS:1, SPRITES:1	core/figure/actions_b.h: sprite group base ids, 8 bytes per group
+0x00F55C04	G_PICTURES	present/layout/g_ui_main.h	single	3	PICTURES:2	present/ui/messages/richtext.c: i32 first image of the message pictures
+0x00F55C24	G_BACKGROUND	present/layout/g_ui_advisors.h	single	2	BACKGROUND:1	present/ui/frontend/menu.c: i32 the main menu's picture
+0x00F55C34	G_PICTURES_BIG	present/layout/g_ui_main.h	single	1	PICTURES_BIG:1	present/ui/messages/window.c: i32 big pictures (the video layout)
+0x00F55C5C	G_GOD_IMAGES	present/layout/g_ui_advisors.h	resolved	6	GOD_IMAGES:1, TEMPLE_IMAGES:1	present/ui/info/service.c: i32 first image of the group the temples' god picture is in
+0x00F56494	G_SCROLL_IMAGES	present/layout/g_play.h	majority	7	SCROLL_IMAGES:3, BUTTON_IMAGES:1	present/ui/messages/list.c: i32 first image of the scroll bar group
+0x00F5662C	G_FORT_IMAGE	core/state/layout/g_building.h	single	15	FORT_IMAGE:1	present/city/ghost_big.c: i32 the fort's first image
+0x00F566EC	G_ICONS	present/layout/g_ui_main.h	single	2	ICONS:1	present/ui/messages/list.c: i32 first image of the message icons
+0x00F56754	G_COLUMN_GROUP	present/layout/g_city_view.h	single	2	COLUMN_GROUP:1	present/city/overlay_columns.c
+0x00F567E4	G_SIDEBAR_IMAGES	present/layout/g_city_view.h	single	18	SIDEBAR_IMAGES:1	present/sidebar/sidebar.c: i32 first image of the sidebar panels
+0x00F56834	G_ORDER_IMAGES	present/layout/g_ui_advisors.h	single	9	ORDER_IMAGES:1	present/ui/advisors/a_military.c
+0x00F5684C	G_SIDE_IMAGES	present/layout/g_play.h	single	7	SIDE_IMAGES:1	present/ui/info/info.c: i32 first image of the panels' icons (+0x0E the workers icon)
+0x00F5690C	G_STATUS_IMAGE	present/layout/g_ui_advisors.h	single	11	STATUS_IMAGE:1	present/ui/advisors/a_military.c
+0x00F56B44	G_VIEW_EMPTY_BASE	core/state/layout/g_command.h	single	2	VIEW_EMPTY_BASE:1	core/command/rotate.c: i32: + 0xFFF0000 marks a view position with no tile
+0x00F56B54	G_PLAIN	core/state/layout/g_building.h	single	27	PLAIN:1	core/building/rest_monument.c: the plain ground image
+0x00F56B84	G_CANAL_BASE	core/state/layout/g_map.h	single	13	CANAL_BASE:1	core/map/last_terrain.c
+0x00F56BDC	G_FLAT_IMAGE	present/layout/g_city_view.h	single	7	FLAT_IMAGE:1	present/city/overlay_tiles.c: group base of the flat building tiles (+4: building in use)
+0x00F56BE4	G_IMG_FOOTPRINT	present/layout/g_city_view.h	single	0	IMG_FOOTPRINT:1	present/city/ghost.h: i32 the plain tile footprint image
+0x00F56D14	G_WATER_IMAGE	present/layout/g_city_view.h	single	5	WATER_IMAGE:1	present/city/overlay_tiles.c: group base of the 0x2D / 0x33 ground (0x00F56D1C: building in use)
+0x00F56F84	G_FONT_SMALL	core/state/layout/g_scenario.h	majority	60	FONT_SMALL:8, CITY_FONT_SMALL:1, FONT:1	present/sidebar/sidebar.c: i32 first image of the small font
+0x00F56F8C	G_FONT_LARGE	present/layout/g_ui_main.h	named	108	FONT_HEAD:5, FONT_NORMAL:2, FONT_PLAIN:2, CITY_FONT_LARGE:1, FONT_LARGE:1, FONT_MAIN:1, FONT_TEXT:1	present/sidebar/sidebar.c: i32 first image of the large font (bar texts)
+0x00F56F94	G_FONT_ROW	present/layout/g_ui_advisors.h	majority	66	FONT_ROW:4, FONT_SMALL_TEXT:3, FONT_94:2, FONT_SMALL:2, FONT_F94:1, FONT_GREEN:1, FONT_INFO:1, FONT_LIT:1	present/ui/windows.c: highlighted
+0x00F56F9C	G_FONT_9C	core/state/layout/g_scenario.h	majority	173	FONT_9C:4, FONT_ROW_LIT:3, FONT_ROW:2, FONT_TEXT:2, ADV_FONT:1, FONT_F9C:1, FONT_NAME:1, FONT_SMALL:1, FONT_SMALL_TITLE:1, FONT_WHITE:1	present/ui/messages/list.c: i32 a row's font
+0x00F56FA4	G_UF56FA4	present/layout/g_ui_advisors.h	unresolved	47	FONT_A4:2, FONT_LIT:2, FONT_RED:2, FONT_GREY:1, FONT_MENU_LIT:1, FONT_ROW_LIT:1	present/ui/messages/list.c: i32 the hovered row's font
+0x00F56FAC	G_FONT_LINK	present/layout/g_ui_main.h	single	2	FONT_LINK:1	present/ui/messages/window.c
+0x00F56FB4	G_FONT_TITLE	core/state/layout/g_city.h	majority	36	FONT_TITLE:7, FONT_LARGE:5	core/city/text_lookup.c: first glyph ids of three fonts
+0x00F56FBC	G_FONT_LARGE2	core/state/layout/g_city.h	majority	8	FONT_LARGE2:2, FONT_TITLE:1	present/ui/info/figure.c: i32 the figure's name font
+0x00F571FC	G_RESOURCE_ICONS	core/state/layout/g_figure.h	majority	54	RESOURCE_ICONS:3, PANEL_ICONS:2, PANEL_IMAGES:2, RESOURCE_IMAGES:2, ICONS:1	present/ui/messages/window.c: i32 first resource icon
+0x00F572EC	G_IMAGE_FLAT_TOP	core/state/layout/g_building.h	single	5	IMAGE_FLAT_TOP:1	present/city/overlay.c: group base: images + 0x30 .. + 0x47 are drawn 0x96 higher
+0x00F5731C	G_PICTURES2	present/layout/g_ui_main.h	single	1	PICTURES2:1	present/ui/messages/window.c: i32 pictures from 1001 on
+0x010D69F8	G_IMG_ENTRIES	present/layout/g_ui_main.h	majority	8	IMG_ENTRIES:2, IMAGES:1, IMAGE_ENTRIES:1	present/ui/empire/empire.c: image entries of 0x40 bytes: +0x14 width, +0x16 height (i16)
+0x010D6A00	G_IMAGE_ENTRIES	core/state/layout/g_city.h	resolved	2	IMAGE_ENTRIES:1, SPRITE_INFO:1	core/city/day2_farm.c: 0x40-byte records
+0x010D6A0C	G_U0D6A0C	core/state/layout/g_city.h	unresolved	7	CITY_SIZES:1, IMAGES:1, IMGS_W:1	core/city/route_points.c: i16 width, i16 height of a city's picture, records of 64 bytes
+0x010D6A0E	G_IMGS_H	core/state/layout/g_sim.h	single	7	IMGS_H:1	present/ui/messages/richtext.c
+0x0126517C	G_IMAGE_COUNT	core/state/layout/g_city.h	majority	15	IMAGE_COUNT:4, IMG_COUNT:3, CITY_SIZE_COUNT:1, SPRITE_COUNT:1	present/ui/info/military.c: i32 image entries
+0x01265188	G_WORKSPACE	core/state/layout/g_frame.h	single	7	WORKSPACE:1	core/frame/autosave.c: the compressor's globals: output pointer, size, input size, crc

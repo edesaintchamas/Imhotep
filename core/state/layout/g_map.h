@@ -29,4 +29,20 @@
 #define G_ROAD_ACCESS_X 0x00D3B4E4u /* @bin 0x00487D00 i32: the road tile found by the access helpers */
 #define G_ROAD_ACCESS_Y 0x00D3B4E0u /* i32 */
 
+/* --- harvested: names the ports gave these addresses in local #defines (tools/naming/harvest.py).
+ * @bin evidence: the defining port (file) and its comment. A package agent checks each name it
+ * uses, and moves it above this block once checked. --- */
+#define G_M_VARIANT 0x00BC9740u /* core/map/last_terrain.c */
+#define G_M_EXTRA 0x00BC9744u /* core/map/last_terrain.c */
+#define G_M_OFFSET 0x00BC9748u /* core/map/last_terrain.c */
+#define G_SCRATCH 0x00BC97C0u /* core/figure/actions_a3.c: per direction (0 .. 7): non-zero when open (0x0047E340) */
+#define G_MAP_STRIDE_EXTRA 0x00BCA2DCu /* core/city/desirability.h: 228 - width */
+#define G_PYRAMIDS 0x00EAAC30u /* core/map/terrain_land.c */
+#define G_PYRAMID_COUNT 0x00EAAF64u /* core/map/terrain_land.c */
+#define G_SEARCH_COUNT2 0x00EADFD8u /* core/map/route_army.c */
+#define G_VISITS 0x00EAE010u /* core/map/route_search.c: u8 per tile: times a -2 tile was taken from the queue */
+#define G_PATH_BUFFER 0x00F533C8u /* core/map/route_path.c: u8 x 500: the directions, last step first */
+#define G_CANAL_BASE 0x00F56B84u /* core/map/last_terrain.c */
+/* --- end harvested --- */
+
 #endif

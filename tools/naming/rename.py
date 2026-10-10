@@ -4,8 +4,11 @@ by the names of the layout headers (roadmap 10.3, docs/naming.md).
 
 Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0.
 
-  python3 tools/naming/rename.py [--dry] FILE...   rewrite the files, then list what is left raw
+  python3 tools/naming/rename.py [--dry] [--vars f=FIGURE,b=BUILDING] FILE...
+                                                   rewrite the files, then list what is left raw;
+                                                   --vars: parameters holding a record address
   python3 tools/naming/rename.py --check            names table checks (one name per address, ...)
+  python3 tools/naming/rename.py --harvest [--write] candidate names from local #defines (harvest.py)
 
 Names are read from the headers: globals `#define G_X 0x...u` (core/state/layout/g_*.h,
 present/layout/g_*.h), record fields (core/state/layout/{building,city,figure,message}.h: BLD_,
@@ -24,7 +27,8 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-LAYOUT_DIRS = [os.path.join(ROOT, 'core', 'state', 'layout'), os.path.join(ROOT, 'present', 'layout')]
+LAYOUT_DIRS = [os.path.join(ROOT, 'core', 'state', 'layout'), os.path.join(ROOT, 'core', 'state', 'layout', 'pending'),
+               os.path.join(ROOT, 'present', 'layout')]
 RECORDS = {  # header -> (field prefix, address expressions of a record)
     'building.h': ('BLD_', [r'BUILDING_ADDR\(']),
     'city.h': ('CITY_', [r'CURRENT_CITY\(st\)', r'CITY_ADDR\(', r'\bCITY\(st\)']),
@@ -65,7 +69,7 @@ def code_mask(s):
 
 
 def load_names():
-    glob, fields, fns = {}, {}, {}
+    glob, fields, fns, where = {}, {}, {}, {}
     problems = []
     for d in LAYOUT_DIRS:
         if not os.path.isdir(d):
@@ -76,12 +80,21 @@ def load_names():
             text = open(os.path.join(d, f)).read()
             for m in DEFINE.finditer(code_mask(text)):
                 name, v = m.group(1), int(m.group(2), 16)
-                if f.startswith('g_') and name.startswith('G_') and v >= STATE_BASE:
+                pending = os.path.basename(d) == 'pending'
+                if (f.startswith('g_') or pending) and name.startswith('G_') and v >= STATE_BASE:
                     if v in glob and glob[v] != name:
                         problems.append('two names for 0x%08X: %s, %s' % (v, glob[v], name))
+                    if name in where and where[name][0] != v:
+                        problems.append('one name for two addresses: %s (0x%08X in %s, 0x%08X in %s)'
+                                        % (name, where[name][0], where[name][1], v, f))
+                    where.setdefault(name, (v, f))
                     glob.setdefault(v, name)
                 elif f in RECORDS and name.startswith(RECORDS[f][0]) and not NOT_FIELD.search(name):
                     fields.setdefault(f, {}).setdefault(v, []).append(name)
+                elif pending and not NOT_FIELD.search(name):  # a field named in a pending file
+                    for rf, (prefix, _) in RECORDS.items():
+                        if name.startswith(prefix):
+                            fields.setdefault(rf, {}).setdefault(v, []).append(name)
     fh = os.path.join(ROOT, 'core', 'state', 'functions.h')
     if os.path.exists(fh):
         for m in DEFINE.finditer(open(fh).read()):
@@ -117,7 +130,13 @@ def balanced_end(s, i):
     return -1
 
 
-def rewrite(path, glob, fields, fns, dry):
+KIND_HEADER = {'BUILDING': 'building.h', 'FIGURE': 'figure.h', 'CITY': 'city.h', 'MESSAGE': 'message.h'}
+
+
+def rewrite(path, glob, fields, fns, dry, given=None):
+    """given: {variable name: record kind} for variables the code does not assign (parameters),
+    from --vars (the caller has checked them)"""
+    given = given or {}
     s = open(path).read()
     edits = []  # (start, end, text)
     mask = code_mask(s)
@@ -157,10 +176,18 @@ def rewrite(path, glob, fields, fns, dry):
                 edits.append((m.start(), m.end(), new))
     # record fields
     unresolved = []
+    # local macros that are a record address: #define B(id) BUILDING_ADDR(id)
+    local_rec = {}
+    for m in re.finditer(r'^[ \t]*#define[ \t]+(\w+)\(([\w, ]*)\)[ \t]+\(?\s*(\w+)\((.*)\)\s*\)?[ \t]*(?:/\*.*\*/)?$',
+                         mask, re.M):
+        for f, (prefix, exprs) in RECORDS.items():
+            if any(re.fullmatch(e, m.group(3) + '(') for e in exprs) and m.group(4).count('(') == m.group(4).count(')'):
+                local_rec.setdefault(f, []).append(r'\b%s\(' % m.group(1))
     for f, (prefix, exprs) in RECORDS.items():
         table = fields.get(f, {})
         if not table:
             continue
+        exprs = exprs + local_rec.get(f, [])
         rec = '(?:%s)' % '|'.join(exprs)
         for fs, fe in functions(mask):
             body = mask[fs:fe]
@@ -169,6 +196,8 @@ def rewrite(path, glob, fields, fns, dry):
             for m in re.finditer(r'\b(\w+)\s*(?<![=!<>+\-*/&|^%])=(?!=)\s*([^;]*)', body):
                 kinds.setdefault(m.group(1), []).append(bool(re.match(rec, m.group(2).strip())))
             vars_ = [v for v, k in kinds.items() if all(k)]
+            vars_ += [v for v, kind in given.items() if KIND_HEADER.get(kind) == f and v not in kinds
+                      and re.search(r'\b%s\b' % re.escape(v), body)]
             pats = [r'\b%s\b' % re.escape(v) for v in vars_]
             for m in re.finditer(rec, body):
                 st = fs + m.start()
@@ -210,14 +239,15 @@ def rewrite(path, glob, fields, fns, dry):
     out.append(s[pos:])
     new = ''.join(out)
     if not dry and new != s:
-        if 'state/layout.h' not in new:
-            new = add_include(new)
+        inc = 'present_layout.h' if os.path.relpath(path, ROOT).startswith('present') else 'state/layout.h'
+        if '"%s"' % inc not in new:
+            new = add_include(new, inc)
         open(path, 'w').write(new)
     return new, unresolved
 
 
-def add_include(s):
-    """#include "state/layout.h" in its alphabetical place in the last block of quoted includes"""
+def add_include(s, inc='state/layout.h'):
+    """#include inc in its alphabetical place in the last block of quoted includes"""
     incs = list(re.finditer(r'^#include "([^"]+)"\n', s, re.M))
     if not incs:
         return s
@@ -227,9 +257,9 @@ def add_include(s):
             break
         block.insert(0, m)
     for m in block:
-        if m.group(1) > 'state/layout.h':
-            return s[:m.start()] + '#include "state/layout.h"\n' + s[m.start():]
-    return s[:block[-1].end()] + '#include "state/layout.h"\n' + s[block[-1].end():]
+        if m.group(1) > inc:
+            return s[:m.start()] + '#include "%s"\n' % inc + s[m.start():]
+    return s[:block[-1].end()] + '#include "%s"\n' % inc + s[block[-1].end():]
 
 
 def leftovers(path, text):
@@ -247,19 +277,28 @@ def leftovers(path, text):
 def main():
     args = sys.argv[1:]
     glob, fields, fns, problems = load_names()
+    if args and args[0] == '--harvest':
+        import harvest
+        return harvest.main('--write' in args)
     if args and args[0] == '--check':
         for p in problems:
             print(p)
         print('%d globals, %d record fields, %d functions' % (
             len(glob), sum(len(t) for t in fields.values()), len(fns)))
         return 1 if problems else 0
-    dry = bool(args) and args[0] == '--dry'
-    if dry:
-        args = args[1:]
+    dry = '--dry' in args
+    given = {}
+    if '--vars' in args:  # --vars f=FIGURE,b=BUILDING
+        i = args.index('--vars')
+        for kv in args[i + 1].split(','):
+            k, v = kv.split('=')
+            given[k] = v.upper()
+        del args[i:i + 2]
+    args = [a for a in args if a != '--dry']
     for p in problems:
         print('names: ' + p)
     for path in args:
-        new, unresolved = rewrite(os.path.abspath(path), glob, fields, fns, dry)
+        new, unresolved = rewrite(os.path.abspath(path), glob, fields, fns, dry, given)
         for u in unresolved:
             print(u)
         for u in leftovers(os.path.abspath(path), new):

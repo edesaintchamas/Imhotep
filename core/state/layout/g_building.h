@@ -60,4 +60,57 @@
 #define MONOBJ_PART_TABLE 0x54u /* @bin 0x0040EB90 i32[13] per part: [0] the part's size */
 #define MONOBJ_PART_ENTRIES 13
 
+/* --- harvested: names the ports gave these addresses in local #defines (tools/naming/harvest.py).
+ * @bin evidence: the defining port (file) and its comment. A package agent checks each name it
+ * uses, and moves it above this block once checked. --- */
+#define G_LIB_EXTRA2 0x00576278u /* core/building/rest_monument.c */
+#define G_LIB_EXTRA 0x00576284u /* core/building/rest_monument.c */
+#define G_LIB_MAIN_C5 0x00576290u /* core/building/rest_monument.c */
+#define G_LIB_MAIN_C3 0x0057629Cu /* core/building/rest_monument.c */
+#define G_LIB_MAIN_C2 0x005762A8u /* core/building/rest_monument.c */
+#define G_LIB_MAIN_C1 0x005762B4u /* core/building/rest_monument.c */
+#define G_LIB_MAIN_A5 0x005762C0u /* core/building/rest_monument.c */
+#define G_LIB_MAIN_C4 0x005762CCu /* core/building/rest_monument.c */
+#define G_LIB_MAIN_A4 0x005762D8u /* core/building/rest_monument.c */
+#define G_LIB_MAIN_A3 0x005762E4u /* core/building/rest_monument.c */
+#define G_LIB_MAIN_A2 0x005762F0u /* core/building/rest_monument.c */
+#define G_LIB_MAIN_A1 0x005762FCu /* core/building/rest_monument.c */
+#define G_FOOTPRINT_OFFSETS 0x005CC8C0u /* core/map/map_building.c: rows of 6 x (i32 grid offset, u8 edge bits, 3 pad), 0x30 bytes */
+#define G_MONUMENT_MODELS 0x005D19C8u /* core/command/menu.c: 16-byte records by monument code */
+#define G_COMPLEX_TABLE 0x005DF9B0u /* present/city/ghost_gate.c: 7 rows x 13 records of 0x14 bytes: +0 group, +4..+0x10 image by turn */
+#define G_PYR_SKIP 0x005E68D8u /* core/city/monument_rating.c: bytes by size * 6 + level: 1 = a level of 3, else 6 */
+#define G_HOUSE_LEVELS 0x0070CDCCu /* core/building/day_houses.c: 0x58 bytes per house level */
+#define G_FESTIVAL_TENTH 0x00775678u /* core/command/orders.c */
+#define G_MONUMENT_SLOTS 0x00784DE0u /* core/command/menu.c: i16[3]: the scenario's monument codes */
+#define G_DAY_WATER_QUEUE 0x0078C414u /* core/city/day_buildings.c: i32[1000] [generic] */
+#define G_GOODS_SUM 0x0078D590u /* core/building/day_houses.c: i32[12]: goods of merged houses */
+#define G_MERGE_Y 0x0078D76Cu /* core/building/day_houses.c */
+#define G_MERGE_X 0x0078D770u /* core/building/day_houses.c */
+#define G_TICK_DAY 0x0078D7C4u /* core/sim/tick.c: day within the month, 0..15 (chunk 35) [generic] */
+#define G_HOUSE_RESULT 0x0078D7E4u /* core/building/day_houses.c: i32: the evolution check's result (-1, 0, 1) */
+#define G_HOUSE_ID 0x0078D838u /* core/building/day_houses.c: the house being evolved (global loop counter) */
+#define G_MARKET_RECORDS 0x007900BCu /* core/figure/helpers_xa.c: records of 0xC4 bytes: +0 i16 building, +4 u8 in use [generic] */
+#define G_STORAGE_ORDERS 0x007900C2u /* core/figure/helpers_xa.c: u8 per good of the record selected by building +0xC1 */
+#define G_COUNTS 0x0096E644u /* core/figure/helpers_xa.c: 27 i32: candidates per good index */
+#define G_DESIRABILITY_GRID 0x00AC2D4Cu /* core/city/desirability.h: i8 per tile, chunk 16 (written) */
+#define G_RANDOM 0x00ACF85Cu /* core/map/route_x.c: u8 per tile */
+#define G_DAY2_DESTROY_BITS 0x00B285CCu /* core/city/day2_flood.c: u8 per tile [generic] */
+#define G_BUILDING_GRID 0x00B4E6FCu /* core/city/day2_flood.c: i16 per tile */
+#define G_EDGE 0x00B67D1Cu /* core/command/clear.c: u8 */
+#define G_IMAGE 0x00B7482Cu /* core/command/rotate.c: i32 per tile */
+#define G_UNDO_TYPE 0x00BC9690u /* core/command/undo.c */
+#define G_OUT_OF_MAP 0x00BC9734u /* core/building/day2_destroy.c */
+#define G_FOOTPRINT_ROWS 0x00BC9738u /* core/command/construction_checks.c */
+#define G_FOOTPRINT_COLS 0x00BC973Cu /* core/command/construction_checks.c */
+#define G_PLACES 0x00EAAC44u /* core/figure/builders.c */
+#define G_PLACE_COUNT 0x00EAAF58u /* core/figure/builders.c */
+#define G_GOODS_COUNT 0x00F53DD8u /* core/command/orders_storage.c: i32 count, then i32 resources (granaries, bazaars) */
+#define G_GOODS_LIST 0x00F53DDCu /* core/building/market.c: i32 per entry: a good (1..0x13), 0: none */
+#define G_GRAPHICS_GFX 0x00F55BB0u /* core/city/day2_farm.c: `this` of 0x0053E590 [generic] */
+#define G_DAY2_REDRAW_GROUPS 0x00F55BB4u /* core/figure/actions_b.h: sprite group base ids, 8 bytes per group [generic] */
+#define G_FORT_IMAGE 0x00F5662Cu /* present/city/ghost_big.c: i32 the fort's first image */
+#define G_PLAIN 0x00F56B54u /* core/building/rest_monument.c: the plain ground image */
+#define G_IMAGE_FLAT_TOP 0x00F572ECu /* present/city/overlay.c: group base: images + 0x30 .. + 0x47 are drawn 0x96 higher */
+/* --- end harvested --- */
+
 #endif

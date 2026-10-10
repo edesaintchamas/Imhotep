@@ -68,4 +68,77 @@
 #define FIG_NAME_GROUP 0x98u       /* i32: name text group (0x004D32F0, 0x004B5AF0) */
 #define FIG_FOLLOW 0x120u          /* i16 (0x004B23C0) */
 
+/* @bin wave 0: the other offsets the ports use (tools/naming/rename.py scan); a name with U and
+ * the offset until its meaning is established from the code that uses it */
+#define FIG_U00                0x00u
+#define FIG_ANIM_FRAME         0x01u /* u8: animation frame 0..11 (the figure actions, core/figure) */
+#define FIG_U02                0x02u
+#define FIG_U04                0x04u
+#define FIG_U0C                0x0Cu
+#define FIG_U0D                0x0Du
+#define FIG_U28                0x28u
+#define FIG_U29                0x29u
+#define FIG_U30                0x30u
+#define FIG_U32                0x32u
+#define FIG_ROAM_STATE         0x46u /* u8[4]: roam state, +0x46..+0x49 (0x004B1EF0) */
+#define FIG_U47                0x47u
+#define FIG_U48                0x48u
+#define FIG_U49                0x49u
+#define FIG_CC_DELTA_X         0x52u /* i16: cross-country distance x (0x004B4220); other uses for some types */
+#define FIG_CC_DELTA_Y         0x54u /* i16: cross-country distance y (0x004B4220); other uses for some types (the figure served, ...) */
+#define FIG_CC_ERROR           0x56u /* i16: cross-country error term (0x004B4220); other uses for some types (by good) */
+#define FIG_U59                0x59u
+#define FIG_FORMATION          0x60u /* i16: formation, records of 0x90 bytes at 0x00BCB9C8 (0x004B6E10) */
+#define FIG_U62                0x62u
+#define FIG_U63                0x63u
+#define FIG_LEADER             0x68u /* i16: the figure it follows (save.md: leader id, tentative) */
+#define FIG_U6B                0x6Bu
+#define FIG_U6C                0x6Cu
+#define FIG_U6D                0x6Du
+#define FIG_U6E                0x6Eu
+#define FIG_U6F                0x6Fu
+#define FIG_U75                0x75u
+#define FIG_HEIGHT_TICKS       0x77u /* u8: height adjust ticks (0x004B23C0) */
+#define FIG_HEIGHT             0x78u /* u8: current height, towards FIG_HEIGHT_TARGET */
+#define FIG_HEIGHT_TARGET      0x79u /* u8 */
+#define FIG_U7B                0x7Bu
+#define FIG_RAND_A             0x7Cu /* u8: rand() & 3 at creation (0x004B4800) */
+#define FIG_U7D                0x7Du
+#define FIG_RAND_B             0x7Eu /* u8: the same value */
+#define FIG_U7F                0x7Fu
+#define FIG_U80                0x80u
+#define FIG_U88                0x88u
+#define FIG_U92                0x92u
+#define FIG_U93                0x93u
+#define FIG_BUYERS_1           0x9Cu /* i32[4]: bazaar buyer list (0x00462180) */
+#define FIG_BUYERS_2           0xACu /* i32[4] */
+#define FIG_BUYERS_3           0xBCu /* i32[4] */
+#define FIG_U11C               0x11Cu
+#define FIG_U124               0x124u
+#define FIG_HIT_POINTS         0x128u /* hit points, of FIG_HIT_POINTS_MAX (the combat actions) */
+#define FIG_HIT_POINTS_MAX     0x12Cu
+#define FIG_U130               0x130u
+#define FIG_U131               0x131u
+#define FIG_U132               0x132u
+#define FIG_U134               0x134u
+#define FIG_U138               0x138u
+#define FIG_U13C               0x13Cu
+#define FIG_U140               0x140u
+#define FIG_FRAME_PERIOD       0x144u /* ticks per animation frame */
+#define FIG_FRAME_TICKS        0x148u /* counts ticks up to FIG_FRAME_PERIOD */
+#define FIG_U14C               0x14Cu
+#define FIG_U14E               0x14Eu
+#define FIG_U150               0x150u
+#define FIG_U154               0x154u
+#define FIG_U158               0x158u
+#define FIG_U15C               0x15Cu
+#define FIG_U160               0x160u
+#define FIG_U164               0x164u
+#define FIG_U16C               0x16Cu
+#define FIG_U170               0x170u
+#define FIG_U174               0x174u
+#define FIG_U178               0x178u
+#define FIG_U17C               0x17Cu
+#define FIG_U180               0x180u
+
 #endif

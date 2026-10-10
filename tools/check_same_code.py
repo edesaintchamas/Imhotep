@@ -7,7 +7,8 @@ Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0.
   python3 tools/check_same_code.py [BASE]      (default BASE: HEAD)
 
 Builds the libraries' objects of BASE (in a temporary git worktree) and of the working tree with the
-Makefile's own rules and flags, into build-same-base/ and build-same-tree/, and compares every object
+Makefile's own rules and flags (the base's kept in build-same-base-<commit>/, the tree's in a directory
+of the run's own, removed after), and compares every object
 of core/ and present/: the contents of all sections and the relocations (llvm-objdump -s -r), so code,
 data and constants and what each reference points at. Symbol tables are not compared: a static
 function or variable renamed keeps its code. Objects present on one side only are listed (a file
@@ -38,10 +39,15 @@ def build(tree, out):
     """the objects of core/ and present/ built by the Makefile in tree, into out (absolute)"""
     if os.path.exists(out):
         shutil.rmtree(out)
-    r = subprocess.run(['make', '-s', '-j4', 'BUILD=' + out, out + '/libimhotep_core.a', out + '/libimhotep_present.a'],
+    r = subprocess.run(['make', '-s', '-j2', 'BUILD=' + out, out + '/libimhotep_core.a', out + '/libimhotep_present.a'],
                        cwd=tree, capture_output=True, text=True)
     if r.returncode != 0:
         sys.exit('check_same_code: build failed in %s:\n%s' % (tree, (r.stdout + r.stderr)[-2000:]))
+    return objects(out)
+
+
+def objects(out):
+    """the objects of core/ and present/ under a build directory: relative path -> path"""
     objs = {}
     for d in DIRS:
         for dirpath, _, files in os.walk(os.path.join(out, d)):
@@ -62,16 +68,31 @@ def contents(tool, path):
 def main():
     base = sys.argv[1] if len(sys.argv) > 1 else 'HEAD'
     tool = objdump()
-    tmp = tempfile.mkdtemp(prefix='same-code-')
-    wt = os.path.join(tmp, 'base')
+    sha = subprocess.run(['git', 'rev-parse', base], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
+    # the base's objects are kept per commit (several checks, several agents: one build); the working
+    # tree's go to a directory of this run's own (agents run checks at the same time)
+    base_out = os.path.join(ROOT, 'build-same-base-' + sha[:12])
+    tree_out = os.path.join(ROOT, 'build-same-tree-%d' % os.getpid())
+    if not os.path.exists(os.path.join(base_out, 'libimhotep_present.a')):
+        tmp = tempfile.mkdtemp(prefix='same-code-')
+        wt = os.path.join(tmp, 'base')
+        staging = '%s.tmp%d' % (base_out, os.getpid())
+        try:
+            subprocess.run(['git', 'worktree', 'add', '--detach', '-q', wt, sha], cwd=ROOT, check=True)
+            build(wt, staging)
+            if os.path.exists(base_out):  # another run built it meanwhile
+                shutil.rmtree(staging)
+            else:
+                os.replace(staging, base_out)
+        finally:
+            subprocess.run(['git', 'worktree', 'remove', '--force', wt], cwd=ROOT, capture_output=True)
+            shutil.rmtree(tmp, ignore_errors=True)
+    a = objects(base_out)
     try:
-        subprocess.run(['git', 'worktree', 'add', '--detach', '-q', wt, base], cwd=ROOT, check=True)
-        a = build(wt, os.path.join(ROOT, 'build-same-base'))
-        b = build(ROOT, os.path.join(ROOT, 'build-same-tree'))
+        b = build(ROOT, tree_out)
+        differ = [o for o in sorted(set(a) & set(b)) if contents(tool, a[o]) != contents(tool, b[o])]
     finally:
-        subprocess.run(['git', 'worktree', 'remove', '--force', wt], cwd=ROOT, capture_output=True)
-        shutil.rmtree(tmp, ignore_errors=True)
-    differ = [o for o in sorted(set(a) & set(b)) if contents(tool, a[o]) != contents(tool, b[o])]
+        shutil.rmtree(tree_out, ignore_errors=True)
     only_a = sorted(set(a) - set(b))
     only_b = sorted(set(b) - set(a))
     for o in differ:
