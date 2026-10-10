@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "io/pkware.h"
+#include "state/layout.h"
 
 typedef struct {
     uint8_t *data;
@@ -51,7 +52,7 @@ static void put_compressed(game_state *st, out_buf *o, const uint8_t *data, uint
     }
     uint8_t *tmp = malloc(n ? n : 1);
     size_t clen;
-    if (tmp && pkware_implode(data, n, tmp, n, &clen, S32(st, 0x00603650u)) == 0) {
+    if (tmp && pkware_implode(data, n, tmp, n, &clen, S32(st, G_PKWARE_DICTIONARY)) == 0) {
         put_u32(o, (uint32_t) clen);
         put(o, tmp, clen);
     } else {
@@ -64,11 +65,11 @@ static void put_compressed(game_state *st, out_buf *o, const uint8_t *data, uint
 void terrain_flag10_to_1(game_state *st)
 {
     /* @bin 0x004771C0 */
-    for (int32_t r = 0; r < S32(st, 0x00BCA2D4u); r++) {
-        int32_t lo = S32(st, 0x00BC9F24u + 4u * (uint32_t) r), hi = S32(st, 0x00BC9B94u + 4u * (uint32_t) r);
-        int32_t o = S32(st, 0x00BC9804u + 4u * (uint32_t) r);
+    for (int32_t r = 0; r < S32(st, G_MAP_HEIGHT); r++) {
+        int32_t lo = S32(st, G_ROW_FIRST + 4u * (uint32_t) r), hi = S32(st, G_ROW_END + 4u * (uint32_t) r);
+        int32_t o = S32(st, G_ROW_OFFSET + 4u * (uint32_t) r);
         for (int32_t k = lo; k < hi; k++, o++) {
-            uint32_t *t = (uint32_t *) state_ptr(st, 0x00AF598Cu + 4u * (uint32_t) o, 4);
+            uint32_t *t = (uint32_t *) state_ptr(st, G_GRID_TERRAIN + 4u * (uint32_t) o, 4);
             if (*t & 0x10) {
                 *t = (*t & ~0x10u) | 1;
             }
@@ -122,13 +123,13 @@ int game_save(game_state *st, uint8_t **out, size_t *out_len)
 {
     /* @bin 0x004D0A40(0) the 10 shipwright queues into chunk 140's records */
     for (uint32_t j = 0; j < 10; j++) {
-        queue_pack(st, 0x009783C0u + 0x1Cu * j, 0x009763B8u + 0x334u * j);
+        queue_pack(st, G_REC4A + 0x1Cu + 0x1Cu * j, G_REC4A_SAVED + 0x334u * j); /* record j + 1 */
     }
     /* @bin 0x004D4E20 version 0xA0; "MAPS" copied over 0x005E17C4; player name into chunk 30 */
-    S32(st, 0x00E945C0u) = 0xA0;
-    memcpy(state_ptr(st, 0x005E17C4u, 5), state_ptr(st, 0x005E17CCu, 5), 5);
-    char *name = (char *) state_ptr(st, 0x00EA184Cu, 32);
-    const char *src = (const char *) state_ptr(st, 0x00E38E74u, 32);
+    S32(st, G_VERSION) = 0xA0;
+    memcpy(state_ptr(st, G_U5E17C4, 5), state_ptr(st, G_STR_MAPS, 5), 5);
+    char *name = (char *) state_ptr(st, G_CITY_PLAYER_NAME, 32);
+    const char *src = (const char *) state_ptr(st, G_PLAYER_NAME, 32);
     size_t nl = 0; /* strnlen(src, 31) (POSIX, not C11) */
     while (nl < 31 && src[nl]) {
         nl++;
@@ -137,25 +138,25 @@ int game_save(game_state *st, uint8_t **out, size_t *out_len)
     name[nl] = 0;
     terrain_flag10_to_1(st); /* @bin 0x004771C0 */
     /* @bin 0x004D4E20 routes: +0x141 / +0x134 of record 0 := 0, every point buffer released */
-    U8(st, 0x007770F1u) = 0;
-    S32(st, 0x007770E4u) = 0;
+    U8(st, G_ROUTES + ROUTE_U141) = 0;
+    S32(st, G_ROUTES + ROUTE_U134) = 0;
     for (uint32_t k = 0; k < 50; k++) {
-        uint32_t r = 0x00776FB0u + 0x144u * k;
-        if (U32(st, r + 4) != 0) {
-            state_dealloc(st, U32(st, r + 4));
-            U32(st, r + 4) = 0;
-            S32(st, r + 0x138) = 0;
+        uint32_t r = G_ROUTES + 0x144u * k;
+        if (U32(st, r + ROUTE_POINTS) != 0) {
+            state_dealloc(st, U32(st, r + ROUTE_POINTS));
+            U32(st, r + ROUTE_POINTS) = 0;
+            S32(st, r + ROUTE_U138) = 0;
         }
     }
     /* @bin 0x004D4E20 the schema (chunk 6, 0x00E92E50) := the 181 records of 0x005E09A0 */
-    memset(state_ptr(st, 0x00E92E50u, 0x5DC * 4), 0, 0x5DC * 4);
-    memcpy(state_ptr(st, 0x00E92E50u, 0x389 * 4), state_ptr(st, 0x005E09A0u, 0x389 * 4), 0x389 * 4);
-    S32(st, 0x00E945C4u) = 0xB5;
+    memset(state_ptr(st, G_FILE_SCHEMA, 0x5DC * 4), 0, 0x5DC * 4);
+    memcpy(state_ptr(st, G_FILE_SCHEMA, 0x389 * 4), state_ptr(st, G_CHUNKS, 0x389 * 4), 0x389 * 4);
+    S32(st, G_USE_FILE_SCHEMA) = 0xB5;
     out_buf o = {NULL, 0, 0, 0};
     for (uint32_t i = 0; i < 0xB5; i++) {
-        uint32_t rec = 0x005E09A0u + 20u * i;
-        uint32_t n = U32(st, rec + 8) * U32(st, rec + 12);
-        const uint8_t *data = state_ptr(st, U32(st, rec + 4), n);
+        uint32_t rec = G_CHUNKS + 20u * i;
+        uint32_t n = U32(st, rec + CHUNK_SIZE) * U32(st, rec + CHUNK_COUNT);
+        const uint8_t *data = state_ptr(st, U32(st, rec + CHUNK_ADDRESS), n);
         if (!data) {
             free(o.data);
             return -1;

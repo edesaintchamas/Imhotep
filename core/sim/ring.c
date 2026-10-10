@@ -7,6 +7,7 @@
  * original's stack (0x004F66C0 .. 0x004F66F0); its slots are a heap block, allocated and freed
  * here in the same order so that the arena matches the original's. */
 #include "sim/queue.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/vec.h"
 
@@ -139,7 +140,7 @@ static int32_t run_grow(game_state *st, const int32_t *a)
 
 static int32_t run_copy(game_state *st, const int32_t *a)
 {
-    if (!in_state(st, THIS(a), 0x004F6790u) || !in_state(st, (uint32_t) a[0], 0x004F6790u)) {
+    if (!in_state(st, THIS(a), FN_RING_COPY_4F6790) || !in_state(st, (uint32_t) a[0], FN_RING_COPY_4F6790)) {
         return 0;
     }
     ring_copy_4f6790(st, THIS(a), (uint32_t) a[0]);
@@ -148,7 +149,7 @@ static int32_t run_copy(game_state *st, const int32_t *a)
 
 static int32_t run_init_copy(game_state *st, const int32_t *a)
 {
-    if (!in_state(st, THIS(a), 0x004F66C0u) || !in_state(st, (uint32_t) a[0], 0x004F66C0u)) {
+    if (!in_state(st, THIS(a), FN_RING_INIT_COPY_4F66C0) || !in_state(st, (uint32_t) a[0], FN_RING_INIT_COPY_4F66C0)) {
         return 0;
     }
     ring_init_copy_4f66c0(st, THIS(a), (uint32_t) a[0]);
@@ -157,7 +158,7 @@ static int32_t run_init_copy(game_state *st, const int32_t *a)
 
 static int32_t run_reset(game_state *st, const int32_t *a)
 {
-    if (!in_state(st, THIS(a), 0x004F66F0u)) {
+    if (!in_state(st, THIS(a), FN_RING_RESET)) {
         return 0;
     }
     vec_reset(st, THIS(a)); /* @bin 0x004F66F0 jmp 0x004F6760 */

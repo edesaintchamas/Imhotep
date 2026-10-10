@@ -70,12 +70,12 @@ static game_state gs;
 /* the image grid of the state (0x00B7482C), terrain grid (0x00AF598C) */
 static uint32_t *image_grid(game_state *g)
 {
-    return (uint32_t *) state_ptr(g, 0x00B7482Cu, 4u * GRID_SIZE);
+    return (uint32_t *) state_ptr(g, 0x00B7482Cu, 4u * GRID_TILES);
 }
 
 static uint32_t *terrain_grid(game_state *g)
 {
-    return (uint32_t *) state_ptr(g, 0x00AF598Cu, 4u * GRID_SIZE);
+    return (uint32_t *) state_ptr(g, 0x00AF598Cu, 4u * GRID_TILES);
 }
 
 static void fresh_state(void)
@@ -137,7 +137,7 @@ static int campaign(const char *game, const image_groups *groups, int only)
         return 2;
     }
     terrain_state *t = malloc(sizeof(terrain_state));
-    uint32_t *stored = malloc(sizeof(uint32_t) * GRID_SIZE), *terrain0 = malloc(sizeof(uint32_t) * GRID_SIZE);
+    uint32_t *stored = malloc(sizeof(uint32_t) * GRID_TILES), *terrain0 = malloc(sizeof(uint32_t) * GRID_TILES);
     long same[NCAT] = {0}, diff[NCAT] = {0};
     int n = 0;
     for (int i = 0; i < CAMPAIGN_PAK_SLOTS; i++) {
@@ -156,8 +156,8 @@ static int campaign(const char *game, const image_groups *groups, int only)
             return 2;
         }
         map_file_free(&m);
-        memcpy(stored, image_grid(&gs), sizeof(uint32_t) * GRID_SIZE);
-        memcpy(terrain0, terrain_grid(&gs), sizeof(uint32_t) * GRID_SIZE);
+        memcpy(stored, image_grid(&gs), sizeof(uint32_t) * GRID_TILES);
+        memcpy(terrain0, terrain_grid(&gs), sizeof(uint32_t) * GRID_TILES);
         terrain_scenario_start(t);
         char label[32];
         snprintf(label, sizeof(label), "record %d", i);
@@ -227,7 +227,7 @@ int main(int argc, char **argv)
     }
 
     terrain_state *t = malloc(sizeof(terrain_state));
-    uint32_t *stored = malloc(sizeof(uint32_t) * GRID_SIZE), *terrain0 = malloc(sizeof(uint32_t) * GRID_SIZE);
+    uint32_t *stored = malloc(sizeof(uint32_t) * GRID_TILES), *terrain0 = malloc(sizeof(uint32_t) * GRID_TILES);
     long same[NCAT] = {0}, diff[NCAT] = {0};
     int maps_checked = 0;
     for (int i = 0; i < count; i++) {
@@ -250,14 +250,14 @@ int main(int argc, char **argv)
             return 2;
         }
         map_file_free(&m);
-        memcpy(stored, image_grid(&gs), sizeof(uint32_t) * GRID_SIZE);
-        memcpy(terrain0, terrain_grid(&gs), sizeof(uint32_t) * GRID_SIZE);
+        memcpy(stored, image_grid(&gs), sizeof(uint32_t) * GRID_TILES);
+        memcpy(terrain0, terrain_grid(&gs), sizeof(uint32_t) * GRID_TILES);
         terrain_scenario_start(t);
         if (dump) {
             char out[1400];
             snprintf(out, sizeof(out), "%s/%s.img", dump, names[i]);
             FILE *f = fopen(out, "wb");
-            if (!f || fwrite(image_grid(&gs), sizeof(uint32_t), GRID_SIZE, f) != GRID_SIZE) {
+            if (!f || fwrite(image_grid(&gs), sizeof(uint32_t), GRID_TILES, f) != GRID_TILES) {
                 fprintf(stderr, "cannot write %s\n", out);
                 return 2;
             }

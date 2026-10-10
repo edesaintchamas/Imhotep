@@ -13,30 +13,21 @@
 #include "figure/actions_a.h"
 #include "figure/helpers_x.h"
 #include "map/terrain_land.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/pre_load.h"
 
 #define GRID 228
-#define MAP_W 0x00BCA2D0u
-#define MAP_H 0x00BCA2D4u
-#define MAP_START 0x00BCA2D8u
-#define MAP_STRIDE_EXTRA 0x00BCA2DCu
-#define CURSOR 0x00BC9768u
-#define WALK_X 0x00BC9764u
-#define WALK_Y 0x00BC9760u
-#define SCRATCH 0x00BC97C0u
-#define M_VARIANT 0x00BC9740u
-#define M_OFFSET 0x00BC9748u
-#define GROUP(g) S32(st, 0x00F55BB4u + 8u * (uint32_t) (g))
+#define GROUP(g) S32(st, G_DAY2_REDRAW_GROUPS + 8u * (uint32_t) (g))
 
-#define TER(o) U32(st, 0x00AF598Cu + 4u * (uint32_t) (o))
-#define IMG(o) S32(st, 0x00B7482Cu + 4u * (uint32_t) (o))
-#define EDGE(o) U8(st, 0x00B67D1Cu + (uint32_t) (o))
-#define BITS(o) U8(st, 0x00B285CCu + (uint32_t) (o))
-#define RND(o) U8(st, 0x00ACF85Cu + (uint32_t) (o))
-#define AQ(o) U8(st, 0x00AE8E7Cu + (uint32_t) (o))
-#define MOIST(o) U8(st, 0x00A509BCu + (uint32_t) (o))
-#define FERT(o) U8(st, 0x00A5D4CCu + (uint32_t) (o))
+#define TER(o) U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (o))
+#define IMG(o) S32(st, G_IMAGE + 4u * (uint32_t) (o))
+#define EDGE(o) U8(st, G_EDGE + (uint32_t) (o))
+#define BITS(o) U8(st, G_DAY2_DESTROY_BITS + (uint32_t) (o))
+#define RND(o) U8(st, G_RANDOM + (uint32_t) (o))
+#define AQ(o) U8(st, G_CANAL + (uint32_t) (o))
+#define MOIST(o) U8(st, G_GRID_MOISTURE + (uint32_t) (o))
+#define FERT(o) U8(st, G_GRID_FERTILITY + (uint32_t) (o))
 
 enum {
     G_0X40000 = 508,       /* @bin 0x0047AB10 [0x00F56B94] */
@@ -65,22 +56,22 @@ static void rect_walk(game_state *st, int32_t x0, int32_t y0, int32_t x1, int32_
     if (y0 < 0) {
         y0 = 0;
     }
-    int32_t w = S32(st, MAP_W);
+    int32_t w = S32(st, G_MAP_WIDTH);
     if (x1 >= w) {
         x1 = w - 1;
     }
-    if (y1 >= S32(st, MAP_H)) {
-        y1 = S32(st, MAP_H) - 1;
+    if (y1 >= S32(st, G_MAP_HEIGHT)) {
+        y1 = S32(st, G_MAP_HEIGHT) - 1;
     }
     int32_t step = w - x1 + x0 - 1;
-    int32_t o = S32(st, MAP_START) + y0 * GRID + x0;
+    int32_t o = S32(st, G_MAP_START) + y0 * GRID + x0;
     for (int32_t y = y0; y <= y1; y++) {
         for (int32_t x = x0; x <= x1; x++, o++) {
             if (test(TER(o))) {
                 redraw(st, x, y);
             }
         }
-        o += S32(st, MAP_STRIDE_EXTRA) + step;
+        o += S32(st, G_MAP_STRIDE_EXTRA) + step;
     }
 }
 
@@ -94,20 +85,20 @@ static void square_3x3(game_state *st, int32_t x, int32_t y, int32_t *xa, int32_
     if (*xa < 0) {
         *w = *xa + 3;
         *xa = 0;
-    } else if (*xa + 3 > S32(st, MAP_W)) {
-        *w = S32(st, MAP_W) - *xa;
+    } else if (*xa + 3 > S32(st, G_MAP_WIDTH)) {
+        *w = S32(st, G_MAP_WIDTH) - *xa;
     }
     if (*ya < 0) {
         *h = *ya + 3;
         *ya = 0;
-    } else if (*ya + 3 > S32(st, MAP_H)) {
-        *h = S32(st, MAP_H) - *ya;
+    } else if (*ya + 3 > S32(st, G_MAP_HEIGHT)) {
+        *h = S32(st, G_MAP_HEIGHT) - *ya;
     }
 }
 
 static int inside(game_state *st, int32_t x, int32_t y)
 {
-    return map_tile_inside(st, S32(st, 0x00BCA2E8u) + x, S32(st, 0x00BCA2ECu) + y) != 0;
+    return map_tile_inside(st, S32(st, G_VIEW_DX) + x, S32(st, G_VIEW_DY) + y) != 0;
 }
 
 /* ---- trees ------------------------------------------------------------------------------------ */
@@ -124,7 +115,7 @@ void trees_tile_redraw(game_state *st, int32_t x, int32_t y, int32_t flag)
     if (!inside(st, x, y)) {
         return;
     }
-    int32_t o = S32(st, MAP_START) + y * GRID + x;
+    int32_t o = S32(st, G_MAP_START) + y * GRID + x;
     if (flag == 1) {
         TER(o) |= 1;
     } else {
@@ -132,24 +123,24 @@ void trees_tile_redraw(game_state *st, int32_t x, int32_t y, int32_t flag)
     }
     int32_t xa, ya, w, h;
     square_3x3(st, x, y, &xa, &ya, &w, &h);
-    S32(st, WALK_Y) = ya;
-    S32(st, CURSOR) = S32(st, MAP_START) + ya * GRID + xa;
-    while (S32(st, WALK_Y) < ya + h) {
-        int32_t c = S32(st, CURSOR);
-        for (S32(st, WALK_X) = xa; S32(st, WALK_X) < xa + w;) {
+    S32(st, G_WALK_Y) = ya;
+    S32(st, G_TILE_CURSOR) = S32(st, G_MAP_START) + ya * GRID + xa;
+    while (S32(st, G_WALK_Y) < ya + h) {
+        int32_t c = S32(st, G_TILE_CURSOR);
+        for (S32(st, G_WALK_X) = xa; S32(st, G_WALK_X) < xa + w;) {
             if (is_tree(TER(c))) {
                 tree_image_update(st, c);
-                c = S32(st, CURSOR);
+                c = S32(st, G_TILE_CURSOR);
                 BITS(c) &= 0xF0;
                 EDGE(c) |= 0x40;
                 AQ(c) = 0;
             }
-            S32(st, WALK_X) += 1;
+            S32(st, G_WALK_X) += 1;
             c++;
-            S32(st, CURSOR) = c;
+            S32(st, G_TILE_CURSOR) = c;
         }
-        S32(st, WALK_Y) += 1;
-        S32(st, CURSOR) = c + 0xE4 - w;
+        S32(st, G_WALK_Y) += 1;
+        S32(st, G_TILE_CURSOR) = c + 0xE4 - w;
     }
 }
 
@@ -196,7 +187,7 @@ void meadow_tile_redraw(game_state *st, int32_t x, int32_t y, int32_t flag)
     if (!inside(st, x, y)) {
         return;
     }
-    int32_t o = S32(st, MAP_START) + y * GRID + x;
+    int32_t o = S32(st, G_MAP_START) + y * GRID + x;
     if (flag == 1) {
         TER(o) |= 0x800;
     } else {
@@ -204,17 +195,17 @@ void meadow_tile_redraw(game_state *st, int32_t x, int32_t y, int32_t flag)
     }
     int32_t xa, ya, w, h;
     square_3x3(st, x, y, &xa, &ya, &w, &h);
-    S32(st, WALK_Y) = ya;
-    int32_t c = S32(st, MAP_START) + ya * GRID + xa;
-    S32(st, CURSOR) = c;
+    S32(st, G_WALK_Y) = ya;
+    int32_t c = S32(st, G_MAP_START) + ya * GRID + xa;
+    S32(st, G_TILE_CURSOR) = c;
     if (ya >= ya + h) {
         return;
     }
-    S32(st, WALK_Y) = ya + h;
+    S32(st, G_WALK_Y) = ya + h;
     for (int32_t r = 0; r < h; r++) {
-        S32(st, WALK_X) = xa;
+        S32(st, G_WALK_X) = xa;
         if (xa < xa + w) {
-            S32(st, WALK_X) = xa + w;
+            S32(st, G_WALK_X) = xa + w;
             for (int32_t i = 0; i < w; i++, c++) {
                 if (!is_meadow(TER(c))) {
                     continue;
@@ -247,7 +238,7 @@ void meadow_tile_redraw(game_state *st, int32_t x, int32_t y, int32_t flag)
         }
         c += 0xE4 - w;
     }
-    S32(st, CURSOR) = c;
+    S32(st, G_TILE_CURSOR) = c;
 }
 
 static void meadow_redraw_1(game_state *st, int32_t x, int32_t y)
@@ -277,8 +268,8 @@ void flag_0x40000_tile_redraw(game_state *st, int32_t x, int32_t y, int32_t flag
     if (!inside(st, x, y)) {
         return;
     }
-    int32_t o = S32(st, MAP_START) + y * GRID + x;
-    S32(st, CURSOR) = o;
+    int32_t o = S32(st, G_MAP_START) + y * GRID + x;
+    S32(st, G_TILE_CURSOR) = o;
     if (flag == 1) {
         TER(o) |= 0x40000;
     } else {
@@ -287,30 +278,30 @@ void flag_0x40000_tile_redraw(game_state *st, int32_t x, int32_t y, int32_t flag
     int32_t xa, ya, w, h;
     square_3x3(st, x, y, &xa, &ya, &w, &h);
     uint8_t blood = (uint8_t) figure_near_map_edge(st, xa);
-    S32(st, WALK_Y) = ya;
-    S32(st, CURSOR) = S32(st, MAP_START) + ya * GRID + xa;
-    while (S32(st, WALK_Y) < ya + h) {
-        int32_t c = S32(st, CURSOR);
-        for (S32(st, WALK_X) = xa; S32(st, WALK_X) < xa + w;) {
+    S32(st, G_WALK_Y) = ya;
+    S32(st, G_TILE_CURSOR) = S32(st, G_MAP_START) + ya * GRID + xa;
+    while (S32(st, G_WALK_Y) < ya + h) {
+        int32_t c = S32(st, G_TILE_CURSOR);
+        for (S32(st, G_WALK_X) = xa; S32(st, G_WALK_X) < xa + w;) {
             if (is_0x40000(TER(c))) {
                 land_neighbour_flags(st, 0x40000);
                 for (uint32_t i = 0; i < 8; i++) { /* @bin 0x00484F00 */
-                    S32(st, SCRATCH + 4u * i) = S32(st, SCRATCH + 4u * i) == 0;
+                    S32(st, G_NEIGHBOUR_FLAGS + 4u * i) = S32(st, G_NEIGHBOUR_FLAGS + 4u * i) == 0;
                 }
-                land_pattern_match(st, 0x005CA658u, 0x30, RND(S32(st, CURSOR)), 0);
-                c = S32(st, CURSOR);
-                IMG(c) = GROUP(blood ? G_0X40000_BLOOD : G_0X40000) + S32(st, M_VARIANT) + S32(st, M_OFFSET);
+                land_pattern_match(st, G_PATTERN_SHORE, 0x30, RND(S32(st, G_TILE_CURSOR)), 0);
+                c = S32(st, G_TILE_CURSOR);
+                IMG(c) = GROUP(blood ? G_0X40000_BLOOD : G_0X40000) + S32(st, G_MATCH_VARIANT) + S32(st, G_MATCH_OFFSET);
                 BITS(c) &= 0xF0;
                 EDGE(c) |= 0x40;
                 tree_image_update(st, c);
-                c = S32(st, CURSOR);
+                c = S32(st, G_TILE_CURSOR);
             }
-            S32(st, WALK_X) += 1;
+            S32(st, G_WALK_X) += 1;
             c++;
-            S32(st, CURSOR) = c;
+            S32(st, G_TILE_CURSOR) = c;
         }
-        S32(st, WALK_Y) += 1;
-        S32(st, CURSOR) = c + 0xE4 - w;
+        S32(st, G_WALK_Y) += 1;
+        S32(st, G_TILE_CURSOR) = c + 0xE4 - w;
     }
 }
 
@@ -339,9 +330,9 @@ void rubble_tile_redraw(game_state *st, int32_t x, int32_t y)
     if (!inside(st, x, y)) {
         return;
     }
-    int32_t o = S32(st, MAP_START) + y * GRID + x;
+    int32_t o = S32(st, G_MAP_START) + y * GRID + x;
     BITS(o) &= 0xF0;
-    S32(st, CURSOR) = o;
+    S32(st, G_TILE_CURSOR) = o;
     AQ(o) = 0;
     IMG(o) = (RND(o) & 7) + GROUP(G_RUBBLE);
     EDGE(o) |= 0x40;

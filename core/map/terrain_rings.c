@@ -7,6 +7,7 @@
  * loads a map. */
 #include "map/terrain_rings.h"
 
+#include "state/layout.h"
 #include "state/ported.h"
 
 void rings_1x1_build(game_state *st)
@@ -14,7 +15,7 @@ void rings_1x1_build(game_state *st)
     /* @bin 0x0046F8D0 ring k (1..12): the border of the square -k..k, rows (dy) outer, dx inner,
      * written at the k-th pointer of 0x005DBBD8 */
     for (int32_t k = 1; k <= 12; k++) {
-        uint32_t p = U32(st, 0x005DBBD8u + 4u * (uint32_t) (k - 1));
+        uint32_t p = U32(st, G_RINGS_1X1 + 4u * (uint32_t) (k - 1));
         for (int32_t dy = -k; dy <= k; dy++) {
             for (int32_t dx = -k; dx <= k; dx++) {
                 if (dx == -k || dx == k || dy == -k || dy == k) {
@@ -46,20 +47,28 @@ void ring_offsets_build(game_state *st)
 {
     /* @bin 0x00481F20 the source tables are the ones its code names (1x1: the rings of
      * 0x0046F8D0; larger footprints: static data) */
-    static const uint32_t S1[12] = {0x0070BF7Cu, 0x0070BF5Cu, 0x0070BF2Cu, 0x0070BEECu, 0x0070BE9Cu, 0x0070BE3Cu,
-                                    0x0070BDCCu, 0x0070BD4Cu, 0x0070BCBCu, 0x0070BC1Cu, 0x0070BB6Cu, 0x0070BAACu};
-    static const uint32_t S2[6] = {0x005C9BA8u, 0x005C9BC0u, 0x005C9BE8u, 0x005C9C20u, 0x005C9C68u, 0x005C9CC0u};
-    static const uint32_t S3[6] = {0x005C9D28u, 0x005C9D48u, 0x005C9D78u, 0x005C9DB8u, 0x005C9E08u, 0x005C9E68u};
-    static const uint32_t S4[6] = {0x005C9ED8u, 0x005C9F00u, 0x005C9F38u, 0x005C9F80u, 0x005C9FD8u, 0x005CA040u};
-    static const uint32_t S5[6] = {0x005CA0B8u, 0x005CA0E8u, 0x005CA128u, 0x005CA178u, 0x005CA1D8u, 0x005CA248u};
-    static const uint32_t S6[6] = {0x005CA2C8u, 0x005CA300u, 0x005CA348u, 0x005CA3A0u, 0x005CA408u, 0x005CA480u};
+    /* the rings 1..12 of 0x0046F8D0, stored from ring 12 up */
+    static const uint32_t S1[12] = {G_RINGS_1X1_DATA + 0x4D0u, G_RINGS_1X1_DATA + 0x4B0u, G_RINGS_1X1_DATA + 0x480u,
+                                    G_RINGS_1X1_DATA + 0x440u, G_RINGS_1X1_DATA + 0x3F0u, G_RINGS_1X1_DATA + 0x390u,
+                                    G_RINGS_1X1_DATA + 0x320u, G_RINGS_1X1_DATA + 0x2A0u, G_RINGS_1X1_DATA + 0x210u,
+                                    G_RINGS_1X1_DATA + 0x170u, G_RINGS_1X1_DATA + 0xC0u, G_RINGS_1X1_DATA};
+    static const uint32_t S2[6] = {G_RING_SOURCES_2, G_RING_SOURCES_2 + 0x18u, G_RING_SOURCES_2 + 0x40u,
+                                   G_RING_SOURCES_2 + 0x78u, G_RING_SOURCES_2 + 0xC0u, G_RING_SOURCES_2 + 0x118u};
+    static const uint32_t S3[6] = {G_RING_SOURCES_3, G_RING_SOURCES_3 + 0x20u, G_RING_SOURCES_3 + 0x50u,
+                                   G_RING_SOURCES_3 + 0x90u, G_RING_SOURCES_3 + 0xE0u, G_RING_SOURCES_3 + 0x140u};
+    static const uint32_t S4[6] = {G_RING_SOURCES_4, G_RING_SOURCES_4 + 0x28u, G_RING_SOURCES_4 + 0x60u,
+                                   G_RING_SOURCES_4 + 0xA8u, G_RING_SOURCES_4 + 0x100u, G_RING_SOURCES_4 + 0x168u};
+    static const uint32_t S5[6] = {G_RING_SOURCES_5, G_RING_SOURCES_5 + 0x30u, G_RING_SOURCES_5 + 0x70u,
+                                   G_RING_SOURCES_5 + 0xC0u, G_RING_SOURCES_5 + 0x120u, G_RING_SOURCES_5 + 0x190u};
+    static const uint32_t S6[6] = {G_RING_SOURCES_6, G_RING_SOURCES_6 + 0x38u, G_RING_SOURCES_6 + 0x80u,
+                                   G_RING_SOURCES_6 + 0xD8u, G_RING_SOURCES_6 + 0x140u, G_RING_SOURCES_6 + 0x1B8u};
     rings_1x1_build(st);
-    offsets(st, 0x005C9B00u, 12, 0x0070C8ECu, S1);
-    offsets(st, 0x005C9B18u, 6, 0x0070C76Cu, S2);
-    offsets(st, 0x005C9B24u, 6, 0x0070C5BCu, S3);
-    offsets(st, 0x005C9B30u, 6, 0x0070C3DCu, S4);
-    offsets(st, 0x005C9B3Cu, 6, 0x0070C1CCu, S5);
-    offsets(st, 0x005C9B48u, 6, 0x0070BF8Cu, S6);
+    offsets(st, G_RING_COUNTS_1, 12, G_RING_OFFSETS_1, S1);
+    offsets(st, G_RING_COUNTS_2, 6, G_RING_OFFSETS_2, S2);
+    offsets(st, G_RING_COUNTS_3, 6, G_RING_OFFSETS_3, S3);
+    offsets(st, G_RING_COUNTS_4, 6, G_RING_OFFSETS_4, S4);
+    offsets(st, G_RING_COUNTS_5, 6, G_RING_OFFSETS_5, S5);
+    offsets(st, G_RING_COUNTS_6, 6, G_RING_OFFSETS_6, S6);
 }
 
 static int32_t run_rings_1x1(game_state *st, const int32_t *a)

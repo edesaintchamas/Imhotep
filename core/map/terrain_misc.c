@@ -10,30 +10,19 @@
 
 #include "map/map_building.h"
 #include "map/terrain_land.h"
+#include "state/layout.h"
 #include "state/ported.h"
 
 #define GRID 228
-#define MAP_W 0x00BCA2D0u
-#define MAP_H 0x00BCA2D4u
-#define MAP_START 0x00BCA2D8u
-#define MAP_STRIDE_EXTRA 0x00BCA2DCu
-#define CURSOR 0x00BC9768u
-#define WALK_X 0x00BC9764u
-#define WALK_Y 0x00BC9760u
-#define SCRATCH 0x00BC97C0u
-#define M_VARIANT 0x00BC9740u
-#define M_OFFSET 0x00BC9748u
-#define SCAN_Y 0x00D3B4E0u
-#define SCAN_X 0x00D3B4E4u
-#define GROUP(g) S32(st, 0x00F55BB4u + 8u * (uint32_t) (g))
+#define GROUP(g) S32(st, G_DAY2_REDRAW_GROUPS + 8u * (uint32_t) (g))
 
-#define TER(o) U32(st, 0x00AF598Cu + 4u * (uint32_t) (o))
-#define IMG(o) S32(st, 0x00B7482Cu + 4u * (uint32_t) (o))
-#define EDGE(o) U8(st, 0x00B67D1Cu + (uint32_t) (o))
-#define BITS(o) U8(st, 0x00B285CCu + (uint32_t) (o))
-#define RND(o) U8(st, 0x00ACF85Cu + (uint32_t) (o))
-#define BGRID(o) S16(st, 0x00B4E6FCu + 2u * (uint32_t) (o))
-#define BUILDING(id) (0x007999D8u + 0x108u * (uint32_t) (id))
+#define TER(o) U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (o))
+#define IMG(o) S32(st, G_IMAGE + 4u * (uint32_t) (o))
+#define EDGE(o) U8(st, G_EDGE + (uint32_t) (o))
+#define BITS(o) U8(st, G_DAY2_DESTROY_BITS + (uint32_t) (o))
+#define RND(o) U8(st, G_RANDOM + (uint32_t) (o))
+#define BGRID(o) S16(st, G_BUILDING_GRID + 2u * (uint32_t) (o))
+#define BUILDING(id) BUILDING_ADDR(id)
 
 enum {
     G_WALLS = 407,     /* @bin 0x0047B1A0 [0x00F5686C] */
@@ -57,27 +46,27 @@ int32_t terrain_find_empty(game_state *st, int32_t x, int32_t y, int32_t n, int3
     if (ya < 0) {
         ya = 0;
     }
-    if (xb >= S32(st, MAP_W)) {
-        xb = S32(st, MAP_W) - 1;
+    if (xb >= S32(st, G_MAP_WIDTH)) {
+        xb = S32(st, G_MAP_WIDTH) - 1;
     }
-    if (yb >= S32(st, MAP_H)) {
-        yb = S32(st, MAP_H) - 1;
+    if (yb >= S32(st, G_MAP_HEIGHT)) {
+        yb = S32(st, G_MAP_HEIGHT) - 1;
     }
-    S32(st, SCAN_Y) = ya;
-    int32_t o = S32(st, MAP_START) + ya * GRID + xa;
+    S32(st, G_ROAD_ACCESS_Y) = ya;
+    int32_t o = S32(st, G_MAP_START) + ya * GRID + xa;
     for (int32_t r = ya; r <= yb; r++) {
         int32_t i = xa;
-        S32(st, SCAN_X) = i;
+        S32(st, G_ROAD_ACCESS_X) = i;
         while (i <= xb) {
             if (o != exclude && TER(o) == 0) {
                 return 1;
             }
             i++;
             o++;
-            S32(st, SCAN_X) = i;
+            S32(st, G_ROAD_ACCESS_X) = i;
         }
         o += xa - xb + 0xE3;
-        S32(st, SCAN_Y) = r + 1;
+        S32(st, G_ROAD_ACCESS_Y) = r + 1;
     }
     return 0;
 }
@@ -102,19 +91,19 @@ static void signpost_place(game_state *st, uint32_t point, int32_t dir, uint32_t
     /* @bin 0x0047D96F the first empty tile (terrain 0) within 1..9 tiles of the point (not the
      * point itself): its position at xy (x, y), offset at tile_var, terrain 2, image group 521 +
      * ((orientation 0x00E94E04 + dir) mod 8) / 2 + extra */
-    int32_t exclude = S32(st, MAP_START) + S16(st, point) + S16(st, point + 2) * GRID;
+    int32_t exclude = S32(st, G_MAP_START) + S16(st, point) + S16(st, point + 2) * GRID;
     for (int32_t k = 1; k < 10; k++) {
         if (terrain_find_empty(st, S16(st, point), S16(st, point + 2), 1, k, exclude)) {
             break;
         }
     }
-    int32_t y = S32(st, SCAN_Y), x = S32(st, SCAN_X);
+    int32_t y = S32(st, G_ROAD_ACCESS_Y), x = S32(st, G_ROAD_ACCESS_X);
     S32(st, xy + 4) = y;
     S32(st, xy) = x;
-    int32_t o = S32(st, MAP_START) + y * GRID + x;
+    int32_t o = S32(st, G_MAP_START) + y * GRID + x;
     S32(st, tile_var) = o;
     TER(o) |= 2;
-    int32_t d = S32(st, 0x00E94E04u) + dir;
+    int32_t d = S32(st, G_UE94E04) + dir;
     if (d >= 8) {
         d -= 8;
     }
@@ -127,19 +116,19 @@ void signposts_update(game_state *st, int32_t clear)
      * 0x00BCA320 / 0x00BCA324); else the entry (scenario +0x38C, 0x00784C64) and exit
      * (0x00784C68) points on a map edge get their signpost (exit images +4) */
     if (clear != 0) {
-        int32_t start = S32(st, MAP_START);
-        TER(start + S32(st, 0x00BCA318u) + S32(st, 0x00BCA31Cu) * GRID) &= 0xDFCFFFFDu;
-        TER(start + S32(st, 0x00BCA320u) + S32(st, 0x00BCA324u) * GRID) &= 0xDFCFFFFDu;
+        int32_t start = S32(st, G_MAP_START);
+        TER(start + S32(st, G_ENTRY_FLAG_X) + S32(st, G_ENTRY_FLAG_Y) * GRID) &= 0xDFCFFFFDu;
+        TER(start + S32(st, G_EXIT_FLAG_X) + S32(st, G_EXIT_FLAG_Y) * GRID) &= 0xDFCFFFFDu;
         return;
     }
-    int32_t w = S32(st, MAP_W), h = S32(st, MAP_H);
-    int32_t entry = edge_direction(S16(st, 0x00784C64u), S16(st, 0x00784C66u), w, h);
-    int32_t exit = edge_direction(S16(st, 0x00784C68u), S16(st, 0x00784C6Au), w, h);
+    int32_t w = S32(st, G_MAP_WIDTH), h = S32(st, G_MAP_HEIGHT);
+    int32_t entry = edge_direction(S16(st, G_SCENARIO_ENTRY_X), S16(st, G_SCENARIO_ENTRY_Y), w, h);
+    int32_t exit = edge_direction(S16(st, G_SCENARIO_EXIT_X), S16(st, G_SCENARIO_EXIT_Y), w, h);
     if (entry >= 0) {
-        signpost_place(st, 0x00784C64u, entry, 0x00BCA318u, 0x00BC96C4u, 0);
+        signpost_place(st, G_SCENARIO_ENTRY_X, entry, G_ENTRY_FLAG_X, G_ENTRY_FLAG_TILE, 0);
     }
     if (exit >= 0) {
-        signpost_place(st, 0x00784C68u, exit, 0x00BCA320u, 0x00BC96C0u, 4);
+        signpost_place(st, G_SCENARIO_EXIT_X, exit, G_EXIT_FLAG_X, G_EXIT_FLAG_TILE, 4);
     }
 }
 
@@ -188,35 +177,35 @@ void plaza_rect(game_state *st, int32_t x0, int32_t y0, int32_t x1, int32_t y1, 
     if (y0 < 0) {
         y0 = 0;
     }
-    int32_t w = S32(st, MAP_W);
+    int32_t w = S32(st, G_MAP_WIDTH);
     if (x1 >= w) {
         x1 = w - 1;
     }
-    if (y1 >= S32(st, MAP_H)) {
-        y1 = S32(st, MAP_H) - 1;
+    if (y1 >= S32(st, G_MAP_HEIGHT)) {
+        y1 = S32(st, G_MAP_HEIGHT) - 1;
     }
     int32_t step = w - x1 + x0 - 1;
     if (clear != 0) {
-        int32_t o = S32(st, MAP_START) + y0 * GRID + x0;
+        int32_t o = S32(st, G_MAP_START) + y0 * GRID + x0;
         for (int32_t y = y0; y <= y1; y++) {
             for (int32_t x = x0; x <= x1; x++, o++) {
                 if (!(TER(o) & 0x40) || !(BITS(o) & 0x80)) {
                     continue;
                 }
                 int32_t id = BGRID(o);
-                if (id != 0 && S16(st, BUILDING(id) + 0x10) == 0x8A) {
+                if (id != 0 && S16(st, BUILDING(id) + BLD_TYPE) == 0x8A) {
                     continue;
                 }
                 IMG(o) = 0;
                 BITS(o) &= 0xF0;
                 EDGE(o) |= 0x40;
             }
-            o += S32(st, MAP_STRIDE_EXTRA) + step;
+            o += S32(st, G_MAP_STRIDE_EXTRA) + step;
         }
-        w = S32(st, MAP_W); /* @bin 0x00475861 re-read after the clearing */
+        w = S32(st, G_MAP_WIDTH); /* @bin 0x00475861 re-read after the clearing */
         step = w - x1 + x0 - 1;
     }
-    int32_t o = S32(st, MAP_START) + y0 * GRID + x0;
+    int32_t o = S32(st, G_MAP_START) + y0 * GRID + x0;
     for (int32_t y = y0; y <= y1; y++) {
         for (int32_t x = x0; x <= x1; x++, o++) {
             if (!(TER(o) & 0x40) || IMG(o) != 0 || !(BITS(o) & 0x80)) {
@@ -236,7 +225,7 @@ void plaza_rect(game_state *st, int32_t x0, int32_t y0, int32_t x1, int32_t y1, 
             }
             EDGE(o) |= 0x40;
         }
-        o += S32(st, MAP_STRIDE_EXTRA) + step;
+        o += S32(st, G_MAP_STRIDE_EXTRA) + step;
     }
 }
 
@@ -246,26 +235,26 @@ static int32_t scratch_walls_buildings(game_state *st)
 {
     /* @bin 0x0047E000 the scratch: orthogonal neighbours' terrain & 0x8000 (as is), diagonals 0;
      * returns 1 when an orthogonal neighbour has 0x8000 */
-    int32_t c = S32(st, CURSOR);
+    int32_t c = S32(st, G_TILE_CURSOR);
     uint32_t n = TER(c - GRID) & 0x8000, e = TER(c + 1) & 0x8000, s = TER(c + GRID) & 0x8000,
              w = TER(c - 1) & 0x8000;
-    S32(st, SCRATCH + 28) = 0;
-    S32(st, SCRATCH + 20) = 0;
-    S32(st, SCRATCH + 12) = 0;
-    S32(st, SCRATCH + 4) = 0;
-    S32(st, SCRATCH + 0) = (int32_t) n;
-    S32(st, SCRATCH + 8) = (int32_t) e;
-    S32(st, SCRATCH + 16) = (int32_t) s;
-    S32(st, SCRATCH + 24) = (int32_t) w;
+    S32(st, G_NEIGHBOUR_FLAGS + 28) = 0;
+    S32(st, G_NEIGHBOUR_FLAGS + 20) = 0;
+    S32(st, G_NEIGHBOUR_FLAGS + 12) = 0;
+    S32(st, G_NEIGHBOUR_FLAGS + 4) = 0;
+    S32(st, G_NEIGHBOUR_FLAGS + 0) = (int32_t) n;
+    S32(st, G_NEIGHBOUR_FLAGS + 8) = (int32_t) e;
+    S32(st, G_NEIGHBOUR_FLAGS + 16) = (int32_t) s;
+    S32(st, G_NEIGHBOUR_FLAGS + 24) = (int32_t) w;
     return n != 0 || e != 0 || s != 0 || w != 0;
 }
 
 static void scratch_add_walls(game_state *st)
 {
     /* @bin 0x0047E750 scratch[i] += neighbour terrain bit 14 (0x4000) */
-    int32_t c = S32(st, CURSOR);
+    int32_t c = S32(st, G_TILE_CURSOR);
     for (uint32_t i = 0; i < 8; i++) {
-        S32(st, SCRATCH + 4u * i) += (int32_t) ((TER(c + NEIGHBOURS[i]) >> 14) & 1);
+        S32(st, G_NEIGHBOUR_FLAGS + 4u * i) += (int32_t) ((TER(c + NEIGHBOURS[i]) >> 14) & 1);
     }
 }
 
@@ -276,41 +265,41 @@ void walls_all(game_state *st)
      * (also when nothing matched), bit-field & 0xF0, edge 0x40; next to a 0x8000 tile, table
      * 0x005CBCD8 (15 records) on the 0x8000 / 0x4000 neighbours. The calls to the empty function
      * 0x0051F780 are left out. */
-    S32(st, CURSOR) = S32(st, MAP_START);
-    S32(st, WALK_Y) = 0;
-    if (S32(st, MAP_H) <= 0) {
+    S32(st, G_TILE_CURSOR) = S32(st, G_MAP_START);
+    S32(st, G_WALK_Y) = 0;
+    if (S32(st, G_MAP_HEIGHT) <= 0) {
         return;
     }
     do {
-        S32(st, WALK_X) = 0;
-        if (S32(st, MAP_W) > 0) {
+        S32(st, G_WALK_X) = 0;
+        if (S32(st, G_MAP_WIDTH) > 0) {
             do {
-                int32_t c = S32(st, CURSOR);
+                int32_t c = S32(st, G_TILE_CURSOR);
                 uint32_t v = TER(c);
                 if ((v & 0x4000) && !(v & 8)) {
                     land_neighbour_flags(st, 0x4000);
                     for (uint32_t i = 0; i < 8; i++) { /* @bin 0x00484F00 */
-                        S32(st, SCRATCH + 4u * i) = S32(st, SCRATCH + 4u * i) == 0;
+                        S32(st, G_NEIGHBOUR_FLAGS + 4u * i) = S32(st, G_NEIGHBOUR_FLAGS + 4u * i) == 0;
                     }
-                    land_pattern_match(st, 0x005CB9D8u, 0x30, -1, 0);
-                    c = S32(st, CURSOR);
+                    land_pattern_match(st, G_PATTERN_WALLS, 0x30, -1, 0);
+                    c = S32(st, G_TILE_CURSOR);
                     BITS(c) &= 0xF0;
                     EDGE(c) |= 0x40;
-                    IMG(c) = GROUP(G_WALLS) + S32(st, M_VARIANT) + S32(st, M_OFFSET);
+                    IMG(c) = GROUP(G_WALLS) + S32(st, G_MATCH_VARIANT) + S32(st, G_MATCH_OFFSET);
                     if (scratch_walls_buildings(st)) {
                         scratch_add_walls(st);
-                        if (land_pattern_match(st, 0x005CBCD8u, 0xF, -1, 0)) {
-                            IMG(S32(st, CURSOR)) = GROUP(G_WALLS) + S32(st, M_VARIANT) + S32(st, M_OFFSET);
+                        if (land_pattern_match(st, G_PATTERN_WALLS_BUILDING, 0xF, -1, 0)) {
+                            IMG(S32(st, G_TILE_CURSOR)) = GROUP(G_WALLS) + S32(st, G_MATCH_VARIANT) + S32(st, G_MATCH_OFFSET);
                         }
                     }
                 }
-                S32(st, WALK_X) += 1;
-                S32(st, CURSOR) += 1;
-            } while (S32(st, WALK_X) < S32(st, MAP_W));
+                S32(st, G_WALK_X) += 1;
+                S32(st, G_TILE_CURSOR) += 1;
+            } while (S32(st, G_WALK_X) < S32(st, G_MAP_WIDTH));
         }
-        S32(st, CURSOR) += S32(st, MAP_STRIDE_EXTRA);
-        S32(st, WALK_Y) += 1;
-    } while (S32(st, WALK_Y) < S32(st, MAP_H));
+        S32(st, G_TILE_CURSOR) += S32(st, G_MAP_STRIDE_EXTRA);
+        S32(st, G_WALK_Y) += 1;
+    } while (S32(st, G_WALK_Y) < S32(st, G_MAP_HEIGHT));
 }
 
 /* ---- table ------------------------------------------------------------------------------------ */

@@ -10,15 +10,12 @@
 #include "io/save_file.h"
 #include "sim/call.h"
 #include "sim/platform.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/post_load.h"
 #include "state/pre_load.h"
 #include "state/scenario_start.h"
 #include "state/vec.h"
-
-#define DIFFICULTY 0x00E39080u
-#define CURRENT_PLAYER 0x00EAAC28u
-#define CITY(st) (0x00EA1870u + 0x49D8u * U32(st, CURRENT_PLAYER))
 
 /* a NUL-terminated string of the state (path names), or NULL */
 static const char *state_cstr(game_state *st, uint32_t address)
@@ -41,8 +38,8 @@ static const char *state_cstr(game_state *st, uint32_t address)
 static int state_image_size(void *ctx, int32_t id, int16_t *width, int16_t *height)
 {
     game_state *st = ctx;
-    *width = S16(st, 0x010D6A0Cu + 64u * (uint32_t) id);
-    *height = S16(st, 0x010D6A0Eu + 64u * (uint32_t) id);
+    *width = S16(st, G_IMAGE_ENTRIES + IMAGE_ENTRY_WIDTH + 64u * (uint32_t) id);
+    *height = S16(st, G_IMAGE_ENTRIES + IMAGE_ENTRY_HEIGHT + 64u * (uint32_t) id);
     return 0;
 }
 
@@ -57,8 +54,8 @@ int loader_read(game_state *st, const uint8_t *data, size_t len,
     /* @bin 0x004D41E0 inputs of the steps that the file does not hold: the pyramid kind of the
      * previous scenario start (0x005E4EF4), the image count (0x0126517C), the CRT rand state (read
      * from the state by save_file_load_state) */
-    save_load_env le = {0, S32(st, 0x005E4EF4u), image_size ? image_size : state_image_size,
-                        image_size ? image_ctx : st, S32(st, 0x0126517Cu)};
+    save_load_env le = {0, S32(st, G_PYRAMID_KIND), image_size ? image_size : state_image_size,
+                        image_size ? image_ctx : st, S32(st, G_IMAGE_COUNT)};
     save_file_load_state(st, &s, &le, stats);
     save_file_free(&s);
     return 0;
@@ -99,13 +96,13 @@ static uint8_t *read_from(game_state *st, const char *path, uint32_t offset, uin
 int32_t loader_campaign_record(game_state *st, int32_t archive, int32_t no_start)
 {
     /* @bin 0x004D58B0 */
-    int8_t record = S8(st, 0x00E38EA8u);
+    int8_t record = S8(st, G_MISSION);
     if (record == 0x7F) {
         return 0;
     }
-    int32_t difficulty = S32(st, DIFFICULTY);
-    GAME_CALL0(st, 0x004CE2D0u); /* working directory */
-    const char *path = state_cstr(st, 0x005E1B98u + 0x14u * (uint32_t) archive);
+    int32_t difficulty = S32(st, G_DIFFICULTY);
+    GAME_CALL0(st, FN_WORKING_DIRECTORY); /* working directory */
+    const char *path = state_cstr(st, G_CAMPAIGN_ARCHIVES + 0x14u * (uint32_t) archive);
     if (!path) {
         return 0;
     }
@@ -141,8 +138,8 @@ int32_t loader_campaign_record(game_state *st, int32_t archive, int32_t no_start
         loader_read(st, data, len, NULL, NULL, &stats);
         free(data);
     }
-    S32(st, DIFFICULTY) = difficulty;
-    S32(st, CITY(st) + 0x44A0u) = 0; /* @bin 0x004D58B0 0x00EA5D10 + player * 0x49D8 := 0 */
+    S32(st, G_DIFFICULTY) = difficulty;
+    S32(st, CURRENT_CITY(st) + CITY_U44A0) = 0; /* @bin 0x004D58B0 0x00EA5D10 + player * 0x49D8 := 0 */
     if (no_start == 0) {
         floodplain_settings_copy(st);
         scenario_start(st);
@@ -155,29 +152,29 @@ int loader_load_save_bytes(game_state *st, const uint8_t *data, size_t len, int 
                            void *image_ctx, save_load_stats *stats)
 {
     /* @bin 0x004D5100 / 0x004D51B0 after the file opened */
-    int32_t difficulty = S32(st, DIFFICULTY);
-    GAME_CALLT(st, 0x00E92BF8u, 0x0055F561u, 2); /* the sound stream of channel 2 stops */
-    U32(st, 0x00F55B94u) = 0;
+    int32_t difficulty = S32(st, G_DIFFICULTY);
+    GAME_CALLT(st, G_SOUND, FN_SOUND_STOP_STREAM, 2); /* the sound stream of channel 2 stops */
+    U32(st, G_UF55B94) = 0;
     int rc = loader_read(st, data, len, image_size, image_ctx, stats);
     if (keep_difficulty) {
         /* @bin 0x004D51B0 the difficulty kept; treasury := 0x004CDE40(treasury, 0x005D1960[d]) */
-        S32(st, DIFFICULTY) = difficulty;
-        int32_t percent = S32(st, 0x005D1960u + 4u * (uint32_t) difficulty);
-        int32_t t = GAME_CALL(st, 0x004CDE40u, S32(st, CITY(st) + 0x0Cu), percent);
-        U8(st, 0x00D3B1B8u) = 1;
-        S32(st, CITY(st) + 0x0Cu) = t;
+        S32(st, G_DIFFICULTY) = difficulty;
+        int32_t percent = S32(st, G_TREASURY_PCT + 4u * (uint32_t) difficulty);
+        int32_t t = GAME_CALL(st, FN_CALC_PERCENTAGE, S32(st, CURRENT_CITY(st) + CITY_TREASURY), percent);
+        U8(st, G_SAVE_LOADED) = 1;
+        S32(st, CURRENT_CITY(st) + CITY_TREASURY) = t;
     } else {
-        U8(st, 0x00D3B1B8u) = 1; /* @bin 0x004D5100 byte store */
+        U8(st, G_SAVE_LOADED) = 1; /* @bin 0x004D5100 byte store */
     }
     scenario_start(st);
     load_rebuild_storage_links(st); /* 0x0046B320 */
     load_rebuild_0x88_links(st);    /* 0x0046F030 */
     load_rebuild_0x4a_links(st);    /* 0x0046A320 */
     /* @bin 0x004D5100 strcpy(0x00EA184C, 0x00E38E74): the player name */
-    const char *src = state_cstr(st, 0x00E38E74u);
+    const char *src = state_cstr(st, G_PLAYER_NAME);
     if (src) {
         size_t n = strlen(src) + 1;
-        uint8_t *dst = state_ptr(st, 0x00EA184Cu, (uint32_t) n);
+        uint8_t *dst = state_ptr(st, G_CITY_PLAYER_NAME, (uint32_t) n);
         if (dst) {
             memmove(dst, src, n);
         }
@@ -191,8 +188,8 @@ int32_t loader_load_save_path(game_state *st, const char *path, int keep_difficu
      * cleared 0x0046FA40, working directory 0x004CE2D0, 0x00D3B1B8 := 0 (byte), _open (-1: return 1) */
     floodplain_settings_reset(st);
     pre_load_clear(st);
-    GAME_CALL0(st, 0x004CE2D0u);
-    U8(st, 0x00D3B1B8u) = 0;
+    GAME_CALL0(st, FN_WORKING_DIRECTORY);
+    U8(st, G_SAVE_LOADED) = 0;
     size_t len;
     uint8_t *data = path ? read_from(st, path, 0, 0, &len) : NULL;
     if (!data) {
@@ -217,7 +214,7 @@ int32_t loader_load_save_keep_difficulty(game_state *st, uint32_t path)
 void floodplain_settings_copy(game_state *st)
 {
     /* @bin 0x004BD360 (this = 0x00D38360) */
-    const uint32_t f = 0x00D38360u;
+    const uint32_t f = G_FLOODPLAIN;
     S32(st, f + 0x0C) = S32(st, f + 0x00);
     S32(st, f + 0x10) = S32(st, f + 0x04);
     S32(st, f + 0x14) = S32(st, f + 0x08);
@@ -247,7 +244,7 @@ static int32_t run_file_read_at(game_state *st, const int32_t *a)
     const char *path = state_cstr(st, (uint32_t) a[0]);
     uint8_t *buf = state_ptr(st, (uint32_t) a[1], (uint32_t) a[2]);
     if (!path || !buf) {
-        state_unported(st, 0x004CE480u); /* a buffer outside the state (the caller's stack) */
+        state_unported(st, FN_LOADER_FILE_READ_AT); /* a buffer outside the state (the caller's stack) */
         return 0;
     }
     return loader_file_read_at(st, path, buf, (uint32_t) a[2], (uint32_t) a[3]);
@@ -269,7 +266,7 @@ static int32_t run_floodplain_copy(game_state *st, const int32_t *a)
 
 static int32_t run_route_rebuild(game_state *st, const int32_t *a)
 {
-    save_load_env le = {U32(st, 0x00604950u), S32(st, 0x005E4EF4u), state_image_size, st, S32(st, 0x0126517Cu)};
+    save_load_env le = {U32(st, G_CRT_RAND_STATE), S32(st, G_PYRAMID_KIND), state_image_size, st, S32(st, G_IMAGE_COUNT)};
     return save_route_rebuild_state(st, (uint32_t) a[PORT_THIS_ARG], &le);
 }
 
@@ -277,7 +274,7 @@ static int32_t run_route_rebuild(game_state *st, const int32_t *a)
 static int vec_in_segments(game_state *st, uint32_t vec)
 {
     if (vec < STATE_BASE || vec + 0x18u > STATE_END) {
-        state_unported(st, 0x004F6700u);
+        state_unported(st, FN_VEC_RESERVE);
         return 0;
     }
     return 1;

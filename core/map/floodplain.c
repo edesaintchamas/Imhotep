@@ -1,6 +1,7 @@
 /* Imhotep - the floodplain manager (Pharaoh.exe object at 0x00D05720) and its objects.
  * Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0. */
 #include "map/floodplain.h"
+#include "state/layout.h"
 
 #include <string.h>
 
@@ -47,7 +48,7 @@ void floodplain_list_release(game_state *st, uint32_t obj)
  * objects of 7 dwords from +0x32C64 reset (id 1..30, owner = the manager), counters */
 void floodplain_manager_reset(game_state *st)
 {
-    const uint32_t m = 0x00D05720u;
+    const uint32_t m = G_UD05720;
     memset(state_ptr(st, m, 0xCB10u * 4), 0, 0xCB10u * 4);
     for (uint32_t i = 0; i < 0x1E; i++) {
         uint32_t obj = m + 4 * (0xCB1Au - 1) + 28 * i;
@@ -71,15 +72,15 @@ uint32_t floodplain_object_create(game_state *st, uint32_t list, int32_t offset,
 {
     uint32_t obj = state_alloc(st, 0x1C);
     if (obj) { /* @bin 0x004BD610 */
-        P32(st, obj + 8) = (uint32_t) offset;
-        P32(st, obj + 12) = (uint32_t) x;
-        P32(st, obj + 16) = (uint32_t) y;
-        P32(st, obj + 20) = (uint32_t) depth;
-        P32(st, obj + 4) = 0;
+        P32(st, obj + FLOODOBJ_TILE) = (uint32_t) offset;
+        P32(st, obj + FLOODOBJ_X) = (uint32_t) x;
+        P32(st, obj + FLOODOBJ_Y) = (uint32_t) y;
+        P32(st, obj + FLOODOBJ_DEPTH) = (uint32_t) depth;
+        P32(st, obj + FLOODOBJ_NODE) = 0;
         P32(st, obj) = list;
-        P8(st, obj + 24) = flag;
+        P8(st, obj + FLOODOBJ_FLAG) = flag;
     }
-    int32_t key = U8(st, 0x00ACF85Cu + (uint32_t) offset);
+    int32_t key = U8(st, G_RANDOM + (uint32_t) offset);
     uint32_t node = state_alloc(st, 0x10);
     if (node) {
         P32(st, node + 4) = 0;
@@ -118,7 +119,7 @@ uint32_t floodplain_object_create(game_state *st, uint32_t list, int32_t offset,
             U32(st, list + 16) = node;
         }
     }
-    P32(st, obj + 4) = node;
+    P32(st, obj + FLOODOBJ_NODE) = node;
     S32(st, list) += 1;
     return obj;
 }

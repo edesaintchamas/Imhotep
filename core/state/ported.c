@@ -11,6 +11,7 @@
 #include "map/terrain.h"
 #include "sim/small.h"
 #include "sim/tick.h"
+#include "state/layout.h"
 #include "state/post_load.h"
 #include "state/pre_load.h"
 #include "state/scenario_start.h"
@@ -155,7 +156,7 @@ static int32_t run_fill_bytes(game_state *st, const int32_t *a)
     if (p) {
         memset(p, (uint8_t) a[2], (uint32_t) a[1]);
     } else if (a[1] != 0) {
-        state_unported(st, 0x0040F8F0u); /* outside the state: a caller's local buffer */
+        state_unported(st, FN_FILL_BYTES); /* outside the state: a caller's local buffer */
     }
     return 0;
 }

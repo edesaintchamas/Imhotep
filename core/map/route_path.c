@@ -6,19 +6,11 @@
 
 #include "map/route_search.h"
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define MAP_START 0x00BCA2D8u
-#define ROUTING_ED4140 0x00ED4140u /* i8 per tile, -1 blocked */
-#define QUEUE 0x00F203A0u
 #define QUEUE_LAST 0xCB0F
-#define QUEUE_HEAD 0x00EAE00Cu
-#define QUEUE_TAIL 0x00EAE008u
-#define SEARCH_START 0x00EAE004u
-#define PATH_BUFFER 0x00F533C8u /* u8 x 500: the directions, last step first */
-#define FIGURE_PATHS 0x00C8AD38u /* 500 bytes per figure */
-#define DIRECTION_OFFSETS 0x005F80FCu /* i32 grid offset per direction 0..7 */
 
 int32_t route_direction(int32_t x0, int32_t y0, int32_t x1, int32_t y1)
 {
@@ -37,68 +29,68 @@ static const int32_t around[8] = {-GRID_SIZE, -GRID_SIZE + 1, 1, GRID_SIZE + 1, 
 
 static void push(game_state *st, int32_t tile)
 {
-    int32_t tail = S32(st, QUEUE_TAIL);
-    S32(st, QUEUE + 4u * (uint32_t) tail) = tile;
+    int32_t tail = S32(st, G_ROUTE_QUEUE_TAIL);
+    S32(st, G_ROUTE_QUEUE + 4u * (uint32_t) tail) = tile;
     tail++;
-    S32(st, QUEUE_TAIL) = tail > QUEUE_LAST ? 0 : tail;
+    S32(st, G_ROUTE_QUEUE_TAIL) = tail > QUEUE_LAST ? 0 : tail;
 }
 
 static void visit(game_state *st, int32_t c, int32_t d, int32_t end)
 {
-    if (S32(st, ROUTE_DISTANCE + 4u * (uint32_t) c) != 0) {
+    if (S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) c) != 0) {
         return;
     }
-    int32_t start = S32(st, SEARCH_START);
+    int32_t start = S32(st, G_ROUTE_START);
     if (c != start && c != end) {
-        uint32_t v = U32(st, TERRAIN_GRID + 4u * (uint32_t) c);
-        if (S8(st, ROUTING_ED4140 + (uint32_t) c) == -1 || (v & 0x10000) || (v & 0x40)) {
+        uint32_t v = U32(st, G_GRID_TERRAIN + 4u * (uint32_t) c);
+        if (S8(st, G_GRID_ROUTING_WATER + (uint32_t) c) == -1 || (v & 0x10000) || (v & 0x40)) {
             return;
         }
         for (int i = 0; i < 8; i++) {
             int32_t n = c + around[i];
-            uint32_t w = U32(st, TERRAIN_GRID + 4u * (uint32_t) n);
+            uint32_t w = U32(st, G_GRID_TERRAIN + 4u * (uint32_t) n);
             if (w & 0x40) {
                 return;
             }
-            if (n == S32(st, SEARCH_START) || n == end) {
+            if (n == S32(st, G_ROUTE_START) || n == end) {
                 break;
             }
-            if (S8(st, ROUTING_ED4140 + (uint32_t) n) == -1 || (w & 0x10000)) {
+            if (S8(st, G_GRID_ROUTING_WATER + (uint32_t) n) == -1 || (w & 0x10000)) {
                 return;
             }
         }
     }
-    S32(st, ROUTE_DISTANCE + 4u * (uint32_t) c) = d;
+    S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) c) = d;
     push(st, c);
 }
 
 int32_t route_distances_wide(game_state *st, int32_t x0, int32_t y0, int32_t x1, int32_t y1)
 {
     /* @bin 0x0051DE70 */
-    memset(state_ptr(st, ROUTE_DISTANCE, 4 * GRID_TILES), 0, 4 * GRID_TILES); /* 0x0040F8F0 */
-    int32_t start = S32(st, MAP_START) + y0 * GRID_SIZE + x0;
-    S32(st, SEARCH_START) = start;
-    int32_t end = S32(st, MAP_START) + y1 * GRID_SIZE + x1;
-    if (S8(st, ROUTING_ED4140 + (uint32_t) start) == -1) {
+    memset(state_ptr(st, G_GRID_ROAD_DISTANCE, 4 * GRID_TILES), 0, 4 * GRID_TILES); /* 0x0040F8F0 */
+    int32_t start = S32(st, G_MAP_START) + y0 * GRID_SIZE + x0;
+    S32(st, G_ROUTE_START) = start;
+    int32_t end = S32(st, G_MAP_START) + y1 * GRID_SIZE + x1;
+    if (S8(st, G_GRID_ROUTING_WATER + (uint32_t) start) == -1) {
         return 0;
     }
-    S32(st, ROUTE_DISTANCE + 4u * (uint32_t) start) = 1;
-    S32(st, QUEUE) = S32(st, SEARCH_START);
-    S32(st, QUEUE_HEAD) = 0;
-    S32(st, QUEUE_TAIL) = 1;
+    S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) start) = 1;
+    S32(st, G_ROUTE_QUEUE) = S32(st, G_ROUTE_START);
+    S32(st, G_ROUTE_QUEUE_HEAD) = 0;
+    S32(st, G_ROUTE_QUEUE_TAIL) = 1;
     for (int32_t n = 1;; n++) {
         if (n > 50000) {
             return 1;
         }
-        int32_t cur = S32(st, QUEUE + 4u * (uint32_t) S32(st, QUEUE_HEAD));
-        int32_t d = S32(st, ROUTE_DISTANCE + 4u * (uint32_t) cur) + 1;
+        int32_t cur = S32(st, G_ROUTE_QUEUE + 4u * (uint32_t) S32(st, G_ROUTE_QUEUE_HEAD));
+        int32_t d = S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) cur) + 1;
         visit(st, cur - GRID_SIZE, d, end);
         visit(st, cur + 1, d, end);
         visit(st, cur + GRID_SIZE, d, end);
         visit(st, cur - 1, d, end);
-        int32_t head = S32(st, QUEUE_HEAD) + 1;
-        S32(st, QUEUE_HEAD) = head > QUEUE_LAST ? 0 : head;
-        if (S32(st, QUEUE_HEAD) == S32(st, QUEUE_TAIL)) {
+        int32_t head = S32(st, G_ROUTE_QUEUE_HEAD) + 1;
+        S32(st, G_ROUTE_QUEUE_HEAD) = head > QUEUE_LAST ? 0 : head;
+        if (S32(st, G_ROUTE_QUEUE_HEAD) == S32(st, G_ROUTE_QUEUE_TAIL)) {
             return 1;
         }
     }
@@ -108,24 +100,24 @@ int32_t route_path(game_state *st, int32_t id, int32_t from_x, int32_t from_y, i
                    int32_t *out)
 {
     /* @bin 0x0051E720 */
-    uint32_t rnd = U32(st, 0x00D3B374u) & 3;
-    int32_t t = S32(st, MAP_START) + y * GRID_SIZE + x;
-    S32(st, SEARCH_START) = t;
-    int32_t d = S32(st, ROUTE_DISTANCE + 4u * (uint32_t) t);
+    uint32_t rnd = U32(st, G_R_1_7) & 3;
+    int32_t t = S32(st, G_MAP_START) + y * GRID_SIZE + x;
+    S32(st, G_ROUTE_START) = t;
+    int32_t d = S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) t);
     if (d <= 0) {
         return 0;
     }
     int32_t n = 0, last = -1;
     while (d > 1) {
-        d = S32(st, ROUTE_DISTANCE + 4u * (uint32_t) t);
-        uint32_t tie = mode == 1 ? (U8(st, 0x00ACF85Cu + (uint32_t) t) & 3u) : rnd;
+        d = S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) t);
+        uint32_t tie = mode == 1 ? (U8(st, G_RANDOM + (uint32_t) t) & 3u) : rnd;
         route_direction(x, y, from_x, from_y); /* 0x0051CBA0, its result unused */
         int32_t best = -1;
         for (int32_t dir = 0; dir < 8; dir += 2) {
             if (dir == last) {
                 continue;
             }
-            int32_t v = S32(st, ROUTE_DISTANCE + 4u * (uint32_t) (t + S32(st, DIRECTION_OFFSETS + 4u * (uint32_t) dir)));
+            int32_t v = S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) (t + S32(st, G_DIRECTION_OFFSETS + 4u * (uint32_t) dir)));
             /* @bin 0x0051E7F1 smaller, or equal when the tie value matches */
             if (v != 0 && (v < d || (v == d && rnd == tie))) {
                 d = v;
@@ -143,7 +135,7 @@ int32_t route_path(game_state *st, int32_t id, int32_t from_x, int32_t from_y, i
         default: break;
         }
         last = best + 4 >= 8 ? best - 4 : best + 4;
-        U8(st, PATH_BUFFER + (uint32_t) n) = (uint8_t) last;
+        U8(st, G_PATH_BUFFER + (uint32_t) n) = (uint8_t) last;
         n++;
         if (n >= 500) {
             return 0;
@@ -151,11 +143,11 @@ int32_t route_path(game_state *st, int32_t id, int32_t from_x, int32_t from_y, i
     }
     if (id < 1000) {
         for (int32_t i = 0; i < n; i++) {
-            U8(st, FIGURE_PATHS + 500u * (uint32_t) id + (uint32_t) i) = U8(st, PATH_BUFFER + (uint32_t) (n - 1 - i));
+            U8(st, G_FIGURE_PATHS + 500u * (uint32_t) id + (uint32_t) i) = U8(st, G_PATH_BUFFER + (uint32_t) (n - 1 - i));
         }
     } else if (out != NULL) {
         for (int32_t i = 0; i < n; i++) {
-            out[i] = U8(st, PATH_BUFFER + (uint32_t) (n - 1 - i));
+            out[i] = U8(st, G_PATH_BUFFER + (uint32_t) (n - 1 - i));
         }
     }
     return n;
@@ -182,7 +174,7 @@ static int32_t run_path(game_state *st, const int32_t *a)
         if (n > 0) {
             uint8_t *p = state_ptr(st, (uint32_t) a[6], 4u * (uint32_t) n);
             if (!p) {
-                state_unported(st, 0x0051E720u);
+                state_unported(st, FN_ROUTE_PATH);
                 return n;
             }
             memcpy(p, buf, 4u * (uint32_t) n); /* little-endian, as the game */

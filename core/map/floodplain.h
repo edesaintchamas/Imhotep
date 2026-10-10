@@ -11,10 +11,10 @@
 
 #include <stdint.h>
 
+#include "state/layout.h"
 #include "state/state.h"
 
-#define FLOODPLAIN_MANAGER 0x00D05720u
-#define FLOODPLAIN_LISTS (FLOODPLAIN_MANAGER + 0x32C64u)
+#define FLOODPLAIN_LISTS (G_UD05720 + 0x32C64u)
 #define FLOODPLAIN_LIST_SIZE 0x1Cu
 
 /* @bin 0x004BE0F0 (this = 0x00D05720) grid cleared, the 30 lists released and reset */

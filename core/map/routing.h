@@ -7,11 +7,8 @@
 
 #include "state/state.h"
 
-/* u8 per tile, 228 x 228 (not saved; rebuilt at scenario start and during play) */
-#define ROUTING_EBAB20 0x00EBAB20u
-#define ROUTING_EC7630 0x00EC7630u
-#define ROUTING_ED4140 0x00ED4140u
-#define ROUTING_EE0C50 0x00EE0C50u
+/* the grids (u8 per tile, not saved; rebuilt at scenario start and during play): G_EBAB20, G_EC7630,
+ * G_GRID_ROUTING_WATER (0x00ED4140), G_GRID_ROUTING (0x00EE0C50) */
 
 void routing_clear_ee0c50(game_state *st);    /* @bin 0x00517A20 */
 void routing_rebuild_ed4140(game_state *st);  /* @bin 0x005178B0 */

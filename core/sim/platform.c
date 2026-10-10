@@ -7,20 +7,17 @@
 #include "sim/call.h"
 #include "city/day_x87.h"
 #include "frame/view.h"
+#include "state/layout.h"
 #include "state/records.h"
 #include "state/ported.h"
 
-#define SOUND_ON 0x00F55B88u    /* sound system initialised (0x005394F0: the start-up's result) */
-#define SOUND_OPTION 0x00E38E63u /* sound effects option */
-#define SOUND 0x00E92BF8u        /* the sound object (Miles wrapper) */
-#define SOUND_OFF (SOUND + 0x200) /* no sound on this system (0x0055E6C4) */
-#define STREAMS (SOUND + 0x1D8)  /* the 3 stream handles */
-#define REQUEST 0x00E92DA8u      /* the sample request block: owner, sound, volume, pan, loops */
+#define SOUND_OFF (G_SOUND + 0x200) /* no sound on this system (0x0055E6C4) */
+#define STREAMS (G_SOUND + 0x1D8)  /* the 3 stream handles */
 
 void platform_video_close(game_state *st)
 {
     /* @bin 0x00539170 only while a video plays (0x00F54054 != 0, set by the player's start) */
-    if (S32(st, 0x00F54054u) == 0) {
+    if (S32(st, G_VIDEO_PLAYING) == 0) {
         return;
     }
     const sim_platform *p = st->platform;
@@ -30,12 +27,12 @@ void platform_video_close(game_state *st)
     /* @bin 0x00539220 the window id saved by the video start (0x00F53FFC) comes back; the video
      * request 0x00F54118 (set by the message posts 0x004E0CF0, 0x004E1320, 0x004EA2C0) is cleared,
      * with a redraw when it was 2 */
-    U8(st, 0x00E38DDAu) = U8(st, 0x00F53FFCu);
-    S32(st, 0x00F54054u) = 0;
-    if (S32(st, 0x00F54118u) == 2) {
-        U8(st, 0x00E38DCAu) = 1;
+    U8(st, G_WINDOW) = U8(st, G_VIDEO_WINDOW);
+    S32(st, G_VIDEO_PLAYING) = 0;
+    if (S32(st, G_VIDEO_STATE) == 2) {
+        U8(st, G_REDRAW) = 1;
     }
-    S32(st, 0x00F54118u) = 0;
+    S32(st, G_VIDEO_STATE) = 0;
 }
 
 static int32_t run_video_close(game_state *st, const int32_t *a)
@@ -88,7 +85,7 @@ int32_t platform_stream_play(game_state *st, uint32_t name, int32_t channel, int
     /* @bin 0x0055F4DE the volume: +0x154 for channel 1, +0x158 for 2, else +0x14C; @bin 0x0055F4BB
      * AIL_open_stream, then loop count, volume, AIL_start_stream: the platform's. The handle (0: it
      * could not be opened, as without a sound device) is kept */
-    int32_t volume = channel == 1 ? S32(st, SOUND + 0x154) : channel == 2 ? S32(st, SOUND + 0x158) : S32(st, SOUND + 0x14C);
+    int32_t volume = channel == 1 ? S32(st, G_SOUND + 0x154) : channel == 2 ? S32(st, G_SOUND + 0x158) : S32(st, G_SOUND + 0x14C);
     const char *s = cstring(st, name);
     int32_t h = p && p->stream_play && s ? p->stream_play(p->ctx, s, channel, loops, volume) : 0;
     S32(st, STREAMS + 4u * (uint32_t) channel) = h;
@@ -145,7 +142,7 @@ void platform_stream_default_volume(game_state *st, int32_t channel, int32_t vol
     /* @bin 0x0055F38D (+0x14C, stream 0), 0x0055F32F (+0x154, 1), 0x0055F3EB (+0x158, 2): kept; when
      * the channel's stream plays (AIL_stream_status 4) its volume is set */
     uint32_t field = channel == 1 ? 0x154u : channel == 2 ? 0x158u : 0x14Cu;
-    S32(st, SOUND + field) = volume;
+    S32(st, G_SOUND + field) = volume;
     if (S32(st, SOUND_OFF) != 0 || stream_handle(st, channel) == 0) {
         return;
     }
@@ -158,13 +155,13 @@ void platform_stream_default_volume(game_state *st, int32_t channel, int32_t vol
 int32_t platform_sample_play(game_state *st, uint32_t block)
 {
     /* @bin 0x0055F0E8 no sound system, or a sound outside the registry (+4: its count): -1 */
-    int32_t sound = S32(st, block + 4);
-    if (S32(st, SOUND_OFF) != 0 || sound < 0 || S32(st, SOUND + 4) - 1 < sound) {
+    int32_t sound = S32(st, block + REQUEST_SOUND);
+    if (S32(st, SOUND_OFF) != 0 || sound < 0 || S32(st, G_SOUND + 4) - 1 < sound) {
         return -1;
     }
     /* @bin 0x0055EDD0 the registry entry's file name (+8: entries of 8 bytes, the name first): a
      * sound with no name, or an empty one, is never loaded (nor cached by 0x0055F07F) */
-    uint32_t entry = U32(st, SOUND + 8) + 8u * (uint32_t) sound;
+    uint32_t entry = U32(st, G_SOUND + 8) + 8u * (uint32_t) sound;
     const uint8_t *e = state_ptr(st, entry, 4);
     uint32_t name = e ? (uint32_t) e[0] | (uint32_t) e[1] << 8 | (uint32_t) e[2] << 16 | (uint32_t) e[3] << 24 : 0;
     const char *s = e ? cstring(st, name) : NULL;
@@ -175,7 +172,7 @@ int32_t platform_sample_play(game_state *st, uint32_t block)
      * AIL_set_sample_loop_count, _pan, _volume, _reverb, AIL_start_sample: the platform's */
     const sim_platform *p = st->platform;
     if (p && p->sample_play) {
-        p->sample_play(p->ctx, sound, s, S32(st, block + 8), S32(st, block + 12), S32(st, block + 16));
+        p->sample_play(p->ctx, sound, s, S32(st, block + REQUEST_VOLUME), S32(st, block + REQUEST_PAN), S32(st, block + REQUEST_LOOPS));
     }
     return 0;
 }
@@ -185,7 +182,7 @@ int32_t platform_sample_play(game_state *st, uint32_t block)
  * display) makes the quotient infinite: fistp stores the indefinite integer, whose low half is 0 */
 static int32_t view_pan(game_state *st, int32_t x)
 {
-    int32_t width = S32(st, 0x00F53F78u) != 0 ? S32(st, 0x00F53F60u) : S32(st, 0x00F53F64u);
+    int32_t width = S32(st, G_SIDEBAR_COLLAPSED) != 0 ? S32(st, G_SIDEBAR_X_COLLAPSED) : S32(st, G_SIDEBAR_X);
     if (width == 0) {
         return 0;
     }
@@ -195,25 +192,25 @@ static int32_t view_pan(game_state *st, int32_t x)
 void platform_figure_sound(game_state *st, int32_t figure, int32_t sound, int32_t channel)
 {
     /* @bin 0x0053B4A0 sound on (0x00F55B88), sound < 0x21, channel < 5 (signed), effects on */
-    if (S32(st, SOUND_ON) == 0 || sound >= 0x21 || channel >= 5 || U8(st, SOUND_OPTION) == 0) {
+    if (S32(st, G_SOUND_ON) == 0 || sound >= 0x21 || channel >= 5 || U8(st, G_SOUND_EFFECTS_ON) == 0) {
         return;
     }
     /* @bin 0x0053B4DF the city view's width: the sidebar's x (0x00F53F60 when the sidebar is
      * collapsed 0x00F53F78, else 0x00F53F64), its height 0x00E38D98 */
-    int32_t width = S32(st, 0x00F53F78u) != 0 ? S32(st, 0x00F53F60u) : S32(st, 0x00F53F64u);
-    int32_t height = S32(st, 0x00E38D98u);
+    int32_t width = S32(st, G_SIDEBAR_COLLAPSED) != 0 ? S32(st, G_SIDEBAR_X_COLLAPSED) : S32(st, G_SIDEBAR_X);
+    int32_t height = S32(st, G_UE38D98);
     uint32_t f = FIGURE_ADDR(figure);
     /* @bin 0x0053B523 the figure's tile (+0x14, +0x16) on the screen; the outputs are the argument
      * slots of sound and figure, which keep their values for a rotation it does not handle */
     int32_t x = sound, y = figure;
-    view_tile_to_screen(st, S16(st, f + 0x14), S16(st, f + 0x16), &x, &y);
+    view_tile_to_screen(st, S16(st, f + FIG_X), S16(st, f + FIG_Y), &x, &y);
     int quiet = 0;
     if (x < 0 || y < 0 || x > width || y > height) {
         /* @bin 0x0053B54B off the screen only the figure types of the table 0x0053B614 (0x0B..0x0D,
          * 0x2B..0x2D, 0x36..0x38, 0x4D, 0x4E, 0x5C, 0x5D, 0x63..0x65) are heard, at a quarter */
         static const uint8_t heard[] = {0x0B, 0x0C, 0x0D, 0x2B, 0x2C, 0x2D, 0x36, 0x37,
                                         0x38, 0x4D, 0x4E, 0x5C, 0x5D, 0x63, 0x64, 0x65};
-        uint8_t type = U8(st, f + 0x0A);
+        uint8_t type = U8(st, f + FIG_TYPE);
         for (unsigned i = 0; i < sizeof(heard); i++) {
             quiet |= type == heard[i];
         }
@@ -222,37 +219,37 @@ void platform_figure_sound(game_state *st, int32_t figure, int32_t sound, int32_
         }
     }
     /* @bin 0x0053B571 the sample of (sound, channel): table 0x00F54120, 5 per sound; -1: none */
-    int32_t id = S32(st, 0x00F54120u + 4u * (uint32_t) (5 * sound + channel));
+    int32_t id = S32(st, G_SOUND_SAMPLES + 4u * (uint32_t) (5 * sound + channel));
     if (id <= -1) {
         return;
     }
     /* @bin 0x0053B5A9 pan; volume: effects 0x00E38EC4, a quarter (signed / 4) when off the screen */
-    S32(st, REQUEST + 12) = view_pan(st, x);
-    int32_t volume = S32(st, 0x00E38EC4u);
-    S32(st, REQUEST + 8) = quiet ? volume / 4 : volume;
-    S32(st, REQUEST + 4) = id;
-    S32(st, REQUEST) = -1;
-    S32(st, REQUEST + 16) = 1;
-    GAME_CALLT(st, SOUND, 0x0055F0E8u, (int32_t) REQUEST);
+    S32(st, G_REQUEST + REQUEST_PAN) = view_pan(st, x);
+    int32_t volume = S32(st, G_EFFECTS_VOLUME);
+    S32(st, G_REQUEST + REQUEST_VOLUME) = quiet ? volume / 4 : volume;
+    S32(st, G_REQUEST + REQUEST_SOUND) = id;
+    S32(st, G_REQUEST) = -1;
+    S32(st, G_REQUEST + REQUEST_LOOPS) = 1;
+    GAME_CALLT(st, G_SOUND, FN_PLATFORM_SAMPLE_PLAY, (int32_t) G_REQUEST);
 }
 
 void platform_ui_sound(game_state *st, int32_t sound)
 {
     /* @bin 0x0053B090 sound on, sound < 0x13, effects on, a sample in the table 0x00F543B8; volume
      * 0x00E38EC4, centred (0x40), once */
-    if (S32(st, SOUND_ON) == 0 || sound >= 0x13 || U8(st, SOUND_OPTION) == 0) {
+    if (S32(st, G_SOUND_ON) == 0 || sound >= 0x13 || U8(st, G_SOUND_EFFECTS_ON) == 0) {
         return;
     }
-    int32_t id = S32(st, 0x00F543B8u + 4u * (uint32_t) sound);
+    int32_t id = S32(st, G_UI_SAMPLES + 4u * (uint32_t) sound);
     if (id <= -1) {
         return;
     }
-    S32(st, REQUEST + 8) = S32(st, 0x00E38EC4u);
-    S32(st, REQUEST + 12) = 0x40;
-    S32(st, REQUEST + 4) = id;
-    S32(st, REQUEST) = -1;
-    S32(st, REQUEST + 16) = 1;
-    GAME_CALLT(st, SOUND, 0x0055F0E8u, (int32_t) REQUEST);
+    S32(st, G_REQUEST + REQUEST_VOLUME) = S32(st, G_EFFECTS_VOLUME);
+    S32(st, G_REQUEST + REQUEST_PAN) = 0x40;
+    S32(st, G_REQUEST + REQUEST_SOUND) = id;
+    S32(st, G_REQUEST) = -1;
+    S32(st, G_REQUEST + REQUEST_LOOPS) = 1;
+    GAME_CALLT(st, G_SOUND, FN_PLATFORM_SAMPLE_PLAY, (int32_t) G_REQUEST);
 }
 
 /* random sounds of the city (0x0053ACF0) use the same pan */
@@ -336,8 +333,8 @@ void platform_present(game_state *st)
      * (width 0x00E38DB0, height 0x00E38DAC) in the format 0x00E92DFC (2: RGB 565) */
     const sim_platform *p = st->platform;
     if (p && p->present) {
-        p->present(p->ctx, U32(st, 0x00E92E18u), S32(st, 0x00E38DB0u), S32(st, 0x00E38DACu), S32(st, 0x00E38D94u),
-                   S32(st, 0x00E92DFCu) == 2);
+        p->present(p->ctx, U32(st, G_BACK_BUFFER), S32(st, G_SCREEN_W), S32(st, G_SCREEN_H), S32(st, G_SCREEN_PITCH),
+                   S32(st, G_PIXEL_FORMAT) == 2);
     }
 }
 
@@ -373,10 +370,10 @@ int32_t platform_message_box(game_state *st, uint32_t title, uint32_t text, int3
     /* @bin 0x00538940 button count; @bin 0x00538920 the pressed button (flag, index: the button
      * table 0x005F8910 gives each button its index); @bin 0x00538CD0 the window id 0x00E38DDA is
      * restored, redraw flag 0x00E38DCA := 1 */
-    S32(st, 0x00F535C8u) = count[k];
-    U8(st, 0x00F535C0u) = 1;
-    S32(st, 0x00F535C4u) = pressed;
-    U8(st, 0x00E38DCAu) = 1;
+    S32(st, G_MESSAGE_BOX_COUNT) = count[k];
+    U8(st, G_MESSAGE_BOX_PRESSED) = 1;
+    S32(st, G_MESSAGE_BOX_BUTTON) = pressed;
+    U8(st, G_REDRAW) = 1;
     return results[k][pressed];
 }
 
@@ -410,15 +407,15 @@ int32_t platform_file_list(game_state *st, const char *pattern, int32_t index, c
  * (0x004D0220: platform_set_display), 0x005E06B0 := 0, the resolution check (0x00402DA0), a redraw */
 static void bink_mode(game_state *st, int32_t mode)
 {
-    S32(st, 0x005E06B0u) = 1;
-    GAME_CALL(st, 0x004D01E0u, 1);
-    GAME_CALL(st, 0x004CFDC0u, mode);
-    GAME_CALL0(st, 0x00414BD0u);
-    GAME_CALL0(st, 0x004E2AB0u);
-    GAME_CALL0(st, 0x004D0220u);
-    S32(st, 0x005E06B0u) = 0;
-    GAME_CALL0(st, 0x00402DA0u);
-    U8(st, 0x00E38DCAu) = 1;
+    S32(st, G_PRESENT_WAIT) = 1;
+    GAME_CALL(st, FN_DISPLAY_END, 1);
+    GAME_CALL(st, FN_DISPLAY_MODE_SET, mode);
+    GAME_CALL0(st, FN_DISPLAY_BUFFERS_LAYOUT);
+    GAME_CALL0(st, FN_VIEW_ROWS_RESET);
+    GAME_CALL0(st, FN_DISPLAY_BEGIN);
+    S32(st, G_PRESENT_WAIT) = 0;
+    GAME_CALL0(st, FN_DISPLAY_RESOLUTION_CHECK);
+    U8(st, G_REDRAW) = 1;
 }
 
 int32_t platform_video_bink(game_state *st, uint32_t self, uint32_t name, int32_t x, int32_t y)
@@ -432,10 +429,10 @@ int32_t platform_video_bink(game_state *st, uint32_t self, uint32_t name, int32_
     /* @bin 0x00413586 a handle still open (+0x10) closed first (BinkClose: the platform's; none is) */
     /* @bin 0x00413594 with a sound driver ([0x012663AC]) the streams 0, 2, 1 are stopped (0x0055F561)
      * and Bink gets the Miles sound system (BinkSetSoundSystem: the platform's) */
-    if (U32(st, 0x012663ACu) != 0) {
-        GAME_CALLT(st, 0x00E92BF8u, 0x0055F561u, 0);
-        GAME_CALLT(st, 0x00E92BF8u, 0x0055F561u, 2);
-        GAME_CALLT(st, 0x00E92BF8u, 0x0055F561u, 1);
+    if (U32(st, G_SOUND_DRIVER) != 0) {
+        GAME_CALLT(st, G_SOUND, FN_SOUND_STOP_STREAM, 0);
+        GAME_CALLT(st, G_SOUND, FN_SOUND_STOP_STREAM, 2);
+        GAME_CALLT(st, G_SOUND, FN_SOUND_STOP_STREAM, 1);
     }
     /* @bin 0x004135DA the file: sprintf "%s", fopen "rb", else "%c:\\%s" with the CD drive 0x00E38E62;
      * BinkOpen (0x0056F24C): the platform's (video_open). It fails without a video device: 0, after
@@ -448,7 +445,7 @@ int32_t platform_video_bink(game_state *st, uint32_t self, uint32_t name, int32_
     }
     /* @bin 0x00413655 it opened: the window id kept (+0) and 0x4A (the video) set, +4 := 0, no redraw
      * (0x00E38DCA := 0), the place x, y (+0x14, +0x18) */
-    uint8_t old = U8(st, 0x00E38DDAu);
+    uint8_t old = U8(st, G_WINDOW);
     if (obj) {
         obj[0] = old;
         obj[1] = obj[2] = obj[3] = 0;
@@ -456,17 +453,17 @@ int32_t platform_video_bink(game_state *st, uint32_t self, uint32_t name, int32_
         memcpy(obj + 0x18, &y, 4);
         memcpy(obj + 0x14, &x, 4);
     }
-    U8(st, 0x00E38DDAu) = 0x4A;
-    U8(st, 0x00E38DCAu) = 0;
+    U8(st, G_WINDOW) = 0x4A;
+    U8(st, G_REDRAW) = 0;
     /* @bin 0x00413690 the modal player (thiscall on the object; it uses the global 0x006FDC54): nothing
      * without the global object */
-    if (U32(st, 0x006FDC54u) != 0) {
+    if (U32(st, G_U6FDC54) != 0) {
         /* @bin 0x004136AC the back buffer and the screen cleared (0x00426F60) */
-        GAME_CALL0(st, 0x00426F60u);
+        GAME_CALL0(st, FN_DISPLAY_CLEAR);
         /* @bin 0x004136B1 fullscreen (0x00E38E5C): the display switched to 640 x 480 for the video, the
          * resolution 0x00E38E68 kept to come back to */
-        int full = S32(st, 0x00E38E5Cu) != 0;
-        int32_t mode = S32(st, 0x00E38E68u);
+        int full = S32(st, G_FULLSCREEN) != 0;
+        int32_t mode = S32(st, G_RESOLUTION);
         if (full) {
             bink_mode(st, 1);
         }
@@ -476,8 +473,8 @@ int32_t platform_video_bink(game_state *st, uint32_t self, uint32_t name, int32_
          * primary surface, BinkWait; a key, an Alt key or a left click ends it: WM_KEYDOWN, WM_SYSKEYDOWN,
          * WM_LBUTTONDOWN; other messages go to the window procedure, which passes them on while +4 is 0)
          * and ShowCursor(1): the platform's (video_modal) */
-        int32_t cx = (int32_t) ((uint32_t) (S32(st, 0x00E38DB0u) - vw) >> 1);
-        int32_t cy = (int32_t) ((uint32_t) (S32(st, 0x00E38DACu) - vh) >> 1);
+        int32_t cx = (int32_t) ((uint32_t) (S32(st, G_SCREEN_W) - vw) >> 1);
+        int32_t cy = (int32_t) ((uint32_t) (S32(st, G_SCREEN_H) - vh) >> 1);
         if (obj) {
             memcpy(obj + 0x14, &cx, 4);
             memcpy(obj + 0x18, &cy, 4);
@@ -487,11 +484,11 @@ int32_t platform_video_bink(game_state *st, uint32_t self, uint32_t name, int32_
         }
         /* @bin 0x00413420 the end: the window id back (+0), +4 := 1, a redraw, BinkClose (+0x10 := 0),
          * the buffer +0xC released (BinkBufferClose; +0xC := 0): the platform's */
-        U8(st, 0x00E38DDAu) = obj ? obj[0] : old;
+        U8(st, G_WINDOW) = obj ? obj[0] : old;
         if (obj) {
             obj[4] = 1;
         }
-        U8(st, 0x00E38DCAu) = 1;
+        U8(st, G_REDRAW) = 1;
         if (full) {
             bink_mode(st, mode); /* @bin 0x00413833 back to the resolution of before */
         }
@@ -524,7 +521,7 @@ int32_t platform_pixels_load(game_state *st, uint32_t name, uint32_t out, int32_
     /* @bin 0x0053F790 the previous buffer is released unless it is the spare screen buffer
      * 0x00E92E1C (kept, and the pointer then kept too) */
     uint32_t old = P32(st, out);
-    if (old != 0 && old != P32(st, 0x00E92E1Cu)) {
+    if (old != 0 && old != P32(st, G_SPARE_SCREEN)) {
         if (p && p->pixels_free) {
             p->pixels_free(p->ctx, old);
         }

@@ -6,6 +6,7 @@
 
 #include "sim/call.h"
 #include "sim/platform.h"
+#include "state/layout.h"
 #include "state/loader.h"
 #include "state/ported.h"
 #include "state/pre_load.h"
@@ -69,8 +70,8 @@ int game_load_save(game_state *st, const uint8_t *data, size_t len, const game_e
      * 0x0046FA40 (grids cleared), 0x004CE2D0 (working directory), 0x00D3B1B8 := 0 (byte) */
     floodplain_settings_reset(st);
     pre_load_clear(st);
-    GAME_CALL0(st, 0x004CE2D0u);
-    U8(st, 0x00D3B1B8u) = 0;
+    GAME_CALL0(st, FN_WORKING_DIRECTORY);
+    U8(st, G_SAVE_LOADED) = 0;
     int rc = loader_load_save_bytes(st, data, len, 0, env->image_size, env->image_ctx, stats);
     st->platform = platform;
     st->env = call_env;

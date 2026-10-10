@@ -31,6 +31,7 @@
  * inputs, 0 differences. */
 #include "sim/x87_angle.h"
 
+#include "state/layout.h"
 #include "state/ported.h"
 
 typedef unsigned __int128 u128;
@@ -345,7 +346,7 @@ int32_t x87_direction_port(game_state *st, int32_t x1, int32_t y1, int32_t x2, i
     int ok;
     int32_t r = x87_direction(x1, y1, x2, y2, &ok);
     if (!ok) {
-        state_unported(st, 0x0051CAE0u);
+        state_unported(st, FN_X87_DIRECTION);
         return 0;
     }
     return r;
