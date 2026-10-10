@@ -341,6 +341,37 @@ static void write_delta(const char *path, const uint8_t *buf, size_t len, uint8_
     }
 }
 
+/* the state file's bytes in memory (malloc'd): 0, or -1 */
+static int state_bytes(const game_state *st, char **buf, size_t *len)
+{
+#ifdef _WIN32
+    /* no open_memstream: through a temporary file */
+    FILE *m = tmpfile();
+    if (!m) {
+        return -1;
+    }
+    long n = state_write_file(st, m) == 0 ? ftell(m) : -1;
+    *buf = n > 0 ? malloc((size_t) n) : NULL;
+    rewind(m);
+    *len = *buf ? fread(*buf, 1, (size_t) n, m) : 0;
+    fclose(m);
+    if (!*buf || *len != (size_t) n) {
+        free(*buf);
+        *buf = NULL;
+        return -1;
+    }
+    return 0;
+#else
+    FILE *m = open_memstream(buf, len);
+    if (!m) {
+        return -1;
+    }
+    state_write_file(st, m);
+    fclose(m);
+    return *buf ? 0 : -1;
+#endif
+}
+
 static void dump_frame(void)
 {
     game_state *st = &app.st;
@@ -360,10 +391,7 @@ static void dump_frame(void)
             snprintf(path, sizeof(path), "%s/frame_%04d.rdelta", app.dump, app.frames);
             write_delta(path, px, (size_t) (pitch * h), &prev_raw, &prev_raw_len);
         }
-        FILE *m = open_memstream(&buf, &len);
-        if (m) {
-            state_write_file(st, m);
-            fclose(m);
+        if (state_bytes(st, &buf, &len) == 0) {
             snprintf(path, sizeof(path), "%s/frame_%04d.sdelta", app.dump, app.frames);
             write_delta(path, (const uint8_t *) buf, len, &prev_state, &prev_state_len);
             free(buf);

@@ -89,7 +89,9 @@ $(BUILD)/libimhotep_core.a: $(CORE_OBJ)
 	ar rcs $@ $^
 
 PLATFORM_SRC := platform/game_files.c platform/exe_image.c
-TOOL_CFLAGS := $(CORE_CFLAGS) -I.
+# the platform and the tools use POSIX calls (strdup, open_memstream, madvise): glibc declares them
+# under -std=c11 only with _DEFAULT_SOURCE (macOS and MinGW ignore it)
+TOOL_CFLAGS := $(CORE_CFLAGS) -I. -D_DEFAULT_SOURCE
 # executables: .exe on Windows (MSYS2 / MinGW), where the compiler adds it to -o NAME
 EXE := $(if $(filter Windows_NT,$(OS)),.exe,)
 

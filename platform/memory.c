@@ -136,7 +136,7 @@ void pmem_free(uint32_t address)
     blocks[lo].used = 0;
     in_use -= blocks[lo].size;
     /* large freed blocks give their pages back to the system */
-#ifndef _WIN32
+#ifdef MADV_FREE
     if (blocks[lo].size >= (1u << 20)) {
         madvise(mem + off, blocks[lo].size, MADV_FREE);
     }

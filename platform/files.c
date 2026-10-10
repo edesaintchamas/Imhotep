@@ -175,7 +175,9 @@ static int writable_path(const char *gpath, char *out, size_t size)
             return -1;
         }
         if (lookup(cur, parts[i], next, sizeof(next)) != 0) {
-            snprintf(next, sizeof(next), "%s/%s", cur, parts[i]);
+            if (snprintf(next, sizeof(next), "%s/%s", cur, parts[i]) >= (int) sizeof(next)) {
+                return -1;
+            }
             if (i < n - 1 && make_dir(next) != 0 && errno != EEXIST) {
                 return -1;
             }
