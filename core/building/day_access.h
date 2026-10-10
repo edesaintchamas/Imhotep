@@ -5,10 +5,11 @@
 
 #include <stdint.h>
 
+#include "state/layout.h"
 #include "state/state.h"
 
-#define ROAD_ACCESS_X 0x00D3B4E4u /* i32: the road tile found by building_road_access */
-#define ROAD_ACCESS_Y 0x00D3B4E0u
+#define ROAD_ACCESS_X G_ROAD_ACCESS_X /* i32: the road tile found by building_road_access (the layout name: state/layout/g_map.h) */
+#define ROAD_ACCESS_Y G_ROAD_ACCESS_Y
 
 /* @bin 0x00480180 a road tile around a building of `size` at (x, y), among the size's offsets
  * (table 0x005CC9E0), preferring the road network ranked first in the city's list (+0x46AC);

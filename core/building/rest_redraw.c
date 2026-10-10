@@ -5,33 +5,21 @@
 #include "building/rest_redraw.h"
 
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define TERRAIN 0x00AF598Cu       /* u32 per tile */
-#define BITS 0x00B285CCu          /* u8 */
-#define BUILDING_GRID 0x00B4E6FCu /* i16 */
-#define EDGE 0x00B67D1Cu          /* u8 */
-#define IMAGE 0x00B7482Cu         /* u32 */
-#define RANDOM 0x00ACF85Cu        /* u8 */
-#define MAP_W 0x00BCA2D0u
-#define MAP_H 0x00BCA2D4u
-#define MAP_START 0x00BCA2D8u
-#define ORIENT 0x00BCA2E0u
-#define CURSOR 0x00BC9768u
-#define OUT_OF_MAP 0x00BC9734u
-#define GROUPS 0x00F55BB4u /* image group starts, 8 bytes each */
 
 static void tiles(game_state *st, int32_t b, int32_t x, int32_t y, int32_t sx, int32_t sy, int32_t img, int32_t flags)
 {
-    GAME_CALL(st, 0x0047BF50u, b, x, y, sx, sy, img, flags);
+    GAME_CALL(st, FN_MAP_BUILDING_TILES, b, x, y, sx, sy, img, flags);
 }
 
 int32_t god_index_4c53d0(game_state *st, int32_t v)
 {
     /* @bin 0x004C53D0 the index of v among the five words at 0x007848E2, or -1 */
     for (int32_t i = 0; i < 5; i++) {
-        if (S16(st, 0x007848E2u + 2u * (uint32_t) i) == v) {
+        if (S16(st, G_GOD_MODE + 2u * (uint32_t) i) == v) {
             return i;
         }
     }
@@ -44,7 +32,7 @@ void building_redraw_4bfb30(game_state *st, int32_t b)
      * +4 flag 0x40, +8 size, +0xC, +0x10 offsets by orientation), image group 0x1AE replaced by
      * the one of table 0x005DF778 for 0x004C53D0(2), else (1), else 0 */
     uint32_t r = BUILDING_ADDR(b);
-    int32_t x = S16(st, r + 6), y = S16(st, r + 8);
+    int32_t x = S16(st, r + BLD_X), y = S16(st, r + BLD_Y);
     int32_t v = god_index_4c53d0(st, 2);
     if (v == -1) {
         v = god_index_4c53d0(st, 1);
@@ -52,18 +40,18 @@ void building_redraw_4bfb30(game_state *st, int32_t b)
             v = 0;
         }
     }
-    int32_t sel = S32(st, 0x005DF778u + 4u * (uint32_t) v);
-    int32_t k = (int32_t) U8(st, r + 0xAA) + S32(st, ORIENT);
+    int32_t sel = S32(st, G_GATE_GOD_GROUPS + 4u * (uint32_t) v);
+    int32_t k = (int32_t) U8(st, r + BLD_ORIENTATION) + S32(st, G_VIEW_ORIENTATION);
     if (k >= 8) {
         k -= 8;
     }
     /* @bin 0x004BFCAC jump table: views 0, 3, 4, 7 use the group's second image */
     int32_t second = (uint32_t) k <= 7 && (k == 0 || k == 3 || k == 4 || k == 7);
-    for (uint32_t p = 0x005DF768u; p < 0x005DF778u; p += 4) {
+    for (uint32_t p = G_GATE_GROUPS; p < G_GATE_GROUPS + 4 * 4; p += 4) {
         int32_t part = S32(st, p + 0x24u + 16u * (uint32_t) k);
-        uint32_t e = 0x005DF80Cu + 16u * (uint32_t) part;
+        uint32_t e = G_GATE_PARTS - 4 + 16u * (uint32_t) part;
         int32_t px, py;
-        switch (U8(st, r + 0xAA)) {
+        switch (U8(st, r + BLD_ORIENTATION)) {
         case 0:
             px = S32(st, e + 0x10) + x;
             py = S32(st, e + 0xC) + y;
@@ -81,7 +69,7 @@ void building_redraw_4bfb30(game_state *st, int32_t b)
         if (g == 0x1AE) {
             g = sel;
         }
-        int32_t img = S32(st, GROUPS + 8u * (uint32_t) g) + second;
+        int32_t img = S32(st, G_IMAGE_GROUPS + 8u * (uint32_t) g) + second;
         int32_t size = S32(st, e + 8);
         tiles(st, b, px, py, size, size, img, U8(st, e + 4) != 0 ? 0x8048 : 0x8008);
     }
@@ -99,64 +87,64 @@ void walls_rect_47afd0(game_state *st, int32_t x, int32_t y, int32_t size)
     if (x0 < 0) {
         w = x0 + size;
         x0 = 0;
-    } else if (x0 + size > S32(st, MAP_W)) {
-        w = S32(st, MAP_W) - x0;
+    } else if (x0 + size > S32(st, G_MAP_WIDTH)) {
+        w = S32(st, G_MAP_WIDTH) - x0;
     }
     if (y0 < 0) {
         h = y0 + size;
         y0 = 0;
-    } else if (y0 + size > S32(st, MAP_H)) {
-        h = S32(st, MAP_H) - y0;
+    } else if (y0 + size > S32(st, G_MAP_HEIGHT)) {
+        h = S32(st, G_MAP_HEIGHT) - y0;
     }
     int32_t yend = h + y0;
-    S32(st, 0x00BC9760u) = y0;
-    S32(st, CURSOR) = S32(st, MAP_START) + y0 * 228 + x0;
+    S32(st, G_WALK_Y) = y0;
+    S32(st, G_TILE_CURSOR) = S32(st, G_MAP_START) + y0 * 228 + x0;
     if (y0 >= yend) {
         return;
     }
     do {
         int32_t xend = w + x0;
-        S32(st, 0x00BC9764u) = x0;
+        S32(st, G_WALK_X) = x0;
         if (x0 < xend) {
             do {
-                uint32_t t = (uint32_t) S32(st, CURSOR);
-                uint32_t v = U32(st, TERRAIN + 4u * t);
+                uint32_t t = (uint32_t) S32(st, G_TILE_CURSOR);
+                uint32_t v = U32(st, G_GRID_TERRAIN + 4u * t);
                 if ((v & 0x4000) != 0 && (v & 8) == 0) {
-                    GAME_CALL(st, 0x0047DB00u, 0x4000);
-                    GAME_CALL0(st, 0x00484F00u);
-                    GAME_CALL(st, 0x00484BE0u, 0x005CB9D8, 0x30, -1, 0);
-                    t = (uint32_t) S32(st, CURSOR);
-                    U32(st, IMAGE + 4u * t) =
-                        (uint32_t) (S32(st, 0x00F5686Cu) + S32(st, 0x00BC9740u) + S32(st, 0x00BC9748u));
-                    U8(st, EDGE + t) |= 0x40;
-                    U8(st, BITS + t) &= 0xF0;
-                    if (GAME_CALL0(st, 0x0047E000u) != 0) {
-                        GAME_CALL0(st, 0x0047E750u);
-                        if (GAME_CALL(st, 0x00484BE0u, 0x005CBCD8, 0xF, -1, 0) != 0) {
-                            U32(st, IMAGE + 4u * (uint32_t) S32(st, CURSOR)) =
-                                (uint32_t) (S32(st, 0x00BC9740u) + S32(st, 0x00F5686Cu) + S32(st, 0x00BC9748u));
+                    GAME_CALL(st, FN_NEIGHBOURS_WITH_FLAGS, 0x4000);
+                    GAME_CALL0(st, FN_SCRATCH_INVERT);
+                    GAME_CALL(st, FN_LAND_PATTERN_MATCH, (int32_t) G_WALL_PATTERNS, 0x30, -1, 0);
+                    t = (uint32_t) S32(st, G_TILE_CURSOR);
+                    U32(st, G_GRID_IMAGE + 4u * t) =
+                        (uint32_t) (S32(st, G_IMAGE_GROUPS + 8 * 407) + S32(st, G_M_VARIANT) + S32(st, G_M_OFFSET));
+                    U8(st, G_GRID_EDGE + t) |= 0x40;
+                    U8(st, G_GRID_BITFIELDS + t) &= 0xF0;
+                    if (GAME_CALL0(st, FN_SCRATCH_WALLS_BUILDINGS) != 0) {
+                        GAME_CALL0(st, FN_SCRATCH_ADD_WALLS);
+                        if (GAME_CALL(st, FN_LAND_PATTERN_MATCH, (int32_t) G_WALL_PATTERNS_BUILDINGS, 0xF, -1, 0) != 0) {
+                            U32(st, G_GRID_IMAGE + 4u * (uint32_t) S32(st, G_TILE_CURSOR)) =
+                                (uint32_t) (S32(st, G_M_VARIANT) + S32(st, G_IMAGE_GROUPS + 8 * 407) + S32(st, G_M_OFFSET));
                         } else {
-                            GAME_CALL(st, 0x0051F780u, 1);
+                            GAME_CALL(st, FN_NOTHING, 1);
                         }
                     } else {
-                        GAME_CALL(st, 0x0051F780u, 0);
+                        GAME_CALL(st, FN_NOTHING, 0);
                     }
-                    GAME_CALL(st, 0x004746D0u, S32(st, 0x00BC9764u), S32(st, 0x00BC9760u), 1);
+                    GAME_CALL(st, FN_TERRAIN_LAND_AROUND, S32(st, G_WALK_X), S32(st, G_WALK_Y), 1);
                 }
-                S32(st, 0x00BC9764u) += 1;
-                S32(st, CURSOR) += 1;
-            } while (S32(st, 0x00BC9764u) < xend);
+                S32(st, G_WALK_X) += 1;
+                S32(st, G_TILE_CURSOR) += 1;
+            } while (S32(st, G_WALK_X) < xend);
         }
-        S32(st, 0x00BC9760u) += 1;
-        S32(st, CURSOR) += 0xE4 - w;
-    } while (S32(st, 0x00BC9760u) < yend);
+        S32(st, G_WALK_Y) += 1;
+        S32(st, G_TILE_CURSOR) += 0xE4 - w;
+    } while (S32(st, G_WALK_Y) < yend);
 }
 
 void building_redraw_47d1f0(game_state *st, int32_t b, int32_t x, int32_t y, int32_t img)
 {
     /* @bin 0x0047D1F0 a 3 x 3 footprint from (x, y) set by hand (offsets 0x005CC8C0, edge bytes
      * of the table), the corner of the view (0x00E94E04) marked 0x40 */
-    int32_t o = S32(st, 0x00E94E04u);
+    int32_t o = S32(st, G_UE94E04);
     int32_t cx, cy;
     if (o == 0) {
         cx = 0, cy = 2;
@@ -167,28 +155,28 @@ void building_redraw_47d1f0(game_state *st, int32_t b, int32_t x, int32_t y, int
     } else {
         cx = 2, cy = 2;
     }
-    if (x < 0 || y < 0 || x + 2 >= S32(st, MAP_W) || y + 2 >= S32(st, MAP_H)) {
-        S32(st, OUT_OF_MAP) = 1;
+    if (x < 0 || y < 0 || x + 2 >= S32(st, G_MAP_WIDTH) || y + 2 >= S32(st, G_MAP_HEIGHT)) {
+        S32(st, G_OUT_OF_MAP) = 1;
         return;
     }
-    int32_t base = S32(st, MAP_START) + y * 228 + x;
-    S32(st, CURSOR) = base;
+    int32_t base = S32(st, G_MAP_START) + y * 228 + x;
+    S32(st, G_TILE_CURSOR) = base;
     for (int32_t i = 0; i < 3; i++) {
-        uint32_t e = 0x005CC8C4u + 0x30u * (uint32_t) i;
+        uint32_t e = G_FOOTPRINT_OFFSETS + 4 + 0x30u * (uint32_t) i;
         for (int32_t j = 0; j < 3; j++, e += 8) {
             uint32_t t = (uint32_t) (S32(st, e - 4) + base);
-            uint32_t ter = U32(st, TERRAIN + 4u * t) | 8;
-            U32(st, TERRAIN + 4u * t) = ter;
+            uint32_t ter = U32(st, G_GRID_TERRAIN + 4u * t) | 8;
+            U32(st, G_GRID_TERRAIN + 4u * t) = ter;
             if ((ter & 4) == 0) {
-                U32(st, TERRAIN + 4u * t) = (ter & 0x03052E80u) | 8;
+                U32(st, G_GRID_TERRAIN + 4u * t) = (ter & 0x03052E80u) | 8;
             }
-            S16(st, BUILDING_GRID + 2u * t) = (int16_t) b;
-            U8(st, BITS + t) = (uint8_t) ((U8(st, BITS + t) & 0xEF) | 2);
-            U32(st, IMAGE + 4u * t) = (uint32_t) img;
+            S16(st, G_GRID_BUILDING + 2u * t) = (int16_t) b;
+            U8(st, G_GRID_BITFIELDS + t) = (uint8_t) ((U8(st, G_GRID_BITFIELDS + t) & 0xEF) | 2);
+            U32(st, G_GRID_IMAGE + 4u * t) = (uint32_t) img;
             uint8_t edge = U8(st, e);
-            U8(st, EDGE + t) = edge;
+            U8(st, G_GRID_EDGE + t) = edge;
             if (j == cx && i == cy) {
-                U8(st, EDGE + t) = edge | 0x40;
+                U8(st, G_GRID_EDGE + t) = edge | 0x40;
             }
         }
     }
@@ -198,9 +186,9 @@ static int gate_images_4405c0(game_state *st, int32_t v, int32_t *first, int32_t
 {
     /* @bin 0x004405C0 the two images of a gate by the view (0x00BCA2E0) and its direction v;
      * returns 0 when it writes nothing (the original leaves its caller's stack as it was) */
-    int32_t g = S32(st, 0x00F566FCu);
+    int32_t g = S32(st, G_IMAGE_GROUPS + 8 * 361);
     int32_t a, c; /* *second, *first */
-    switch (S32(st, ORIENT)) {
+    switch (S32(st, G_VIEW_ORIENTATION)) {
     case 0:
         if (v == 0) {
             a = g, c = g + 1;
@@ -250,11 +238,11 @@ void building_redraw_440540(game_state *st, int32_t b, int32_t x, int32_t y)
     /* @bin 0x00440540 a two-tile gate: b at (x, y) and its other part +0x3A next to it (x + 1
      * or y + 1 by +0xD4), images of 0x004405C0 */
     uint32_t r = BUILDING_ADDR(b);
-    int32_t v = S32(st, r + 0xD4);
-    int32_t other = S16(st, r + 0x3A);
+    int32_t v = S32(st, r + BLD_GATE_DIRECTION);
+    int32_t other = S16(st, r + BLD_NEXT_PART);
     int32_t first, second;
     if (!gate_images_4405c0(st, v, &first, &second)) {
-        state_unported(st, 0x004405C0u); /* the original's images are its caller's stack */
+        state_unported(st, FN_GATE_IMAGES_4405C0); /* the original's images are its caller's stack */
         return;
     }
     int32_t ox, oy;
@@ -273,50 +261,50 @@ void building_area_redraw_440060(game_state *st, int32_t off, int32_t type, int3
      * 4 for 0x21, 5 for 0xD1, else 1): tiles given to b, their images by the view from tables
      * 0x005D2078.. (grass 0x00F565F4 where the terrain has no 0x40) */
     int32_t n = type == 0x1F ? 2 : type == 0x1E ? 3 : type == 0x21 ? 4 : type == 0xD1 ? 5 : 1;
-    int32_t o = S32(st, ORIENT);
+    int32_t o = S32(st, G_VIEW_ORIENTATION);
     for (int32_t row = 0; row < n; row++) {
         for (int32_t col = 0; col < n; col++) {
             uint32_t t = (uint32_t) (off + row * 228 + col);
             if (type != 0xD1) {
-                int32_t cur = S32(st, IMAGE + 4u * t);
-                int32_t g = S32(st, 0x00F566FCu);
-                if (cur == S32(st, 0x00F567ACu) || cur == g || cur == g + 1 || cur == g + 2 || cur == g + 3 ||
-                    cur == S32(st, 0x00F5659Cu)) {
+                int32_t cur = S32(st, G_GRID_IMAGE + 4u * t);
+                int32_t g = S32(st, G_IMAGE_GROUPS + 8 * 361);
+                if (cur == S32(st, G_IMAGE_GROUPS + 8 * 383) || cur == g || cur == g + 1 || cur == g + 2 || cur == g + 3 ||
+                    cur == S32(st, G_IMAGE_GROUPS + 8 * 317)) {
                     continue;
                 }
             }
-            S16(st, BUILDING_GRID + 2u * t) = (int16_t) b;
-            uint32_t ter = (U32(st, TERRAIN + 4u * t) & 0x03052EC0u) | 8;
-            U8(st, BITS + t) &= 0x60;
-            U32(st, TERRAIN + 4u * t) = ter;
+            S16(st, G_GRID_BUILDING + 2u * t) = (int16_t) b;
+            uint32_t ter = (U32(st, G_GRID_TERRAIN + 4u * t) & 0x03052EC0u) | 8;
+            U8(st, G_GRID_BITFIELDS + t) &= 0x60;
+            U32(st, G_GRID_TERRAIN + 4u * t) = ter;
             if ((ter & 0x40) == 0 && type != 0xD1) {
-                U32(st, TERRAIN + 4u * t) = ter | 0x20;
-                U32(st, IMAGE + 4u * t) = (uint32_t) ((U8(st, RANDOM + t) & 3) + S32(st, 0x00F565F4u));
+                U32(st, G_GRID_TERRAIN + 4u * t) = ter | 0x20;
+                U32(st, G_GRID_IMAGE + 4u * t) = (uint32_t) ((U8(st, G_GRID_RANDOM + t) & 3) + S32(st, G_IMAGE_GROUPS + 8 * 328));
             } else {
                 /* @bin 0x0044048C byte table, 0x00440478 jump table */
                 int32_t img;
                 uint32_t sel = o == 0 ? 0 : o == 2 ? 1 : o == 4 ? 2 : 3;
                 switch (type) {
                 case 0x1F:
-                    img = S32(st, 0x00F5679Cu) + S32(st, 0x005D2078u + 0x10u * sel + 4u * (uint32_t) (col + row * 2));
+                    img = S32(st, G_IMAGE_GROUPS + 8 * 381) + S32(st, G_AREA_IMAGES_1F + 0x10u * sel + 4u * (uint32_t) (col + row * 2));
                     break;
                 case 0x1E:
-                    img = S32(st, 0x00F565ECu) + S32(st, 0x005D20B8u + 0x24u * sel + 4u * (uint32_t) (row * 3 + col));
+                    img = S32(st, G_IMAGE_GROUPS + 8 * 327) + S32(st, G_AREA_IMAGES_1E + 0x24u * sel + 4u * (uint32_t) (row * 3 + col));
                     break;
                 case 0x21:
-                    img = S32(st, 0x00F565ACu) + S32(st, 0x005D2148u + 0x40u * sel + 4u * (uint32_t) (col + row * 4));
+                    img = S32(st, G_IMAGE_GROUPS + 8 * 319) + S32(st, G_AREA_IMAGES_21 + 0x40u * sel + 4u * (uint32_t) (col + row * 4));
                     break;
                 case 0xD1:
-                    img = S32(st, 0x00F565A4u) + S32(st, 0x005D2248u + 0x64u * sel + 4u * (uint32_t) (row * 5 + col));
+                    img = S32(st, G_IMAGE_GROUPS + 8 * 318) + S32(st, G_AREA_IMAGES_D1 + 0x64u * sel + 4u * (uint32_t) (row * 5 + col));
                     break;
                 default:
-                    img = S32(st, 0x00F5695Cu);
+                    img = S32(st, G_IMAGE_GROUPS + 8 * 437);
                     break;
                 }
-                U32(st, IMAGE + 4u * t) = (uint32_t) img;
-                U8(st, 0x00EE0C50u + t) = 0;
+                U32(st, G_GRID_IMAGE + 4u * t) = (uint32_t) img;
+                U8(st, G_GRID_ROUTING + t) = 0;
             }
-            U8(st, EDGE + t) |= 0x40;
+            U8(st, G_GRID_EDGE + t) |= 0x40;
         }
     }
 }
@@ -325,17 +313,17 @@ void tile_redraw_4c0860(game_state *st, int32_t x, int32_t y, int32_t group, int
 {
     /* @bin 0x004C0860 a tile on the map (0x0046F930 with the map's origin 0x00BCA2E8, 0x00BCA2EC)
      * given to the city's building +0x472C, with image group `group` + add */
-    if ((uint8_t) GAME_CALL(st, 0x0046F930u, S32(st, 0x00BCA2E8u) + x, S32(st, 0x00BCA2ECu) + y) == 0) {
+    if ((uint8_t) GAME_CALL(st, FN_MAP_TILE_INSIDE, S32(st, G_VIEW_DX) + x, S32(st, G_VIEW_DY) + y) == 0) {
         return;
     }
-    int32_t t = S32(st, MAP_START) + y * 228 + x;
-    S32(st, CURSOR) = t;
-    U32(st, IMAGE + 4u * (uint32_t) t) = (uint32_t) (S32(st, GROUPS + 8u * (uint32_t) group) + add);
-    U8(st, EDGE + (uint32_t) t) |= 0x40;
-    U8(st, 0x00AE8E7Cu + (uint32_t) t) = 0;
-    U8(st, BITS + (uint32_t) t) &= 0xF0;
-    S16(st, BUILDING_GRID + 2u * (uint32_t) t) = S16(st, CURRENT_CITY(st) + 0x472C);
-    U32(st, TERRAIN + 4u * (uint32_t) t) |= 8;
+    int32_t t = S32(st, G_MAP_START) + y * 228 + x;
+    S32(st, G_TILE_CURSOR) = t;
+    U32(st, G_GRID_IMAGE + 4u * (uint32_t) t) = (uint32_t) (S32(st, G_IMAGE_GROUPS + 8u * (uint32_t) group) + add);
+    U8(st, G_GRID_EDGE + (uint32_t) t) |= 0x40;
+    U8(st, G_CANAL + (uint32_t) t) = 0;
+    U8(st, G_GRID_BITFIELDS + (uint32_t) t) &= 0xF0;
+    S16(st, G_GRID_BUILDING + 2u * (uint32_t) t) = S16(st, CURRENT_CITY(st) + CITY_U472C);
+    U32(st, G_GRID_TERRAIN + 4u * (uint32_t) t) |= 8;
 }
 
 void building_area_redraw_4c0be0(game_state *st, int32_t b)
@@ -343,13 +331,13 @@ void building_area_redraw_4c0be0(game_state *st, int32_t b)
     /* @bin 0x004C0BE0 the 13 x 7 area of table 0x005DF9B0 (0x14 bytes a tile: +0 group, +4..+0x10
      * the image by view 0x005E014C) in front of b, by its orientation +0xAA (as 0x004C0920) */
     uint32_t r = BUILDING_ADDR(b);
-    int32_t dir = U8(st, r + 0xAA);
+    int32_t dir = U8(st, r + BLD_ORIENTATION);
     int32_t h = dir / 2;
-    int32_t x0 = S16(st, r + 6) + S32(st, 0x005E00CCu + 8u * (uint32_t) h);
-    int32_t y0 = S16(st, r + 8) + S32(st, 0x005E00D0u + 8u * (uint32_t) h);
-    int32_t sel = S32(st, 0x005E014Cu + 4u * (uint32_t) (h + (S32(st, ORIENT) / 2) * 4));
+    int32_t x0 = S16(st, r + BLD_X) + S32(st, G_COMPLEX_ORIGIN + 8u * (uint32_t) h);
+    int32_t y0 = S16(st, r + BLD_Y) + S32(st, G_COMPLEX_ORIGIN + 4 + 8u * (uint32_t) h);
+    int32_t sel = S32(st, G_COMPLEX_VIEW + 4u * (uint32_t) (h + (S32(st, G_VIEW_ORIENTATION) / 2) * 4));
     int32_t ox = x0, oy = y0;
-    for (uint32_t e = 0x005DF9BCu; e < 0x005E00D8u;) {
+    for (uint32_t e = G_COMPLEX_TABLE + 0xC; e < G_COMPLEX_TABLE + 0xC + 0x14 * 13 * 7;) {
         int32_t d1 = x0 - y0, d2 = y0 - x0;
         int32_t a = x0, c = y0;
         for (int32_t n = 13; n != 0; n--, e += 0x14, c--, a++) {
@@ -392,7 +380,7 @@ void building_area_redraw_4c0be0(game_state *st, int32_t b)
                 break;
             }
             tile_redraw_4c0860(st, tx, ty, group, add);
-            GAME_CALL(st, 0x004746D0u, tx, ty, 1);
+            GAME_CALL(st, FN_TERRAIN_LAND_AROUND, tx, ty, 1);
         }
         ox--;
         oy++;
@@ -405,16 +393,16 @@ void building_redraw_4c0d50(game_state *st, int32_t b, int32_t add)
      * and direction (table 0x005DF8B0); groups 0x23B / 0x23A by the city's building +0x472C
      * (0x004C52D0); then its area (0x004C0BE0) */
     uint32_t r = BUILDING_ADDR(b);
-    if (S16(st, r + 0x38) != 0) {
+    if (S16(st, r + BLD_PREV_PART) != 0) {
         return;
     }
-    int32_t dir = U8(st, r + 0xAA);
+    int32_t dir = U8(st, r + BLD_ORIENTATION);
     if (b != 0) {
         int32_t h4 = (dir / 2) * 4;
         int32_t part = 0;
         int32_t cur = b;
         do {
-            int32_t o = S32(st, ORIENT);
+            int32_t o = S32(st, G_VIEW_ORIENTATION);
             int32_t turn;
             if (o == 0 || o == 4) {
                 turn = dir == 2 || dir == 6 ? 3 : 0;
@@ -422,26 +410,26 @@ void building_redraw_4c0d50(game_state *st, int32_t b, int32_t add)
                 turn = dir == 2 || dir == 6 ? 0 : 3;
             }
             int32_t idx = o / 2 + h4;
-            int32_t g = S32(st, 0x005DF8B0u + 4u * (uint32_t) (idx * 3 + part));
+            int32_t g = S32(st, G_COMPLEX_PART_GROUPS + 4u * (uint32_t) (idx * 3 + part));
             int32_t img;
             if (g == 0x23B) {
-                if ((uint8_t) GAME_CALL(st, 0x004C52D0u, S32(st, CURRENT_CITY(st) + 0x472C), 1) != 0) {
-                    img = S32(st, 0x00F56DACu) + 2 + (turn != 0);
+                if ((uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_U472C), 1) != 0) {
+                    img = S32(st, G_IMAGE_GROUPS + 8 * 575) + 2 + (turn != 0);
                 } else {
-                    img = S32(st, 0x00F56D8Cu) + turn + add;
+                    img = S32(st, G_IMAGE_GROUPS + 8 * 571) + turn + add;
                 }
             } else if (g == 0x23A) {
-                if ((uint8_t) GAME_CALL(st, 0x004C52D0u, S32(st, CURRENT_CITY(st) + 0x472C), 2) != 0) {
-                    img = S32(st, 0x00F56DACu) + (turn != 0);
+                if ((uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_U472C), 2) != 0) {
+                    img = S32(st, G_IMAGE_GROUPS + 8 * 575) + (turn != 0);
                 } else {
-                    img = S32(st, 0x00F56D84u) + turn + add;
+                    img = S32(st, G_IMAGE_GROUPS + 8 * 570) + turn + add;
                 }
             } else {
-                img = S32(st, GROUPS + 8u * (uint32_t) g) + turn + add;
+                img = S32(st, G_IMAGE_GROUPS + 8u * (uint32_t) g) + turn + add;
             }
             uint32_t cr = BUILDING_ADDR(cur);
-            tiles(st, cur, S16(st, cr + 6), S16(st, cr + 8), 3, 3, img, 8);
-            cur = S16(st, cr + 0x3A);
+            tiles(st, cur, S16(st, cr + BLD_X), S16(st, cr + BLD_Y), 3, 3, img, 8);
+            cur = S16(st, cr + BLD_NEXT_PART);
             part++;
         } while (cur != 0);
     }
@@ -454,21 +442,21 @@ void mastaba_redraw_4ee4a0(game_state *st, int32_t b)
      * 0x0056F7EC / 0x0056F7D8 by mission kind 0x005E4EF4) through 0x004EDF50; then the ramp
      * 0x004ED360 from the corner of table 0x005F5D08 when 0x004ECEA0 accepts */
     uint32_t r = BUILDING_ADDR(b);
-    int32_t size = U8(st, r + 0x54);
-    int32_t h = S32(st, ORIENT) / 2;
+    int32_t size = U8(st, r + BLD_MONUMENT_KIND);
+    int32_t h = S32(st, G_VIEW_ORIENTATION) / 2;
     for (int32_t p = b;; p++) {
-        int32_t n = S32(st, 0x005E4EF4u) == 5 ? S32(st, 0x0056F7ECu + 4u * (uint32_t) size)
-                                               : S32(st, 0x0056F7D8u + 4u * (uint32_t) size);
+        int32_t n = S32(st, G_PYRAMID_KIND) == 5 ? S32(st, G_PYRAMID_PARTS_KIND5 + 4u * (uint32_t) size)
+                                               : S32(st, G_PYRAMID_PARTS + 4u * (uint32_t) size);
         if (p >= n + b) {
             break;
         }
-        GAME_CALL(st, 0x004EDF50u, p, h, size);
+        GAME_CALL(st, FN_PYRAMID_PART_REDRAW, p, h, size);
     }
-    if ((uint8_t) GAME_CALL(st, 0x004ECEA0u, size) == 0) {
+    if ((uint8_t) GAME_CALL(st, FN_PYRAMID_KIND_OK, size) == 0) {
         return;
     }
-    int32_t c = S32(st, 0x005F5D08u + 4u * (uint32_t) size) + S32(st, r + 0xC) - S32(st, MAP_START);
-    GAME_CALL(st, 0x004ED360u, c % 228, c / 228, 4, 0);
+    int32_t c = S32(st, G_PYRAMID_RAMP_START + 4u * (uint32_t) size) + S32(st, r + BLD_GRID_OFFSET) - S32(st, G_MAP_START);
+    GAME_CALL(st, FN_RAMP_WALK, c % 228, c / 228, 4, 0);
 }
 
 void mastabas_redraw_4ee560(game_state *st)
@@ -476,13 +464,13 @@ void mastabas_redraw_4ee560(game_state *st)
     /* @bin 0x004EE560 every building of type 0xB7 (0x004EE4A0), skipping its parts */
     for (int32_t b = 1; b < 4000; b++) {
         uint32_t r = BUILDING_ADDR(b);
-        if (U8(st, r) == 0 || S16(st, r + 0x10) != 0xB7) {
+        if (U8(st, r + BLD_STATE) == 0 || S16(st, r + BLD_TYPE) != 0xB7) {
             continue;
         }
         mastaba_redraw_4ee4a0(st, b);
-        int32_t size = U8(st, r + 0x54);
-        int32_t n = S32(st, 0x005E4EF4u) == 5 ? S32(st, 0x0056F7ECu + 4u * (uint32_t) size)
-                                               : S32(st, 0x0056F7D8u + 4u * (uint32_t) size);
+        int32_t size = U8(st, r + BLD_MONUMENT_KIND);
+        int32_t n = S32(st, G_PYRAMID_KIND) == 5 ? S32(st, G_PYRAMID_PARTS_KIND5 + 4u * (uint32_t) size)
+                                               : S32(st, G_PYRAMID_PARTS + 4u * (uint32_t) size);
         b += n - 1;
     }
 }
@@ -494,7 +482,7 @@ void monument_part_layout_4ded50(game_state *st, int32_t out[13], int32_t part, 
     /* @bin 0x004DED50 the part's 13 words of table 0x005E2AD8 (0x34 bytes a part): +0 x, +4 y,
      * +8 size, +0x10 the offset y * 228 + x, turned by the view and the direction */
     for (int i = 0; i < 13; i++) {
-        out[i] = S32(st, 0x005E2AD8u + 0x34u * (uint32_t) part + 4u * (uint32_t) i);
+        out[i] = S32(st, G_MASTABA_LAYOUT + 0x34u * (uint32_t) part + 4u * (uint32_t) i);
     }
     if (dir != 0 && dir != 4) {
         if (orient == 4 || orient == 6) {
@@ -524,8 +512,8 @@ int32_t monument_part_image_4df360(game_state *st, int32_t b, int32_t *flags)
     uint32_t r = BUILDING_ADDR(b);
     int32_t lay[13];
     *flags = 0;
-    int32_t dir = S32(st, r + 0x70);
-    monument_part_layout_4ded50(st, lay, S16(st, r + 0x12), S32(st, ORIENT), dir);
+    int32_t dir = S32(st, r + BLD_LAYOUT_DIRECTION);
+    monument_part_layout_4ded50(st, lay, S16(st, r + BLD_PART), S32(st, G_VIEW_ORIENTATION), dir);
     uint32_t kindw = (uint32_t) lay[3];
     uint32_t kind = kindw & 0xFF;
     int32_t stage;
@@ -535,69 +523,69 @@ int32_t monument_part_image_4df360(game_state *st, int32_t b, int32_t *flags)
     if (kind <= 3) {
         /* @bin 0x004DF412.. walls: maus0_1a..1d graphics (table 0x005E4268 by the main part's
          * flags +0x64 bit 0x10 << kind, mission 0x00E94E18) */
-        static const uint32_t done[4] = {0x00F57444u, 0x00F5744Cu, 0x00F57454u, 0x00F5745Cu};
-        static const uint32_t building[4] = {0x00F56D54u, 0x00F56D5Cu, 0x00F56D64u, 0x00F56D6Cu};
-        if (S16(st, r + 0x16) == -1) {
-            return S32(st, done[kind]) - (((S32(st, ORIENT) + dir) / 2) & 1) + 1;
+        static const uint32_t done[4] = {G_IMAGE_GROUPS + 8 * 786, G_IMAGE_GROUPS + 8 * 787, G_IMAGE_GROUPS + 8 * 788, G_IMAGE_GROUPS + 8 * 789};
+        static const uint32_t building[4] = {G_IMAGE_GROUPS + 8 * 564, G_IMAGE_GROUPS + 8 * 565, G_IMAGE_GROUPS + 8 * 566, G_IMAGE_GROUPS + 8 * 567};
+        if (S16(st, r + BLD_SEQUENCE) == -1) {
+            return S32(st, done[kind]) - (((S32(st, G_VIEW_ORIENTATION) + dir) / 2) & 1) + 1;
         }
-        int32_t v = S32(st, r + 0x58), i;
+        int32_t v = S32(st, r + BLD_MONUMENT_STAGE), i;
         if (v < 0xFF) {
             i = 0;
-        } else if ((U8(st, BUILDING_ADDR(b - S16(st, r + 0x12)) + 0x64) & (0x10u << kind)) == 0) {
+        } else if ((U8(st, BUILDING_ADDR(b - S16(st, r + BLD_PART)) + BLD_MONUMENT_FLAGS) & (0x10u << kind)) == 0) {
             i = 0;
         } else {
             i = (v >= 0xFFFF) + 1;
         }
-        int32_t m = S32(st, 0x00E94E18u);
-        GAME_CALLT(st, 0x00F55BB0u, 0x0053DD90u, S32(st, 0x005E4268u + 4u * kind + 16u * (uint32_t) (i + m * 3)),
+        int32_t m = S32(st, G_UE94E18);
+        GAME_CALLT(st, G_GRAPHICS_GFX, FN_GRAPHICS_LOAD_SLOT, S32(st, G_MASTABA_WALL_FILES + 4u * kind + 16u * (uint32_t) (i + m * 3)),
                    (int32_t) (5 + kind));
-        return S32(st, building[kind]) - (((dir + S32(st, ORIENT)) / 2) & 1) + 1;
+        return S32(st, building[kind]) - (((dir + S32(st, G_VIEW_ORIENTATION)) / 2) & 1) + 1;
     }
     if (kind <= 7) {
-        if (S16(st, r + 0x16) != -1) {
+        if (S16(st, r + BLD_SEQUENCE) != -1) {
             *flags = 5;
         }
-        stage = S32(st, r + 0x58);
+        stage = S32(st, r + BLD_MONUMENT_STAGE);
         if (stage == 2) {
-            return S32(st, 0x00F56D74u) + (int32_t) (kind - 4);
+            return S32(st, G_IMAGE_GROUPS + 8 * 568) + (int32_t) (kind - 4);
         }
         if (stage == 1) {
-            return S32(st, 0x00F56B54u);
+            return S32(st, G_PLAIN);
         }
         goto marked;
     }
-    if (S16(st, r + 0x16) != -1) {
+    if (S16(st, r + BLD_SEQUENCE) != -1) {
         *flags = 1;
     }
-    if (S32(st, r + 0x58) == 2) {
-        int32_t ti = S32(st, ORIENT) / 2 + (dir / 2) * 4;
+    if (S32(st, r + BLD_MONUMENT_STAGE) == 2) {
+        int32_t ti = S32(st, G_VIEW_ORIENTATION) / 2 + (dir / 2) * 4;
         if (ti < 0 || ti >= 16) {
-            state_unported(st, 0x004DF360u); /* the original reads its stack outside the table */
+            state_unported(st, FN_MONUMENT_PART_IMAGE_4DF360); /* the original reads its stack outside the table */
             return 0;
         }
         int32_t tv = turn[ti];
         switch (kind) {
         case 8:
-            return tv + S32(st, 0x00F56D74u) + 4;
+            return tv + S32(st, G_IMAGE_GROUPS + 8 * 568) + 4;
         case 9:
-            return (int32_t) (((uint32_t) tv - 2) & 3) + S32(st, 0x00F56D74u) + 4;
+            return (int32_t) (((uint32_t) tv - 2) & 3) + S32(st, G_IMAGE_GROUPS + 8 * 568) + 4;
         case 10:
-            return S32(st, 0x00F56D74u) + (int32_t) (((uint32_t) tv - 2) & 3) * 2 + 9;
+            return S32(st, G_IMAGE_GROUPS + 8 * 568) + (int32_t) (((uint32_t) tv - 2) & 3) * 2 + 9;
         case 11:
-            return S32(st, 0x00F56D74u) + (int32_t) (((uint32_t) tv - 2) & 3) * 2 + 8;
+            return S32(st, G_IMAGE_GROUPS + 8 * 568) + (int32_t) (((uint32_t) tv - 2) & 3) * 2 + 8;
         case 12:
-            return S32(st, 0x00F56D74u) + tv * 2 + 8;
+            return S32(st, G_IMAGE_GROUPS + 8 * 568) + tv * 2 + 8;
         default:
-            return S32(st, 0x00F56D74u) + tv * 2 + 9;
+            return S32(st, G_IMAGE_GROUPS + 8 * 568) + tv * 2 + 9;
         }
     }
     *flags |= 4;
-    if (S32(st, r + 0x58) == 1) {
-        return S32(st, 0x00F56B54u);
+    if (S32(st, r + BLD_MONUMENT_STAGE) == 1) {
+        return S32(st, G_PLAIN);
     }
 marked:
     if ((kindw & 0x10000) != 0) {
-        return U8(st, 0x00784CBCu) != 3 ? S32(st, 0x00F5736Cu) : S32(st, 0x00F57464u);
+        return U8(st, G_MONUMENT_MODE) != 3 ? S32(st, G_IMAGE_GROUPS + 8 * 759) : S32(st, G_IMAGE_GROUPS + 8 * 790);
     }
     return 0;
 }
@@ -608,21 +596,21 @@ void monument_part_place_4dfd90(game_state *st, int32_t b)
      * layout (0x004DED50); its worker figure +0x5C follows; then drawn (0x004DFBB0) */
     uint32_t r = BUILDING_ADDR(b);
     int32_t lay[13];
-    monument_part_layout_4ded50(st, lay, S16(st, r + 0x12), S32(st, ORIENT), S32(st, r + 0x70));
-    int32_t y = S32(st, r + 0x6C) + lay[1];
-    int32_t x = S32(st, r + 0x68) + lay[0];
-    S16(st, r + 6) = (int16_t) x;
-    S16(st, r + 8) = (int16_t) y;
-    S32(st, r + 0xC) = S32(st, MAP_START) + y * 228 + x;
+    monument_part_layout_4ded50(st, lay, S16(st, r + BLD_PART), S32(st, G_VIEW_ORIENTATION), S32(st, r + BLD_LAYOUT_DIRECTION));
+    int32_t y = S32(st, r + BLD_LAYOUT_Y) + lay[1];
+    int32_t x = S32(st, r + BLD_LAYOUT_X) + lay[0];
+    S16(st, r + BLD_X) = (int16_t) x;
+    S16(st, r + BLD_Y) = (int16_t) y;
+    S32(st, r + BLD_GRID_OFFSET) = S32(st, G_MAP_START) + y * 228 + x;
     /* @bin 0x004E0C50 (building_entry_corner) the corner into the road access +0x26, +0x28 */
-    S16(st, r + 0x26) = S16(st, r + 6);
-    S16(st, r + 0x28) = S16(st, r + 8);
-    int16_t ay = S16(st, r + 8); /* ax in the original: the corner's y */
-    int32_t f = S32(st, r + 0x5C);
+    S16(st, r + BLD_ROAD_ACCESS_X) = S16(st, r + BLD_X);
+    S16(st, r + BLD_ROAD_ACCESS_Y) = S16(st, r + BLD_Y);
+    int16_t ay = S16(st, r + BLD_Y); /* ax in the original: the corner's y */
+    int32_t f = S32(st, r + BLD_MONUMENT_WORKER);
     if (f != 0) {
         uint32_t fr = FIGURE_ADDR(f);
-        uint8_t type = U8(st, fr + 0xA);
-        uint8_t act = U8(st, fr + 0x38);
+        uint8_t type = U8(st, fr + FIG_TYPE);
+        uint8_t act = U8(st, fr + FIG_ACTION);
         int to_route = 0, moved = 0;
         if (type == 0x4F) {
             if (act == 9) {
@@ -634,22 +622,22 @@ void monument_part_place_4dfd90(game_state *st, int32_t b)
             if (act == 9) {
                 to_route = 1;
             } else if (act == 0xB || act == 0xA) {
-                GAME_CALL(st, 0x004B5420u, f);
-                S16(st, fr + 0x14) = S16(st, r + 6);
-                S16(st, fr + 0x16) = S16(st, r + 8);
-                S32(st, fr + 0x20) = S32(st, r + 0xC);
-                S32(st, fr + 0x28) = S32(st, r + 0xC);
-                GAME_CALL(st, 0x004B52F0u, f);
-                if (U8(st, fr + 0x38) == 0xA) {
-                    int32_t g = S16(st, FIGURE_ADDR(S32(st, 0x00D056F8u)) + 0x68);
+                GAME_CALL(st, FN_FIGURE_TILE_LIST_REMOVE, f);
+                S16(st, fr + FIG_X) = S16(st, r + BLD_X);
+                S16(st, fr + FIG_Y) = S16(st, r + BLD_Y);
+                S32(st, fr + FIG_GRID_OFFSET) = S32(st, r + BLD_GRID_OFFSET);
+                S32(st, fr + FIG_U28) = S32(st, r + BLD_GRID_OFFSET);
+                GAME_CALL(st, FN_FIGURE_TILE_LIST_ADD, f);
+                if (U8(st, fr + FIG_ACTION) == 0xA) {
+                    int32_t g = S16(st, FIGURE_ADDR(S32(st, G_CURRENT_FIGURE)) + FIG_LEADER);
                     if (g != 0) {
                         uint32_t gr = FIGURE_ADDR(g);
-                        if (U8(st, gr + 0xA) == 0x55 && U8(st, gr + 0x38) == 0x1A) {
-                            S16(st, gr + 0x24) = S16(st, r + 0x26);
-                            S16(st, gr + 0x26) = S16(st, r + 0x28);
-                            S32(st, gr + 0x28) = S32(st, r + 0xC);
-                            GAME_CALL(st, 0x004B3250u, g);
-                            S16(st, gr + 0x44) = 0;
+                        if (U8(st, gr + FIG_TYPE) == 0x55 && U8(st, gr + FIG_ACTION) == 0x1A) {
+                            S16(st, gr + FIG_DEST_X) = S16(st, r + BLD_ROAD_ACCESS_X);
+                            S16(st, gr + FIG_DEST_Y) = S16(st, r + BLD_ROAD_ACCESS_Y);
+                            S32(st, gr + FIG_U28) = S32(st, r + BLD_GRID_OFFSET);
+                            GAME_CALL(st, FN_FIGURE_ROUTE_RELEASE, g);
+                            S16(st, gr + FIG_ROAM_LENGTH) = 0;
                         }
                     }
                 }
@@ -662,20 +650,20 @@ void monument_part_place_4dfd90(game_state *st, int32_t b)
             }
         }
         if (to_route) {
-            S16(st, fr + 0x24) = S16(st, r + 0x26);
-            S16(st, fr + 0x26) = ay;
-            S32(st, fr + 0x28) = S32(st, r + 0xC);
-            GAME_CALL(st, 0x004B3250u, f);
-            S16(st, fr + 0x44) = 0;
+            S16(st, fr + FIG_DEST_X) = S16(st, r + BLD_ROAD_ACCESS_X);
+            S16(st, fr + FIG_DEST_Y) = ay;
+            S32(st, fr + FIG_U28) = S32(st, r + BLD_GRID_OFFSET);
+            GAME_CALL(st, FN_FIGURE_ROUTE_RELEASE, f);
+            S16(st, fr + FIG_ROAM_LENGTH) = 0;
         } else if (moved) {
-            GAME_CALL(st, 0x004B5420u, f);
-            S16(st, fr + 0x14) = S16(st, r + 6);
-            S16(st, fr + 0x16) = S16(st, r + 8);
-            S32(st, fr + 0x20) = S32(st, r + 0xC);
-            GAME_CALL(st, 0x004B52F0u, f);
+            GAME_CALL(st, FN_FIGURE_TILE_LIST_REMOVE, f);
+            S16(st, fr + FIG_X) = S16(st, r + BLD_X);
+            S16(st, fr + FIG_Y) = S16(st, r + BLD_Y);
+            S32(st, fr + FIG_GRID_OFFSET) = S32(st, r + BLD_GRID_OFFSET);
+            GAME_CALL(st, FN_FIGURE_TILE_LIST_ADD, f);
         }
     }
-    GAME_CALL(st, 0x004DFBB0u, b);
+    GAME_CALL(st, FN_MONUMENT_PART_REDRAW, b);
 }
 
 /* ---- the table ---------------------------------------------------------------------------- */
@@ -750,7 +738,7 @@ static int32_t run_4ded50(game_state *st, const int32_t *a)
 {
     int32_t out[13];
     if (state_ptr(st, (uint32_t) a[0], 13 * 4) == NULL) {
-        state_unported(st, 0x004DED50u); /* output outside the state */
+        state_unported(st, FN_MONUMENT_PART_LAYOUT_4DED50); /* output outside the state */
         return 0;
     }
     monument_part_layout_4ded50(st, out, a[1], a[2], a[3]);
@@ -764,7 +752,7 @@ static int32_t run_4df360(game_state *st, const int32_t *a)
 {
     int32_t f = 0;
     if (state_ptr(st, (uint32_t) a[1], 4) == NULL) {
-        state_unported(st, 0x004DF360u); /* output outside the state */
+        state_unported(st, FN_MONUMENT_PART_IMAGE_4DF360); /* output outside the state */
         return 0;
     }
     int32_t img = monument_part_image_4df360(st, a[0], &f);

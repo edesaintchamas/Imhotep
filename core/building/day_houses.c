@@ -3,19 +3,21 @@
 #include "building/day_houses.h"
 
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define HOUSE_ID 0x0078D838u /* the house being evolved (global loop counter) */
-#define MAP_START 0x00BCA2D8u
 
 void houses_counters_clear(game_state *st)
 {
     /* @bin 0x00454D70 */
     static const uint16_t fields[] = {
-        0x42A4, 0x42AC, 0x42B4, 0x42BC, 0x4304, 0x4308, 0x430C, 0x4388, 0x4310, 0x4314,
-        0x4350, 0x4354, 0x4358, 0x4320, 0x4324, 0x4328, 0x433C, 0x4340, 0x432C, 0x4318,
-        0x431C, 0x4344, 0x4348, 0x434C, 0x435C, 0x474C, 0x4748,
+        CITY_U42A4, CITY_U42AC, CITY_U42B4, CITY_U42BC, CITY_U4304,
+        CITY_U4308, CITY_U430C, CITY_U4388, CITY_U4310, CITY_U4314,
+        CITY_U4350, CITY_U4354, CITY_U4358, CITY_U4320, CITY_U4324,
+        CITY_U4328, CITY_U433C, CITY_U4340, CITY_U432C, CITY_U4318,
+        CITY_U431C, CITY_U4344, CITY_U4348, CITY_U434C, CITY_U435C,
+        CITY_U474C, CITY_U4748,
     };
     uint32_t c = CURRENT_CITY(st);
     for (unsigned i = 0; i < sizeof(fields) / sizeof(fields[0]); i++) {
@@ -29,28 +31,28 @@ void building_check_position(game_state *st, int32_t id)
      * grid 0x00B4E6FC, the grid is searched (0x0078D5C4 counts searches): found, the building
      * takes the tile; not found, it is removed (state 4, 0x0078D5C0 counts) */
     uint32_t b = BUILDING_ADDR(id);
-    int32_t x = S16(st, b + 6), y = S16(st, b + 8);
-    int32_t tile = S32(st, b + 0xC);
-    U8(st, b + 0x7E) = 0;
-    if (tile == S32(st, MAP_START) + y * GRID_SIZE + x && S16(st, 0x00B4E6FCu + 2u * (uint32_t) tile) == id) {
+    int32_t x = S16(st, b + BLD_X), y = S16(st, b + BLD_Y);
+    int32_t tile = S32(st, b + BLD_GRID_OFFSET);
+    U8(st, b + BLD_U7E) = 0;
+    if (tile == S32(st, G_MAP_START) + y * GRID_SIZE + x && S16(st, G_GRID_BUILDING + 2u * (uint32_t) tile) == id) {
         return;
     }
-    S32(st, 0x0078D5C4u) += 1;
-    int32_t t = S32(st, MAP_START);
-    for (int32_t row = 0; row < S32(st, 0x00BCA2D4u); row++) {
-        for (int32_t col = 0; col < S32(st, 0x00BCA2D0u); col++, t++) {
-            if (S16(st, 0x00B4E6FCu + 2u * (uint32_t) t) == id) {
-                S32(st, b + 0xC) = t;
-                int32_t off = t - S32(st, MAP_START);
-                S16(st, b + 6) = (int16_t) (off % GRID_SIZE);
-                S16(st, b + 8) = (int16_t) (off / GRID_SIZE);
+    S32(st, G_POSITION_SEARCHES) += 1;
+    int32_t t = S32(st, G_MAP_START);
+    for (int32_t row = 0; row < S32(st, G_MAP_HEIGHT); row++) {
+        for (int32_t col = 0; col < S32(st, G_MAP_WIDTH); col++, t++) {
+            if (S16(st, G_GRID_BUILDING + 2u * (uint32_t) t) == id) {
+                S32(st, b + BLD_GRID_OFFSET) = t;
+                int32_t off = t - S32(st, G_MAP_START);
+                S16(st, b + BLD_X) = (int16_t) (off % GRID_SIZE);
+                S16(st, b + BLD_Y) = (int16_t) (off / GRID_SIZE);
                 return;
             }
         }
-        t += S32(st, 0x00BCA2DCu);
+        t += S32(st, G_MAP_STRIDE_EXTRA);
     }
-    U8(st, b) = 4;
-    S32(st, 0x0078D5C0u) += 1;
+    U8(st, b + BLD_STATE) = 4;
+    S32(st, G_POSITION_LOST) += 1;
 }
 
 void house_consume(game_state *st, int32_t id)
@@ -60,17 +62,17 @@ void house_consume(game_state *st, int32_t id)
      * instead 0 or 1 by the day of the month (days 0 mod 4: 1, 1, 0 for remainders 1, 2, 3;
      * days 2 mod 4: 0, 1, 1; others: 0, 0, 1) */
     uint32_t b = BUILDING_ADDR(id);
-    uint32_t rec = 0x58u * (uint32_t) (int32_t) S16(st, b + 0x12);
-    int big = U8(st, b + 3) > 1;
+    uint32_t rec = 0x58u * (uint32_t) (int32_t) S16(st, b + BLD_SUBTYPE);
+    int big = U8(st, b + BLD_SIZE) > 1;
     int32_t amount[4];
     for (uint32_t k = 0; k < 4; k++) {
-        amount[k] = S32(st, 0x0070CDF8u + rec + 4 * k);
+        amount[k] = S32(st, G_HOUSE_LEVEL_GOODS + rec + 4 * k);
         if (big) {
             amount[k] = (int32_t) ((uint32_t) amount[k] << 2);
         }
     }
     int32_t part[4] = {0, 0, 0, 0}; /* part[0] unused (the original's slot is never read) */
-    switch (S32(st, 0x0078D7C4u) % 4) {
+    switch (S32(st, G_TICK_DAY) % 4) {
     case 0: part[1] = 1, part[2] = 1, part[3] = 0; break;
     case 2: part[1] = 0, part[2] = 1, part[3] = 1; break;
     case 1: case 3: part[1] = 0, part[2] = 0, part[3] = 1; break;
@@ -82,7 +84,8 @@ void house_consume(game_state *st, int32_t id)
         use[k] = r != 0 ? part[r < 0 ? 0 : r] : amount[k] / 4;
     }
     /* @bin 0x00454CB6 amount 3 from +0x64, 0 from +0x66, 1 from +0x68, 2 from +0x6A */
-    static const uint8_t slot[4] = {0x66, 0x68, 0x6A, 0x64};
+    static const uint8_t slot[4] = {BLD_HOUSE_INVENTORY + 2 * 9, BLD_HOUSE_INVENTORY + 2 * 10, BLD_HOUSE_INVENTORY + 2 * 11,
+                                    BLD_HOUSE_INVENTORY + 2 * 8};
     static const int order[4] = {3, 0, 1, 2};
     for (int i = 0; i < 4; i++) {
         int k = order[i];
@@ -94,15 +97,10 @@ void house_consume(game_state *st, int32_t id)
     }
 }
 
-#define HOUSE_RESULT 0x0078D7E4u /* i32: the evolution check's result (-1, 0, 1) */
-#define GOODS_SUM 0x0078D590u    /* i32[12]: goods of merged houses */
-#define MERGE_X 0x0078D770u
-#define MERGE_Y 0x0078D76Cu
-#define LEVELS 0x0070CDCCu       /* 0x58 bytes per house level */
 
 static int32_t house_image(game_state *st, int32_t level)
 {
-    return S32(st, 0x00F55BB4u + 8u * U32(st, 0x005D03ECu + 4u * (uint32_t) level));
+    return S32(st, G_IMAGE_GROUPS + 8u * U32(st, G_HOUSE_LEVEL_GROUP + 4u * (uint32_t) level));
 }
 
 void house_set_type(game_state *st, int32_t id, int32_t type)
@@ -111,35 +109,35 @@ void house_set_type(game_state *st, int32_t id, int32_t type)
      * level's image (0x005D03EC -> 0x00F55BB4), large houses (+4) + 4 (+ 1 with 0x005D043C),
      * small ones + 0x005D043C + a variant (0x005D034C) by the tile's hash 0x00ACF85C */
     uint32_t b = BUILDING_ADDR(id);
-    S16(st, b + 0x10) = (int16_t) type;
+    S16(st, b + BLD_TYPE) = (int16_t) type;
     int16_t level = (int16_t) (type - 10);
-    S16(st, b + 0x12) = level;
+    S16(st, b + BLD_SUBTYPE) = level;
     int32_t img = house_image(st, level);
-    int32_t variants = S32(st, 0x005D034Cu + 4u * (uint32_t) (int32_t) level);
-    if (U8(st, b + 4) != 0) {
+    int32_t variants = S32(st, G_HOUSE_LEVEL_VARIANTS + 4u * (uint32_t) (int32_t) level);
+    if (U8(st, b + BLD_HOUSE_MERGED) != 0) {
         img += 4;
-        if (S32(st, 0x005D043Cu + 4u * (uint32_t) (int32_t) level) != 0) {
+        if (S32(st, G_HOUSE_LEVEL_IMAGE_ADD + 4u * (uint32_t) (int32_t) level) != 0) {
             img++;
         }
     } else {
-        img += S32(st, 0x005D043Cu + 4u * (uint32_t) (int32_t) level);
+        img += S32(st, G_HOUSE_LEVEL_IMAGE_ADD + 4u * (uint32_t) (int32_t) level);
         if (variants != 0) {
-            img += U8(st, 0x00ACF85Cu + (uint32_t) S32(st, b + 0xC)) & (uint32_t) (variants - 1);
+            img += U8(st, G_GRID_RANDOM + (uint32_t) S32(st, b + BLD_GRID_OFFSET)) & (uint32_t) (variants - 1);
         }
     }
-    GAME_CALL(st, 0x0047BF50u, id, S16(st, b + 6), S16(st, b + 8), U8(st, b + 3), U8(st, b + 3), img, 8);
+    GAME_CALL(st, FN_MAP_BUILDING_TILES, id, S16(st, b + BLD_X), S16(st, b + BLD_Y), U8(st, b + BLD_SIZE), U8(st, b + BLD_SIZE), img, 8);
 }
 
 int32_t houses_redraw_only(game_state *st)
 {
     /* @bin 0x004539A0 with 0x00978D70 set, houses are only redrawn (small ones) and not evolved */
-    if (S32(st, 0x00978D70u) == 0) {
+    if (S32(st, G_U978D70) == 0) {
         return 0;
     }
-    int32_t id = S32(st, HOUSE_ID);
+    int32_t id = S32(st, G_HOUSE_ID);
     uint32_t b = BUILDING_ADDR(id);
-    if (U8(st, b + 4) == 0) {
-        house_set_type(st, id, S16(st, b + 0x10));
+    if (U8(st, b + BLD_HOUSE_MERGED) == 0) {
+        house_set_type(st, id, S16(st, b + BLD_TYPE));
     }
     return 1;
 }
@@ -150,13 +148,13 @@ int32_t house_desirability_trend(game_state *st, int32_t id)
      * level record; the upper one 1000 from level 0x13): -1 at or below the lower, 1 at or above
      * the upper, else 0 */
     uint32_t b = BUILDING_ADDR(id);
-    int32_t level = S16(st, b + 0x12);
-    uint32_t rec = LEVELS + 0x58u * (uint32_t) level;
+    int32_t level = S16(st, b + BLD_SUBTYPE);
+    uint32_t rec = G_HOUSE_LEVELS + 0x58u * (uint32_t) level;
     int32_t low = S32(st, rec), high = S32(st, rec + 4);
     if (level >= 0x13) {
         high = 1000;
     }
-    int32_t d = S8(st, b + 0xBE);
+    int32_t d = S8(st, b + BLD_DESIRABILITY);
     if (d <= low) {
         return -1;
     }
@@ -169,29 +167,29 @@ int32_t house_merge_neighbours(game_state *st, int32_t id, int32_t n)
      * house there gives its people (returned) and goods (summed in 0x0078D590) and is removed
      * (state 5) */
     for (uint32_t k = 0; k < 12; k++) {
-        S32(st, GOODS_SUM + 4 * k) = 0;
+        S32(st, G_GOODS_SUM + 4 * k) = 0;
     }
-    int32_t base = S32(st, MAP_START) + S32(st, MERGE_Y) * GRID_SIZE + S32(st, MERGE_X);
+    int32_t base = S32(st, G_MAP_START) + S32(st, G_MERGE_Y) * GRID_SIZE + S32(st, G_MERGE_X);
     int32_t people = 0;
     for (int32_t k = 0; k < n; k++) {
-        int32_t t = base + S32(st, 0x005DA2F4u + 4u * (uint32_t) k);
-        if (!(U32(st, 0x00AF598Cu + 4u * (uint32_t) t) & 8)) {
+        int32_t t = base + S32(st, G_MERGE_TILES + 4u * (uint32_t) k);
+        if (!(U32(st, G_GRID_TERRAIN + 4u * (uint32_t) t) & 8)) {
             continue;
         }
-        int32_t other = S16(st, 0x00B4E6FCu + 2u * (uint32_t) t);
+        int32_t other = S16(st, G_GRID_BUILDING + 2u * (uint32_t) t);
         if (other == id) {
             continue;
         }
         uint32_t o = BUILDING_ADDR(other);
-        if (U8(st, o + 5) == 0) {
+        if (U8(st, o + BLD_HOUSE_SIZE) == 0) {
             continue;
         }
-        people += S16(st, o + 0x1C);
+        people += S16(st, o + BLD_POPULATION);
         for (uint32_t j = 0; j < 12; j++) {
-            S32(st, GOODS_SUM + 4 * j) += S16(st, o + 0x54 + 2 * j);
+            S32(st, G_GOODS_SUM + 4 * j) += S16(st, o + BLD_HOUSE_INVENTORY + 2 * j);
         }
-        S16(st, o + 0x1C) = 0;
-        U8(st, o) = 5;
+        S16(st, o + BLD_POPULATION) = 0;
+        U8(st, o + BLD_STATE) = 5;
     }
     return people;
 }
@@ -201,24 +199,24 @@ void house_become_large(game_state *st, int32_t id, int32_t people)
     /* @bin 0x0046BDA0 the house becomes a 2 x 2 house at (MERGE_X, MERGE_Y) with the merged
      * people and goods */
     uint32_t b = BUILDING_ADDR(id);
-    U8(st, b + 3) = 2;
-    U8(st, b + 5) = 2;
-    S16(st, b + 0x1C) = (int16_t) (S16(st, b + 0x1C) + people);
+    U8(st, b + BLD_SIZE) = 2;
+    U8(st, b + BLD_HOUSE_SIZE) = 2;
+    S16(st, b + BLD_POPULATION) = (int16_t) (S16(st, b + BLD_POPULATION) + people);
     for (uint32_t j = 0; j < 12; j++) {
-        S16(st, b + 0x54 + 2 * j) = (int16_t) (S16(st, b + 0x54 + 2 * j) + S32(st, GOODS_SUM + 4 * j));
+        S16(st, b + BLD_HOUSE_INVENTORY + 2 * j) = (int16_t) (S16(st, b + BLD_HOUSE_INVENTORY + 2 * j) + S32(st, G_GOODS_SUM + 4 * j));
     }
-    int32_t level = S16(st, b + 0x12);
+    int32_t level = S16(st, b + BLD_SUBTYPE);
     int32_t img = house_image(st, level) + 4;
-    if (S32(st, 0x005D043Cu + 4u * (uint32_t) level) != 0) {
+    if (S32(st, G_HOUSE_LEVEL_IMAGE_ADD + 4u * (uint32_t) level) != 0) {
         img++;
     }
-    GAME_CALL(st, 0x0047C480u, id, S16(st, b + 6), S16(st, b + 8));
-    int32_t x = S32(st, MERGE_X), y = S32(st, MERGE_Y);
-    S16(st, b + 6) = (int16_t) x;
-    S16(st, b + 8) = (int16_t) y;
-    S32(st, b + 0xC) = S32(st, MAP_START) + y * GRID_SIZE + x;
-    U8(st, b + 4) = 1;
-    GAME_CALL(st, 0x0047BF50u, id, S16(st, b + 6), S16(st, b + 8), 2, 2, img, 8);
+    GAME_CALL(st, FN_BUILDING_CLEAR_TILES, id, S16(st, b + BLD_X), S16(st, b + BLD_Y));
+    int32_t x = S32(st, G_MERGE_X), y = S32(st, G_MERGE_Y);
+    S16(st, b + BLD_X) = (int16_t) x;
+    S16(st, b + BLD_Y) = (int16_t) y;
+    S32(st, b + BLD_GRID_OFFSET) = S32(st, G_MAP_START) + y * GRID_SIZE + x;
+    U8(st, b + BLD_HOUSE_MERGED) = 1;
+    GAME_CALL(st, FN_MAP_BUILDING_TILES, id, S16(st, b + BLD_X), S16(st, b + BLD_Y), 2, 2, img, 8);
 }
 
 int32_t house_try_merge(game_state *st, int32_t id)
@@ -226,34 +224,34 @@ int32_t house_try_merge(game_state *st, int32_t id)
     /* @bin 0x0046B840 a small house (+4 clear, tile hash & 7 below 5) whose four tiles of table
      * 0x005DA2F4 hold itself or small houses of its level merges with them */
     uint32_t b = BUILDING_ADDR(id);
-    if (U8(st, b + 4) != 0) {
+    if (U8(st, b + BLD_HOUSE_MERGED) != 0) {
         return 0;
     }
-    int32_t tile = S32(st, b + 0xC);
-    if ((U8(st, 0x00ACF85Cu + (uint32_t) tile) & 7) >= 5) {
+    int32_t tile = S32(st, b + BLD_GRID_OFFSET);
+    if ((U8(st, G_GRID_RANDOM + (uint32_t) tile) & 7) >= 5) {
         return 0;
     }
     int32_t n = 0;
     for (uint32_t k = 0; k < 4; k++) {
-        int32_t t = tile + S32(st, 0x005DA2F4u + 4 * k);
-        if (!(U32(st, 0x00AF598Cu + 4u * (uint32_t) t) & 8)) {
+        int32_t t = tile + S32(st, G_MERGE_TILES + 4 * k);
+        if (!(U32(st, G_GRID_TERRAIN + 4u * (uint32_t) t) & 8)) {
             continue;
         }
-        int32_t other = S16(st, 0x00B4E6FCu + 2u * (uint32_t) t);
+        int32_t other = S16(st, G_GRID_BUILDING + 2u * (uint32_t) t);
         if (other == id) {
             n++;
             continue;
         }
         uint32_t o = BUILDING_ADDR(other);
-        if (U8(st, o) == 1 && U8(st, o + 5) != 0 && S16(st, o + 0x12) == S16(st, b + 0x12) && U8(st, o + 4) == 0) {
+        if (U8(st, o + BLD_STATE) == 1 && U8(st, o + BLD_HOUSE_SIZE) != 0 && S16(st, o + BLD_SUBTYPE) == S16(st, b + BLD_SUBTYPE) && U8(st, o + BLD_HOUSE_MERGED) == 0) {
             n++;
         }
     }
     if (n != 4) {
         return 0;
     }
-    S32(st, MERGE_X) = S16(st, b + 6) + S32(st, 0x005DA2C4u);
-    S32(st, MERGE_Y) = S16(st, b + 8) + S32(st, 0x005DA2C8u);
+    S32(st, G_MERGE_X) = S16(st, b + BLD_X) + S32(st, G_MERGE_CORNERS);
+    S32(st, G_MERGE_Y) = S16(st, b + BLD_Y) + S32(st, G_MERGE_CORNERS + 4);
     house_become_large(st, id, house_merge_neighbours(st, id, 4));
     return 1;
 }
@@ -263,8 +261,8 @@ static int32_t expansion_count(game_state *st, int32_t id, uint32_t b, int32_t a
 {
     int32_t count = 0;
     for (int32_t j = 0; j < n; j++) {
-        int32_t t = anchor + S32(st, 0x005DA2F4u + 4u * (uint32_t) j);
-        uint32_t terrain = U32(st, 0x00AF598Cu + 4u * (uint32_t) t);
+        int32_t t = anchor + S32(st, G_MERGE_TILES + 4u * (uint32_t) j);
+        uint32_t terrain = U32(st, G_GRID_TERRAIN + 4u * (uint32_t) t);
         if (pass > 1) {
             terrain &= 0xEEFED77Fu;
             if (terrain == 0) {
@@ -277,13 +275,13 @@ static int32_t expansion_count(game_state *st, int32_t id, uint32_t b, int32_t a
             }
             continue;
         }
-        int32_t other = S16(st, 0x00B4E6FCu + 2u * (uint32_t) t);
+        int32_t other = S16(st, G_GRID_BUILDING + 2u * (uint32_t) t);
         if (other == id) {
             count++;
             continue;
         }
         uint32_t o = BUILDING_ADDR(other);
-        if (U8(st, o) == 1 && U8(st, o + 5) != 0 && S16(st, o + 0x12) <= S16(st, b + 0x12)) {
+        if (U8(st, o + BLD_STATE) == 1 && U8(st, o + BLD_HOUSE_SIZE) != 0 && S16(st, o + BLD_SUBTYPE) <= S16(st, b + BLD_SUBTYPE)) {
             count++;
         }
     }
@@ -297,18 +295,18 @@ int32_t house_find_expansion(game_state *st, int32_t id, int32_t n)
      * houses of its level or lower; failing that, also empty land (terrain & 0xEEFED77F == 0);
      * failing that, also tiles with terrain 0x20. Found: MERGE_X / Y and 1; else +0x7E := 1 */
     uint32_t b = BUILDING_ADDR(id);
-    int32_t tile = S32(st, b + 0xC);
+    int32_t tile = S32(st, b + BLD_GRID_OFFSET);
     for (int pass = 1; pass <= 3; pass++) {
         for (int32_t k = 0; k < 4; k++) {
-            int32_t anchor = tile + S32(st, 0x005DA2E4u + 4u * (uint32_t) k);
+            int32_t anchor = tile + S32(st, G_MERGE_ANCHORS + 4u * (uint32_t) k);
             if (expansion_count(st, id, b, anchor, n, pass) == n) {
-                S32(st, MERGE_X) = S16(st, b + 6) + S32(st, 0x005DA2C4u + 8u * (uint32_t) k);
-                S32(st, MERGE_Y) = S16(st, b + 8) + S32(st, 0x005DA2C8u + 8u * (uint32_t) k);
+                S32(st, G_MERGE_X) = S16(st, b + BLD_X) + S32(st, G_MERGE_CORNERS + 8u * (uint32_t) k);
+                S32(st, G_MERGE_Y) = S16(st, b + BLD_Y) + S32(st, G_MERGE_CORNERS + 4 + 8u * (uint32_t) k);
                 return 1;
             }
         }
     }
-    U8(st, b + 0x7E) = 1;
+    U8(st, b + BLD_U7E) = 1;
     return 0;
 }
 
@@ -316,26 +314,26 @@ void house_clear_expansion(game_state *st, int32_t id, int32_t n)
 {
     /* @bin 0x0046B940 the other houses on the n tiles from (MERGE_X, MERGE_Y) are split first:
      * 2 x 2 houses (+4) by 0x0046BE90, size 2 by 0x0046C1C0, size 3 by 0x0046C500 */
-    int32_t base = S32(st, MAP_START) + S32(st, MERGE_Y) * GRID_SIZE + S32(st, MERGE_X);
+    int32_t base = S32(st, G_MAP_START) + S32(st, G_MERGE_Y) * GRID_SIZE + S32(st, G_MERGE_X);
     for (int32_t j = 0; j < n; j++) {
-        int32_t t = base + S32(st, 0x005DA2F4u + 4u * (uint32_t) j);
-        if (!(U32(st, 0x00AF598Cu + 4u * (uint32_t) t) & 8)) {
+        int32_t t = base + S32(st, G_MERGE_TILES + 4u * (uint32_t) j);
+        if (!(U32(st, G_GRID_TERRAIN + 4u * (uint32_t) t) & 8)) {
             continue;
         }
-        int32_t other = S16(st, 0x00B4E6FCu + 2u * (uint32_t) t);
+        int32_t other = S16(st, G_GRID_BUILDING + 2u * (uint32_t) t);
         if (other == id) {
             continue;
         }
         uint32_t o = BUILDING_ADDR(other);
-        if (U8(st, o + 5) == 0) {
+        if (U8(st, o + BLD_HOUSE_SIZE) == 0) {
             continue;
         }
-        if (U8(st, o + 4) == 1) {
+        if (U8(st, o + BLD_HOUSE_MERGED) == 1) {
             house_split_large(st, other);
-        } else if (U8(st, o + 3) == 2) {
+        } else if (U8(st, o + BLD_SIZE) == 2) {
             house_devolve_0x14(st, other);
-        } else if (U8(st, o + 3) == 3) {
-            GAME_CALL(st, 0x0046C500u, other);
+        } else if (U8(st, o + BLD_SIZE) == 3) {
+            GAME_CALL(st, FN_HOUSE_SPLIT, other);
         }
     }
 }
@@ -345,25 +343,25 @@ static void house_grow(game_state *st, int32_t id, int32_t people, int16_t type,
     /* @bin 0x0046BAB0 / 0x0046BBC0 / 0x0046BCB0 the house becomes `type`, size x size at
      * (MERGE_X, MERGE_Y), with the merged people and goods */
     uint32_t b = BUILDING_ADDR(id);
-    S16(st, b + 0x10) = type;
-    S16(st, b + 0x12) = (int16_t) (type - 10);
-    U8(st, b + 3) = size;
-    U8(st, b + 5) = size;
-    S16(st, b + 0x1C) = (int16_t) (S16(st, b + 0x1C) + people);
+    S16(st, b + BLD_TYPE) = type;
+    S16(st, b + BLD_SUBTYPE) = (int16_t) (type - 10);
+    U8(st, b + BLD_SIZE) = size;
+    U8(st, b + BLD_HOUSE_SIZE) = size;
+    S16(st, b + BLD_POPULATION) = (int16_t) (S16(st, b + BLD_POPULATION) + people);
     for (uint32_t j = 0; j < 12; j++) {
-        S16(st, b + 0x54 + 2 * j) = (int16_t) (S16(st, b + 0x54 + 2 * j) + S32(st, GOODS_SUM + 4 * j));
+        S16(st, b + BLD_HOUSE_INVENTORY + 2 * j) = (int16_t) (S16(st, b + BLD_HOUSE_INVENTORY + 2 * j) + S32(st, G_GOODS_SUM + 4 * j));
     }
-    int32_t level = S16(st, b + 0x12);
-    int32_t img = house_image(st, level) + S32(st, 0x005D043Cu + 4u * (uint32_t) level);
+    int32_t level = S16(st, b + BLD_SUBTYPE);
+    int32_t img = house_image(st, level) + S32(st, G_HOUSE_LEVEL_IMAGE_ADD + 4u * (uint32_t) level);
     if (hash) {
-        img += U8(st, 0x00ACF85Cu + (uint32_t) S32(st, b + 0xC)) & 1;
+        img += U8(st, G_GRID_RANDOM + (uint32_t) S32(st, b + BLD_GRID_OFFSET)) & 1;
     }
-    GAME_CALL(st, 0x0047C480u, id, S16(st, b + 6), S16(st, b + 8));
-    int32_t x = S32(st, MERGE_X), y = S32(st, MERGE_Y);
-    S16(st, b + 6) = (int16_t) x;
-    S16(st, b + 8) = (int16_t) y;
-    S32(st, b + 0xC) = S32(st, MAP_START) + y * GRID_SIZE + x;
-    GAME_CALL(st, 0x0047BF50u, id, S16(st, b + 6), S16(st, b + 8), U8(st, b + 3), U8(st, b + 3), img, 8);
+    GAME_CALL(st, FN_BUILDING_CLEAR_TILES, id, S16(st, b + BLD_X), S16(st, b + BLD_Y));
+    int32_t x = S32(st, G_MERGE_X), y = S32(st, G_MERGE_Y);
+    S16(st, b + BLD_X) = (int16_t) x;
+    S16(st, b + BLD_Y) = (int16_t) y;
+    S32(st, b + BLD_GRID_OFFSET) = S32(st, G_MAP_START) + y * GRID_SIZE + x;
+    GAME_CALL(st, FN_MAP_BUILDING_TILES, id, S16(st, b + BLD_X), S16(st, b + BLD_Y), U8(st, b + BLD_SIZE), U8(st, b + BLD_SIZE), img, 8);
 }
 
 void house_grow_0x14(game_state *st, int32_t id, int32_t people) { house_grow(st, id, people, 0x14, 2, 1); }
@@ -377,8 +375,8 @@ int32_t house_can_evolve(game_state *st, int32_t id, int32_t up)
      * services, goods count, and the four goods (a quarter, rounded, for 1 x 1 houses); the
      * first one missing counts in the city's statistics and returns 0 */
     uint32_t b = BUILDING_ADDR(id);
-    int32_t level = S16(st, b + 0x12) + (up != 0);
-    uint32_t rec = 0x0070CDD4u + 0x58u * (uint32_t) level;
+    int32_t level = S16(st, b + BLD_SUBTYPE) + (up != 0);
+    uint32_t rec = G_HOUSE_LEVELS + 8 + 0x58u * (uint32_t) level;
     int32_t water = S32(st, rec + 4);
     int32_t ent = S32(st, rec), rel = S32(st, rec + 0xC), edu = S32(st, rec + 8);
     int32_t health = S32(st, rec + 0x14), mag = S32(st, rec + 0x18), svc = S32(st, rec + 0x1C);
@@ -386,7 +384,7 @@ int32_t house_can_evolve(game_state *st, int32_t id, int32_t up)
     int32_t goods[4];
     for (uint32_t k = 0; k < 4; k++) {
         goods[k] = S32(st, rec + 0x24 + 4 * k);
-        if (U8(st, b + 3) == 1 && goods[k] > 0) {
+        if (U8(st, b + BLD_SIZE) == 1 && goods[k] > 0) {
             goods[k] = (goods[k] + 2) / 4;
             if (goods[k] < 1) {
                 goods[k] = 1;
@@ -398,70 +396,70 @@ int32_t house_can_evolve(game_state *st, int32_t id, int32_t up)
         S32(st, CURRENT_CITY(st) + (off)) += 1; \
         return 0; \
     } while (0)
-    if (U8(st, b + 0x35) == 0) {
+    if (U8(st, b + BLD_WATER_SUPPLY) == 0) {
         if (water >= 2) {
-            FAIL(0x4304);
+            FAIL(CITY_U4304);
         }
-        if (water == 1 && U8(st, b + 0x3F) == 0) {
-            FAIL(0x4308);
+        if (water == 1 && U8(st, b + BLD_WELL_ACCESS) == 0) {
+            FAIL(CITY_U4308);
         }
     }
-    int8_t have = S8(st, b + 0x80);
+    int8_t have = S8(st, b + BLD_ENTERTAINMENT);
     if (ent > have) {
-        FAIL(have == 0 ? 0x4388 : 0x430C);
+        FAIL(have == 0 ? CITY_U4388 : CITY_U430C);
     }
-    have = S8(st, b + 0x81);
+    have = S8(st, b + BLD_EDUCATION);
     if (rel > have) {
-        FAIL(have != 0 ? 0x4310 : 0x4314);
+        FAIL(have != 0 ? CITY_U4310 : CITY_U4314);
     }
     uint32_t c = CURRENT_CITY(st);
     if (rel == 2) {
-        S32(st, c + 0x4318) += 1;
-        S32(st, c + 0x431C) += 1;
+        S32(st, c + CITY_U4318) += 1;
+        S32(st, c + CITY_U431C) += 1;
     } else if (rel == 1) {
-        S32(st, c + 0x4318) += 1;
+        S32(st, c + CITY_U4318) += 1;
     }
-    have = S8(st, b + 0x83);
+    have = S8(st, b + BLD_RELIGION);
     if (edu > have) {
         if (edu == 1) {
-            FAIL(0x4350);
+            FAIL(CITY_U4350);
         } else if (edu == 2) {
-            FAIL(0x4354);
+            FAIL(CITY_U4354);
         } else if (edu == 3) {
-            FAIL(0x4358);
+            FAIL(CITY_U4358);
         }
     } else if (edu >= 1) {
-        S32(st, c + 0x435C) += 1;
+        S32(st, c + CITY_U435C) += 1;
     }
-    int32_t u = U8(st, b + 0x75);
+    int32_t u = U8(st, b + BLD_ACCESS_DENTIST);
     if (health > u) {
-        FAIL(0x4324);
+        FAIL(CITY_U4324);
     }
     if (health == 1) {
-        S32(st, c + 0x4344) += 1;
+        S32(st, c + CITY_U4344) += 1;
     }
-    u = U8(st, b + 0x70);
+    u = U8(st, b + BLD_ACCESS_MAGISTRATE);
     if (mag > u) {
-        FAIL(u != 0 ? 0x4328 : 0x474C);
+        FAIL(u != 0 ? CITY_U4328 : CITY_U474C);
     }
     if (mag == 2) {
-        S32(st, c + 0x4348) += 1;
-        S32(st, c + 0x4748) += 1;
+        S32(st, c + CITY_U4348) += 1;
+        S32(st, c + CITY_U4748) += 1;
     } else if (mag == 1) {
-        S32(st, c + 0x4348) += 1;
+        S32(st, c + CITY_U4348) += 1;
     }
-    have = S8(st, b + 0x82);
+    have = S8(st, b + BLD_HEALTH);
     if (svc > have) {
-        FAIL(svc >= 2 ? 0x4340 : 0x433C);
+        FAIL(svc >= 2 ? CITY_U4340 : CITY_U433C);
     }
     if (svc >= 1) {
-        S32(st, c + 0x434C) += 1;
+        S32(st, c + CITY_U434C) += 1;
     }
     /* @bin 0x00453FD1 the kinds of goods held among the city's goods list 0x00F53DDC (count
      * 0x00F53DD8), mapped to the house's goods slots by the switch at 0x00453FFD */
     int32_t held = 0;
-    for (int32_t k = 0; k < S32(st, 0x00F53DD8u); k++) {
-        int32_t g = S32(st, 0x00F53DDCu + 4u * (uint32_t) k);
+    for (int32_t k = 0; k < S32(st, G_GOODS_COUNT); k++) {
+        int32_t g = S32(st, G_GOODS_LIST + 4u * (uint32_t) k);
         if (g == 0) {
             continue;
         }
@@ -474,28 +472,28 @@ int32_t house_can_evolve(game_state *st, int32_t id, int32_t up)
         case 19: slot = 11; break;
         default: slot = -1; break;
         }
-        if (S16(st, b + 0x54 + (uint32_t) (2 * slot)) != 0) {
+        if (S16(st, b + BLD_HOUSE_INVENTORY + (uint32_t) (2 * slot)) != 0) {
             held++;
         }
     }
     if (kinds > held) {
-        FAIL(0x432C);
+        FAIL(CITY_U432C);
     }
 #undef FAIL
-    if (goods[0] > S16(st, b + 0x66)) {
+    if (goods[0] > S16(st, b + BLD_HOUSE_INVENTORY + 2 * 9)) {
         return 0;
     }
-    if (goods[3] != 0 && S16(st, b + 0x64) <= 0) {
+    if (goods[3] != 0 && S16(st, b + BLD_HOUSE_INVENTORY + 2 * 8) <= 0) {
         return 0;
     }
-    if (goods[1] > S16(st, b + 0x68)) {
+    if (goods[1] > S16(st, b + BLD_HOUSE_INVENTORY + 2 * 10)) {
         return 0;
     }
-    if (goods[2] > S16(st, b + 0x6A)) {
+    if (goods[2] > S16(st, b + BLD_HOUSE_INVENTORY + 2 * 11)) {
         return 0;
     }
-    if (goods[2] >= 2 && S32(st, CURRENT_CITY(st) + 0x46A4) < 2) {
-        S32(st, CURRENT_CITY(st) + 0x46FC) += 1;
+    if (goods[2] >= 2 && S32(st, CURRENT_CITY(st) + CITY_U46A4) < 2) {
+        S32(st, CURRENT_CITY(st) + CITY_U46FC) += 1;
         return 0;
     }
     return 1;
@@ -504,13 +502,13 @@ int32_t house_can_evolve(game_state *st, int32_t id, int32_t up)
 static void house_split_part(game_state *st, int32_t n, int32_t people, const int32_t *goods, int32_t img)
 {
     uint32_t o = BUILDING_ADDR(n);
-    S16(st, o + 0x1C) = (int16_t) people;
+    S16(st, o + BLD_POPULATION) = (int16_t) people;
     for (uint32_t j = 0; j < 12; j++) {
-        S16(st, o + 0x54 + 2 * j) = (int16_t) goods[j];
+        S16(st, o + BLD_HOUSE_INVENTORY + 2 * j) = (int16_t) goods[j];
     }
-    S16(st, o + 0x20) = 0;
-    img += U8(st, 0x00ACF85Cu + (uint32_t) S32(st, o + 0xC)) & 1;
-    GAME_CALL(st, 0x0047BF50u, n, S16(st, o + 6), S16(st, o + 8), 1, 1, img, 8);
+    S16(st, o + BLD_DISTANCE) = 0;
+    img += U8(st, G_GRID_RANDOM + (uint32_t) S32(st, o + BLD_GRID_OFFSET)) & 1;
+    GAME_CALL(st, FN_MAP_BUILDING_TILES, n, S16(st, o + BLD_X), S16(st, o + BLD_Y), 1, 1, img, 8);
 }
 
 static void house_split_in_four(game_state *st, int32_t id, int to_0x13)
@@ -519,35 +517,35 @@ static void house_split_in_four(game_state *st, int32_t id, int to_0x13)
      * level 9, for 0x0046C1C0): a quarter of the people and goods each (the house keeps the
      * remainders too); the three new ones by 0x0046A400 at (x + 1, y), (x, y + 1), (x + 1, y + 1) */
     uint32_t b = BUILDING_ADDR(id);
-    int32_t people = S16(st, b + 0x1C);
+    int32_t people = S16(st, b + BLD_POPULATION);
     int32_t quarter[12], rest[12];
     for (uint32_t j = 0; j < 12; j++) {
-        int32_t g = S16(st, b + 0x54 + 2 * j);
+        int32_t g = S16(st, b + BLD_HOUSE_INVENTORY + 2 * j);
         quarter[j] = g / 4;
         rest[j] = g % 4;
     }
     int32_t pq = people / 4;
-    GAME_CALL(st, 0x0047C480u, id, S16(st, b + 6), S16(st, b + 8));
+    GAME_CALL(st, FN_BUILDING_CLEAR_TILES, id, S16(st, b + BLD_X), S16(st, b + BLD_Y));
     if (to_0x13) {
-        S16(st, b + 0x10) = 0x13;
-        S16(st, b + 0x12) = 9;
+        S16(st, b + BLD_TYPE) = 0x13;
+        S16(st, b + BLD_SUBTYPE) = 9;
     }
-    U8(st, b + 3) = 1;
-    U8(st, b + 5) = 1;
-    U8(st, b + 4) = 0;
-    S16(st, b + 0x1C) = (int16_t) (people % 4 + pq);
+    U8(st, b + BLD_SIZE) = 1;
+    U8(st, b + BLD_HOUSE_SIZE) = 1;
+    U8(st, b + BLD_HOUSE_MERGED) = 0;
+    S16(st, b + BLD_POPULATION) = (int16_t) (people % 4 + pq);
     for (uint32_t j = 0; j < 12; j++) {
-        S16(st, b + 0x54 + 2 * j) = (int16_t) (rest[j] + quarter[j]);
+        S16(st, b + BLD_HOUSE_INVENTORY + 2 * j) = (int16_t) (rest[j] + quarter[j]);
     }
-    S16(st, b + 0x20) = 0;
-    int32_t level = S16(st, b + 0x12);
-    int32_t img = house_image(st, level) + S32(st, 0x005D043Cu + 4u * (uint32_t) level);
-    GAME_CALL(st, 0x0047BF50u, id, S16(st, b + 6), S16(st, b + 8), 1, 1,
-              (int32_t) (U8(st, 0x00ACF85Cu + (uint32_t) S32(st, b + 0xC)) & 1) + img, 8);
-    int32_t x = S16(st, b + 6), y = S16(st, b + 8);
+    S16(st, b + BLD_DISTANCE) = 0;
+    int32_t level = S16(st, b + BLD_SUBTYPE);
+    int32_t img = house_image(st, level) + S32(st, G_HOUSE_LEVEL_IMAGE_ADD + 4u * (uint32_t) level);
+    GAME_CALL(st, FN_MAP_BUILDING_TILES, id, S16(st, b + BLD_X), S16(st, b + BLD_Y), 1, 1,
+              (int32_t) (U8(st, G_GRID_RANDOM + (uint32_t) S32(st, b + BLD_GRID_OFFSET)) & 1) + img, 8);
+    int32_t x = S16(st, b + BLD_X), y = S16(st, b + BLD_Y);
     static const int8_t at[3][2] = {{1, 0}, {0, 1}, {1, 1}};
     for (int k = 0; k < 3; k++) {
-        int32_t n = GAME_CALL(st, 0x0046A400u, S32(st, CURRENT_PLAYER_ADDR), S16(st, b + 0x10), x + at[k][0],
+        int32_t n = GAME_CALL(st, FN_BUILDING_CREATE, S32(st, CURRENT_PLAYER_ADDR), S16(st, b + BLD_TYPE), x + at[k][0],
                               y + at[k][1], 0, 0);
         house_split_part(st, n, pq, quarter, img);
     }
@@ -562,39 +560,39 @@ static void house_shrink(game_state *st, int32_t id, int32_t parts, int16_t type
      * size, keeping 1 / parts of its people and goods plus the remainders; the freed column and
      * row get terrain 0x20, then the plaza pass and the routing grids of the old square */
     uint32_t b = BUILDING_ADDR(id);
-    int32_t people = S16(st, b + 0x1C);
+    int32_t people = S16(st, b + BLD_POPULATION);
     int32_t part[12], rest[12];
     for (uint32_t j = 0; j < 12; j++) {
-        int32_t g = S16(st, b + 0x54 + 2 * j);
+        int32_t g = S16(st, b + BLD_HOUSE_INVENTORY + 2 * j);
         part[j] = g / parts;
         rest[j] = g % parts;
     }
-    GAME_CALL(st, 0x0047C480u, id, S16(st, b + 6), S16(st, b + 8));
-    S16(st, b + 0x10) = type;
-    S16(st, b + 0x12) = (int16_t) (type - 10);
-    U8(st, b + 3) = size;
-    U8(st, b + 5) = size;
-    U8(st, b + 4) = 0;
-    S16(st, b + 0x1C) = (int16_t) (people % parts + people / parts);
+    GAME_CALL(st, FN_BUILDING_CLEAR_TILES, id, S16(st, b + BLD_X), S16(st, b + BLD_Y));
+    S16(st, b + BLD_TYPE) = type;
+    S16(st, b + BLD_SUBTYPE) = (int16_t) (type - 10);
+    U8(st, b + BLD_SIZE) = size;
+    U8(st, b + BLD_HOUSE_SIZE) = size;
+    U8(st, b + BLD_HOUSE_MERGED) = 0;
+    S16(st, b + BLD_POPULATION) = (int16_t) (people % parts + people / parts);
     for (uint32_t j = 0; j < 12; j++) {
-        S16(st, b + 0x54 + 2 * j) = (int16_t) (rest[j] + part[j]);
+        S16(st, b + BLD_HOUSE_INVENTORY + 2 * j) = (int16_t) (rest[j] + part[j]);
     }
-    S16(st, b + 0x20) = 0;
-    int32_t level = S16(st, b + 0x12);
-    int32_t img = house_image(st, level) + S32(st, 0x005D043Cu + 4u * (uint32_t) level);
+    S16(st, b + BLD_DISTANCE) = 0;
+    int32_t level = S16(st, b + BLD_SUBTYPE);
+    int32_t img = house_image(st, level) + S32(st, G_HOUSE_LEVEL_IMAGE_ADD + 4u * (uint32_t) level);
     if (size == 2) {
-        img += U8(st, 0x00ACF85Cu + (uint32_t) S32(st, b + 0xC)) & 1;
+        img += U8(st, G_GRID_RANDOM + (uint32_t) S32(st, b + BLD_GRID_OFFSET)) & 1;
     }
-    GAME_CALL(st, 0x0047BF50u, id, S16(st, b + 6), S16(st, b + 8), size, size, img, 8);
-    int32_t x = S16(st, b + 6), y = S16(st, b + 8);
-    int32_t tile = S32(st, MAP_START) + y * GRID_SIZE + x;
+    GAME_CALL(st, FN_MAP_BUILDING_TILES, id, S16(st, b + BLD_X), S16(st, b + BLD_Y), size, size, img, 8);
+    int32_t x = S16(st, b + BLD_X), y = S16(st, b + BLD_Y);
+    int32_t tile = S32(st, G_MAP_START) + y * GRID_SIZE + x;
     for (int32_t k = 0; k <= size; k++) {
-        U32(st, 0x00AF598Cu + 4u * (uint32_t) (tile + size + GRID_SIZE * k)) |= 0x20;
-        U32(st, 0x00AF598Cu + 4u * (uint32_t) (tile + GRID_SIZE * size + k)) |= 0x20;
+        U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (tile + size + GRID_SIZE * k)) |= 0x20;
+        U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (tile + GRID_SIZE * size + k)) |= 0x20;
     }
-    GAME_CALL0(st, 0x00476530u);
-    GAME_CALL(st, 0x00516F90u, x, y, x + size, y + size, 1);
-    GAME_CALL(st, 0x005173A0u, x, y, x + size, y + size);
+    GAME_CALL0(st, FN_FLAG_0X20_ALL);
+    GAME_CALL(st, FN_ROUTING_FILL_EE0C50, x, y, x + size, y + size, 1);
+    GAME_CALL(st, FN_ROUTING_FILL_EC7630, x, y, x + size, y + size);
 }
 
 void house_devolve_0x18(game_state *st, int32_t id) { house_shrink(st, id, 6, 0x17, 2); }
@@ -615,80 +613,80 @@ typedef struct {
 } house_evolution;
 
 static const house_evolution evolutions[] = {
-    {0x0A, 0x00452980u, 1, 1, 1, 0, 0, 0x0B, 0, 0},
-    {0x0B, 0x00452A20u, 1, 1, 1, 0x0A, 0, 0x0C, 0, 0},
-    {0x0C, 0x00452B00u, 0, 1, 1, 0x0B, 0, 0x0D, 0, 0},
-    {0x0D, 0x00452BD0u, 0, 1, 1, 0x0C, 0, 0x0E, 0, 0},
-    {0x0E, 0x00452CA0u, 0, 1, 1, 0x0D, 0, 0x0F, 0, 0},
-    {0x0F, 0x00452D70u, 0, 1, 1, 0x0E, 0, 0x10, 0, 0},
-    {0x10, 0x00452E40u, 0, 1, 1, 0x0F, 0, 0x11, 0, 0},
-    {0x11, 0x00452F10u, 0, 1, 1, 0x10, 0, 0x12, 0, 0},
-    {0x12, 0x00452FE0u, 0, 1, 1, 0x11, 0, 0x13, 0, 0},
-    {0x13, 0x004530B0u, 0, 1, 1, 0x12, 0, 0, 4, 0x0046BAB0u},
-    {0x14, 0x004531C0u, 0, 0, 1, 0, 0x0046C1C0u, 0x15, 0, 0},
-    {0x15, 0x00453280u, 0, 0, 1, 0x14, 0, 0x16, 0, 0},
-    {0x16, 0x00453340u, 0, 0, 1, 0x15, 0, 0x17, 0, 0},
-    {0x17, 0x00453400u, 0, 0, 1, 0x16, 0, 0, 9, 0x0046BBC0u},
-    {0x18, 0x00453500u, 0, 0, 1, 0, 0x0046CB30u, 0x19, 0, 0},
-    {0x19, 0x004535C0u, 0, 0, 1, 0x18, 0, 0x1A, 0, 0},
-    {0x1A, 0x00453680u, 0, 0, 1, 0x19, 0, 0x1B, 0, 0},
-    {0x1B, 0x00453740u, 0, 0, 1, 0x1A, 0, 0, 0x10, 0x0046BCB0u},
-    {0x1C, 0x00453840u, 0, 0, 1, 0, 0x0046CCF0u, 0x1D, 0, 0},
-    {0x1D, 0x00453900u, 0, 0, 0, 0x1C, 0, 0x1C, 0, 0},
+    {0x0A, FN_HOUSE_EVOLVE_0X0A, 1, 1, 1, 0, 0, 0x0B, 0, 0},
+    {0x0B, FN_HOUSE_EVOLVE_0X0B, 1, 1, 1, 0x0A, 0, 0x0C, 0, 0},
+    {0x0C, FN_HOUSE_EVOLVE_0X0C, 0, 1, 1, 0x0B, 0, 0x0D, 0, 0},
+    {0x0D, FN_HOUSE_EVOLVE_0X0D, 0, 1, 1, 0x0C, 0, 0x0E, 0, 0},
+    {0x0E, FN_HOUSE_EVOLVE_0X0E, 0, 1, 1, 0x0D, 0, 0x0F, 0, 0},
+    {0x0F, FN_HOUSE_EVOLVE_0X0F, 0, 1, 1, 0x0E, 0, 0x10, 0, 0},
+    {0x10, FN_HOUSE_EVOLVE_0X10, 0, 1, 1, 0x0F, 0, 0x11, 0, 0},
+    {0x11, FN_HOUSE_EVOLVE_0X11, 0, 1, 1, 0x10, 0, 0x12, 0, 0},
+    {0x12, FN_HOUSE_EVOLVE_0X12, 0, 1, 1, 0x11, 0, 0x13, 0, 0},
+    {0x13, FN_HOUSE_EVOLVE_0X13, 0, 1, 1, 0x12, 0, 0, 4, FN_HOUSE_GROW_0X14},
+    {0x14, FN_HOUSE_EVOLVE_0X14, 0, 0, 1, 0, FN_HOUSE_DEVOLVE_0X14, 0x15, 0, 0},
+    {0x15, FN_HOUSE_EVOLVE_0X15, 0, 0, 1, 0x14, 0, 0x16, 0, 0},
+    {0x16, FN_HOUSE_EVOLVE_0X16, 0, 0, 1, 0x15, 0, 0x17, 0, 0},
+    {0x17, FN_HOUSE_EVOLVE_0X17, 0, 0, 1, 0x16, 0, 0, 9, FN_HOUSE_GROW_0X18},
+    {0x18, FN_HOUSE_EVOLVE_0X18, 0, 0, 1, 0, FN_HOUSE_DEVOLVE_0X18, 0x19, 0, 0},
+    {0x19, FN_HOUSE_EVOLVE_0X19, 0, 0, 1, 0x18, 0, 0x1A, 0, 0},
+    {0x1A, FN_HOUSE_EVOLVE_0X1A, 0, 0, 1, 0x19, 0, 0x1B, 0, 0},
+    {0x1B, FN_HOUSE_EVOLVE_0X1B, 0, 0, 1, 0x1A, 0, 0, 0x10, FN_HOUSE_GROW_0X1C},
+    {0x1C, FN_HOUSE_EVOLVE_0X1C, 0, 0, 1, 0, FN_HOUSE_DEVOLVE_0X1C, 0x1D, 0, 0},
+    {0x1D, FN_HOUSE_EVOLVE_0X1D, 0, 0, 0, 0x1C, 0, 0x1C, 0, 0},
 };
 
 static void house_evolve(game_state *st, const house_evolution *e)
 {
-    int32_t id = S32(st, HOUSE_ID);
-    if (e->needs_people && S16(st, BUILDING_ADDR(id) + 0x1C) <= 0) {
+    int32_t id = S32(st, G_HOUSE_ID);
+    if (e->needs_people && S16(st, BUILDING_ADDR(id) + BLD_POPULATION) <= 0) {
         return;
     }
     if (e->merge) {
-        house_try_merge(st, S32(st, HOUSE_ID));
+        house_try_merge(st, S32(st, G_HOUSE_ID));
     }
     if (houses_redraw_only(st)) {
         return;
     }
-    S32(st, HOUSE_RESULT) = house_desirability_trend(st, S32(st, HOUSE_ID));
+    S32(st, G_HOUSE_RESULT) = house_desirability_trend(st, S32(st, G_HOUSE_ID));
     int32_t v;
-    if (!house_can_evolve(st, S32(st, HOUSE_ID), 0)) {
-        S32(st, HOUSE_RESULT) = -1;
+    if (!house_can_evolve(st, S32(st, G_HOUSE_ID), 0)) {
+        S32(st, G_HOUSE_RESULT) = -1;
         v = -1;
     } else {
-        v = S32(st, HOUSE_RESULT);
+        v = S32(st, G_HOUSE_RESULT);
         if (e->recheck && v == 1) {
-            v = house_can_evolve(st, S32(st, HOUSE_ID), v);
-            S32(st, HOUSE_RESULT) = v;
+            v = house_can_evolve(st, S32(st, G_HOUSE_ID), v);
+            S32(st, G_HOUSE_RESULT) = v;
         }
     }
     if (e->type == 0x0A) {
         /* @bin 0x00452980 the lowest house never devolves and keeps no delay */
         if (v != 0 && v != -1) {
-            house_set_type(st, S32(st, HOUSE_ID), e->up);
+            house_set_type(st, S32(st, G_HOUSE_ID), e->up);
         }
         return;
     }
-    id = S32(st, HOUSE_ID);
+    id = S32(st, G_HOUSE_ID);
     uint32_t b = BUILDING_ADDR(id);
     if (v == -1) {
         /* devolution after three days (+0x84) */
-        if (U8(st, b + 0x84) <= 1) {
-            U8(st, b + 0x84) += 1;
+        if (U8(st, b + BLD_DEVOLVE_DAYS) <= 1) {
+            U8(st, b + BLD_DEVOLVE_DAYS) += 1;
             return;
         }
-        U8(st, b + 0x84) = 0;
+        U8(st, b + BLD_DEVOLVE_DAYS) = 0;
         if (e->down != 0) {
             house_set_type(st, id, e->down);
-        } else if (e->down_fn == 0x0046C1C0u) {
+        } else if (e->down_fn == FN_HOUSE_DEVOLVE_0X14) {
             house_devolve_0x14(st, id);
-        } else if (e->down_fn == 0x0046CB30u) {
+        } else if (e->down_fn == FN_HOUSE_DEVOLVE_0X18) {
             house_devolve_0x18(st, id);
         } else {
             house_devolve_0x1c(st, id);
         }
         return;
     }
-    U8(st, b + 0x84) = 0;
+    U8(st, b + BLD_DEVOLVE_DAYS) = 0;
     if (v == 0) {
         return;
     }
@@ -701,19 +699,19 @@ static void house_evolve(game_state *st, const house_evolution *e)
         return;
     }
     if (e->type == 0x13) {
-        U8(st, BUILDING_ADDR(S32(st, HOUSE_ID)) + 4) = 0;
+        U8(st, BUILDING_ADDR(S32(st, G_HOUSE_ID)) + BLD_HOUSE_MERGED) = 0;
     }
-    house_clear_expansion(st, S32(st, HOUSE_ID), e->expand);
-    int32_t people = house_merge_neighbours(st, S32(st, HOUSE_ID), e->expand);
-    if (e->expand_fn == 0x0046BAB0u) {
-        house_grow_0x14(st, S32(st, HOUSE_ID), people);
-    } else if (e->expand_fn == 0x0046BBC0u) {
-        house_grow_0x18(st, S32(st, HOUSE_ID), people);
+    house_clear_expansion(st, S32(st, G_HOUSE_ID), e->expand);
+    int32_t people = house_merge_neighbours(st, S32(st, G_HOUSE_ID), e->expand);
+    if (e->expand_fn == FN_HOUSE_GROW_0X14) {
+        house_grow_0x14(st, S32(st, G_HOUSE_ID), people);
+    } else if (e->expand_fn == FN_HOUSE_GROW_0X18) {
+        house_grow_0x18(st, S32(st, G_HOUSE_ID), people);
     } else {
-        house_grow_0x1c(st, S32(st, HOUSE_ID), people);
+        house_grow_0x1c(st, S32(st, G_HOUSE_ID), people);
     }
-    S32(st, 0x0078D588u) = 1;
-    GAME_CALL0(st, 0x00476530u);
+    S32(st, G_HOUSES_EXPANDED) = 1;
+    GAME_CALL0(st, FN_FLAG_0X20_ALL);
 }
 
 static const house_evolution *evolution_of(uint32_t addr)
@@ -732,34 +730,34 @@ void houses_evolve_all(game_state *st)
      * evolved by its type's function (table 0x005DA3D4, 0x0078D7E4 := 0 before); on days 0 and 7
      * it uses its goods; the routing grids are rebuilt when 0x0078D588 was set */
     houses_counters_clear(st);
-    S32(st, 0x0078D588u) = 0;
-    for (S32(st, HOUSE_ID) = 1; S32(st, HOUSE_ID) < 0xFA0; S32(st, HOUSE_ID) += 1) {
-        int32_t id = S32(st, HOUSE_ID);
+    S32(st, G_HOUSES_EXPANDED) = 0;
+    for (S32(st, G_HOUSE_ID) = 1; S32(st, G_HOUSE_ID) < 0xFA0; S32(st, G_HOUSE_ID) += 1) {
+        int32_t id = S32(st, G_HOUSE_ID);
         uint32_t b = BUILDING_ADDR(id);
-        int16_t type = S16(st, b + 0x10);
-        if (U8(st, b) != 1 || type < 0xA || type > 0x1D) {
+        int16_t type = S16(st, b + BLD_TYPE);
+        if (U8(st, b + BLD_STATE) != 1 || type < 0xA || type > 0x1D) {
             continue;
         }
         building_check_position(st, id);
-        S32(st, 0x0078D7E4u) = 0;
-        id = S32(st, HOUSE_ID);
-        uint32_t fn = U32(st, 0x005DA3D4u + 4u * (uint32_t) (int32_t) S16(st, BUILDING_ADDR(id) + 0x10));
+        S32(st, G_HOUSE_RESULT) = 0;
+        id = S32(st, G_HOUSE_ID);
+        uint32_t fn = U32(st, G_HOUSE_EVOLVE_FNS + 4u * (uint32_t) (int32_t) S16(st, BUILDING_ADDR(id) + BLD_TYPE));
         const house_evolution *e = evolution_of(fn);
         if (e) {
             house_evolve(st, e);
         } else {
             GAME_CALL0(st, fn);
         }
-        if (S32(st, 0x0078D7C4u) == 0) {
-            house_consume(st, S32(st, HOUSE_ID));
+        if (S32(st, G_TICK_DAY) == 0) {
+            house_consume(st, S32(st, G_HOUSE_ID));
         }
-        if (S32(st, 0x0078D7C4u) == 7) {
-            house_consume(st, S32(st, HOUSE_ID));
+        if (S32(st, G_TICK_DAY) == 7) {
+            house_consume(st, S32(st, G_HOUSE_ID));
         }
     }
-    if (S32(st, 0x0078D588u) != 0) {
-        GAME_CALL0(st, 0x00517370u);
-        GAME_CALL0(st, 0x00517660u);
+    if (S32(st, G_HOUSES_EXPANDED) != 0) {
+        GAME_CALL0(st, FN_ROUTING_REBUILD_EE0C50);
+        GAME_CALL0(st, FN_ROUTING_REBUILD_EC7630);
     }
 }
 

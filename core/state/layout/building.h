@@ -23,6 +23,7 @@
 #define BLD_GRID_OFFSET 0x0Cu      /* u32: grid offset of the corner tile */
 #define BLD_TYPE 0x10u             /* i16: building type (names: text group 41) */
 #define BLD_SUBTYPE 0x12u          /* i16: house level (type - 10) for houses, else a per-type value */
+#define BLD_INPUT 0x12u            /* i16: workshops: the input good; non-zero, done at 400 (0x00455BF0); BLD_INPUT2 the second */
 #define BLD_PART 0x12u             /* i16: monuments: the part's index (id - it: the first part, 0x004F30B0) */
 #define BLD_ROAD_NETWORK 0x14u     /* u8: road network id ('roadnet', 0x00457AF0) */
 #define BLD_SEQUENCE 0x16u         /* i16: creation sequence number (G_BUILDING_SEQUENCE) */
@@ -67,6 +68,44 @@
 #define BLD_MON_ANNOUNCED_74 0x74u /* type 0xDE */
 #define BLD_MON_ANNOUNCED_80 0x80u /* types 0xB7, 0xCF, 0xD0 */
 #define BLD_MON_ANNOUNCED_9D 0x9Du /* types 0xE5, 0xEA, 0xEB, 0xEC */
+/* monuments: the parts of a monument are consecutive buildings, BLD_PART numbering them from the main
+ * part (core/building/map_add_monument.c) */
+#define BLD_MONUMENT_SLOT 0x54u    /* i32: monuments laid out from a table: the scenario slot (0x004F4F80; 0x004DF9D0, 0x005417B0) */
+#define BLD_U54 0x54u              /* i32: type 0xE6: the work list key of the main part (0x00420A90); 0 at creation */
+#define BLD_MONUMENT_WORKER 0x5Cu  /* i32: the figure working the part (0x004E0530, 0x00417590, 0x00541DE0); not pyramids */
+#define BLD_MONUMENT_FLAGS 0x64u   /* u32: types 0xDE, 0xD5, main part: the work done, by bits (0x004E05F0, 0x00541DE0) */
+#define BLD_U60 0x60u              /* i32: 1 on the main part of the laid-out monuments (0x004DF9D0, 0x005417B0) */
+#define BLD_LAYOUT_X 0x68u         /* i32: type 0xDE: the layout's origin x, y and direction (0x004DF9D0, 0x004DED50) */
+#define BLD_LAYOUT_Y 0x6Cu
+#define BLD_LAYOUT_DIRECTION 0x70u
+#define BLD_OBELISK_SLOT 0x12u     /* i16: types 0xCF, 0xD0: the scenario slot (0x004E57F0) */
+#define BLD_STORED_GOOD 0x12u      /* i16: storage yard spaces: the good stored, amount BLD_STORED (0x0045B700) */
+#define BLD_REC88_SLOT 0xCAu       /* u8: its record of G_REC88 (0xE0 bytes), 0 none (0x0046AC50) */
+#define BLD_REC4A_SLOT 0xCBu       /* u8: its record of G_REC4A, 1..10, 0 none (0x0046A2E0) */
+#define BLD_AREA_TILE 0xD0u        /* i32: types 0x1E, 0x1F, 0x21, 0xD1: the area's first tile (0x0043FD00) */
+#define BLD_GATE_DIRECTION 0xD4u   /* i32: two-tile gates: 0 the other part (BLD_NEXT_PART) at y + 1, else at x + 1 (0x00440540) */
+#define BLD_D7_PYRAMID 0x12u       /* i16: type 0xD7: the pyramid's main part (0x004F5F10) */
+/* the pyramid (type 0xB7), each part (core/building/pyramid_terr.c: 0x004EE7A0, 0x004F31F0, 0x004EDF50) */
+#define BLD_PYRAMID_LEVEL 0x55u    /* u8 */
+#define BLD_PYRAMID_STAGE 0x56u    /* u8: within the layer; the level reached: stage + 6 * layer (0x004EF100) */
+#define BLD_PYRAMID_LAYER 0x57u    /* u8 */
+#define BLD_PYRAMID_LAYERS 0x58u   /* u8: the layer limit, from G_PYRAMID_PART_CORNER + 4 */
+#define BLD_PYRAMID_RAMP_A 0x59u   /* u8: ramp marks */
+#define BLD_PYRAMID_RAMP_B 0x5Au
+#define BLD_PYRAMID_CORNERS 0x5Bu  /* u8: done corners, bits 0-3 (0x004F3690) */
+#define BLD_PYRAMID_RAMP_A_POS 0x5Cu /* i16[2]: the ramp marks' offsets (0x004EDF50) */
+#define BLD_PYRAMID_RAMP_B_POS 0x60u
+#define BLD_PYRAMID_WORKER 0x64u   /* i16: the figure working the part (0x004EEA10) */
+#define BLD_PYRAMID_RAMP_IMAGE 0x68u /* i32 (0x004EDF50) */
+#define BLD_PYRAMID_WORK 0xC8u     /* i16: main part: the work left (0x004F31F0, 0x004EE780) */
+/* royal burial tombs (types 0xE5, 0xEA, 0xEB, 0xEC), each part (@bin 0x00547870, 0x004223F0,
+ * 0x004233F0, 0x00422A90; core/building/tomb_stones.c) */
+#define BLD_TOMB_STAGE 0x60u       /* i32: the part's stage, 0..4 */
+#define BLD_TOMB_STONE_SET 0x68u   /* u32: the stone set, 0..0x1D (G_STONE_SLOTS tables) */
+#define BLD_TOMB_LINKS 0x6Cu       /* i32[6]: neighbour parts relative to the first part, -1 none */
+#define BLD_TOMB_STONES 0x80u      /* i32[]: by stage (1..3: +0x84 .. +0x8C), the stones still to lay */
+#define BLD_TOMB_ROTATION 0x90u    /* i32: the part's rotation, less the view's (0x00545760, 0x005468D0) */
+#define BLD_TOMB_STOCK 0x98u       /* i32: main part: the stone stock, taken by 100 (0x00547C10) */
 /* u8: house access per service walker (0x004833C0 .. 0x00484780) */
 #define BLD_ACCESS_JUGGLER 0x6Cu
 #define BLD_ACCESS_MUSICIAN 0x6Du
@@ -95,8 +134,10 @@
 #define BLD_SHOWS 0xA6u            /* u8[]: 'shows' flags; workers out for wood cutters / guilds */
 #define BLD_ORIENTATION 0xAAu      /* u8 (0x004D4180, 0x0046A400, 0x0047E870) */
 #define BLD_DOCKERS 0xAEu          /* i16[3]: docker figures (0x004B4980) */
+#define BLD_REQUEST 0xB4u          /* u16: type 0x4A: a request, 0x1000 / 0x2000 and a figure type or id in the low 12 bits (0x004666CE) */
+#define BLD_DOCK_BOAT 0xB4u        /* i16: docks (0x4C, 0xB5, 0xB6): the boat figure it is reserved for, 0 free (0x004808A0, 0x00480B80) */
 #define BLD_SECOND_WALKER 0xB4u    /* i16: second trader / farm labourer (0x00462180) */
-#define BLD_SECOND_CART 0xB6u      /* i16 (0x00488400) */
+#define BLD_SECOND_CART 0xB6u      /* i16: a second figure: cart pusher (0x00462FCF), bazaar buyer (0x00464A17) (0x00488400) */
 #define BLD_UB8 0xB8u              /* i32: value from 0x0045A140, partly lost on destruction */
 #define BLD_UBC 0xBCu              /* u8: houses: counter 0..3 of the sentiment pass (0x004E8840) */
 #define BLD_DESIRABILITY 0xBEu     /* i8 (0x00454190) */
@@ -121,19 +162,23 @@
 #define BLD_U42                0x42u
 #define BLD_U44                0x44u
 #define BLD_U50                0x50u
+#define BLD_FORMATION          0x50u /* i16: forts: their formation (0x004B76B0, 0x0046AC50 type 0x39) */
 #define BLD_U57                0x57u
 #define BLD_U59                0x59u
 #define BLD_U5A                0x5Au
 #define BLD_U5B                0x5Bu
 #define BLD_U5C                0x5Cu
+#define BLD_U5E                0x5Eu
 #define BLD_U61                0x61u
 #define BLD_U62                0x62u
 #define BLD_U64                0x64u
 #define BLD_U66                0x66u
 #define BLD_U6A                0x6Au
+#define BLD_U6C                0x6Cu
 #define BLD_U7C                0x7Cu
 #define BLD_U7E                0x7Eu
 #define BLD_U84                0x84u
+#define BLD_DEVOLVE_DAYS       0x84u /* u8: houses: days the house failed its needs, devolves after the third (0x00452980) */
 #define BLD_U88                0x88u
 #define BLD_U8C                0x8Cu
 #define BLD_U90                0x90u

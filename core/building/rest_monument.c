@@ -6,38 +6,28 @@
 #include "building/rest_monument.h"
 
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define TERRAIN 0x00AF598Cu       /* u32 per tile */
-#define BITS 0x00B285CCu          /* u8 */
-#define BUILDING_GRID 0x00B4E6FCu /* i16 */
-#define EDGE 0x00B67D1Cu          /* u8 */
-#define IMAGE 0x00B7482Cu         /* u32 */
-#define RANDOM 0x00ACF85Cu        /* u8 */
-#define MAP_START 0x00BCA2D8u
-#define ORIENT 0x00BCA2E0u
-#define CURSOR 0x00BC9768u
-#define PLAIN 0x00F56B54u /* the plain ground image */
-#define FOOTPRINT 0x005CC8C0u /* @bin tile offsets: rows of 0x30 bytes, 8 bytes a tile */
 
 #define G32(a) S32(st, (a))
 
 /* @bin 0x0053DD90 (thiscall on 0x00F55BB0) a graphics file into an image slot */
 static void load_images(game_state *st, uint32_t name, int32_t slot)
 {
-    GAME_CALLT(st, 0x00F55BB0u, 0x0053DD90u, (int32_t) name, slot);
+    GAME_CALLT(st, G_GRAPHICS_GFX, FN_GRAPHICS_LOAD_SLOT, (int32_t) name, slot);
 }
 
 static int32_t part_entry(game_state *st, uint32_t self, int32_t b, uint32_t off)
 {
     /* the object's part table: 0x34 bytes a part from +0x54, by the building's part +0x12 */
-    return (int32_t) P32(st, self + off + 0x34u * (uint32_t) (int32_t) S16(st, BUILDING_ADDR(b) + 0x12));
+    return (int32_t) P32(st, self + off + 0x34u * (uint32_t) (int32_t) S16(st, BUILDING_ADDR(b) + BLD_PART));
 }
 
 static int32_t half_orient(game_state *st)
 {
-    return G32(ORIENT) / 2;
+    return G32(G_VIEW_ORIENTATION) / 2;
 }
 
 /* ---- image functions (vtable +0x1C) ------------------------------------------------------- */
@@ -47,19 +37,19 @@ int32_t monument_image_401800(game_state *st, uint32_t self, int32_t b, int32_t 
     /* @bin 0x00401800 (vtable 0x0056F438 +0x1C) by the part's kind (+0x58 of the part table) and
      * the view (0x00BCA2E0 / 2): an image of 0x00F57514..0x00F5757C */
     uint32_t r = BUILDING_ADDR(b);
-    int32_t kind = part_entry(st, self, b, 0x58);
+    int32_t kind = part_entry(st, self, b, MONOBJ_PART_KIND);
     int32_t h = half_orient(st);
     int corner = h == 0 || h == 3;
     *out = 0;
-    load_images(st, 0x005760B0u, 0x1A);
+    load_images(st, G_E6_FILE, 0x1A);
     /* @bin 0x00401A78.. per-kind tables by the view */
-    static const uint32_t k0[4] = {0x00F57564u, 0x00F57574u, 0x00F5757Cu, 0x00F5756Cu};
-    static const uint32_t k1[4] = {0x00F57574u, 0x00F5757Cu, 0x00F5756Cu, 0x00F57564u};
-    static const uint32_t k2[4] = {0x00F5756Cu, 0x00F57564u, 0x00F57574u, 0x00F5757Cu};
-    static const uint32_t k3[4] = {0x00F5754Cu, 0x00F57544u, 0x00F5755Cu, 0x00F57554u};
-    static const uint32_t k4[4] = {0x00F57554u, 0x00F5754Cu, 0x00F57544u, 0x00F5755Cu};
-    static const uint32_t k5[4] = {0x00F57544u, 0x00F5755Cu, 0x00F57554u, 0x00F5754Cu};
-    static const uint32_t k6[4] = {0x00F5755Cu, 0x00F57554u, 0x00F5754Cu, 0x00F57544u};
+    static const uint32_t k0[4] = {G_IMAGE_GROUPS + 8 * 822, G_IMAGE_GROUPS + 8 * 824, G_IMAGE_GROUPS + 8 * 825, G_IMAGE_GROUPS + 8 * 823};
+    static const uint32_t k1[4] = {G_IMAGE_GROUPS + 8 * 824, G_IMAGE_GROUPS + 8 * 825, G_IMAGE_GROUPS + 8 * 823, G_IMAGE_GROUPS + 8 * 822};
+    static const uint32_t k2[4] = {G_IMAGE_GROUPS + 8 * 823, G_IMAGE_GROUPS + 8 * 822, G_IMAGE_GROUPS + 8 * 824, G_IMAGE_GROUPS + 8 * 825};
+    static const uint32_t k3[4] = {G_IMAGE_GROUPS + 8 * 819, G_IMAGE_GROUPS + 8 * 818, G_IMAGE_GROUPS + 8 * 821, G_IMAGE_GROUPS + 8 * 820};
+    static const uint32_t k4[4] = {G_IMAGE_GROUPS + 8 * 820, G_IMAGE_GROUPS + 8 * 819, G_IMAGE_GROUPS + 8 * 818, G_IMAGE_GROUPS + 8 * 821};
+    static const uint32_t k5[4] = {G_IMAGE_GROUPS + 8 * 818, G_IMAGE_GROUPS + 8 * 821, G_IMAGE_GROUPS + 8 * 820, G_IMAGE_GROUPS + 8 * 819};
+    static const uint32_t k6[4] = {G_IMAGE_GROUPS + 8 * 821, G_IMAGE_GROUPS + 8 * 820, G_IMAGE_GROUPS + 8 * 819, G_IMAGE_GROUPS + 8 * 818};
     static const uint32_t *const kt[7] = {k0, k1, k2, k3, k4, k5, k6};
     switch ((uint32_t) kind) {
     case 0: case 1: case 2: case 3: case 4: case 5: case 6:
@@ -69,27 +59,27 @@ int32_t monument_image_401800(game_state *st, uint32_t self, int32_t b, int32_t 
         return G32(kt[kind][h]);
     case 7:
         if (corner) {
-            return G32(0x00F5752Cu) + (h & 1) + S32(st, r + 0x58) * 2;
+            return G32(G_IMAGE_GROUPS + 8 * 815) + (h & 1) + S32(st, r + BLD_MONUMENT_STAGE) * 2;
         }
-        return G32(0x00F57524u) + (~h & 1);
+        return G32(G_IMAGE_GROUPS + 8 * 814) + (~h & 1);
     case 8:
         if (corner) {
-            return G32(0x00F57534u) + (h & 1) + S32(st, r + 0x58) * 2;
+            return G32(G_IMAGE_GROUPS + 8 * 816) + (h & 1) + S32(st, r + BLD_MONUMENT_STAGE) * 2;
         }
-        return (h & 1) + G32(0x00F57534u) + 0xE;
+        return (h & 1) + G32(G_IMAGE_GROUPS + 8 * 816) + 0xE;
     case 9: {
-        int32_t v = S32(st, r + 0x58);
+        int32_t v = S32(st, r + BLD_MONUMENT_STAGE);
         if (v > 0) {
-            return G32(0x00F5753Cu) + (h & 1) + v * 2;
+            return G32(G_IMAGE_GROUPS + 8 * 817) + (h & 1) + v * 2;
         }
-        return (h & 1) + G32(0x00F5753Cu);
+        return (h & 1) + G32(G_IMAGE_GROUPS + 8 * 817);
     }
     case 10:
     case 11:
         if (corner) {
-            return G32(0x00F5751Cu) + (h & 1) + S32(st, r + 0x58) * 2;
+            return G32(G_IMAGE_GROUPS + 8 * 813) + (h & 1) + S32(st, r + BLD_MONUMENT_STAGE) * 2;
         }
-        return G32(0x00F57514u) + (~h & 1);
+        return G32(G_IMAGE_GROUPS + 8 * 812) + (~h & 1);
     default:
         return 0;
     }
@@ -102,46 +92,34 @@ int32_t monument_image_417310(game_state *st, uint32_t self, int32_t b, int32_t 
     static const int32_t order[36] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 2, 5, 8, 1, 4, 7, 0, 3, 6,
                                       8, 7, 6, 5, 4, 3, 2, 1, 0, 6, 3, 0, 7, 4, 1, 8, 5, 2};
     uint32_t r = BUILDING_ADDR(b);
-    int32_t idx = half_orient(st) * 9 + S16(st, r + 0x12);
+    int32_t idx = half_orient(st) * 9 + S16(st, r + BLD_PART);
     if (idx < 0 || idx >= 36) {
-        state_unported(st, 0x00417310u); /* the original reads its stack outside the table */
+        state_unported(st, FN_MONUMENT_IMAGE_417310); /* the original reads its stack outside the table */
         return 0;
     }
     int32_t v = order[idx];
     *out = 0;
-    uint32_t main = BUILDING_ADDR(b - S16(st, r + 0x12));
-    load_images(st, P32(st, self + 0x220 + 4u * U32(st, main + 0x58)), 0x12);
-    return v + G32(0x00F57394u);
+    uint32_t main = BUILDING_ADDR(b - S16(st, r + BLD_PART));
+    load_images(st, P32(st, self + E3OBJ_FILES + 4u * U32(st, main + BLD_MONUMENT_STAGE)), 0x12);
+    return v + G32(G_IMAGE_GROUPS + 8 * 764);
 }
 
 int32_t monument_image_4e6a70(game_state *st, uint32_t self, int32_t b, int32_t *out)
 {
     /* @bin 0x004E6A70 (vtable 0x0056F6E8 +0x1C) kind 0: images of the object's +0xB4 table, image
      * 0x00F5739C; kind 1: image 0x00F55BB4 (out not written); else 0 */
-    int32_t kind = part_entry(st, self, b, 0x58);
+    int32_t kind = part_entry(st, self, b, MONOBJ_PART_KIND);
     if (kind == 0) {
         *out = 0;
-        load_images(st, P32(st, self + 0xB4 + 4u * U32(st, BUILDING_ADDR(b) + 0x58)), 0x13);
-        return G32(0x00F5739Cu);
+        load_images(st, P32(st, self + E4OBJ_FILES + 4u * U32(st, BUILDING_ADDR(b) + BLD_MONUMENT_STAGE)), 0x13);
+        return G32(G_IMAGE_GROUPS + 8 * 765);
     }
     if (kind == 1) {
-        return G32(0x00F55BB4u);
+        return G32(G_IMAGE_GROUPS);
     }
     return 0;
 }
 
-#define LIB_MAIN_A1 0x005762FCu
-#define LIB_MAIN_A2 0x005762F0u
-#define LIB_MAIN_A3 0x005762E4u
-#define LIB_MAIN_A4 0x005762D8u
-#define LIB_MAIN_A5 0x005762C0u
-#define LIB_MAIN_C1 0x005762B4u
-#define LIB_MAIN_C2 0x005762A8u
-#define LIB_MAIN_C3 0x0057629Cu
-#define LIB_MAIN_C4 0x005762CCu
-#define LIB_MAIN_C5 0x00576290u
-#define LIB_EXTRA 0x00576284u
-#define LIB_EXTRA2 0x00576278u
 
 int32_t monument_image_40de80(game_state *st, uint32_t self, int32_t b, int32_t *out)
 {
@@ -150,11 +128,11 @@ int32_t monument_image_40de80(game_state *st, uint32_t self, int32_t b, int32_t 
      * above 2), a graphics file is loaded (0x0053DD90) and its image returned; flags: 1 plain
      * ground, 7 the stage-0 image 0x00F573BC */
     uint32_t r = BUILDING_ADDR(b);
-    int32_t v = S32(st, r + 0x58);
+    int32_t v = S32(st, r + BLD_MONUMENT_STAGE);
     if (v >= 3) {
-        v = S32(st, BUILDING_ADDR(b - S16(st, r + 0x12)) + 0x58);
+        v = S32(st, BUILDING_ADDR(b - S16(st, r + BLD_PART)) + BLD_MONUMENT_STAGE);
     }
-    int32_t kind = part_entry(st, self, b, 0x58);
+    int32_t kind = part_entry(st, self, b, MONOBJ_PART_KIND);
     int32_t h = half_orient(st);
     uint32_t name;
     *out = 0;
@@ -166,18 +144,18 @@ int32_t monument_image_40de80(game_state *st, uint32_t self, int32_t b, int32_t 
         }
         if (v > 4) {
             if (v < 8) {
-                name = 0x00576338u;
+                name = G_LIB_KIND0_1;
             } else if (v < 0xB) {
-                name = 0x0057632Cu;
+                name = G_LIB_KIND0_2;
             } else if (v < 0xE) {
-                name = 0x00576320u;
+                name = G_LIB_KIND0_3;
             } else if (v < 0x12) {
-                name = 0x00576314u;
+                name = G_LIB_KIND0_4;
             } else {
-                name = 0x00576308u;
+                name = G_LIB_KIND0_5;
             }
             load_images(st, name, 0x15);
-            return (h & 1) + G32(0x00F573ACu);
+            return (h & 1) + G32(G_IMAGE_GROUPS + 8 * 767);
         }
         break;
     case 1:
@@ -192,7 +170,7 @@ int32_t monument_image_40de80(game_state *st, uint32_t self, int32_t b, int32_t 
             if (h > 1) {
                 goto plain;
             }
-            name = LIB_MAIN_A1;
+            name = G_LIB_MAIN_A1;
             goto main_a;
         }
         if (v < 7) {
@@ -220,51 +198,51 @@ int32_t monument_image_40de80(game_state *st, uint32_t self, int32_t b, int32_t 
                                         }
                                     } else if (h > 1) {
                                     lab_e181:
-                                        name = LIB_MAIN_C5;
+                                        name = G_LIB_MAIN_C5;
                                         goto main_c;
                                     }
                                 lab_e059:
-                                    name = LIB_MAIN_A5;
+                                    name = G_LIB_MAIN_A5;
                                     goto main_a;
                                 }
                                 if (h < 2) {
                                     goto lab_e031;
                                 }
                             lab_e044:
-                                name = LIB_MAIN_C4;
+                                name = G_LIB_MAIN_C4;
                                 goto main_c;
                             }
                             if (h < 2) {
-                                name = LIB_MAIN_A4;
+                                name = G_LIB_MAIN_A4;
                                 goto main_a;
                             }
                         }
                     lab_e141:
-                        name = LIB_MAIN_C3;
+                        name = G_LIB_MAIN_C3;
                         goto main_c;
                     }
                     if (h < 2) {
-                        name = LIB_MAIN_A3;
+                        name = G_LIB_MAIN_A3;
                         goto main_a;
                     }
                 }
             lab_e113:
-                name = LIB_MAIN_C2;
+                name = G_LIB_MAIN_C2;
                 goto main_c;
             }
             if (h < 2) {
-                name = LIB_MAIN_A2;
+                name = G_LIB_MAIN_A2;
                 goto main_a;
             }
         }
     lab_e0df:
-        name = LIB_MAIN_C1;
+        name = G_LIB_MAIN_C1;
     main_c:
         load_images(st, name, 0x16);
-        return (h & 1) + G32(0x00F573B4u);
+        return (h & 1) + G32(G_IMAGE_GROUPS + 8 * 768);
     main_a:
         load_images(st, name, 0x14);
-        return (h & 1) + G32(0x00F573A4u);
+        return (h & 1) + G32(G_IMAGE_GROUPS + 8 * 766);
     case 2:
         if (v < 2) {
             *out = 1;
@@ -276,7 +254,7 @@ int32_t monument_image_40de80(game_state *st, uint32_t self, int32_t b, int32_t 
         if (v < 6) {
             if (h < 2) {
                 *out = 1;
-                return G32(PLAIN);
+                return G32(G_PLAIN);
             }
         } else {
             if (v > 6) {
@@ -300,7 +278,7 @@ int32_t monument_image_40de80(game_state *st, uint32_t self, int32_t b, int32_t 
                                     if (v > 0x10) {
                                         if (v < 0x13) {
                                             if (h < 2) {
-                                                name = LIB_MAIN_C4;
+                                                name = G_LIB_MAIN_C4;
                                                 goto main_c;
                                             }
                                         } else if (h < 2) {
@@ -309,58 +287,58 @@ int32_t monument_image_40de80(game_state *st, uint32_t self, int32_t b, int32_t 
                                         goto lab_e059;
                                     }
                                     if (h < 2) {
-                                        name = LIB_MAIN_C4;
+                                        name = G_LIB_MAIN_C4;
                                         goto main_c;
                                     }
                                 }
                             lab_e031:
-                                name = LIB_MAIN_A4;
+                                name = G_LIB_MAIN_A4;
                                 goto main_a;
                             }
                             if (h < 2) {
-                                name = LIB_MAIN_C3;
+                                name = G_LIB_MAIN_C3;
                                 goto main_c;
                             }
                         }
                     lab_e007:
-                        name = LIB_MAIN_A3;
+                        name = G_LIB_MAIN_A3;
                         goto main_a;
                     }
                     if (h < 2) {
-                        name = LIB_MAIN_C2;
+                        name = G_LIB_MAIN_C2;
                         goto main_c;
                     }
                 }
             lab_dfd9:
-                name = LIB_MAIN_A2;
+                name = G_LIB_MAIN_A2;
                 goto main_a;
             }
             if (h < 2) {
-                name = LIB_MAIN_C1;
+                name = G_LIB_MAIN_C1;
                 goto main_c;
             }
         }
     lab_dfa5:
-        name = LIB_MAIN_A1;
+        name = G_LIB_MAIN_A1;
         goto main_a;
     case 3:
     case 4: {
-        uint32_t last = kind == 3 ? 0x00F5742Cu : 0x00F57424u;
+        uint32_t last = kind == 3 ? G_IMAGE_GROUPS + 8 * 783 : G_IMAGE_GROUPS + 8 * 782;
         if (v < 2) {
             *out = 7;
-            return G32(0x00F573BCu);
+            return G32(G_IMAGE_GROUPS + 8 * 769);
         }
         if (v < 0x10) {
             break;
         }
         if (v < 0x14) {
-            name = LIB_EXTRA;
+            name = G_LIB_EXTRA;
         } else {
-            name = LIB_EXTRA2;
+            name = G_LIB_EXTRA2;
             if (v > 0x14) {
-                load_images(st, LIB_EXTRA2, 0x17);
+                load_images(st, G_LIB_EXTRA2, 0x17);
                 if (h < 2) {
-                    return G32(0x00F573C4u);
+                    return G32(G_IMAGE_GROUPS + 8 * 770);
                 }
                 return (h & 1) + G32(last);
             }
@@ -368,29 +346,29 @@ int32_t monument_image_40de80(game_state *st, uint32_t self, int32_t b, int32_t 
         load_images(st, name, 0x17);
         if (h < 2) {
             *out = 1;
-            return G32(PLAIN);
+            return G32(G_PLAIN);
         }
         return (h & 1) + G32(last);
     }
     case 5:
     case 9:
     case 0xC: {
-        uint32_t last = kind == 5 ? 0x00F5740Cu : kind == 9 ? 0x00F573FCu : 0x00F573F4u;
-        uint32_t top = kind == 5 ? 0x00F573CCu : 0x00F573E4u;
+        uint32_t last = kind == 5 ? G_IMAGE_GROUPS + 8 * 779 : kind == 9 ? G_IMAGE_GROUPS + 8 * 777 : G_IMAGE_GROUPS + 8 * 776;
+        uint32_t top = kind == 5 ? G_IMAGE_GROUPS + 8 * 771 : G_IMAGE_GROUPS + 8 * 774;
         if (v < 2) {
             *out = 1;
             return 0;
         }
         if (v < 0x10) {
             *out = 1;
-            return G32(PLAIN);
+            return G32(G_PLAIN);
         }
         if (v < 0x14) {
-            name = LIB_EXTRA;
+            name = G_LIB_EXTRA;
         } else {
-            name = LIB_EXTRA2;
+            name = G_LIB_EXTRA2;
             if (v > 0x14) {
-                load_images(st, LIB_EXTRA2, 0x17);
+                load_images(st, G_LIB_EXTRA2, 0x17);
                 if (h < 2) {
                     return G32(top);
                 }
@@ -406,7 +384,7 @@ int32_t monument_image_40de80(game_state *st, uint32_t self, int32_t b, int32_t 
         }
         if (h < 2) {
             *out = 1;
-            return G32(PLAIN);
+            return G32(G_PLAIN);
         }
         return (h & 1) + G32(last);
     }
@@ -417,48 +395,48 @@ int32_t monument_image_40de80(game_state *st, uint32_t self, int32_t b, int32_t 
         }
         if (v > 0xF) {
             if (v < 0x14) {
-                load_images(st, LIB_EXTRA, 0x17);
+                load_images(st, G_LIB_EXTRA, 0x17);
                 if (h < 2) {
                     *out = 1;
-                    return G32(PLAIN);
+                    return G32(G_PLAIN);
                 }
             } else if (v < 0x15) {
-                load_images(st, LIB_EXTRA2, 0x17);
+                load_images(st, G_LIB_EXTRA2, 0x17);
                 if (h < 2) {
                     *out = 1;
-                    return G32(PLAIN);
+                    return G32(G_PLAIN);
                 }
             } else {
-                load_images(st, LIB_EXTRA2, 0x17);
+                load_images(st, G_LIB_EXTRA2, 0x17);
                 if (h < 2) {
-                    return G32(0x00F573CCu);
+                    return G32(G_IMAGE_GROUPS + 8 * 771);
                 }
             }
-            return (h & 1) + G32(0x00F57404u);
+            return (h & 1) + G32(G_IMAGE_GROUPS + 8 * 778);
         }
         break;
     case 7:
     case 8: {
-        uint32_t last = kind == 7 ? 0x00F5743Cu : 0x00F57434u;
+        uint32_t last = kind == 7 ? G_IMAGE_GROUPS + 8 * 785 : G_IMAGE_GROUPS + 8 * 784;
         if (v < 2) {
             *out = 1;
             return 0;
         }
         if (v < 0x10) {
             *out = 1;
-            return G32(PLAIN);
+            return G32(G_PLAIN);
         }
         if (v > 0x13) {
-            load_images(st, LIB_EXTRA2, 0x17);
+            load_images(st, G_LIB_EXTRA2, 0x17);
             if (h < 2) {
-                return G32(0x00F573DCu);
+                return G32(G_IMAGE_GROUPS + 8 * 773);
             }
             return (h & 1) + G32(last);
         }
-        load_images(st, LIB_EXTRA, 0x17);
+        load_images(st, G_LIB_EXTRA, 0x17);
         if (h < 2) {
             *out = 1;
-            return G32(PLAIN);
+            return G32(G_PLAIN);
         }
         return (h & 1) + G32(last);
     }
@@ -470,12 +448,12 @@ int32_t monument_image_40de80(game_state *st, uint32_t self, int32_t b, int32_t 
         }
         if (v < 0x15) {
             *out = 1;
-            return G32(PLAIN);
+            return G32(G_PLAIN);
         }
         if (h > 1) {
-            return G32(0x00F573DCu);
+            return G32(G_IMAGE_GROUPS + 8 * 773);
         }
-        return G32(0x00F573ECu);
+        return G32(G_IMAGE_GROUPS + 8 * 775);
     case 0xD:
     case 0xE:
         if (v < 2) {
@@ -483,11 +461,11 @@ int32_t monument_image_40de80(game_state *st, uint32_t self, int32_t b, int32_t 
             return 0;
         }
         if (v > 0xF) {
-            load_images(st, v < 0x14 ? LIB_EXTRA : LIB_EXTRA2, 0x17);
+            load_images(st, v < 0x14 ? G_LIB_EXTRA : G_LIB_EXTRA2, 0x17);
             if ((kind == 0xD) == (h > 1)) {
-                return (h & 1) + G32(0x00F5741Cu);
+                return (h & 1) + G32(G_IMAGE_GROUPS + 8 * 781);
             }
-            return (h & 1) + G32(0x00F57414u);
+            return (h & 1) + G32(G_IMAGE_GROUPS + 8 * 780);
         }
         break;
     case 0xF:
@@ -500,39 +478,39 @@ int32_t monument_image_40de80(game_state *st, uint32_t self, int32_t b, int32_t 
         uint32_t top, low;
         switch (kind) {
         case 0xF:
-            top = 0x00F573E4u, low = 0x00F573F4u;
+            top = G_IMAGE_GROUPS + 8 * 774, low = G_IMAGE_GROUPS + 8 * 776;
             break;
         case 0x10:
-            top = 0x00F573E4u, low = 0x00F573FCu;
+            top = G_IMAGE_GROUPS + 8 * 774, low = G_IMAGE_GROUPS + 8 * 777;
             break;
         case 0x13:
-            top = 0x00F573CCu, low = 0x00F57404u;
+            top = G_IMAGE_GROUPS + 8 * 771, low = G_IMAGE_GROUPS + 8 * 778;
             break;
         case 0x14:
-            top = 0x00F573CCu, low = 0x00F5740Cu;
+            top = G_IMAGE_GROUPS + 8 * 771, low = G_IMAGE_GROUPS + 8 * 779;
             break;
         case 0x15:
-            top = 0x00F573C4u, low = 0x00F57424u;
+            top = G_IMAGE_GROUPS + 8 * 770, low = G_IMAGE_GROUPS + 8 * 782;
             break;
         default:
-            top = 0x00F573C4u, low = 0x00F5742Cu;
+            top = G_IMAGE_GROUPS + 8 * 770, low = G_IMAGE_GROUPS + 8 * 783;
             break;
         }
         if (v < 2) {
             if (kind >= 0x15) {
                 *out = 7;
-                return G32(0x00F573BCu);
+                return G32(G_IMAGE_GROUPS + 8 * 769);
             }
             *out = 1;
             return 0;
         }
         if (v > 0xF) {
             if (v < 0x14) {
-                name = LIB_EXTRA;
+                name = G_LIB_EXTRA;
             } else {
-                name = LIB_EXTRA2;
+                name = G_LIB_EXTRA2;
                 if (v > 0x14) {
-                    load_images(st, LIB_EXTRA2, 0x17);
+                    load_images(st, G_LIB_EXTRA2, 0x17);
                     if (h > 1) {
                         return G32(top);
                     }
@@ -555,28 +533,28 @@ int32_t monument_image_40de80(game_state *st, uint32_t self, int32_t b, int32_t 
         }
         if (v < 0x15) {
             *out = 1;
-            return G32(PLAIN);
+            return G32(G_PLAIN);
         }
         if (h < 2) {
-            return G32(0x00F573DCu);
+            return G32(G_IMAGE_GROUPS + 8 * 773);
         }
-        return G32(0x00F573ECu);
+        return G32(G_IMAGE_GROUPS + 8 * 775);
     case 0x17:
     case 0x18: {
-        uint32_t low = kind == 0x17 ? 0x00F57434u : 0x00F5743Cu;
+        uint32_t low = kind == 0x17 ? G_IMAGE_GROUPS + 8 * 784 : G_IMAGE_GROUPS + 8 * 785;
         if (v < 2) {
             *out = 1;
             return 0;
         }
         if (v > 0xF) {
             if (v > 0x13) {
-                load_images(st, LIB_EXTRA2, 0x17);
+                load_images(st, G_LIB_EXTRA2, 0x17);
                 if (h > 1) {
-                    return G32(0x00F573DCu);
+                    return G32(G_IMAGE_GROUPS + 8 * 773);
                 }
                 return (h & 1) + G32(low);
             }
-            load_images(st, LIB_EXTRA, 0x17);
+            load_images(st, G_LIB_EXTRA, 0x17);
             if (kind == 0x17 ? h < 2 : h <= 1) {
                 return (h & 1) + G32(low);
             }
@@ -588,7 +566,7 @@ int32_t monument_image_40de80(game_state *st, uint32_t self, int32_t b, int32_t 
     }
 plain:
     *out = 1;
-    return G32(PLAIN);
+    return G32(G_PLAIN);
 }
 
 /* The four pyramid-like monuments (0x006F9320, 0x006F5648, 0x006DE9E0, 0x006E9188): the same
@@ -606,29 +584,29 @@ typedef struct {
 
 #define P(a, b) {a, b}
 static const pyramid_images pyramid_tables[4] = {
-    {0x00545760u, 0x00545740u, 0,
-     {[0] = P(0x00F57474u, 0x00F5746Cu), [1] = P(0x00F57484u, 0x00F5747Cu), [2] = P(0x00F57494u, 0x00F5748Cu),
-      [3] = P(0x00F574A4u, 0x00F5749Cu), [6] = P(0x00F574B4u, 0x00F574ACu), [0xF] = P(0x00F574C4u, 0x00F574BCu),
-      [0x10] = P(0x00F574D4u, 0x00F574CCu), [0x1D] = P(0x00F5750Cu, 0x00F57504u)},
-     0x00F574DCu, 1, 0x00F574ECu, 0x00F574F4u, 0x00F574FCu},
-    {0x00558C00u, 0x00558BE0u, 1,
-     {[0] = P(0x00F5759Cu, 0x00F57594u), [1] = P(0x00F575ACu, 0x00F575A4u), [2] = P(0x00F575BCu, 0x00F575B4u),
-      [9] = P(0x00F575CCu, 0x00F575C4u), [10] = P(0x00F575DCu, 0x00F575D4u), [0x13] = P(0x00F575ECu, 0x00F575E4u),
-      [0x14] = P(0x00F575FCu, 0x00F575F4u), [0x15] = P(0x00F5760Cu, 0x00F57604u), [0x1D] = P(0x00F57644u, 0x00F5763Cu)},
-     0x00F57614u, 0, 0x00F57624u, 0x00F5762Cu, 0x00F57634u},
-    {0x00555EA0u, 0x00555E80u, 1,
-     {[0] = P(0x00F57654u, 0x00F5764Cu), [1] = P(0x00F57664u, 0x00F5765Cu), [2] = P(0x00F57674u, 0x00F5766Cu),
-      [4] = P(0x00F57684u, 0x00F5767Cu), [5] = P(0x00F57694u, 0x00F5768Cu), [6] = P(0x00F576A4u, 0x00F5769Cu),
-      [7] = P(0x00F576B4u, 0x00F576ACu), [8] = P(0x00F576C4u, 0x00F576BCu), [0xC] = P(0x00F576D4u, 0x00F576CCu),
-      [0x16] = P(0x00F576E4u, 0x00F576DCu), [0x17] = P(0x00F576F4u, 0x00F576ECu), [0x1D] = P(0x00F5772Cu, 0x00F57724u)},
-     0x00F576FCu, 0, 0x00F5770Cu, 0x00F57714u, 0x00F5771Cu},
-    {0x0054F490u, 0x0054F470u, 1,
-     {[0] = P(0x00F5773Cu, 0x00F57734u), [1] = P(0x00F5774Cu, 0x00F57744u), [2] = P(0x00F5775Cu, 0x00F57754u),
-      [4] = P(0x00F5776Cu, 0x00F57764u), [6] = P(0x00F5777Cu, 0x00F57774u), [7] = P(0x00F5778Cu, 0x00F57784u),
-      [8] = P(0x00F5779Cu, 0x00F57794u), [0xB] = P(0x00F577ACu, 0x00F577A4u), [0xC] = P(0x00F577BCu, 0x00F577B4u),
-      [0xD] = P(0x00F577CCu, 0x00F577C4u), [0xE] = P(0x00F577DCu, 0x00F577D4u), [0x18] = P(0x00F577ECu, 0x00F577E4u),
-      [0x19] = P(0x00F577FCu, 0x00F577F4u), [0x1A] = P(0x00F5780Cu, 0x00F57804u), [0x1D] = P(0x00F57844u, 0x00F5783Cu)},
-     0x00F57814u, 0, 0x00F57824u, 0x00F5782Cu, 0x00F57834u},
+    {FN_MONUMENT_IMAGE_545760, FN_MONUMENT_PROGRESS_PARTS_9, 0,
+     {[0] = P(G_IMAGE_GROUPS + 8 * 792, G_IMAGE_GROUPS + 8 * 791), [1] = P(G_IMAGE_GROUPS + 8 * 794, G_IMAGE_GROUPS + 8 * 793), [2] = P(G_IMAGE_GROUPS + 8 * 796, G_IMAGE_GROUPS + 8 * 795),
+      [3] = P(G_IMAGE_GROUPS + 8 * 798, G_IMAGE_GROUPS + 8 * 797), [6] = P(G_IMAGE_GROUPS + 8 * 800, G_IMAGE_GROUPS + 8 * 799), [0xF] = P(G_IMAGE_GROUPS + 8 * 802, G_IMAGE_GROUPS + 8 * 801),
+      [0x10] = P(G_IMAGE_GROUPS + 8 * 804, G_IMAGE_GROUPS + 8 * 803), [0x1D] = P(G_IMAGE_GROUPS + 8 * 811, G_IMAGE_GROUPS + 8 * 810)},
+     G_IMAGE_GROUPS + 8 * 805, 1, G_IMAGE_GROUPS + 8 * 807, G_IMAGE_GROUPS + 8 * 808, G_IMAGE_GROUPS + 8 * 809},
+    {FN_MONUMENT_IMAGE_558C00, FN_MONUMENT_PROGRESS_PARTS_10, 1,
+     {[0] = P(G_IMAGE_GROUPS + 8 * 829, G_IMAGE_GROUPS + 8 * 828), [1] = P(G_IMAGE_GROUPS + 8 * 831, G_IMAGE_GROUPS + 8 * 830), [2] = P(G_IMAGE_GROUPS + 8 * 833, G_IMAGE_GROUPS + 8 * 832),
+      [9] = P(G_IMAGE_GROUPS + 8 * 835, G_IMAGE_GROUPS + 8 * 834), [10] = P(G_IMAGE_GROUPS + 8 * 837, G_IMAGE_GROUPS + 8 * 836), [0x13] = P(G_IMAGE_GROUPS + 8 * 839, G_IMAGE_GROUPS + 8 * 838),
+      [0x14] = P(G_IMAGE_GROUPS + 8 * 841, G_IMAGE_GROUPS + 8 * 840), [0x15] = P(G_IMAGE_GROUPS + 8 * 843, G_IMAGE_GROUPS + 8 * 842), [0x1D] = P(G_IMAGE_GROUPS + 8 * 850, G_IMAGE_GROUPS + 8 * 849)},
+     G_IMAGE_GROUPS + 8 * 844, 0, G_IMAGE_GROUPS + 8 * 846, G_IMAGE_GROUPS + 8 * 847, G_IMAGE_GROUPS + 8 * 848},
+    {FN_MONUMENT_IMAGE_555EA0, FN_MONUMENT_PROGRESS_PARTS_21, 1,
+     {[0] = P(G_IMAGE_GROUPS + 8 * 852, G_IMAGE_GROUPS + 8 * 851), [1] = P(G_IMAGE_GROUPS + 8 * 854, G_IMAGE_GROUPS + 8 * 853), [2] = P(G_IMAGE_GROUPS + 8 * 856, G_IMAGE_GROUPS + 8 * 855),
+      [4] = P(G_IMAGE_GROUPS + 8 * 858, G_IMAGE_GROUPS + 8 * 857), [5] = P(G_IMAGE_GROUPS + 8 * 860, G_IMAGE_GROUPS + 8 * 859), [6] = P(G_IMAGE_GROUPS + 8 * 862, G_IMAGE_GROUPS + 8 * 861),
+      [7] = P(G_IMAGE_GROUPS + 8 * 864, G_IMAGE_GROUPS + 8 * 863), [8] = P(G_IMAGE_GROUPS + 8 * 866, G_IMAGE_GROUPS + 8 * 865), [0xC] = P(G_IMAGE_GROUPS + 8 * 868, G_IMAGE_GROUPS + 8 * 867),
+      [0x16] = P(G_IMAGE_GROUPS + 8 * 870, G_IMAGE_GROUPS + 8 * 869), [0x17] = P(G_IMAGE_GROUPS + 8 * 872, G_IMAGE_GROUPS + 8 * 871), [0x1D] = P(G_IMAGE_GROUPS + 8 * 879, G_IMAGE_GROUPS + 8 * 878)},
+     G_IMAGE_GROUPS + 8 * 873, 0, G_IMAGE_GROUPS + 8 * 875, G_IMAGE_GROUPS + 8 * 876, G_IMAGE_GROUPS + 8 * 877},
+    {FN_MONUMENT_IMAGE_54F490, FN_MONUMENT_PROGRESS_PARTS_31, 1,
+     {[0] = P(G_IMAGE_GROUPS + 8 * 881, G_IMAGE_GROUPS + 8 * 880), [1] = P(G_IMAGE_GROUPS + 8 * 883, G_IMAGE_GROUPS + 8 * 882), [2] = P(G_IMAGE_GROUPS + 8 * 885, G_IMAGE_GROUPS + 8 * 884),
+      [4] = P(G_IMAGE_GROUPS + 8 * 887, G_IMAGE_GROUPS + 8 * 886), [6] = P(G_IMAGE_GROUPS + 8 * 889, G_IMAGE_GROUPS + 8 * 888), [7] = P(G_IMAGE_GROUPS + 8 * 891, G_IMAGE_GROUPS + 8 * 890),
+      [8] = P(G_IMAGE_GROUPS + 8 * 893, G_IMAGE_GROUPS + 8 * 892), [0xB] = P(G_IMAGE_GROUPS + 8 * 895, G_IMAGE_GROUPS + 8 * 894), [0xC] = P(G_IMAGE_GROUPS + 8 * 897, G_IMAGE_GROUPS + 8 * 896),
+      [0xD] = P(G_IMAGE_GROUPS + 8 * 899, G_IMAGE_GROUPS + 8 * 898), [0xE] = P(G_IMAGE_GROUPS + 8 * 901, G_IMAGE_GROUPS + 8 * 900), [0x18] = P(G_IMAGE_GROUPS + 8 * 903, G_IMAGE_GROUPS + 8 * 902),
+      [0x19] = P(G_IMAGE_GROUPS + 8 * 905, G_IMAGE_GROUPS + 8 * 904), [0x1A] = P(G_IMAGE_GROUPS + 8 * 907, G_IMAGE_GROUPS + 8 * 906), [0x1D] = P(G_IMAGE_GROUPS + 8 * 914, G_IMAGE_GROUPS + 8 * 913)},
+     G_IMAGE_GROUPS + 8 * 908, 0, G_IMAGE_GROUPS + 8 * 910, G_IMAGE_GROUPS + 8 * 911, G_IMAGE_GROUPS + 8 * 912},
 };
 #undef P
 
@@ -637,27 +615,27 @@ static int32_t pyramid_image(game_state *st, const pyramid_images *t, uint32_t s
     /* @bin 0x00545760 / 0x00558C00 / 0x00555EA0 / 0x0054F490 */
     uint32_t r = BUILDING_ADDR(b);
     *out = 0;
-    int32_t stage = S32(st, r + 0x60);
-    int32_t type = S32(st, r + 0x68);
+    int32_t stage = S32(st, r + BLD_TOMB_STAGE);
+    int32_t type = S32(st, r + BLD_TOMB_STONE_SET);
     if (stage == 0 && type != 0x12 && type != 0x1B && type != 0x1C) {
         *out = 1;
-        return (int32_t) U8(st, r + 0x9C) + G32(0x00F574DCu);
+        return (int32_t) U8(st, r + BLD_U9C) + G32(G_IMAGE_GROUPS + 8 * 805);
     }
-    int32_t rot = S32(st, r + 0x90) - half_orient(st);
+    int32_t rot = S32(st, r + BLD_TOMB_ROTATION) - half_orient(st);
     if (rot < 0) {
         rot += 4;
     }
     int32_t add = stage == 3 ? 4 : stage == 4 ? 8 : stage == 5 ? 0xC : 0;
-    if (t->same_part && S16(st, r + 0x12) == (int32_t) P32(st, self + 0x50)) {
+    if (t->same_part && S16(st, r + BLD_PART) == (int32_t) P32(st, self + TOMBOBJ_PART)) {
         add = 0;
     }
     /* @bin 0x00545FB0 (a jump to 0x004EA930) */
-    if (((uint8_t) GAME_CALLT0(st, self, 0x00545FB0u) != 0 && U8(st, r + 0x94) != 0 &&
+    if (((uint8_t) GAME_CALLT0(st, self, FN_GOALS_COUNTERS_MET_545FB0) != 0 && U8(st, r + BLD_U94) != 0 &&
          GAME_CALLT(st, self, t->progress, b, 0) == 100) ||
-        (S16(st, r + 0x16) == -1 && U8(st, r + 0x94) != 0)) {
+        (S16(st, r + BLD_SEQUENCE) == -1 && U8(st, r + BLD_U94) != 0)) {
         add += 4;
     }
-    type = S32(st, r + 0x68);
+    type = S32(st, r + BLD_TOMB_STONE_SET);
     if ((uint32_t) type > 0x1D) {
         return 0;
     }
@@ -677,7 +655,7 @@ static int32_t pyramid_image(game_state *st, const pyramid_images *t, uint32_t s
     if (e[0] == 0) {
         return 0;
     }
-    if (P32(st, self + 0x54) != 0) {
+    if (P32(st, self + TOMBOBJ_PARTS_FREE) != 0) {
         return G32(e[0]) + rot;
     }
     return G32(e[1]) + add + rot;
@@ -688,13 +666,13 @@ int32_t monument_image(game_state *st, uint32_t self, int32_t b, int32_t *out)
     /* the object's vtable +0x1C */
     uint32_t fn = P32(st, P32(st, self) + 0x1C);
     switch (fn) {
-    case 0x00401800u:
+    case FN_MONUMENT_IMAGE_401800:
         return monument_image_401800(st, self, b, out);
-    case 0x00417310u:
+    case FN_MONUMENT_IMAGE_417310:
         return monument_image_417310(st, self, b, out);
-    case 0x004E6A70u:
+    case FN_MONUMENT_IMAGE_4E6A70:
         return monument_image_4e6a70(st, self, b, out);
-    case 0x0040DE80u:
+    case FN_MONUMENT_IMAGE_40DE80:
         return monument_image_40de80(st, self, b, out);
     default:
         for (int i = 0; i < 4; i++) {
@@ -712,7 +690,7 @@ int32_t monument_image(game_state *st, uint32_t self, int32_t b, int32_t *out)
 static void footprint(game_state *st, int32_t b, int32_t size, int32_t img, int32_t flags)
 {
     uint32_t r = BUILDING_ADDR(b);
-    GAME_CALL(st, 0x0047BF50u, b, S16(st, r + 6), S16(st, r + 8), size, size, img, flags);
+    GAME_CALL(st, FN_MAP_BUILDING_TILES, b, S16(st, r + BLD_X), S16(st, r + BLD_Y), size, size, img, flags);
 }
 
 void monument_redraw_4017a0(game_state *st, uint32_t self, int32_t b)
@@ -720,7 +698,7 @@ void monument_redraw_4017a0(game_state *st, uint32_t self, int32_t b)
     /* @bin 0x004017A0 (thiscall) the part's footprint (size: the part table's +0x54) */
     int32_t flags = b;
     int32_t img = monument_image(st, self, b, &flags);
-    footprint(st, b, part_entry(st, self, b, 0x54), img, 8);
+    footprint(st, b, part_entry(st, self, b, MONOBJ_PART_TABLE), img, 8);
 }
 
 void monument_redraw_4e69c0(game_state *st, uint32_t self, int32_t b)
@@ -730,12 +708,12 @@ void monument_redraw_4e69c0(game_state *st, uint32_t self, int32_t b)
     uint32_t r = BUILDING_ADDR(b);
     int32_t flags = b;
     int32_t img = monument_image(st, self, b, &flags);
-    int32_t kind = part_entry(st, self, b, 0x58);
-    int32_t size = part_entry(st, self, b, 0x54);
+    int32_t kind = part_entry(st, self, b, MONOBJ_PART_KIND);
+    int32_t size = part_entry(st, self, b, MONOBJ_PART_TABLE);
     if (kind == 1) {
-        uint32_t t = (uint32_t) (G32(MAP_START) + S16(st, r + 6) + S16(st, r + 8) * 228);
-        S16(st, BUILDING_GRID + 2u * t) = (int16_t) b;
-        U32(st, TERRAIN + 4u * t) |= 0x10000000u;
+        uint32_t t = (uint32_t) (G32(G_MAP_START) + S16(st, r + BLD_X) + S16(st, r + BLD_Y) * 228);
+        S16(st, G_GRID_BUILDING + 2u * t) = (int16_t) b;
+        U32(st, G_GRID_TERRAIN + 4u * t) |= 0x10000000u;
         return;
     }
     footprint(st, b, size, img, 8);
@@ -749,43 +727,43 @@ void monument_redraw_40dca0(game_state *st, uint32_t self, int32_t b)
     uint32_t r = BUILDING_ADDR(b);
     int32_t flags = 0;
     int32_t img = monument_image(st, self, b, &flags);
-    int32_t part = S16(st, r + 0x12);
+    int32_t part = S16(st, r + BLD_PART);
     int32_t main = b - part;
-    int32_t size = part_entry(st, self, b, 0x54);
+    int32_t size = part_entry(st, self, b, MONOBJ_PART_TABLE);
     if ((flags & 1) == 0) {
         footprint(st, b, size, img, 8);
         return;
     }
-    int32_t base = G32(MAP_START) + S16(st, r + 6) + S16(st, r + 8) * 228;
-    S32(st, CURSOR) = base;
+    int32_t base = G32(G_MAP_START) + S16(st, r + BLD_X) + S16(st, r + BLD_Y) * 228;
+    S32(st, G_TILE_CURSOR) = base;
     if (size <= 0) {
         return;
     }
-    uint32_t row = FOOTPRINT;
+    uint32_t row = G_FOOTPRINT_OFFSETS;
     for (int32_t rows = size; rows != 0; rows--, row += 0x30) {
         int32_t corners = flags & 2;
-        int32_t stage = S32(st, BUILDING_ADDR(main) + 0x58);
+        int32_t stage = S32(st, BUILDING_ADDR(main) + BLD_MONUMENT_STAGE);
         uint32_t e = row;
         for (int32_t col = 0; col < size; col++, e += 8) {
-            uint32_t t = (uint32_t) (S32(st, e) + S32(st, CURSOR));
+            uint32_t t = (uint32_t) (S32(st, e) + S32(st, G_TILE_CURSOR));
             if (stage < 3) {
-                U8(st, TERRAIN + 4u * t + 3) |= 0x10;
+                U8(st, G_GRID_TERRAIN + 4u * t + 3) |= 0x10;
             } else {
-                U32(st, TERRAIN + 4u * t) = 8;
+                U32(st, G_GRID_TERRAIN + 4u * t) = 8;
             }
-            U8(st, BITS + t) &= 0xE0;
-            U8(st, EDGE + t) |= 0x40;
-            S16(st, BUILDING_GRID + 2u * t) = (int16_t) b;
-            if (corners != 0 && img == G32(0x00F573BCu)) {
+            U8(st, G_GRID_BITFIELDS + t) &= 0xE0;
+            U8(st, G_GRID_EDGE + t) |= 0x40;
+            S16(st, G_GRID_BUILDING + 2u * t) = (int16_t) b;
+            if (corners != 0 && img == G32(G_IMAGE_GROUPS + 8 * 769)) {
                 int skip;
                 if (part == 0xD) {
-                    skip = col > 0 || row < 0x005CC920u;
+                    skip = col > 0 || row < G_FOOTPRINT_OFFSETS + 0x60;
                 } else if (part == 0xE) {
-                    skip = col < 2 || row < 0x005CC920u;
+                    skip = col < 2 || row < G_FOOTPRINT_OFFSETS + 0x60;
                 } else if (part == 0xF) {
-                    skip = col > 0 || row > FOOTPRINT;
+                    skip = col > 0 || row > G_FOOTPRINT_OFFSETS;
                 } else if (part == 0x10) {
-                    skip = col < 2 || row > FOOTPRINT;
+                    skip = col < 2 || row > G_FOOTPRINT_OFFSETS;
                 } else {
                     skip = 0;
                 }
@@ -794,7 +772,7 @@ void monument_redraw_40dca0(game_state *st, uint32_t self, int32_t b)
                 }
             }
             if (img != 0) {
-                U32(st, IMAGE + 4u * t) = img == G32(PLAIN) ? (uint32_t) ((U8(st, RANDOM + t) & 7) + img) : (uint32_t) img;
+                U32(st, G_GRID_IMAGE + 4u * t) = img == G32(G_PLAIN) ? (uint32_t) ((U8(st, G_GRID_RANDOM + t) & 7) + img) : (uint32_t) img;
             }
         }
     }
@@ -805,7 +783,7 @@ int32_t monument_parts_free_547ba0(game_state *st, uint32_t self, int32_t b)
     /* @bin 0x00547BA0 (thiscall) 0 when the main part's +0x98 is above 0 or one of the
      * object's parts (vtable +0x38 count, +0x24 test from b) is taken; else 1 */
     uint32_t r = BUILDING_ADDR(b);
-    if (S32(st, BUILDING_ADDR(b - S16(st, r + 0x12)) + 0x98) > 0) {
+    if (S32(st, BUILDING_ADDR(b - S16(st, r + BLD_PART)) + BLD_TOMB_STOCK) > 0) {
         return 0;
     }
     uint32_t vt = P32(st, self);
@@ -890,33 +868,33 @@ void monument_redraw_5468d0(game_state *st, uint32_t self, int32_t b)
 {
     /* @bin 0x005468D0 (thiscall) the pyramid-like monuments' parts */
     uint32_t r = BUILDING_ADDR(b);
-    int16_t part = S16(st, r + 0x12);
+    int16_t part = S16(st, r + BLD_PART);
     int32_t main = b - part;
     if (part == 0) {
-        P32(st, self + 0x54) = (uint32_t) monument_parts_free_547ba0(st, self, b) & 0xFF;
+        P32(st, self + TOMBOBJ_PARTS_FREE) = (uint32_t) monument_parts_free_547ba0(st, self, b) & 0xFF;
     }
-    int32_t n = U8(st, r + 3);
-    if (S32(st, BUILDING_ADDR(main) + 0x58) == 1 && S32(st, 0x00E94E0Cu) != 0x33) {
-        int32_t base = G32(MAP_START) + S16(st, r + 6) + S16(st, r + 8) * 228;
-        if (S16(st, r + 0x12) == (int32_t) P32(st, self + 0x50)) {
-            uint32_t t = (uint32_t) (base + G32(FOOTPRINT));
-            U8(st, BITS + t) &= 0xE0;
-            U8(st, EDGE + t) |= 0x40;
-            U32(st, IMAGE + 4u * t) = (uint32_t) ((U8(st, RANDOM + t) & 7) + G32(PLAIN));
+    int32_t n = U8(st, r + BLD_SIZE);
+    if (S32(st, BUILDING_ADDR(main) + BLD_MONUMENT_STAGE) == 1 && S32(st, G_OVERLAY) != 0x33) {
+        int32_t base = G32(G_MAP_START) + S16(st, r + BLD_X) + S16(st, r + BLD_Y) * 228;
+        if (S16(st, r + BLD_PART) == (int32_t) P32(st, self + TOMBOBJ_PART)) {
+            uint32_t t = (uint32_t) (base + G32(G_FOOTPRINT_OFFSETS));
+            U8(st, G_GRID_BITFIELDS + t) &= 0xE0;
+            U8(st, G_GRID_EDGE + t) |= 0x40;
+            U32(st, G_GRID_IMAGE + 4u * t) = (uint32_t) ((U8(st, G_GRID_RANDOM + t) & 7) + G32(G_PLAIN));
             return;
         }
         if (n <= 0) {
             return;
         }
-        uint32_t row = FOOTPRINT;
+        uint32_t row = G_FOOTPRINT_OFFSETS;
         for (int32_t i = n; i != 0; i--, row += 0x30) {
             uint32_t e = row;
             for (int32_t j = n; j != 0; j--, e += 8) {
                 uint32_t t = (uint32_t) (S32(st, e) + base);
-                int32_t v = GAME_CALL(st, 0x00475FD0u, (int32_t) t);
-                U8(st, BITS + t) &= 0xE0;
-                U8(st, EDGE + t) |= 0x40;
-                U32(st, IMAGE + 4u * t) = (uint32_t) (G32(0x00F572ECu) + v);
+                int32_t v = GAME_CALL(st, FN_TERRAIN_CLIFF_INDEX, (int32_t) t);
+                U8(st, G_GRID_BITFIELDS + t) &= 0xE0;
+                U8(st, G_GRID_EDGE + t) |= 0x40;
+                U32(st, G_GRID_IMAGE + 4u * t) = (uint32_t) (G32(G_IMAGE_FLAT_TOP) + v);
             }
         }
         return;
@@ -924,33 +902,33 @@ void monument_redraw_5468d0(game_state *st, uint32_t self, int32_t b)
     int32_t flags = 0;
     int32_t img = monument_image(st, self, b, &flags);
     if ((flags & 1) != 0) {
-        int32_t base = G32(MAP_START) + S16(st, r + 6) + S16(st, r + 8) * 228;
+        int32_t base = G32(G_MAP_START) + S16(st, r + BLD_X) + S16(st, r + BLD_Y) * 228;
         if (n <= 0) {
             return;
         }
-        uint32_t row = FOOTPRINT;
+        uint32_t row = G_FOOTPRINT_OFFSETS;
         for (int32_t i = n; i != 0; i--, row += 0x30) {
             uint32_t e = row;
             for (int32_t j = n; j != 0; j--, e += 8) {
                 uint32_t t = (uint32_t) (base + S32(st, e));
-                U32(st, TERRAIN + 4u * t) = 8;
-                S16(st, BUILDING_GRID + 2u * t) = (int16_t) b;
-                U8(st, BITS + t) &= 0xE0;
-                U8(st, EDGE + t) |= 0x40;
+                U32(st, G_GRID_TERRAIN + 4u * t) = 8;
+                S16(st, G_GRID_BUILDING + 2u * t) = (int16_t) b;
+                U8(st, G_GRID_BITFIELDS + t) &= 0xE0;
+                U8(st, G_GRID_EDGE + t) |= 0x40;
                 if (img != 0) {
-                    U32(st, IMAGE + 4u * t) =
-                        img == G32(PLAIN) ? (uint32_t) ((U8(st, RANDOM + t) & 7) + img) : (uint32_t) img;
+                    U32(st, G_GRID_IMAGE + 4u * t) =
+                        img == G32(G_PLAIN) ? (uint32_t) ((U8(st, G_GRID_RANDOM + t) & 7) + img) : (uint32_t) img;
                 }
             }
         }
         return;
     }
     footprint(st, b, n, img, 0x40000000);
-    int32_t base = G32(MAP_START) + S16(st, r + 6) + S16(st, r + 8) * 228;
+    int32_t base = G32(G_MAP_START) + S16(st, r + BLD_X) + S16(st, r + BLD_Y) * 228;
     int count;
-    const uint8_t *marks = pyramid_marks(S32(st, r + 0x68), S32(st, r + 0x90), &count);
+    const uint8_t *marks = pyramid_marks(S32(st, r + BLD_TOMB_STONE_SET), S32(st, r + BLD_TOMB_ROTATION), &count);
     for (int k = 0; k < count; k++) {
-        U32(st, TERRAIN + 4u * (uint32_t) (base + G32(FOOTPRINT + marks[k]))) = 8;
+        U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (base + G32(G_FOOTPRINT_OFFSETS + marks[k]))) = 8;
     }
 }
 
@@ -1013,7 +991,7 @@ static int32_t run_547ba0(game_state *st, const int32_t *a)
 static int32_t run_545fb0(game_state *st, const int32_t *a)
 {
     (void) a;
-    return GAME_CALL0(st, 0x004EA930u); /* @bin 0x00545FB0 jmp 0x004EA930 */
+    return GAME_CALL0(st, FN_GOALS_COUNTERS_MET_4EA930); /* @bin 0x00545FB0 jmp 0x004EA930 */
 }
 
 const ported_function rest_monument_ports[] = {

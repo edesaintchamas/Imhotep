@@ -13,23 +13,23 @@
 #include "map/map_building.h"
 #include "map/terrain_land.h"
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define CLIMATE 0x005E4EF4u
 #define B(id) BUILDING_ADDR(id)
-#define PART(id) S16(st, B(id) + 0x12)
-#define TER(o) U32(st, 0x00AF598Cu + 4u * (uint32_t) (o))
-#define IMG(o) S32(st, 0x00B7482Cu + 4u * (uint32_t) (o))
-#define BITS(o) U8(st, 0x00B285CCu + (uint32_t) (o))
-#define RND(o) U8(st, 0x00ACF85Cu + (uint32_t) (o))
-#define BGRID(o) S16(st, 0x00B4E6FCu + 2u * (uint32_t) (o))
+#define PART(id) S16(st, B(id) + BLD_PART)
+#define TER(o) U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (o))
+#define IMG(o) S32(st, G_GRID_IMAGE + 4u * (uint32_t) (o))
+#define BITS(o) U8(st, G_GRID_BITFIELDS + (uint32_t) (o))
+#define RND(o) U8(st, G_GRID_RANDOM + (uint32_t) (o))
+#define BGRID(o) S16(st, G_GRID_BUILDING + 2u * (uint32_t) (o))
 
 void copy_bytes(game_state *st, uint32_t src, uint32_t dst, int32_t n)
 {
     /* @bin 0x0040F860 forward copy, 16 dwords at a time while n >= 64, then bytes */
     if (n > 0 && (!state_ptr(st, src, (uint32_t) n) || !state_ptr(st, dst, (uint32_t) n))) {
-        state_unported(st, 0x0040F860u); /* a buffer outside the state (a caller's stack) */
+        state_unported(st, FN_COPY_BYTES); /* a buffer outside the state (a caller's stack) */
         return;
     }
     while (n >= 0x40) {
@@ -53,25 +53,25 @@ int32_t building_keep_removed(game_state *st, int32_t id)
         return 0;
     }
     int32_t used = 0, found = 0;
-    S32(st, 0x00BC95F0u) = 0;
+    S32(st, G_UNDO_COUNT) = 0;
     for (uint32_t i = 0; i < 525; i++) {
-        int16_t w = S16(st, 0x00BA746Cu + 2u * i);
+        int16_t w = S16(st, G_UNDO_IDS + 2u * i);
         used += w != 0;
         found |= w == id;
     }
-    S32(st, 0x00BC95F0u) = used;
+    S32(st, G_UNDO_COUNT) = used;
     if (found) {
         return 0;
     }
     for (uint32_t i = 0; i < 525; i++) {
-        if (S16(st, 0x00BA746Cu + 2u * i) == 0) {
-            S32(st, 0x00BC95F0u) = used + 1;
-            copy_bytes(st, B(id), 0x00BA7888u + 0x108u * i, 0x108);
-            S16(st, 0x00BA746Cu + 2u * i) = (int16_t) id;
+        if (S16(st, G_UNDO_IDS + 2u * i) == 0) {
+            S32(st, G_UNDO_COUNT) = used + 1;
+            copy_bytes(st, B(id), G_UNDO_RECORDS + 0x108u * i, 0x108);
+            S16(st, G_UNDO_IDS + 2u * i) = (int16_t) id;
             return 1;
         }
     }
-    S32(st, 0x00BC9694u) = 0;
+    S32(st, G_UNDO_POSSIBLE) = 0;
     return 0;
 }
 
@@ -81,19 +81,19 @@ void pyramid_chapel_mark(game_state *st, int32_t id, int32_t remove)
      * offset by kind (0x005700D4, climate 5: 0x005700E8): remove: kept (0x00485100), state 6,
      * 0x00BC971C + 1; else state 2 */
     int32_t main = id - PART(id);
-    uint32_t kind = U8(st, B(main) + 0x54);
-    int32_t off = S32(st, CLIMATE) == 5 ? S32(st, 0x005700E8u + 4u * kind) : S32(st, 0x005700D4u + 4u * kind);
-    int32_t c = BGRID(S32(st, B(main) + 0x0C) + off);
-    if (c == 0 || S16(st, B(c) + 0x10) != 0xD7) {
+    uint32_t kind = U8(st, B(main) + BLD_MONUMENT_KIND);
+    int32_t off = S32(st, G_PYRAMID_KIND) == 5 ? S32(st, G_PYRAMID_D7_OFFSET_KIND5 + 4u * kind) : S32(st, G_PYRAMID_D7_OFFSET + 4u * kind);
+    int32_t c = BGRID(S32(st, B(main) + BLD_GRID_OFFSET) + off);
+    if (c == 0 || S16(st, B(c) + BLD_TYPE) != 0xD7) {
         return;
     }
     if ((int8_t) remove != 0) {
         building_keep_removed(st, c);
-        U8(st, B(c)) = 6;
-        S32(st, 0x00BC971Cu) += 1;
+        U8(st, B(c) + BLD_STATE) = 6;
+        S32(st, G_CONSTRUCTION_LIFT_COUNT) += 1;
         return;
     }
-    U8(st, B(c)) = 2;
+    U8(st, B(c) + BLD_STATE) = 2;
 }
 
 void pyramid_part_work_done(game_state *st, int32_t part)
@@ -107,51 +107,51 @@ void pyramid_part_work_done(game_state *st, int32_t part)
     uint32_t b = B(part);
     int32_t main = part - PART(part);
     uint32_t mb = B(main);
-    uint32_t kind = U8(st, mb + 0x54);
-    S16(st, mb + 0xC8) = (int16_t) (S16(st, mb + 0xC8) - 1);
-    if (U8(st, b + 0x55) == 0) {
-        uint8_t stage = (uint8_t) (U8(st, b + 0x56) + 1);
-        int32_t climate = S32(st, CLIMATE), limit;
-        U8(st, b + 0x56) = stage;
+    uint32_t kind = U8(st, mb + BLD_MONUMENT_KIND);
+    S16(st, mb + BLD_PYRAMID_WORK) = (int16_t) (S16(st, mb + BLD_PYRAMID_WORK) - 1);
+    if (U8(st, b + BLD_PYRAMID_LEVEL) == 0) {
+        uint8_t stage = (uint8_t) (U8(st, b + BLD_PYRAMID_STAGE) + 1);
+        int32_t climate = S32(st, G_PYRAMID_KIND), limit;
+        U8(st, b + BLD_PYRAMID_STAGE) = stage;
         if (climate == 1) {
-            limit = U8(st, 0x005E68D8u + kind * 6 + U8(st, b + 0x57)) != 0 ? 3 : 6;
+            limit = U8(st, G_PYR_SKIP + kind * 6 + U8(st, b + BLD_PYRAMID_LAYER)) != 0 ? 3 : 6;
         } else if (climate == 5) {
             limit = main == part ? 1 : 6;
         } else {
             limit = 6;
         }
         if (stage >= limit) {
-            uint8_t layer = U8(st, b + 0x57);
-            if (layer < U8(st, b + 0x58)) {
+            uint8_t layer = U8(st, b + BLD_PYRAMID_LAYER);
+            if (layer < U8(st, b + BLD_PYRAMID_LAYERS)) {
                 if (stage > limit) {
-                    U8(st, b + 0x57) = (uint8_t) (layer + 1);
-                    U8(st, b + 0x56) = 1;
+                    U8(st, b + BLD_PYRAMID_LAYER) = (uint8_t) (layer + 1);
+                    U8(st, b + BLD_PYRAMID_STAGE) = 1;
                 }
             } else {
-                U8(st, b + 0x55) = 1;
-                U8(st, b + 0x56) = (uint8_t) (limit < 1 ? 1 : limit);
+                U8(st, b + BLD_PYRAMID_LEVEL) = 1;
+                U8(st, b + BLD_PYRAMID_STAGE) = (uint8_t) (limit < 1 ? 1 : limit);
             }
         }
     } else {
-        uint8_t stage = (uint8_t) (U8(st, b + 0x56) - 1);
-        U8(st, b + 0x56) = stage;
-        if (U8(st, b + 0x59) > stage) {
-            U8(st, b + 0x59) = 0;
+        uint8_t stage = (uint8_t) (U8(st, b + BLD_PYRAMID_STAGE) - 1);
+        U8(st, b + BLD_PYRAMID_STAGE) = stage;
+        if (U8(st, b + BLD_PYRAMID_RAMP_A) > stage) {
+            U8(st, b + BLD_PYRAMID_RAMP_A) = 0;
         }
-        if (U8(st, b + 0x5A) > U8(st, b + 0x56)) {
-            U8(st, b + 0x5A) = 0;
+        if (U8(st, b + BLD_PYRAMID_RAMP_B) > U8(st, b + BLD_PYRAMID_STAGE)) {
+            U8(st, b + BLD_PYRAMID_RAMP_B) = 0;
         }
     }
-    if (S16(st, mb + 0xC8) == 0) {
+    if (S16(st, mb + BLD_PYRAMID_WORK) == 0) {
         pyramid_chapel_mark(st, main, 0);
     }
-    if (S32(st, CLIMATE) == 3 && S16(st, mb + 0xC8) == 0) {
-        int32_t n = S32(st, 0x0056F7D8u + 4u * kind);
+    if (S32(st, G_PYRAMID_KIND) == 3 && S16(st, mb + BLD_PYRAMID_WORK) == 0) {
+        int32_t n = S32(st, G_PYRAMID_PARTS + 4u * kind);
         for (int32_t i = 0; i < n; i++) {
             uint32_t p = B(main + i);
-            if (U8(st, p + 0x59) != 0 || U8(st, p + 0x5A) != 0) {
-                U8(st, p + 0x59) = 0;
-                U8(st, p + 0x5A) = 0;
+            if (U8(st, p + BLD_PYRAMID_RAMP_A) != 0 || U8(st, p + BLD_PYRAMID_RAMP_B) != 0) {
+                U8(st, p + BLD_PYRAMID_RAMP_A) = 0;
+                U8(st, p + BLD_PYRAMID_RAMP_B) = 0;
             }
         }
     }
@@ -165,9 +165,9 @@ void pyramid_part_redraw_stage(game_state *st, int32_t part, int32_t half, int32
      * 5-10: each corner tile's image by 0x004F3F70 (level, or level - 1 when not done);
      * 11: the part's square by 0x0047BF50 */
     (void) half;
-    uint32_t table = S32(st, CLIMATE) == 5 ? 0x005F6D58u : 0x005F6CD0u;
+    uint32_t table = S32(st, G_PYRAMID_KIND) == 5 ? G_PYRAMID_STAGE3_LISTS_KIND5 : G_PYRAMID_STAGE3_LISTS;
     uint32_t b = B(part);
-    switch (U8(st, b + 0x55)) {
+    switch (U8(st, b + BLD_PYRAMID_LEVEL)) {
     case 3: {
         int32_t n = S32(st, table + 8u * (uint32_t) kind + 4);
         if (n <= 0) {
@@ -179,8 +179,8 @@ void pyramid_part_redraw_stage(game_state *st, int32_t part, int32_t half, int32
             if (p != S32(st, list + 8u * (uint32_t) i)) {
                 continue;
             }
-            int32_t o = S32(st, list + 8u * (uint32_t) i + 4) + S32(st, b + 0x0C);
-            IMG(o) = S32(st, 0x00F5736Cu);
+            int32_t o = S32(st, list + 8u * (uint32_t) i + 4) + S32(st, b + BLD_GRID_OFFSET);
+            IMG(o) = S32(st, G_IMAGE_GROUPS + 8 * 759);
             if (RND(o) & 1) {
                 BITS(o) |= 0x20;
             }
@@ -189,26 +189,26 @@ void pyramid_part_redraw_stage(game_state *st, int32_t part, int32_t half, int32
         return;
     }
     case 4: {
-        int32_t c = S32(st, b + 0x0C);
-        uint32_t done = U8(st, b + 0x5B);
+        int32_t c = S32(st, b + BLD_GRID_OFFSET);
+        uint32_t done = U8(st, b + BLD_PYRAMID_CORNERS);
         for (uint32_t i = 0; i < 4; i++) {
             if (done & (1u << i)) {
-                TER(c + S32(st, 0x0056F880u + 4u * i)) &= 0xFFFFFF6Eu;
+                TER(c + S32(st, G_PYRAMID_CORNER_OFFSETS + 4u * i)) &= 0xFFFFFF6Eu;
             }
         }
         return;
     }
     case 5: case 6: case 7: case 8: case 9: case 10:
         for (uint32_t i = 0; i < 4; i++) {
-            int32_t o = S32(st, 0x0056F880u + 4u * i) + S32(st, b + 0x0C);
-            int32_t level = U8(st, b + 0x5B) & (1u << i) ? U8(st, b + 0x55) : U8(st, b + 0x55) - 1;
+            int32_t o = S32(st, G_PYRAMID_CORNER_OFFSETS + 4u * i) + S32(st, b + BLD_GRID_OFFSET);
+            int32_t level = U8(st, b + BLD_PYRAMID_CORNERS) & (1u << i) ? U8(st, b + BLD_PYRAMID_LEVEL) : U8(st, b + BLD_PYRAMID_LEVEL) - 1;
             land_monument_tile_image(st, part, o, level, 1);
         }
         return;
     case 11: {
-        int32_t h = S32(st, 0x00BCA2E0u) / 2;
-        int32_t image = S32(st, 0x0056F840u + 4u * (uint32_t) (PART(part) + h * 4)) + S32(st, 0x00F57364u);
-        map_building_tiles(st, part, S16(st, b + 6), S16(st, b + 8), U8(st, b + 3), U8(st, b + 3), image, 8);
+        int32_t h = S32(st, G_VIEW_ORIENTATION) / 2;
+        int32_t image = S32(st, G_PYRAMID_BASE_IMAGES + 4u * (uint32_t) (PART(part) + h * 4)) + S32(st, G_IMAGE_GROUPS + 8 * 758);
+        map_building_tiles(st, part, S16(st, b + BLD_X), S16(st, b + BLD_Y), U8(st, b + BLD_SIZE), U8(st, b + BLD_SIZE), image, 8);
         return;
     }
     default:
@@ -225,16 +225,16 @@ static void ramp_offsets(game_state *st, uint32_t b, uint32_t mark, uint32_t dst
     }
     if (mode == 1) { /* @bin 0x004EE205 climate 1, layer flagged: (2v - 2) % 6, y halved */
         uint32_t e = 8u * (uint32_t) ((v * 2 - 2) % 6 + w * 6);
-        S16(st, b + dst) = (int16_t) (S16(st, 0x005F5B28u + 8u * (uint32_t) w) + S16(st, 0x005F5618u + e));
-        S16(st, b + dst + 2) = (int16_t) (S32(st, 0x005F561Cu + e) / 2 + S16(st, 0x005F5B2Cu + 8u * (uint32_t) w));
+        S16(st, b + dst) = (int16_t) (S16(st, G_PYRAMID_RAMP_BASE + 8u * (uint32_t) w) + S16(st, G_PYRAMID_RAMP_STEPS + e));
+        S16(st, b + dst + 2) = (int16_t) (S32(st, G_PYRAMID_RAMP_STEPS + 4 + e) / 2 + S16(st, G_PYRAMID_RAMP_BASE + 4 + 8u * (uint32_t) w));
     } else if (mode == 3) { /* @bin 0x004EE2BF climate 3: two positions by (v - 1) % 6 >= 3 */
         uint32_t e = 16u * (uint32_t) (((v - 1) % 6 >= 3 ? 3 : 0) + w * 6);
-        S16(st, b + dst) = S16(st, 0x005F57C8u + e);
-        S16(st, b + dst + 2) = S16(st, 0x005F57CCu + e);
+        S16(st, b + dst) = S16(st, G_PYRAMID_RAMP_STEPS3 + e);
+        S16(st, b + dst + 2) = S16(st, G_PYRAMID_RAMP_STEPS3 + 4 + e);
     } else { /* @bin 0x004EE35E */
         uint32_t e = 8u * (uint32_t) ((v - 1) % 6 + w * 6);
-        S16(st, b + dst) = (int16_t) (S16(st, 0x005F5B28u + 8u * (uint32_t) w) + S16(st, 0x005F5618u + e));
-        S16(st, b + dst + 2) = (int16_t) (S16(st, 0x005F5B2Cu + 8u * (uint32_t) w) + S16(st, 0x005F561Cu + e));
+        S16(st, b + dst) = (int16_t) (S16(st, G_PYRAMID_RAMP_BASE + 8u * (uint32_t) w) + S16(st, G_PYRAMID_RAMP_STEPS + e));
+        S16(st, b + dst + 2) = (int16_t) (S16(st, G_PYRAMID_RAMP_BASE + 4 + 8u * (uint32_t) w) + S16(st, G_PYRAMID_RAMP_STEPS + 4 + e));
     }
 }
 
@@ -248,15 +248,15 @@ void pyramid_part_redraw(game_state *st, int32_t part, int32_t half, int32_t kin
      * down. The ramp's image +0x68 (groups 0x6D.. of [0x00F57334]) and its offsets come with the
      * ramp marks +0x59 / +0x5A. Drawn by 0x0047BF50 (flags 8). */
     uint32_t b = B(part);
-    U32(st, b + 0x6C) = 0;
-    if (U8(st, b + 0x55) > 1) {
+    U32(st, b + BLD_U6C) = 0;
+    if (U8(st, b + BLD_PYRAMID_LEVEL) > 1) {
         pyramid_part_redraw_stage(st, part, half, kind);
         return;
     }
-    int32_t climate = S32(st, CLIMATE);
+    int32_t climate = S32(st, G_PYRAMID_KIND);
     int16_t p = PART(part);
-    int32_t u = climate == 5 ? S32(st, 0x005E6578u + 8u * (uint32_t) (p + kind * 0x24))
-                             : S32(st, 0x005E4EF8u + 8u * (uint32_t) (kind * 0x90 + p));
+    int32_t u = climate == 5 ? S32(st, G_PYRAMID_PART_CORNER_KIND5 + 8u * (uint32_t) (p + kind * 0x24))
+                             : S32(st, G_PYRAMID_PART_CORNER + 8u * (uint32_t) (kind * 0x90 + p));
     if (u < 4) {
         u += half;
         if (u >= 4) {
@@ -270,7 +270,7 @@ void pyramid_part_redraw(game_state *st, int32_t part, int32_t half, int32_t kin
     } else if (u == 9) {
         u = half + 9;
     }
-    int32_t base = S32(st, 0x00F57334u);
+    int32_t base = S32(st, G_IMAGE_GROUPS + 8 * 752);
     int32_t ramp = 0, w = 0;
     if (climate != 5) {
         w = u;
@@ -284,28 +284,28 @@ void pyramid_part_redraw(game_state *st, int32_t part, int32_t half, int32_t kin
     }
     int corners = 0;
     int32_t image;
-    uint8_t level = U8(st, b + 0x55);
-    if (level != 0 && S32(st, CLIMATE) != 5) {
-        if (S32(st, CLIMATE) == 1 && U8(st, 0x005E68D8u + (uint32_t) kind * 6 + U8(st, b + 0x57)) != 0) {
-            image = S32(st, 0x00F5738Cu) + (5 - U8(st, b + 0x56)) * 8 + u;
+    uint8_t level = U8(st, b + BLD_PYRAMID_LEVEL);
+    if (level != 0 && S32(st, G_PYRAMID_KIND) != 5) {
+        if (S32(st, G_PYRAMID_KIND) == 1 && U8(st, G_PYR_SKIP + (uint32_t) kind * 6 + U8(st, b + BLD_PYRAMID_LAYER)) != 0) {
+            image = S32(st, G_IMAGE_GROUPS + 8 * 763) + (5 - U8(st, b + BLD_PYRAMID_STAGE)) * 8 + u;
         } else {
-            image = base + (0xB - U8(st, b + 0x56)) * 8 + u;
+            image = base + (0xB - U8(st, b + BLD_PYRAMID_STAGE)) * 8 + u;
         }
     } else {
-        int32_t stage = U8(st, b + 0x56);
+        int32_t stage = U8(st, b + BLD_PYRAMID_STAGE);
         if (stage == 0) {
-            if (p < 4 && S32(st, CLIMATE) != 5) {
-                image = S32(st, 0x0056F840u + 4u * (uint32_t) (p + half * 4)) + S32(st, 0x00F57364u);
+            if (p < 4 && S32(st, G_PYRAMID_KIND) != 5) {
+                image = S32(st, G_PYRAMID_BASE_IMAGES + 4u * (uint32_t) (p + half * 4)) + S32(st, G_IMAGE_GROUPS + 8 * 758);
             } else {
                 image = 0;
                 corners = 1;
             }
         } else {
-            uint8_t layer = U8(st, b + 0x57);
-            if (layer < U8(st, b + 0x58) || u == 8) {
-                image = base + stage + (RND(S32(st, b + 0x0C)) & 1) * 6 + 0x5F;
-            } else if (S32(st, CLIMATE) == 1) {
-                image = (U8(st, 0x005E68D8u + (uint32_t) kind * 6 + layer) != 0 ? S32(st, 0x00F5738Cu) : base) +
+            uint8_t layer = U8(st, b + BLD_PYRAMID_LAYER);
+            if (layer < U8(st, b + BLD_PYRAMID_LAYERS) || u == 8) {
+                image = base + stage + (RND(S32(st, b + BLD_GRID_OFFSET)) & 1) * 6 + 0x5F;
+            } else if (S32(st, G_PYRAMID_KIND) == 1) {
+                image = (U8(st, G_PYR_SKIP + (uint32_t) kind * 6 + layer) != 0 ? S32(st, G_IMAGE_GROUPS + 8 * 763) : base) +
                         stage * 8 + u - 8;
             } else if (u < 8) {
                 image = base + stage * 8 + u - 8;
@@ -314,42 +314,42 @@ void pyramid_part_redraw(game_state *st, int32_t part, int32_t half, int32_t kin
             }
         }
     }
-    if ((U8(st, b + 0x59) == 0 && U8(st, b + 0x5A) == 0) || ramp == 0) {
-        S32(st, b + 0x68) = 0;
+    if ((U8(st, b + BLD_PYRAMID_RAMP_A) == 0 && U8(st, b + BLD_PYRAMID_RAMP_B) == 0) || ramp == 0) {
+        S32(st, b + BLD_PYRAMID_RAMP_IMAGE) = 0;
     } else {
         int32_t mode = 0;
-        if (S32(st, CLIMATE) == 1) {
-            mode = U8(st, 0x005E68D8u + (uint32_t) kind * 6 + U8(st, b + 0x57)) != 0 ? 1 : 0;
-        } else if (S32(st, CLIMATE) == 3) {
+        if (S32(st, G_PYRAMID_KIND) == 1) {
+            mode = U8(st, G_PYR_SKIP + (uint32_t) kind * 6 + U8(st, b + BLD_PYRAMID_LAYER)) != 0 ? 1 : 0;
+        } else if (S32(st, G_PYRAMID_KIND) == 3) {
             mode = 3;
         }
-        ramp_offsets(st, b, 0x59, 0x5C, w, mode);
-        ramp_offsets(st, b, 0x5A, 0x60, w, mode);
-        S32(st, b + 0x68) = ramp;
+        ramp_offsets(st, b, BLD_PYRAMID_RAMP_A, BLD_PYRAMID_RAMP_A_POS, w, mode);
+        ramp_offsets(st, b, BLD_PYRAMID_RAMP_B, BLD_PYRAMID_RAMP_B_POS, w, mode);
+        S32(st, b + BLD_PYRAMID_RAMP_IMAGE) = ramp;
     }
     if (!corners) {
-        map_building_tiles(st, part, S16(st, b + 6), S16(st, b + 8), U8(st, b + 3), U8(st, b + 3), image, 8);
+        map_building_tiles(st, part, S16(st, b + BLD_X), S16(st, b + BLD_Y), U8(st, b + BLD_SIZE), U8(st, b + BLD_SIZE), image, 8);
         return;
     }
     for (uint32_t i = 0; i < 4; i++) {
-        int32_t o = S32(st, b + 0x0C) + S32(st, 0x0056F880u + 4u * i);
+        int32_t o = S32(st, b + BLD_GRID_OFFSET) + S32(st, G_PYRAMID_CORNER_OFFSETS + 4u * i);
         BGRID(o) = (int16_t) part;
         TER(o) = (TER(o) & 0xEFFFFFFFu) | 8;
-        land_monument_tile_image(st, part, o, S32(st, CLIMATE) == 5 ? 5 : 10, 1);
+        land_monument_tile_image(st, part, o, S32(st, G_PYRAMID_KIND) == 5 ? 5 : 10, 1);
     }
 }
 
 void pyramid_reset_redraw(game_state *st, int32_t id)
 {
     /* @bin 0x004EE5D0 every part's level +0x55 := 0, then 0x004EE4A0 (id) */
-    int32_t climate = S32(st, CLIMATE);
-    uint32_t kind = U8(st, B(id) + 0x54);
+    int32_t climate = S32(st, G_PYRAMID_KIND);
+    uint32_t kind = U8(st, B(id) + BLD_MONUMENT_KIND);
     for (int32_t i = 0;; i++) {
-        int32_t n = climate == 5 ? S32(st, 0x0056F7ECu + 4u * kind) : S32(st, 0x0056F7D8u + 4u * kind);
+        int32_t n = climate == 5 ? S32(st, G_PYRAMID_PARTS_KIND5 + 4u * kind) : S32(st, G_PYRAMID_PARTS + 4u * kind);
         if (i >= n) {
             break;
         }
-        U8(st, B(id + i) + 0x55) = 0;
+        U8(st, B(id + i) + BLD_PYRAMID_LEVEL) = 0;
     }
     mastaba_redraw_4ee4a0(st, id);
 }
@@ -358,23 +358,23 @@ void pyramid_check_level_done(game_state *st, int32_t id)
 {
     /* @bin 0x004EE630 every part done (climate 5: level >= 5 and the 4 corners; else the 4 first
      * parts at level >= 11, the others at level >= 10 with the 4 corners): 0x004EE5D0 */
-    int32_t climate = S32(st, CLIMATE);
-    uint32_t kind = U8(st, B(id) + 0x54);
+    int32_t climate = S32(st, G_PYRAMID_KIND);
+    uint32_t kind = U8(st, B(id) + BLD_MONUMENT_KIND);
     for (int32_t i = 0;; i++) {
-        int32_t n = climate == 5 ? S32(st, 0x0056F7ECu + 4u * kind) : S32(st, 0x0056F7D8u + 4u * kind);
+        int32_t n = climate == 5 ? S32(st, G_PYRAMID_PARTS_KIND5 + 4u * kind) : S32(st, G_PYRAMID_PARTS + 4u * kind);
         if (i >= n) {
             break;
         }
         uint32_t p = B(id + i);
         if (climate == 5) {
-            if (U8(st, p + 0x55) < 5 || U8(st, p + 0x5B) < 0xF) {
+            if (U8(st, p + BLD_PYRAMID_LEVEL) < 5 || U8(st, p + BLD_PYRAMID_CORNERS) < 0xF) {
                 return;
             }
         } else if (i < 4) {
-            if (U8(st, p + 0x55) < 0xB) {
+            if (U8(st, p + BLD_PYRAMID_LEVEL) < 0xB) {
                 return;
             }
-        } else if (U8(st, p + 0x55) < 0xA || U8(st, p + 0x5B) < 0xF) {
+        } else if (U8(st, p + BLD_PYRAMID_LEVEL) < 0xA || U8(st, p + BLD_PYRAMID_CORNERS) < 0xF) {
             return;
         }
     }
@@ -389,19 +389,19 @@ int32_t pyramid_block_laid(game_state *st, int32_t x, int32_t y)
      * first parts by one (up to 11) and is redrawn. Levels 3 and below draw the tile (and at 3 the
      * corners) as construction ground. Returns the part's id (0: a part, not the main building,
      * at level >= 10). */
-    int32_t o = S32(st, 0x00BCA2D8u) + y * 228 + x;
+    int32_t o = S32(st, G_MAP_START) + y * 228 + x;
     int32_t id = BGRID(o);
     uint32_t b = B(id);
     uint8_t corner = 0;
     for (uint32_t i = 0; i < 4; i++) {
-        if (S32(st, b + 0x0C) + S32(st, 0x005F6BDCu + 4u * i) == o) {
+        if (S32(st, b + BLD_GRID_OFFSET) + S32(st, G_PYRAMID_BLOCK_CORNERS + 4u * i) == o) {
             corner = (uint8_t) (1u << i);
             break;
         }
     }
-    uint8_t done = U8(st, b + 0x5B);
+    uint8_t done = U8(st, b + BLD_PYRAMID_CORNERS);
     if (done == 0xF) {
-        uint8_t level = U8(st, b + 0x55);
+        uint8_t level = U8(st, b + BLD_PYRAMID_LEVEL);
         if (level >= 0xA) {
             if (PART(id) != 0) {
                 return 0;
@@ -409,8 +409,8 @@ int32_t pyramid_block_laid(game_state *st, int32_t x, int32_t y)
             int32_t next = level + 1;
             if (next <= 0xB) {
                 for (int32_t i = 0; i < 4; i++) {
-                    U8(st, B(id + i) + 0x55) = (uint8_t) next;
-                    U8(st, B(id + i) + 0x5B) = 0xF;
+                    U8(st, B(id + i) + BLD_PYRAMID_LEVEL) = (uint8_t) next;
+                    U8(st, B(id + i) + BLD_PYRAMID_CORNERS) = 0xF;
                 }
                 mastaba_redraw_4ee4a0(st, id);
                 pyramid_check_level_done(st, id);
@@ -418,31 +418,31 @@ int32_t pyramid_block_laid(game_state *st, int32_t x, int32_t y)
             }
         } else {
             uint8_t v = (uint8_t) pyramid_level_next(level);
-            U8(st, b + 0x55) = v;
+            U8(st, b + BLD_PYRAMID_LEVEL) = v;
             if (v == 5) {
                 corner = 0xF;
             }
-            U8(st, b + 0x5B) = corner;
+            U8(st, b + BLD_PYRAMID_CORNERS) = corner;
         }
     } else {
-        if (U8(st, b + 0x55) == 5) {
+        if (U8(st, b + BLD_PYRAMID_LEVEL) == 5) {
             corner = 0xF;
         }
-        U8(st, b + 0x5B) = done | corner;
-        if (U8(st, b + 0x55) == 3) {
-            int32_t ground = S32(st, 0x00F56B54u);
-            U8(st, b + 0x55) = 4;
-            int32_t c = S32(st, b + 0x0C);
+        U8(st, b + BLD_PYRAMID_CORNERS) = done | corner;
+        if (U8(st, b + BLD_PYRAMID_LEVEL) == 3) {
+            int32_t ground = S32(st, G_PLAIN);
+            U8(st, b + BLD_PYRAMID_LEVEL) = 4;
+            int32_t c = S32(st, b + BLD_GRID_OFFSET);
             for (uint32_t i = 0; i < 4; i++) {
-                int32_t t = c + S32(st, 0x005F6BDCu + 4u * i);
+                int32_t t = c + S32(st, G_PYRAMID_BLOCK_CORNERS + 4u * i);
                 TER(t) = 0x10000008u;
                 IMG(t) = (RND(t) & 7) + ground;
             }
         }
     }
-    if (U8(st, b + 0x55) <= 4) {
+    if (U8(st, b + BLD_PYRAMID_LEVEL) <= 4) {
         TER(o) = 0x10000008u;
-        IMG(o) = (RND(o) & 7) + S32(st, 0x00F56B54u);
+        IMG(o) = (RND(o) & 7) + S32(st, G_PLAIN);
     }
     pyramid_check_level_done(st, id - PART(id));
     mastaba_redraw_4ee4a0(st, id - PART(id));

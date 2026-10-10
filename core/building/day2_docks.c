@@ -4,17 +4,15 @@
  * Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0. */
 #include "building/day2_docks.h"
 
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define DOCK_COUNT 0x00705C1Cu /* i32 */
-#define TARGET_X 0x00D3B4E4u
-#define TARGET_Y 0x00D3B4E0u
 
 static uint32_t dock_slot(game_state *st, uint32_t k)
 {
     /* the city's 10 docks: i16 at city +0x4460 (0x00EA5CD0) */
-    return 0x00EA5CD0u + 2u * ((uint32_t) S32(st, CURRENT_PLAYER_ADDR) * 0x24ECu + k);
+    return CITY_BASE + CITY_U4460 + 2u * ((uint32_t) S32(st, CURRENT_PLAYER_ADDR) * 0x24ECu + k);
 }
 
 int32_t dock_reserve(game_state *st, int32_t f)
@@ -23,10 +21,10 @@ int32_t dock_reserve(game_state *st, int32_t f)
      * reserved by f; when none is, the last one read is taken anyway when it exists (the loop
      * leaves it in eax). The mooring tile by the dock's orientation (+0xAA) into
      * 0x00D3B4E4 / 0x00D3B4E0, and the dock is reserved (+0xB4 := f) */
-    if (S32(st, DOCK_COUNT) <= 0) {
+    if (S32(st, G_DOCK_COUNT) <= 0) {
         return 0;
     }
-    uint32_t k = U8(st, FIGURE_ADDR(f) + 0x7A);
+    uint32_t k = U8(st, FIGURE_ADDR(f) + FIG_COLLECTING);
     if (k >= 10) {
         return 0;
     }
@@ -34,7 +32,7 @@ int32_t dock_reserve(game_state *st, int32_t f)
     for (; k < 10; k++) {
         d = S16(st, dock_slot(st, k));
         if (d > 0) {
-            int16_t r = S16(st, BUILDING_ADDR(d) + 0xB4);
+            int16_t r = S16(st, BUILDING_ADDR(d) + BLD_DOCK_BOAT);
             if (r == 0 || r == f) {
                 break;
             }
@@ -44,16 +42,16 @@ int32_t dock_reserve(game_state *st, int32_t f)
         return 0;
     }
     uint32_t b = BUILDING_ADDR(d);
-    int32_t x = S16(st, b + 6), y = S16(st, b + 8);
-    switch (U8(st, b + 0xAA)) {
+    int32_t x = S16(st, b + BLD_X), y = S16(st, b + BLD_Y);
+    switch (U8(st, b + BLD_ORIENTATION)) {
     case 0: x += 1; y -= 1; break;
     case 1: x += 3; y += 1; break;
     case 2: x += 1; y += 3; break;
     default: x -= 1; y += 1; break;
     }
-    S32(st, TARGET_X) = x;
-    S16(st, b + 0xB4) = (int16_t) f;
-    S32(st, TARGET_Y) = y;
+    S32(st, G_ROAD_ACCESS_X) = x;
+    S16(st, b + BLD_DOCK_BOAT) = (int16_t) f;
+    S32(st, G_ROAD_ACCESS_Y) = y;
     return d;
 }
 
@@ -61,26 +59,26 @@ static int32_t mooring_free(game_state *st, int32_t d, int32_t far)
 {
     /* the tile `far` (1 or 2) steps out from the dock, by its orientation; free of figures? */
     uint32_t b = BUILDING_ADDR(d);
-    int32_t x = S16(st, b + 6), y = S16(st, b + 8);
-    switch (U8(st, b + 0xAA)) {
+    int32_t x = S16(st, b + BLD_X), y = S16(st, b + BLD_Y);
+    switch (U8(st, b + BLD_ORIENTATION)) {
     case 0: x += 1; y -= 1 + far; break;
     case 1: x += 3 + far; y += 1; break;
     case 2: x += 1; y += 3 + far; break;
     default: x -= 1 + far; y += 1; break;
     }
-    S32(st, TARGET_X) = x;
-    S32(st, TARGET_Y) = y;
-    return S16(st, 0x00B350DCu + 2u * (uint32_t) (S32(st, 0x00BCA2D8u) + y * 0xE4 + x)) == 0;
+    S32(st, G_ROAD_ACCESS_X) = x;
+    S32(st, G_ROAD_ACCESS_Y) = y;
+    return S16(st, G_FIGURE_GRID + 2u * (uint32_t) (S32(st, G_MAP_START) + y * 0xE4 + x)) == 0;
 }
 
 int32_t dock_free_moorings(game_state *st, int32_t f)
 {
     /* @bin 0x004809B0 from the figure's dock index on, the first dock whose tile 2 steps out is
      * free of figures, else 3 steps out; the tile in 0x00D3B4E4 / 0x00D3B4E0 */
-    if (S32(st, DOCK_COUNT) <= 0) {
+    if (S32(st, G_DOCK_COUNT) <= 0) {
         return 0;
     }
-    uint32_t k0 = U8(st, FIGURE_ADDR(f) + 0x7A);
+    uint32_t k0 = U8(st, FIGURE_ADDR(f) + FIG_COLLECTING);
     for (int far = 1; far <= 2; far++) {
         for (uint32_t k = k0; k < 10; k++) {
             int32_t d = S16(st, dock_slot(st, k));
@@ -112,9 +110,9 @@ int32_t building_fill(game_state *st, int32_t b, int32_t amount, int32_t kind)
         return 1;
     }
     uint32_t r = BUILDING_ADDR(b);
-    uint32_t stock = kind == 10 ? r + 0x3C : r + 0xCC;
-    uint32_t count = kind == 10 ? r + 0x104 : r + 0x106;
-    int16_t type = S16(st, r + 0x10);
+    uint32_t stock = kind == 10 ? r + BLD_STORED : r + BLD_STOCK2;
+    uint32_t count = kind == 10 ? r + BLD_INCOMING_CARTS : r + BLD_INCOMING_AMOUNT;
+    int16_t type = S16(st, r + BLD_TYPE);
     int16_t have = S16(st, stock);
     if (have >= capacity(type)) {
         return 0;

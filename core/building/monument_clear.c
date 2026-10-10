@@ -9,17 +9,16 @@
  * Also the vtable methods every monument class shares (+0xC 0x004E52D0) and the tombs' +0x2C /
  * +0x3C that are called directly. */
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 
-#define B(id) (0x108u * (uint32_t) (id))
-#define BX(st, id) ((int32_t) S16(st, 0x007999DEu + B(id)))
-#define BY(st, id) ((int32_t) S16(st, 0x007999E0u + B(id)))
-#define BKIND(st, id) ((int32_t) S16(st, 0x007999EAu + B(id)))
-#define MAP_START 0x00BCA2D8u
+#define BX(st, id) ((int32_t) S16(st, BUILDING_ADDR(id) + BLD_X))
+#define BY(st, id) ((int32_t) S16(st, BUILDING_ADDR(id) + BLD_Y))
+#define BKIND(st, id) ((int32_t) S16(st, BUILDING_ADDR(id) + BLD_PART))
 
 static void clear_tiles(game_state *st, int32_t id, int32_t x, int32_t y)
 {
-    GAME_CALL(st, 0x0047C480u, id, x, y); /* building_clear_tiles (core/building/day2_destroy.c) */
+    GAME_CALL(st, FN_BUILDING_CLEAR_TILES, id, x, y); /* building_clear_tiles (core/building/day2_destroy.c) */
 }
 
 void terrain_flag_477a40(game_state *st, int32_t x, int32_t y, uint32_t mask)
@@ -27,15 +26,15 @@ void terrain_flag_477a40(game_state *st, int32_t x, int32_t y, uint32_t mask)
     /* @bin 0x00477A40 the tile's terrain word (0x00AF598C) keeps its bits 0x20300002 = mask: when
      * they already are, 0x00BC9730 := 1; else 0x00BC972C := 1 and the word := (word & 0xDFCFFFFD |
      * mask) & 0xB9FAF682. The tile index goes to 0x00BC9768 */
-    int32_t idx = S32(st, MAP_START) + y * 0xE4 + x;
-    S32(st, 0x00BC9768u) = idx;
-    uint32_t a = 0x00AF598Cu + 4u * (uint32_t) idx;
+    int32_t idx = S32(st, G_MAP_START) + y * 0xE4 + x;
+    S32(st, G_TILE_CURSOR) = idx;
+    uint32_t a = G_GRID_TERRAIN + 4u * (uint32_t) idx;
     uint32_t w = U32(st, a);
     if ((w & 0x20300002u) == mask) {
-        S32(st, 0x00BC9730u) = 1;
+        S32(st, G_UBC9730) = 1;
         return;
     }
-    S32(st, 0x00BC972Cu) = 1;
+    S32(st, G_UBC972C) = 1;
     U32(st, a) = ((w & 0xDFCFFFFDu) | mask) & 0xB9FAF682u;
 }
 
@@ -46,13 +45,13 @@ void monument_e6_clear(game_state *st, uint32_t self, int32_t id)
      * (0x0047C480); unless the part's +0x58 is 9, the terrain bits := 0x20000002 (0x00477A40) */
     int32_t x = BX(st, id), y0 = BY(st, id);
     uint32_t part = self + 0x34u * (uint32_t) BKIND(st, id);
-    for (int32_t i = 0; i < S32(st, part + 0x54); i++, x++) {
+    for (int32_t i = 0; i < S32(st, part + MONOBJ_PART_TABLE); i++, x++) {
         int32_t y = y0;
-        for (int32_t j = 0; j < S32(st, part + 0x54); j++, y++) {
-            S32(st, 0x00BC973Cu) = 1;
-            S32(st, 0x00BC9738u) = 1;
+        for (int32_t j = 0; j < S32(st, part + MONOBJ_PART_TABLE); j++, y++) {
+            S32(st, G_FOOTPRINT_COLS) = 1;
+            S32(st, G_FOOTPRINT_ROWS) = 1;
             clear_tiles(st, id, x, y);
-            if (S32(st, part + 0x58) != 9) {
+            if (S32(st, part + MONOBJ_PART_KIND) != 9) {
                 terrain_flag_477a40(st, x, y, 0x20000002u);
             }
         }
@@ -65,9 +64,9 @@ void monument_e1_clear(game_state *st, uint32_t self, int32_t id)
      * +0x54 + 0x34 * kind); the building cleared at its corner (0x0047C480), then every tile of the
      * square, column by column */
     int32_t x = BX(st, id), y = BY(st, id);
-    uint32_t size = self + 0x54u + 0x34u * (uint32_t) BKIND(st, id);
-    S32(st, 0x00BC9738u) = S32(st, size);
-    S32(st, 0x00BC973Cu) = S32(st, size);
+    uint32_t size = self + MONOBJ_PART_TABLE + 0x34u * (uint32_t) BKIND(st, id);
+    S32(st, G_FOOTPRINT_ROWS) = S32(st, size);
+    S32(st, G_FOOTPRINT_COLS) = S32(st, size);
     clear_tiles(st, id, x, y);
     for (int32_t i = 0; i < S32(st, size); i++) {
         for (int32_t j = 0; j < S32(st, size); j++) {
@@ -81,9 +80,9 @@ void monument_e3_clear(game_state *st, uint32_t self, int32_t id)
     /* @bin 0x00416FB0 (thiscall 0x006FD368) 0x00BC9738 := 0x00BC973C := 1; every tile of the
      * part's square (object +0x54 + 0x34 * kind) cleared (0x0047C480), column by column */
     int32_t x = BX(st, id), y = BY(st, id);
-    uint32_t size = self + 0x54u + 0x34u * (uint32_t) BKIND(st, id);
-    S32(st, 0x00BC9738u) = 1;
-    S32(st, 0x00BC973Cu) = 1;
+    uint32_t size = self + MONOBJ_PART_TABLE + 0x34u * (uint32_t) BKIND(st, id);
+    S32(st, G_FOOTPRINT_ROWS) = 1;
+    S32(st, G_FOOTPRINT_COLS) = 1;
     for (int32_t i = 0; i < S32(st, size); i++) {
         for (int32_t j = 0; j < S32(st, size); j++) {
             clear_tiles(st, id, x + i, y + j);
@@ -97,11 +96,11 @@ void monument_e4_clear(game_state *st, uint32_t self, int32_t id)
      * writes; the terrain bits := 2 (0x00477A40) when the part's +0x58 is 0 */
     int32_t x = BX(st, id), y0 = BY(st, id);
     uint32_t part = self + 0x34u * (uint32_t) BKIND(st, id);
-    for (int32_t i = 0; i < S32(st, part + 0x54); i++, x++) {
+    for (int32_t i = 0; i < S32(st, part + MONOBJ_PART_TABLE); i++, x++) {
         int32_t y = y0;
-        for (int32_t j = 0; j < S32(st, part + 0x54); j++, y++) {
+        for (int32_t j = 0; j < S32(st, part + MONOBJ_PART_TABLE); j++, y++) {
             clear_tiles(st, id, x, y);
-            if (S32(st, part + 0x58) == 0) {
+            if (S32(st, part + MONOBJ_PART_KIND) == 0) {
                 terrain_flag_477a40(st, x, y, 2);
             }
         }
@@ -119,19 +118,19 @@ void tomb_clear_546660(game_state *st, uint32_t self, int32_t id, uint32_t table
     int32_t x = BX(st, id), y = BY(st, id);
     uint32_t size = table + 8u + 0x34u * (uint32_t) kind;
     for (int32_t i = 0; i < S32(st, size); i++) {
-        int32_t idx = S32(st, MAP_START) + y * 0xE4 + i + x;
+        int32_t idx = S32(st, G_MAP_START) + y * 0xE4 + i + x;
         for (int32_t j = 0; j < S32(st, size); j++, idx += 0xE4) {
             uint32_t u = (uint32_t) idx;
-            uint8_t b = U8(st, 0x00B285CCu + u);
-            U16(st, 0x00B4E6FCu + 2u * u) = 0;
-            U32(st, 0x00AF598Cu + 4u * u) = 0;
-            U8(st, 0x00B285CCu + u) = (uint8_t) (b & 0xE0);
-            b = U8(st, 0x00B67D1Cu + u);
-            U8(st, 0x00AE8E7Cu + u) = 0;
-            U16(st, 0x00A9CC1Cu + 2u * u) = 0;
-            U8(st, 0x00B67D1Cu + u) = (uint8_t) ((b & 0xC0) | 0x40);
-            U8(st, 0x00ADC36Cu + u) = 0;
-            U32(st, 0x00AF598Cu + 4u * u) = kind != S32(st, self + 0x50) ? 0x20000002u : 0x80u;
+            uint8_t b = U8(st, G_GRID_BITFIELDS + u);
+            U16(st, G_GRID_BUILDING + 2u * u) = 0;
+            U32(st, G_GRID_TERRAIN + 4u * u) = 0;
+            U8(st, G_GRID_BITFIELDS + u) = (uint8_t) (b & 0xE0);
+            b = U8(st, G_GRID_EDGE + u);
+            U8(st, G_CANAL + u) = 0;
+            U16(st, G_GRID_DAMAGE + 2u * u) = 0;
+            U8(st, G_GRID_EDGE + u) = (uint8_t) ((b & 0xC0) | 0x40);
+            U8(st, G_SPRITE + u) = 0;
+            U32(st, G_GRID_TERRAIN + 4u * u) = kind != S32(st, self + TOMBOBJ_PART) ? 0x20000002u : 0x80u;
         }
     }
 }
@@ -169,25 +168,25 @@ static int32_t run_477a40(game_state *st, const int32_t *a)
 
 static int32_t run_e6(game_state *st, const int32_t *a)
 {
-    monument_e6_clear(st, this_of(a, 0x006DE650u), a[0]);
+    monument_e6_clear(st, this_of(a, G_MONUMENT_E6), a[0]);
     return 0;
 }
 
 static int32_t run_e1(game_state *st, const int32_t *a)
 {
-    monument_e1_clear(st, this_of(a, 0x006FD5D8u), a[0]);
+    monument_e1_clear(st, this_of(a, G_MONUMENT_E1), a[0]);
     return 0;
 }
 
 static int32_t run_e3(game_state *st, const int32_t *a)
 {
-    monument_e3_clear(st, this_of(a, 0x006FD368u), a[0]);
+    monument_e3_clear(st, this_of(a, G_MONUMENT_E3), a[0]);
     return 0;
 }
 
 static int32_t run_e4(game_state *st, const int32_t *a)
 {
-    monument_e4_clear(st, this_of(a, 0x006DE548u), a[0]);
+    monument_e4_clear(st, this_of(a, G_MONUMENT_E4), a[0]);
     return 0;
 }
 
@@ -199,25 +198,25 @@ static int32_t run_546660(game_state *st, const int32_t *a)
 
 static int32_t run_e5(game_state *st, const int32_t *a)
 {
-    tomb_clear(st, this_of(a, 0x006F9320u), a[0], 0x1E5Cu);
+    tomb_clear(st, this_of(a, G_MONUMENT_E5), a[0], 0x1E5Cu);
     return 0;
 }
 
 static int32_t run_ec(game_state *st, const int32_t *a)
 {
-    tomb_clear(st, this_of(a, 0x006E9188u), a[0], 0x5C88u);
+    tomb_clear(st, this_of(a, G_MONUMENT_EC), a[0], 0x5C88u);
     return 0;
 }
 
 static int32_t run_eb(game_state *st, const int32_t *a)
 {
-    tomb_clear(st, this_of(a, 0x006DE9E0u), a[0], 0x4EE0u);
+    tomb_clear(st, this_of(a, G_MONUMENT_EB), a[0], 0x4EE0u);
     return 0;
 }
 
 static int32_t run_ea(game_state *st, const int32_t *a)
 {
-    tomb_clear(st, this_of(a, 0x006F5648u), a[0], 0x1CBCu);
+    tomb_clear(st, this_of(a, G_MONUMENT_EA), a[0], 0x1CBCu);
     return 0;
 }
 
@@ -244,23 +243,23 @@ static int32_t run_201(game_state *st, const int32_t *a)
 static int32_t run_559110(game_state *st, const int32_t *a)
 {
     /* @bin 0x00559110 the tombs' method +0x2C: 0x00547C10 with the same arguments and this */
-    return GAME_CALLT(st, (uint32_t) a[PORT_THIS_ARG], 0x00547C10u, a[0], a[1], a[2]);
+    return GAME_CALLT(st, (uint32_t) a[PORT_THIS_ARG], FN_MONUMENT_TAKE_547C10, a[0], a[1], a[2]);
 }
 
 const ported_function monument_clear_ports[] = {
     {0x00477A40u, "terrain_flag_477a40", 3, 0, 0, run_477a40, 0},
-    {0x00401480u, "monument_e6_clear", 1, 0, 0x006DE650u, run_e6, 0},
-    {0x0040D890u, "monument_e1_clear", 1, 0, 0x006FD5D8u, run_e1, 0},
-    {0x00416FB0u, "monument_e3_clear", 1, 0, 0x006FD368u, run_e3, 0},
-    {0x004E6660u, "monument_e4_clear", 1, 0, 0x006DE548u, run_e4, 0},
+    {0x00401480u, "monument_e6_clear", 1, 0, G_MONUMENT_E6, run_e6, 0},
+    {0x0040D890u, "monument_e1_clear", 1, 0, G_MONUMENT_E1, run_e1, 0},
+    {0x00416FB0u, "monument_e3_clear", 1, 0, G_MONUMENT_E3, run_e3, 0},
+    {0x004E6660u, "monument_e4_clear", 1, 0, G_MONUMENT_E4, run_e4, 0},
     {0x00546660u, "tomb_clear_546660", 3, 0, 0, run_546660, 0},
-    {0x00545720u, "tomb_e5_clear", 1, 0, 0x006F9320u, run_e5, 0},
-    {0x0054F450u, "tomb_ec_clear", 1, 0, 0x006E9188u, run_ec, 0},
-    {0x00555E60u, "tomb_eb_clear", 1, 0, 0x006DE9E0u, run_eb, 0},
-    {0x00558BC0u, "tomb_ea_clear", 1, 0, 0x006F5648u, run_ea, 0},
+    {0x00545720u, "tomb_e5_clear", 1, 0, G_MONUMENT_E5, run_e5, 0},
+    {0x0054F450u, "tomb_ec_clear", 1, 0, G_MONUMENT_EC, run_ec, 0},
+    {0x00555E60u, "tomb_eb_clear", 1, 0, G_MONUMENT_EB, run_eb, 0},
+    {0x00558BC0u, "tomb_ea_clear", 1, 0, G_MONUMENT_EA, run_ea, 0},
     {0x00547B60u, "tomb_parts_redraw_547b60", 1, 0, 0, run_547b60, 0},
     {0x004E52D0u, "monument_method_c_zero", 2, 32, 0, run_zero, 0},
-    {0x0054FEE0u, "tomb_ec_method_3c", 0, 32, 0x006E9188u, run_201, 0},
+    {0x0054FEE0u, "tomb_ec_method_3c", 0, 32, G_MONUMENT_EC, run_201, 0},
     {0x00559110u, "tomb_method_2c", 3, 8, 0, run_559110, 0},
 };
 const int monument_clear_ports_count = sizeof(monument_clear_ports) / sizeof(monument_clear_ports[0]);
