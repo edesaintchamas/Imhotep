@@ -4,9 +4,11 @@
 #
 #   tools/release/package_macos.sh VERSION EXE OUTDIR
 #
-# EXE: the game built with IMHOTEP_VERSION=VERSION (make game). Writes OUTDIR/Imhotep.app and
-# OUTDIR/imhotep-VERSION-macos-ARCH.zip (ditto). The app is signed ad hoc only (no Developer ID):
-# Gatekeeper asks the player to open it with right-click > Open the first time.
+# EXE: the game built with IMHOTEP_VERSION=VERSION (make game), SDL2 and FFmpeg linked statically
+# (tools/release/build_deps.sh; any dylib it still links outside the system is copied into the bundle
+# by bundle_dylibs.py). LICENSES: SDL2's and FFmpeg's licences (default build-deps/share/licenses).
+# Writes OUTDIR/Imhotep.app and OUTDIR/imhotep-VERSION-macos-ARCH.zip (ditto). The app is signed ad hoc
+# only (no Developer ID): Gatekeeper asks the player to open it with right-click > Open the first time.
 set -euo pipefail
 [ $# = 3 ] || { echo "usage: $0 VERSION EXE OUTDIR"; exit 1; }
 version=$1 exe=$2 out=$3
@@ -17,6 +19,7 @@ rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Frameworks" "$app/Contents/Resources"
 cp "$exe" "$app/Contents/MacOS/imhotep"
 cp "$root/README.md" "$root/LICENSE" "$app/Contents/Resources/"
+cp -R "${LICENSES:-$root/build-deps/share/licenses}" "$app/Contents/Resources/licenses"
 
 # the icon (drawn by tools/release/make_icon.py, no game content)
 iconset=$(mktemp -d)/Imhotep.iconset
@@ -29,6 +32,7 @@ done
 iconutil -c icns "$iconset" -o "$app/Contents/Resources/Imhotep.icns"
 
 minos=$(python3 "$root/tools/release/bundle_dylibs.py" "$app/Contents/MacOS/imhotep" "$app/Contents/Frameworks")
+rmdir "$app/Contents/Frameworks" 2> /dev/null || true  # empty: everything linked statically
 
 cat > "$app/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
