@@ -88,7 +88,7 @@ jobs:
         run: make check-files provenance
 
       - name: Build core, present, tools, check drivers and the game (-Werror)
-        run: make -j4 build-all
+        run: make -k -j4 build-all
 
       - name: Smoke test (no game files)
         run: |

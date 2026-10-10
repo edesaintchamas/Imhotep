@@ -129,7 +129,10 @@ int game_save(game_state *st, uint8_t **out, size_t *out_len)
     memcpy(state_ptr(st, 0x005E17C4u, 5), state_ptr(st, 0x005E17CCu, 5), 5);
     char *name = (char *) state_ptr(st, 0x00EA184Cu, 32);
     const char *src = (const char *) state_ptr(st, 0x00E38E74u, 32);
-    size_t nl = strnlen(src, 31);
+    size_t nl = 0; /* strnlen(src, 31) (POSIX, not C11) */
+    while (nl < 31 && src[nl]) {
+        nl++;
+    }
     memmove(name, src, nl);
     name[nl] = 0;
     terrain_flag10_to_1(st); /* @bin 0x004771C0 */
