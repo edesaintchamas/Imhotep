@@ -1,10 +1,11 @@
 /* Imhotep - where build/imhotep finds the game files and keeps the player's (see install.h).
  * Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0. */
-#if !defined(_WIN32) && !defined(__APPLE__)
-#define _DEFAULT_SOURCE /* realpath, getpid under -std=c11 (glibc) */
+#if !defined(_WIN32) && !defined(__APPLE__) && !defined(_DEFAULT_SOURCE)
+#define _DEFAULT_SOURCE /* realpath, getpid under -std=c11 (glibc; the Makefile also defines it) */
 #endif
 #include "platform/install.h"
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,6 +28,17 @@
 #define SEP "/"
 #endif
 
+/* a path or line formatted into out: 1 when it fits, 0 when it was cut (a cut path names no
+ * installation: it is tried and does not qualify) */
+static int put(char *out, size_t size, const char *fmt, ...)
+{
+    va_list a;
+    va_start(a, fmt);
+    int n = vsnprintf(out, size, fmt, a);
+    va_end(a);
+    return n >= 0 && (size_t) n < size;
+}
+
 #define PREF_ORG "Imhotep"
 #define PREF_APP "Imhotep"
 #define CONFIG_NAME "imhotep.cfg"
@@ -44,7 +56,7 @@ static int pref_dir(char *out, size_t size)
     if (!p) {
         return -1;
     }
-    snprintf(out, size, "%s", p);
+    put(out, size, "%s", p);
     SDL_free(p);
     size_t n = strlen(out);
     while (n > 1 && (out[n - 1] == '/' || out[n - 1] == '\\')) {
@@ -57,11 +69,11 @@ static void absolute(const char *path, char *out, size_t size)
 {
 #ifdef _WIN32
     if (!_fullpath(out, path, size)) {
-        snprintf(out, size, "%s", path);
+        put(out, size, "%s", path);
     }
 #else
     char buf[PATH_MAX];
-    snprintf(out, size, "%s", realpath(path, buf) ? buf : path);
+    put(out, size, "%s", realpath(path, buf) ? buf : path);
 #endif
 }
 
@@ -73,7 +85,7 @@ static int config_path(char *out, size_t size)
     if (pref_dir(dir, sizeof(dir)) != 0) {
         return -1;
     }
-    snprintf(out, size, "%s" SEP CONFIG_NAME, dir);
+    put(out, size, "%s" SEP CONFIG_NAME, dir);
     return 0;
 }
 
@@ -85,7 +97,7 @@ static int remembered(char *out, size_t size)
     while (f && fgets(line, sizeof(line), f)) {
         line[strcspn(line, "\r\n")] = 0;
         if (strncmp(line, "game=", 5) == 0 && line[5]) {
-            snprintf(out, size, "%s", line + 5);
+            put(out, size, "%s", line + 5);
             found = 0;
         }
     }
@@ -106,7 +118,7 @@ static void remember(const char *game, int verbose)
         return;
     }
     /* written whole then renamed, so concurrent starts never read half a file */
-    snprintf(tmp, sizeof(tmp), "%s.%d.tmp", path, (int) getpid());
+    put(tmp, sizeof(tmp), "%s.%d.tmp", path, (int) getpid());
     FILE *f = fopen(tmp, "w");
     if (!f) {
         return;
@@ -139,7 +151,7 @@ typedef struct {
 static void add(places *p, const char *dir)
 {
     if (p->n < p->max && dir && *dir) {
-        snprintf(p->dirs[p->n++], sizeof(p->dirs[0]), "%s", dir);
+        put(p->dirs[p->n++], sizeof(p->dirs[0]), "%s", dir);
     }
 }
 
@@ -154,7 +166,7 @@ static void add_names(places *p, const char *parent)
     }
     char d[1024];
     for (int i = 0; i < NNAMES; i++) {
-        snprintf(d, sizeof(d), "%s" SEP "%s", parent, game_names[i]);
+        put(d, sizeof(d), "%s" SEP "%s", parent, game_names[i]);
         add(p, d);
     }
 }
@@ -169,7 +181,7 @@ static void add_checkout(places *p)
     char d[1024];
     const char *up = "";
     for (int k = 0; k < 3; k++) {
-        snprintf(d, sizeof(d), "%s%slocal" SEP "game" SEP "app", base, up);
+        put(d, sizeof(d), "%s%slocal" SEP "game" SEP "app", base, up);
         if (is_dir(d)) {
             char abs[1024];
             absolute(d, abs, sizeof(abs));
@@ -221,7 +233,7 @@ static void add_wine_prefix(places *p, const char *prefix)
                                           "drive_c/Program Files (x86)/Steam/steamapps/common"};
     char d[1024];
     for (size_t i = 0; i < sizeof(parents) / sizeof(parents[0]); i++) {
-        snprintf(d, sizeof(d), "%s/%s", prefix, parents[i]);
+        put(d, sizeof(d), "%s/%s", prefix, parents[i]);
         add_names(p, d);
     }
 }
@@ -239,7 +251,7 @@ static void add_wine_prefixes_in(places *p, const char *dir)
             continue;
         }
         char sub[1024];
-        snprintf(sub, sizeof(sub), "%s/%s", dir, e->d_name);
+        put(sub, sizeof(sub), "%s/%s", dir, e->d_name);
         add_wine_prefix(p, sub);
     }
     closedir(d);
@@ -253,7 +265,7 @@ static int usual_places(places *p)
     add_gog_registry(p);
     const char *drive = getenv("SystemDrive");
     char d[1024];
-    snprintf(d, sizeof(d), "%s\\GOG Games", drive && *drive ? drive : "C:");
+    put(d, sizeof(d), "%s\\GOG Games", drive && *drive ? drive : "C:");
     add_names(p, d);
     static const char *const pf[] = {"ProgramFiles(x86)", "ProgramFiles"};
     for (int i = 0; i < 2; i++) {
@@ -263,7 +275,7 @@ static int usual_places(places *p)
         }
         static const char *const subs[] = {"GOG Galaxy\\Games", "GOG.com", "GOG Games", "Steam\\steamapps\\common", ""};
         for (int k = 0; k < 5; k++) {
-            snprintf(d, sizeof(d), *subs[k] ? "%s\\%s" : "%s%s", root, subs[k]);
+            put(d, sizeof(d), *subs[k] ? "%s\\%s" : "%s%s", root, subs[k]);
             add_names(p, d);
         }
     }
@@ -274,17 +286,17 @@ static int usual_places(places *p)
         static const char *const parents[] = {"GOG Games", "Games", "Games/Heroic", "games",
                                               ".local/share/Steam/steamapps/common"};
         for (size_t i = 0; i < sizeof(parents) / sizeof(parents[0]); i++) {
-            snprintf(d, sizeof(d), "%s/%s", home, parents[i]);
+            put(d, sizeof(d), "%s/%s", home, parents[i]);
             add_names(p, d);
         }
-        snprintf(d, sizeof(d), "%s/.wine", home);
+        put(d, sizeof(d), "%s/.wine", home);
         add_wine_prefix(p, d);
-        snprintf(d, sizeof(d), "%s/Games", home); /* Lutris: ~/Games/<game>/drive_c */
+        put(d, sizeof(d), "%s/Games", home); /* Lutris: ~/Games/<game>/drive_c */
         add_wine_prefixes_in(p, d);
 #ifdef __APPLE__
-        snprintf(d, sizeof(d), "%s/Library/Application Support/CrossOver/Bottles", home);
+        put(d, sizeof(d), "%s/Library/Application Support/CrossOver/Bottles", home);
         add_wine_prefixes_in(p, d);
-        snprintf(d, sizeof(d), "%s/Library/Containers/com.isaacmarovitz.Whisky/Bottles", home);
+        put(d, sizeof(d), "%s/Library/Containers/com.isaacmarovitz.Whisky/Bottles", home);
         add_wine_prefixes_in(p, d);
 #endif
     }
@@ -325,7 +337,7 @@ int install_game_dir(const char *arg, int quiet, int verbose, char *out, size_t 
         const char *how = arg ? "--game" : "IMHOTEP_GAME_DIR";
         int r = fingerprint_check(given, msg, sizeof(msg));
         if (r != 0) {
-            snprintf(text, sizeof(text), "%s (%s).\n\n%s%s%s", msg, how, NEEDED,
+            put(text, sizeof(text), "%s (%s).\n\n%s%s%s", msg, how, NEEDED,
                      r == FINGERPRINT_MISSING ? "\n\n" : "", r == FINGERPRINT_MISSING ? HOW : "");
             tell_player(quiet, r == FINGERPRINT_MISSING ? "Pharaoh not found" : "Another version of Pharaoh", text);
             return -1;
@@ -333,7 +345,7 @@ int install_game_dir(const char *arg, int quiet, int verbose, char *out, size_t 
         if (verbose) {
             fprintf(stderr, "imhotep: %s (%s)\n", msg, how);
         }
-        snprintf(out, size, "%s", given);
+        put(out, size, "%s", given);
         if (arg) {
             remember(given, verbose);
         }
@@ -347,7 +359,7 @@ int install_game_dir(const char *arg, int quiet, int verbose, char *out, size_t 
             fprintf(stderr, "imhotep: %s (the remembered game directory)%s\n", msg, r != 0 ? ", passed over" : "");
         }
         if (r == 0) {
-            snprintf(out, size, "%s", dir);
+            put(out, size, "%s", dir);
             return 0;
         }
     }
@@ -362,7 +374,7 @@ int install_game_dir(const char *arg, int quiet, int verbose, char *out, size_t 
             if (verbose) {
                 fprintf(stderr, "imhotep: %s\n", msg);
             }
-            snprintf(out, size, "%s", p.dirs[i]);
+            put(out, size, "%s", p.dirs[i]);
             remember(p.dirs[i], verbose);
             return 0;
         }
@@ -370,15 +382,15 @@ int install_game_dir(const char *arg, int quiet, int verbose, char *out, size_t 
             fprintf(stderr, "imhotep: %s\n", msg);
         }
         if (r == FINGERPRINT_MISMATCH && !other[0]) {
-            snprintf(other, sizeof(other), "%s", msg);
+            put(other, sizeof(other), "%s", msg);
         }
     }
     /* none: tell the player what is needed */
     if (other[0]) {
-        snprintf(text, sizeof(text), "%s\n\nFound, but refused: %s.\n\n%s", NEEDED, other, HOW);
+        put(text, sizeof(text), "%s\n\nFound, but refused: %s.\n\n%s", NEEDED, other, HOW);
         tell_player(quiet, "Another version of Pharaoh", text);
     } else {
-        snprintf(text, sizeof(text), "%s\n\nNo installation was found in the usual places.\n\n%s", NEEDED, HOW);
+        put(text, sizeof(text), "%s\n\nNo installation was found in the usual places.\n\n%s", NEEDED, HOW);
         tell_player(quiet, "Pharaoh not found", text);
     }
     return -1;
@@ -388,7 +400,7 @@ int install_player_dir(char *out, size_t size)
 {
     const char *env = getenv("IMHOTEP_PLAYER_DIR");
     if (env && *env) {
-        snprintf(out, size, "%s", env);
+        put(out, size, "%s", env);
 #ifdef _WIN32
         _mkdir(out);
 #else
