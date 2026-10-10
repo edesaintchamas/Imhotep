@@ -399,3 +399,25 @@ The port is a faithful translation: raw addresses (`S32(st, 0x00E38DB0u)`) and c
 phase names the state (structures for buildings, figures, cities, the map grids; named globals) and
 the calls, function by function, with the oracle checks proving nothing changes, so the engine can be
 understood and changed.
+
+Method: most of the work is renaming, which must not change the code a compiler makes. A rename is
+checked by building core/ and present/ before and after and comparing the object files' code and
+data (`tools/check_same_code.py`): identical code is identical behaviour, without running the
+oracle. Changes that are not pure renames (a helper replacing repeated code, a loop over a table)
+are checked by the oracle suites as before. Names come from the evidence already gathered
+(docs/formats, the ported functions' names and comments, docs/provenance), not from memory.
+
+- [x] 10.1 The check: `tools/check_same_code.py BASE` builds the libraries at a git revision and at
+      the working tree with the same flags and compares each object's sections (debug info and
+      file names left out).
+
+      Done (2026-10-11): all sections and relocations of the 299 objects (llvm-objdump -s -r);
+      checked to report a constant renamed as identical and a changed comparison as different.
+- [ ] 10.2 The state's layout, named: `core/state/layout.h` (or generated from a description in
+      docs/formats): records (building 0x108 bytes, figure, city 0x49D8, message 0x30, ...) as
+      named field offsets and accessors with the original's widths and signedness; named globals.
+- [ ] 10.3 core/ and present/ rewritten with them, directory by directory (each step identical
+      code); calls by address become calls by name (named constants for `GAME_CALL` targets).
+- [ ] 10.4 Done when: no raw state address or record offset is left in core/ and present/ outside
+      the layout, and the object code is identical to before phase 10 (or, where it is not, the full
+      oracle suite and the play check pass).
