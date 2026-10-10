@@ -5,6 +5,7 @@
  *   build/imhotep [--scale N] [--fps N] [--hidden]
  *                 [--no-intro] [--no-video] [--no-sound] [--script FILE] [--frames N] [--report FILE]
  *                 [--load SAVE] [-v]
+ *   build/imhotep --version
  *   tests: [--boot-state BASE] (start from a booted state saved by platform/oracle_boot.py instead of
  *          booting: BASE.state and BASE.heap, the oracle's own boot, to compare with it)
  *          [--det-clock START,STEP] (frame k reads START + k * STEP, window-system events ignored)
@@ -1297,8 +1298,18 @@ static void usage(void)
                     "               [--boot-state BASE] [--det-clock START,STEP] [--dump DIR] [--msglog FILE]   (tests)\n");
 }
 
+#ifndef IMHOTEP_VERSION
+#define IMHOTEP_VERSION "dev"
+#endif
+
 int main(int argc, char **argv)
 {
+    if (argc == 2 && strcmp(argv[1], "--version") == 0) {
+        SDL_version linked;
+        SDL_GetVersion(&linked);
+        printf("imhotep %s (SDL %d.%d.%d)\n", IMHOTEP_VERSION, linked.major, linked.minor, linked.patch);
+        return 0;
+    }
     const char *boot = NULL, *script_path = NULL, *load = NULL;
     int fps = 0;
     int scale = 1, hidden = 0, intro = 1, sound = 1, max_frames = 0;

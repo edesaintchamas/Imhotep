@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
 
+# The differential and oracle checks (make differential, make oracle-check, make present-check) need
+# the original game files, which are never in the repository or in CI: they run locally only.
+# CI checks that no game content is tracked, the provenance tags, and that everything builds with
+# warnings as errors (the Makefile's -Werror) on Linux (gcc, clang), macOS and Windows (MSYS2).
+
 jobs:
   checks:
     runs-on: ubuntu-latest
@@ -22,11 +27,78 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             python3 tools/check_provenance.py --diff "origin/${{ github.base_ref }}"
           fi
-      - name: Build
+
+  build:
+    name: build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-gcc
+            os: ubuntu-latest
+            cc: gcc
+            shell: bash
+          - name: linux-clang
+            os: ubuntu-latest
+            cc: clang
+            shell: bash
+          - name: macos
+            os: macos-latest
+            cc: clang
+            shell: bash
+          - name: windows-msys2
+            os: windows-latest
+            cc: gcc
+            shell: msys2 {0}
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+    env:
+      CC: ${{ matrix.cc }}
+    steps:
+      - name: Keep line endings (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v4
+
+      - name: Dependencies (Linux)
+        if: runner.os == 'Linux'
         run: |
-          if [ -f CMakeLists.txt ]; then
-            cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build
-          else
-            echo "No CMakeLists.txt yet, skipping build"
-          fi
-      # Differential tests need the original game files and run locally only.
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends make pkg-config clang \
+            libsdl2-dev libavformat-dev libavcodec-dev libswresample-dev libswscale-dev libavutil-dev
+      - name: Dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install sdl2 ffmpeg pkgconf
+      - name: Dependencies (Windows)
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: make git
+          pacboy: gcc:p pkgconf:p SDL2:p ffmpeg:p python:p
+
+      - name: Compiler
+        run: $CC --version
+
+      - name: Game content and provenance checks (make)
+        run: make check-files provenance
+
+      - name: Build core, present, tools, check drivers and the game (-Werror)
+        run: make -j4 build-all
+
+      - name: Smoke test (no game files)
+        run: |
+          build/imhotep --version | tee version.txt
+          grep -q '^imhotep ' version.txt
+          # startup up to the missing game files: a clean error, exit status 1
+          set +e
+          IMHOTEP_GAME_DIR=missing-game-dir build/imhotep --hidden --no-intro --no-sound --no-video > out.txt 2>&1
+          status=$?
+          set -e
+          cat out.txt
+          test "$status" = 1
+          grep -q 'missing-game-dir' out.txt

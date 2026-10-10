@@ -44,6 +44,10 @@
 #include <string.h>
 #include <strings.h>
 #include <sys/stat.h>
+#ifdef _WIN32
+#include <direct.h>
+#define mkdir(path, mode) _mkdir(path)
+#endif
 
 #include "sim/call.h"
 #include "sim/platform.h"

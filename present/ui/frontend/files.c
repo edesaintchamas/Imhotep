@@ -417,6 +417,16 @@ void file_dialog_row_click(game_state *st)
     U8(st, NOT_FOUND) = 0;
 }
 
+/* a += b, truncated to cap - 1 characters (strncat(a, b, cap - strlen(a) - 1)) */
+static void append_path(char *a, size_t cap, const char *b)
+{
+    size_t l = strlen(a);
+    while (*b && l + 1 < cap) {
+        a[l++] = *b++;
+    }
+    a[l] = 0;
+}
+
 static void typed_path(game_state *st, uint32_t name, uint32_t ext, uint32_t dir_part, int family, char *out, size_t size)
 {
     /* the typed name with its extension replaced (0x004CE3A0, 0x004CBEA0 into 0x00E38AEC, 0x004CE3C0);
@@ -431,9 +441,9 @@ static void typed_path(game_state *st, uint32_t name, uint32_t ext, uint32_t dir
         a[0] = 0;
     }
     host_strcpy(st, b, dir_part, sizeof(b));
-    strncat(a, b, sizeof(a) - strlen(a) - 1);
+    append_path(a, sizeof(a), b);
     host_strcpy(st, b, name, sizeof(b));
-    strncat(a, b, sizeof(a) - strlen(a) - 1);
+    append_path(a, sizeof(a), b);
     strncpy(out, a, size - 1);
     out[size - 1] = 0;
 }
