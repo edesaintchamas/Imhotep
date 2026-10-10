@@ -362,3 +362,32 @@ everything the game can reach and looks for what scripted sessions miss.
       - the fuzzer knows the layout of the sidebar, build menus and campaign map; advisor, empire and
         trade windows get random clicks only;
       - the map editor (out of scope: 181 functions of the frontier).
+
+## Phase 9: release
+
+The game builds and runs on the maintainer's Mac only, from a checkout, with the game files under
+`local/`. This phase makes it something others can build, install and play.
+
+- [ ] 9.1 CI (`.github/workflows/ci.yml`): on every push, the game files check, provenance, and a build of
+      core, present, the tools and the game with warnings as errors on Linux (gcc and clang), macOS and
+      Windows. The oracle checks need the game files and stay local.
+- [ ] 9.2 Portability: `platform/` and the tools build and run on the three systems (file paths and
+      case, memory reservation, SDL2 / FFmpeg discovery); a smoke test runs the game headless where
+      the game files are available.
+- [ ] 9.3 Installation: the game finds an existing installation (`--game DIR`, `IMHOTEP_GAME_DIR`, the
+      usual GOG install locations, else asks), checks it against the reference fingerprint, and keeps
+      saves and settings in the system's per-user data directory (SDL_GetPrefPath) instead of
+      `local/player`.
+- [ ] 9.4 Packaging: a release workflow builds, on a tag, a macOS app, a Windows zip and a Linux
+      archive with their libraries; nothing from the game in them.
+- [ ] 9.5 Player documentation: install, play, report a gap (gaps.log), and what differs from the
+      original (docs/unverified.md).
+- [ ] 9.6 Done when: CI is green on the three systems and a release built by the workflow plays from a
+      fresh machine with only a Pharaoh installation.
+
+## Phase 10: readability
+
+The port is a faithful translation: raw addresses (`S32(st, 0x00E38DB0u)`) and calls by address. This
+phase names the state (structures for buildings, figures, cities, the map grids; named globals) and
+the calls, function by function, with the oracle checks proving nothing changes, so the engine can be
+understood and changed.

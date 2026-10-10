@@ -1,6 +1,6 @@
 /* Imhotep - the reference installation check of build/imhotep: Pharaoh.exe's SHA-256 against
- * docs/source-fingerprint.json (tools/fingerprint.py checks every file; the game checks the
- * executable it takes its state from).
+ * docs/source-fingerprint.json, embedded below (tools/fingerprint.py checks every file; the game checks
+ * the executable it takes its state from).
  * Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0. */
 #include "platform/fingerprint.h"
 
@@ -75,41 +75,32 @@ static void sha256_hex(const uint8_t *data, size_t len, char out[65])
     }
 }
 
-int fingerprint_check(const char *game, const char *json, char *msg, size_t size)
+/* Pharaoh.exe of the reference installation, GOG Pharaoh + Cleopatra 2.1: its SHA-256 as recorded in
+ * docs/source-fingerprint.json ("Pharaoh.exe"), embedded so the game does not read the checkout */
+const char FINGERPRINT_EXE_SHA256[] = "b21b7d719491bb45dfb324ba95231a5b0960ab25fea1bf3fb21da65da7eca662";
+
+int fingerprint_check(const char *game, char *msg, size_t size)
 {
-    size_t jl, el;
-    uint8_t *j = read_file(json, &jl);
-    if (!j) {
-        snprintf(msg, size, "cannot read %s", json);
-        return -1;
-    }
-    char *s = realloc(j, jl + 1);
-    if (!s) {
-        free(j);
-        return -1;
-    }
-    s[jl] = 0;
-    char want[65] = {0};
-    const char *k = strstr(s, "\"Pharaoh.exe\"");
-    const char *q = k ? strchr(k + 13, '"') : NULL;
-    if (q && strlen(q) > 65) {
-        memcpy(want, q + 1, 64);
-    }
-    free(s);
     char path[1200];
-    snprintf(path, sizeof(path), "%s/Pharaoh.exe", game);
+    if (find_file(game, "Pharaoh", ".exe", path, sizeof(path)) != 0) { /* the name in any case */
+        snprintf(msg, size, "no Pharaoh.exe in %s", game);
+        return FINGERPRINT_MISSING;
+    }
+    size_t el;
     uint8_t *e = read_file(path, &el);
     if (!e) {
         snprintf(msg, size, "cannot read %s", path);
-        return -1;
+        return FINGERPRINT_MISSING;
     }
     char got[65];
     sha256_hex(e, el, got);
     free(e);
-    if (!want[0] || strcmp(want, got) != 0) {
-        snprintf(msg, size, "%s: SHA-256 %s, the reference is %s (docs/source-fingerprint.json)", path, got,
-                 want[0] ? want : "missing");
-        return -1;
+    if (strcmp(FINGERPRINT_EXE_SHA256, got) != 0) {
+        snprintf(msg, size,
+                 "%s is not the version Imhotep is checked against: it needs Pharaoh.exe of GOG Pharaoh + "
+                 "Cleopatra 2.1 (SHA-256 %s), this one's is %s",
+                 path, FINGERPRINT_EXE_SHA256, got);
+        return FINGERPRINT_MISMATCH;
     }
     snprintf(msg, size, "%s matches the reference (GOG 2.1)", path);
     return 0;

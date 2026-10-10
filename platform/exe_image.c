@@ -16,7 +16,9 @@ int exe_image_load(const char *game, game_state *st)
 {
     char path[1200];
     size_t len;
-    snprintf(path, sizeof(path), "%s/Pharaoh.exe", game);
+    if (find_file(game, "Pharaoh", ".exe", path, sizeof(path)) != 0) { /* the name in any case */
+        snprintf(path, sizeof(path), "%s/Pharaoh.exe", game);
+    }
     uint8_t *d = read_file(path, &len);
     if (!d || len < 0x40) {
         free(d);

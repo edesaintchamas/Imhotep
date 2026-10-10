@@ -3,9 +3,9 @@
 An open-source reimplementation of the engine of **Pharaoh + Cleopatra** (Impressions Games, 1999-2000),
 aiming at faithful simulation and compatibility with original save files.
 
-> **Status: playable.** The simulation, the player commands, new games, the drawing and the
-> interface are ported from the original executable and checked against it; a scripted session
-> of play is equal to the original frame by frame, state and pixels. See
+> **Status: playable.** Everything the game can reach is ported from the original executable
+> (3,097 functions) and checked against it: randomised play sessions, over a million frames, are
+> equal to the original frame by frame, state and pixels. The map editor is not included. See
 > [docs/roadmap.md](docs/roadmap.md) for what is left.
 
 ## Requirements
@@ -15,17 +15,45 @@ Imhotep does not include any game content. You need a legitimate copy of
 
 ## Playing
 
-You need a C compiler, SDL2 and FFmpeg (for the videos), e.g. `brew install sdl2 ffmpeg`.
+You need a C compiler, `make`, `pkg-config`, SDL2 and FFmpeg (for the videos):
+
+- macOS: `brew install sdl2 ffmpeg pkg-config`
+- Debian / Ubuntu: `sudo apt install build-essential pkg-config libsdl2-dev libavformat-dev libavcodec-dev libswresample-dev libswscale-dev libavutil-dev`
+- Windows: [MSYS2](https://www.msys2.org/) (UCRT64), then
+  `pacman -S make mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-pkgconf mingw-w64-ucrt-x86_64-SDL2 mingw-w64-ucrt-x86_64-ffmpeg`
 
 ```
-make extract PHARAOH_INSTALLER=path/to/setup_pharaoh.exe   # or point IMHOTEP_GAME_DIR at an installation
 make game
-build/imhotep
+build/imhotep --game "path/to/Pharaoh + Cleopatra"   # the folder holding Pharaoh.exe; remembered after
 ```
 
-The game files are read from `IMHOTEP_GAME_DIR` (default `local/game/app`) and checked against
-the reference version; saves and settings go to `IMHOTEP_PLAYER_DIR` (default `local/player`).
-Options: `--scale N` (window size), `--no-intro`, `--no-sound`, `--load SAVE`; `platform/main.c` lists them all.
+Imhotep needs an installation of Pharaoh + Cleopatra, the GOG version 2.1: it checks `Pharaoh.exe`
+against that exact version and refuses another. It looks for the game folder in this order: `--game DIR`,
+the `IMHOTEP_GAME_DIR` variable, the folder found at the last start, then the usual install locations
+(GOG on Windows, through its registry entries and `C:\GOG Games`; `~/GOG Games`, `~/Games`, Wine
+prefixes and CrossOver bottles on Linux and macOS; a checkout's `local/game/app`, which
+`make extract PHARAOH_INSTALLER=path/to/setup_pharaoh.exe` fills). The game folder is only read.
+Saves and settings go to `IMHOTEP_PLAYER_DIR` if set, else to the per-user data directory
+(macOS `~/Library/Application Support/Imhotep/Imhotep`, Linux `~/.local/share/Imhotep/Imhotep`,
+Windows `%APPDATA%\Imhotep\Imhotep`), which also holds `imhotep.cfg` (the remembered game folder).
+Options: `--scale N` (window size), `--no-intro`, `--no-sound`, `--load SAVE`; `build/imhotep --help`
+lists them all.
+
+### If something goes wrong
+
+Imhotep should behave exactly as the original. If the game reaches a part of the original that
+is not ported, it says so on its console and appends a line to `gaps.log` in the player
+directory, then goes on without it. Please [open an issue](https://github.com/edesaintchamas/Imhotep/issues)
+with `gaps.log`, what you were doing, and a save from just before if you have one (saves are your
+own files; never attach files from the game's installation).
+
+### What differs from the original
+
+- The map editor is not included.
+- Two messages carry bytes the original never sets, so its own content varies with what was in
+  memory: the tutorial's goods message and the monument-finished message. Imhotep fills them
+  with fixed values ([docs/unverified.md](docs/unverified.md) lists these cases).
+- Saves from versions much older than the GOG release (formats 115–135) are not converted.
 
 ## Method
 

@@ -2,9 +2,9 @@
  * frame loop.
  * Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0.
  *
- *   build/imhotep [--scale N] [--fps N] [--hidden]
+ *   build/imhotep [--game DIR] [--scale N] [--fps N] [--hidden]
  *                 [--no-intro] [--no-video] [--no-sound] [--script FILE] [--frames N] [--report FILE]
- *                 [--load SAVE] [-v]
+ *                 [--load SAVE] [-v] [--help] [--version]
  *   tests: [--boot-state BASE] (start from a booted state saved by platform/oracle_boot.py instead of
  *          booting: BASE.state and BASE.heap, the oracle's own boot, to compare with it)
  *          [--det-clock START,STEP] (frame k reads START + k * STEP, window-system events ignored)
@@ -24,9 +24,11 @@
  *          oracle's (tools/oracle/game.py), and is printed
  *
  * What it does, as WinMain 0x00413ED0 does:
- * - the game directory (IMHOTEP_GAME_DIR, default local/game/app), checked against
- *   docs/source-fingerprint.json (Pharaoh.exe's SHA-256); the player directory (IMHOTEP_PLAYER_DIR,
- *   default local/player) for saves and progress files (platform/files.c);
+ * - the game directory (--game, IMHOTEP_GAME_DIR, the one remembered from the last start, the usual
+ *   install locations: platform/install.h), checked against the reference Pharaoh.exe's SHA-256
+ *   (platform/fingerprint.c); the player directory (IMHOTEP_PLAYER_DIR, else the per-user data
+ *   directory SDL_GetPrefPath) for saves and progress files (platform/files.c). Nothing depends on
+ *   the current directory;
  * - the state: the exe image (platform/exe_image.c) then core's boot (core/boot, game_boot: WinMain's
  *   start-up), with this platform as its host: blocks outside the state come from the platform memory
  *   (platform/memory.h), the screen is a 1024 x 768 one (GetSystemMetrics), the display mode is the
@@ -78,6 +80,7 @@
 #include "platform/exe_image.h"
 #include "platform/files.h"
 #include "platform/fingerprint.h"
+#include "platform/install.h"
 #include "platform/game_files.h"
 #include "platform/memory.h"
 #include "platform/video.h"
@@ -1290,22 +1293,52 @@ static uint32_t game_string(const char *s)
     return a;
 }
 
-static void usage(void)
+static void usage(FILE *out)
 {
-    fprintf(stderr, "usage: imhotep [--scale N] [--fps N] [--hidden] [--no-intro] [--no-video] [--no-sound]\n"
-                    "               [--script FILE] [--frames N] [--report FILE] [--load SAVE] [-v]\n"
-                    "               [--boot-state BASE] [--det-clock START,STEP] [--dump DIR] [--msglog FILE]   (tests)\n");
+    fprintf(out,
+            "usage: imhotep [options]\n"
+            "Imhotep %s, the engine of Pharaoh + Cleopatra; it plays with the files of an installation of the game\n"
+            "(GOG version 2.1).\n"
+            "\n"
+            "  --game DIR       the game's installation folder (the one holding Pharaoh.exe); else IMHOTEP_GAME_DIR,\n"
+            "                   else the folder found at the last start, else the usual install locations\n"
+            "  --scale N        window size: N times the game's resolution\n"
+            "  --fps N          cap the frame rate (the game's speed follows it, as on the original)\n"
+            "  --no-intro       skip the intro video\n"
+            "  --no-video       play no video\n"
+            "  --no-sound       no sound\n"
+            "  --load SAVE      start in this saved game (a game path, e.g. \"Save\\Name\\city.sav\")\n"
+            "  -v               print the start-up steps\n"
+            "  --help, --version\n"
+            "\n"
+            "Saves and settings are kept in IMHOTEP_PLAYER_DIR, else in the per-user data directory\n"
+            "(SDL_GetPrefPath \"Imhotep\"); the game folder is only read.\n"
+            "\n"
+            "tests (platform/main.c describes them):\n"
+            "  --hidden  --frames N  --report FILE  --script FILE|-  --boot-state BASE  --det-clock START,STEP\n"
+            "  --dump DIR  --dump-delta  --dump-window N  --msglog FILE\n",
+            IMHOTEP_VERSION);
 }
 
 int main(int argc, char **argv)
 {
-    const char *boot = NULL, *script_path = NULL, *load = NULL;
+    const char *boot = NULL, *script_path = NULL, *load = NULL, *game_arg = NULL;
     int fps = 0;
     int scale = 1, hidden = 0, intro = 1, sound = 1, max_frames = 0;
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i];
         const char *v = i + 1 < argc ? argv[i + 1] : NULL;
-        if (strcmp(a, "--boot-state") == 0 && v) {
+        if (strcmp(a, "--help") == 0 || strcmp(a, "-h") == 0) {
+            usage(stdout);
+            return 0;
+        } else if (strcmp(a, "--version") == 0) {
+            printf("imhotep %s\nthe engine of Pharaoh + Cleopatra, checked against GOG Pharaoh + Cleopatra 2.1 "
+                   "(Pharaoh.exe SHA-256 %s)\n",
+                   IMHOTEP_VERSION, FINGERPRINT_EXE_SHA256);
+            return 0;
+        } else if (strcmp(a, "--game") == 0 && v) {
+            game_arg = v, i++;
+        } else if (strcmp(a, "--boot-state") == 0 && v) {
             boot = v, i++;
         } else if (strcmp(a, "--scale") == 0 && v) {
             scale = atoi(v), i++;
@@ -1342,7 +1375,8 @@ int main(int argc, char **argv)
         } else if (strcmp(a, "-v") == 0) {
             app.verbose = 1;
         } else {
-            usage();
+            fprintf(stderr, "imhotep: unknown option or missing value: %s\n", a);
+            usage(stderr);
             return 2;
         }
     }
@@ -1351,15 +1385,20 @@ int main(int argc, char **argv)
     }
     app.scale = scale;
 
-    /* the game directory and the reference check */
-    app.game = game_dir();
-    char msg[512];
-    if (fingerprint_check(app.game, "docs/source-fingerprint.json", msg, sizeof(msg)) != 0) {
-        fprintf(stderr, "imhotep: %s\n", msg);
+    /* the game directory, checked against the reference; the player directory (platform/install.h) */
+    static char game_path[1024], player_path[1024];
+    if (install_game_dir(game_arg, hidden, app.verbose, game_path, sizeof(game_path)) != 0) {
         return 1;
     }
-    const char *player = getenv("IMHOTEP_PLAYER_DIR");
-    app.player = player && *player ? player : "local/player";
+    if (install_player_dir(player_path, sizeof(player_path)) != 0) {
+        fprintf(stderr, "imhotep: no player directory (IMHOTEP_PLAYER_DIR or the per-user data directory)\n");
+        return 1;
+    }
+    app.game = game_path;
+    app.player = player_path;
+    if (app.verbose) {
+        fprintf(stderr, "imhotep: game directory %s, player directory %s\n", app.game, app.player);
+    }
     files_init(app.game, app.player);
 
     /* the state: the exe image, then the boot (core/boot; --boot-state: a saved booted state) */

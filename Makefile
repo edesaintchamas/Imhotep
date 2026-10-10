@@ -51,8 +51,9 @@ analyze: verify ## Ghidra headless analysis and export to local/ghidra-export (G
 provenance: ## Provenance report for core/
 	python3 tools/check_provenance.py
 
-check-files: ## Fail if game content is tracked by git
+check-files: ## Fail if game content is tracked by git (and the game's embedded fingerprint is not the reference)
 	python3 tools/check_no_game_files.py
+	python3 tools/check_fingerprint_embedded.py
 
 # ---- core/ build (C11, no dependencies) ----
 CC      ?= cc
@@ -120,7 +121,7 @@ $(BUILD)/state_replay: tools/oracle/state_replay.c $(BUILD)/libimhotep_present.a
 
 # ---- build/imhotep: the game (SDL2 window, input, sound; FFmpeg for MP3 and Bink), make game ----
 GAME_SRC := platform/main.c platform/memory.c platform/files.c platform/audio.c platform/media.c \
-	platform/video.c platform/cursors.c platform/fingerprint.c $(PLATFORM_SRC)
+	platform/video.c platform/cursors.c platform/fingerprint.c platform/install.c $(PLATFORM_SRC)
 GAME_LIBS_CFLAGS := $(shell pkg-config --cflags sdl2 libavformat libavcodec libswresample libswscale libavutil 2>/dev/null)
 GAME_LIBS := $(shell pkg-config --libs sdl2 libavformat libavcodec libswresample libswscale libavutil 2>/dev/null)
 

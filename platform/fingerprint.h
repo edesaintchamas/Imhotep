@@ -5,8 +5,14 @@
 
 #include <stddef.h>
 
-/* <game>/Pharaoh.exe against its SHA-256 in `json` (docs/source-fingerprint.json): 0 when equal,
- * -1 otherwise (msg says why) */
-int fingerprint_check(const char *game, const char *json, char *msg, size_t size);
+enum { FINGERPRINT_MISSING = -1, FINGERPRINT_MISMATCH = -2 };
+
+/* the reference Pharaoh.exe's SHA-256 (docs/source-fingerprint.json), lower-case hex */
+extern const char FINGERPRINT_EXE_SHA256[];
+
+/* <game>/Pharaoh.exe (the name in any case) against the reference's SHA-256: 0 when equal,
+ * FINGERPRINT_MISSING (no such file, or unreadable) or FINGERPRINT_MISMATCH (another version);
+ * msg says why */
+int fingerprint_check(const char *game, char *msg, size_t size);
 
 #endif
