@@ -11,13 +11,9 @@
 
 #include <stdint.h>
 
+#include "state/layout.h"
 #include "state/state.h"
 
-#define CMD_PARAM1 0x00D3B198u   /* i32 callback parameter 1 */
-#define CMD_PARAM2 0x00D3B194u   /* i32 callback parameter 2 */
-#define CMD_ANSWER 0x00D3B439u   /* u8 confirmation popup answer (1 = yes) */
-#define UI_WINDOW 0x00E38DDAu    /* u8 current window id */
-#define UI_REDRAW 0x00E38DCAu    /* u8 redraw request */
 
 /* orders.c: finance, labour, festivals, game settings */
 void cmd_tax_rate(game_state *st);            /* @bin 0x0040A260 */

@@ -22,12 +22,10 @@
 
 #include "sim/call.h"
 #include "sim/platform.h"
+#include "state/layout.h"
 #include "state/ported.h"
 
-#define DIFFICULTY 0x00E39080u
-#define SPARE_SCREEN 0x00E92E1Cu
 #define BUFFER_SIZE 100000u /* @bin 0x00540CC1 */
-#define POWERS 0x005E058Cu  /* @bin 0x004CC0B3 i32 powers of ten */
 
 /* ---- the text helpers, on a byte buffer ---- */
 
@@ -118,7 +116,7 @@ static int32_t text_atoi_at(game_state *st, text_buf *b, uint32_t pos)
     }
     uint32_t v = 0;
     for (int32_t k = digits; k > 0; k--, q++) {
-        v += (uint32_t) ((int32_t) at(b, q) - '0') * U32(st, POWERS + 4u * (uint32_t) (k - 1));
+        v += (uint32_t) ((int32_t) at(b, q) - '0') * U32(st, G_POWERS + 4u * (uint32_t) (k - 1));
     }
     return neg ? (int32_t) (0u - v) : (int32_t) v;
 }
@@ -163,7 +161,7 @@ static int32_t run_compare(game_state *st, const int32_t *a)
     int32_t n = a[2] > 0 ? a[2] : 0;
     const uint8_t *s = n ? state_ptr(st, (uint32_t) a[1], (uint32_t) n) : NULL;
     if (!span(st, (uint32_t) a[0], (uint32_t) n, &b) || (n && !s)) {
-        state_unported(st, 0x004CBE60u);
+        state_unported(st, FN_TEXT_COMPARE);
         return 0;
     }
     return text_compare_at(&b, 0, s, n);
@@ -174,12 +172,12 @@ static int32_t run_find_string(game_state *st, const int32_t *a)
     char s[256];
     text_buf b;
     if (cstr(st, (uint32_t) a[1], s, sizeof(s)) != 0) {
-        state_unported(st, 0x004CBDD0u);
+        state_unported(st, FN_TEXT_FIND_STRING);
         return 0;
     }
     uint32_t n = a[2] > 0 ? (uint32_t) a[2] + (uint32_t) strlen(s) : 0;
     if (!span(st, (uint32_t) a[0], n, &b)) {
-        state_unported(st, 0x004CBDD0u);
+        state_unported(st, FN_TEXT_FIND_STRING);
         return 0;
     }
     return text_find_string_at(&b, 0, s, a[2]);
@@ -189,7 +187,7 @@ static int32_t run_find_char(game_state *st, const int32_t *a)
 {
     text_buf b;
     if (!span(st, (uint32_t) a[0], a[2] > 0 ? (uint32_t) a[2] : 0, &b)) {
-        state_unported(st, 0x004CBE30u);
+        state_unported(st, FN_TEXT_FIND_CHAR);
         return 0;
     }
     return text_find_char_at(&b, 0, (uint8_t) a[1], a[2]);
@@ -201,7 +199,7 @@ static int32_t run_skip(game_state *st, const int32_t *a)
     span(st, (uint32_t) a[0], readable(st, (uint32_t) a[0], 0x3E8), &b);
     int32_t r = text_skip_to_number_at(&b, 0);
     if (b.overrun) {
-        state_unported(st, 0x004CC0E0u);
+        state_unported(st, FN_TEXT_SKIP_TO_NUMBER);
     }
     return r;
 }
@@ -212,7 +210,7 @@ static int32_t run_atoi(game_state *st, const int32_t *a)
     span(st, (uint32_t) a[0], readable(st, (uint32_t) a[0], 64), &b);
     int32_t r = text_atoi_at(st, &b, 0);
     if (b.overrun) {
-        state_unported(st, 0x004CC070u);
+        state_unported(st, FN_TEXT_ATOI);
     }
     return r;
 }
@@ -223,7 +221,7 @@ int32_t file_length(game_state *st, uint32_t name)
      * platform's) */
     char path[261];
     if (cstr(st, name, path, sizeof(path)) != 0) {
-        state_unported(st, 0x004CED50u);
+        state_unported(st, FN_FILE_LENGTH);
         return 0;
     }
     int32_t n = platform_file_read(st, path, 0, NULL, 0);
@@ -245,27 +243,27 @@ typedef struct {
 static int model_open(game_state *st, model_file *f, uint32_t names, uint32_t no_file)
 {
     f->data = NULL;
-    if (U32(st, SPARE_SCREEN) == 0) {
-        GAME_CALL(st, 0x004CE6E0u, 0x00601BA8, 0, 0); /* "ERR:no spare screen for model" */
+    if (U32(st, G_SPARE_SCREEN) == 0) {
+        GAME_CALL(st, FN_PLATFORM_LOG, G_STR_NO_SPARE_SCREEN, 0, 0); /* "ERR:no spare screen for model" */
         return 0;
     }
     char path[261];
-    if (cstr(st, U32(st, names + 4u * U32(st, DIFFICULTY)), path, sizeof(path)) != 0) {
-        state_unported(st, 0x004CEB60u);
+    if (cstr(st, U32(st, names + 4u * U32(st, G_DIFFICULTY)), path, sizeof(path)) != 0) {
+        state_unported(st, FN_FILE_READ_AT);
         return 0;
     }
     int32_t n = platform_file_read(st, path, 0, NULL, 0);
     if (n < 0) {
-        GAME_CALL(st, 0x004CE6E0u, (int32_t) no_file, 0, 0);
+        GAME_CALL(st, FN_PLATFORM_LOG, (int32_t) no_file, 0, 0);
         return 0;
     }
     if ((uint32_t) n > BUFFER_SIZE) {
-        state_unported(st, 0x004CEB60u); /* the original writes past its buffer */
+        state_unported(st, FN_FILE_READ_AT); /* the original writes past its buffer */
         return 0;
     }
     f->data = calloc(BUFFER_SIZE, 1);
     if (!f->data) {
-        state_unported(st, 0x004CEB60u);
+        state_unported(st, FN_FILE_READ_AT);
         return 0;
     }
     if (n > 0) {
@@ -274,7 +272,7 @@ static int model_open(game_state *st, model_file *f, uint32_t names, uint32_t no
     f->b.p = f->data;
     f->b.size = BUFFER_SIZE;
     f->b.overrun = 0;
-    f->size = file_length(st, U32(st, names + 4u * U32(st, DIFFICULTY)));
+    f->size = file_length(st, U32(st, names + 4u * U32(st, G_DIFFICULTY)));
     return 1;
 }
 
@@ -332,22 +330,22 @@ int32_t model_buildings_load(game_state *st)
 {
     /* @bin 0x00540C90 Pharaoh_Model_<level>.txt (names 0x00601908) */
     model_file f;
-    if (!model_open(st, &f, 0x00601908u, 0x00601B88u)) {
+    if (!model_open(st, &f, G_MODEL_FILES_BUILDINGS, G_STR_NO_BUILDING_MODEL)) {
         return 0;
     }
     uint32_t pos = (uint32_t) text_find_string_at(&f.b, 0, "ALL BUILDINGS", f.size);
-    if (!model_count(st, &f, pos, 0x101, 0x00540C90u)) {
-        model_close(st, &f, 0x00540C90u);
+    if (!model_count(st, &f, pos, 0x101, FN_MODEL_BUILDINGS_LOAD)) {
+        model_close(st, &f, FN_MODEL_BUILDINGS_LOAD);
         return 0;
     }
     pos = (uint32_t) text_find_string_at(&f.b, 0, "ALL BUILDINGS", f.size);
-    model_records(st, &f, pos, 0x00705EA4u, 0x007083ACu, 10);
+    model_records(st, &f, pos, G_MODEL_BUILDING, G_MODEL_BUILDING + 0x28u * 237u, 10);
     pos = (uint32_t) text_find_string_at(&f.b, 0, "ALL HOUSES", f.size); /* @bin 0x00540E37 */
-    model_records(st, &f, pos, 0x0070CDCCu, 0x0070D4ACu, 0x16);
-    if (!model_close(st, &f, 0x00540C90u)) {
+    model_records(st, &f, pos, G_HOUSE_LEVELS, G_HOUSE_LEVELS + 0x58u * 20u, 0x16);
+    if (!model_close(st, &f, FN_MODEL_BUILDINGS_LOAD)) {
         return 0;
     }
-    GAME_CALL(st, 0x004CE6E0u, 0x00601AF4, 0, 0); /* " OK: model loaded" */
+    GAME_CALL(st, FN_PLATFORM_LOG, G_STR_MODEL_LOADED, 0, 0); /* " OK: model loaded" */
     return 1;
 }
 
@@ -355,22 +353,22 @@ int32_t model_figures_load(game_state *st)
 {
     /* @bin 0x00540ED0 Figure_model_<level>.txt (names 0x0060191C) */
     model_file f;
-    if (!model_open(st, &f, 0x0060191Cu, 0x00601C60u)) {
+    if (!model_open(st, &f, G_MODEL_FILES_FIGURES, G_STR_NO_FIGURE_MODEL)) {
         return 0;
     }
     uint32_t pos = (uint32_t) text_find_string_at(&f.b, 0, "ALL FIGURES", f.size);
-    if (!model_count(st, &f, pos, 0xAA, 0x00540ED0u)) {
-        model_close(st, &f, 0x00540ED0u);
+    if (!model_count(st, &f, pos, 0xAA, FN_MODEL_FIGURES_LOAD)) {
+        model_close(st, &f, FN_MODEL_FIGURES_LOAD);
         return 0;
     }
     pos = (uint32_t) text_find_string_at(&f.b, 0, "ALL FIGURES", f.size);
-    model_records(st, &f, pos, 0x007090CCu, 0x0070A8DCu, 0xE);
+    model_records(st, &f, pos, G_PROPS, G_MENU_AVAIL, 0xE);
     /* @bin 0x0054107A the enemies: rows j + k (k 0..4, j by 5) while j < 60, 14 numbers each */
     pos = (uint32_t) text_find_string_at(&f.b, 0, "ALL ENEMIES", f.size);
     int32_t j = 0, k = 0;
     for (int32_t left = 0x12B; left > 0 && j < 0x3C; left--) {
         pos += (uint32_t) text_find_char_at(&f.b, pos, '{', f.size);
-        uint32_t table = 0x007083ACu + 56u * (uint32_t) (j + k);
+        uint32_t table = G_ENEMY_MODELS + 56u * (uint32_t) (j + k);
         for (int32_t n = 0; n < 0xE; n++) {
             pos += (uint32_t) text_skip_to_number_at(&f.b, pos);
             S32(st, table) = text_atoi_at(st, &f.b, pos);
@@ -382,10 +380,10 @@ int32_t model_figures_load(game_state *st)
             j += 5;
         }
     }
-    if (!model_close(st, &f, 0x00540ED0u)) {
+    if (!model_close(st, &f, FN_MODEL_FIGURES_LOAD)) {
         return 0;
     }
-    GAME_CALL(st, 0x004CE6E0u, 0x00601BC8, 0, 0); /* " OK: figure model data loaded" */
+    GAME_CALL(st, FN_PLATFORM_LOG, G_STR_FIGURE_MODEL_LOADED, 0, 0); /* " OK: figure model data loaded" */
     return 1;
 }
 
@@ -393,18 +391,18 @@ int32_t model_tax_load(game_state *st)
 {
     /* @bin 0x00541160 Tax_Sentiment_Model_<level>.txt (names 0x00601930), from the file's start */
     model_file f;
-    if (!model_open(st, &f, 0x00601930u, 0x00601C60u)) {
+    if (!model_open(st, &f, G_MODEL_FILES_TAX, G_STR_NO_FIGURE_MODEL)) {
         return 0;
     }
-    if (!model_count(st, &f, 0, 0x1A, 0x00541160u)) {
-        model_close(st, &f, 0x00541160u);
+    if (!model_count(st, &f, 0, 0x1A, FN_MODEL_TAX_LOAD)) {
+        model_close(st, &f, FN_MODEL_TAX_LOAD);
         return 0;
     }
-    model_records(st, &f, 0, 0x00EA1384u, 0x00EA17FCu, 0xB);
-    if (!model_close(st, &f, 0x00541160u)) {
+    model_records(st, &f, 0, G_SENTIMENT_TABLE, G_SENTIMENT_TABLE + 0x2Cu * 26u, 0xB);
+    if (!model_close(st, &f, FN_MODEL_TAX_LOAD)) {
         return 0;
     }
-    GAME_CALL(st, 0x004CE6E0u, 0x00601C80, 0, 0); /* " OK: tax sentiment data loaded" */
+    GAME_CALL(st, FN_PLATFORM_LOG, G_STR_TAX_MODEL_LOADED, 0, 0); /* " OK: tax sentiment data loaded" */
     return 1;
 }
 
@@ -414,15 +412,15 @@ void enemy_models_select(game_state *st)
      * (0x005DEF84[enemy] into slot 2) and its 5 records of the enemy models (0x007083AC, 5 per
      * enemy) copied to the figure models 0x00709A6C, 0x00709A34, 0x00709AA4, 0x0070A4EC,
      * 0x0070A524 */
-    int32_t e = S16(st, 0x007848FCu);
+    int32_t e = S16(st, G_SCENARIO_ENEMY);
     if (e >= 0xC) {
         e = 0xB;
-        S16(st, 0x007848FCu) = (int16_t) e;
+        S16(st, G_SCENARIO_ENEMY) = (int16_t) e;
     }
-    GAME_CALLT(st, 0x00F55BB0u, 0x0053DD90u, S32(st, 0x005DEF84u + 4u * (uint32_t) e), 2);
-    uint32_t src = 0x007083ACu + 280u * (uint32_t) e;
+    GAME_CALLT(st, G_GRAPHICS_GFX, FN_GRAPHICS_LOAD_SLOT, S32(st, G_ENEMY_GRAPHICS + 4u * (uint32_t) e), 2);
+    uint32_t src = G_ENEMY_MODELS + 280u * (uint32_t) e;
     for (uint32_t i = 0; i < 0x38; i += 4) {
-        uint32_t d = 0x00709A34u + i;
+        uint32_t d = G_PROPS + 0x38u * 43u + i;
         S32(st, d + 0x38) = S32(st, src + i);
         S32(st, d) = S32(st, src + 0x38 + i);
         S32(st, d + 0x70) = S32(st, src + 0x70 + i);

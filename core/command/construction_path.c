@@ -12,29 +12,22 @@
 #include <string.h>
 
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define MAP_START 0x00BCA2D8u
-#define VIEW_ORIENTATION 0x00BCA2E0u
-#define TER(o) U32(st, 0x00AF598Cu + 4u * (uint32_t) (o))
-#define IMG(o) S32(st, 0x00B7482Cu + 4u * (uint32_t) (o))
-#define ROUTE(o) S8(st, 0x00EE0C50u + (uint32_t) (o))
-#define DIST(o) S32(st, 0x00EED760u + 4u * (uint32_t) (o))
-#define BGRID(o) S16(st, 0x00B4E6FCu + 2u * (uint32_t) (o))
-#define BITFIELDS 0x00B285CCu
-#define OBJECT_GRID 0x00D05720u
-#define QUEUE 0x00F203A0u
-#define HEAD 0x00EAE00Cu
-#define TAIL 0x00EAE008u
-#define START 0x00EAE004u
+#define TER(o) U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (o))
+#define IMG(o) S32(st, G_IMAGE + 4u * (uint32_t) (o))
+#define ROUTE(o) S8(st, G_GRID_ROUTING + (uint32_t) (o))
+#define DIST(o) S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) (o))
+#define BGRID(o) S16(st, G_BUILDING_GRID + 2u * (uint32_t) (o))
 #define QUEUE_LAST 0xCB0F
 #define GRID_W 228
 
 static int crosswise(game_state *st, int along_x)
 {
     /* @bin 0x0051C3C7 view orientations 2 and 6 swap the axes */
-    int32_t o = S32(st, VIEW_ORIENTATION);
+    int32_t o = S32(st, G_VIEW_ORIENTATION);
     return (o == 2 || o == 6) ? along_x ^ 1 : along_x;
 }
 
@@ -46,7 +39,7 @@ int32_t terrain_0x10000_or_desirable(game_state *st, int32_t o)
     if (t & 0x10000u) {
         return 0;
     }
-    int8_t c = S8(st, 0x00AC2D4Cu + (uint32_t) o);
+    int8_t c = S8(st, G_DESIRABILITY_GRID + (uint32_t) o);
     if (c > 4) {
         return 1;
     }
@@ -75,7 +68,7 @@ int32_t water_neighbours(game_state *st, int32_t o)
     /* @bin 0x0047E0D0 the four neighbours (north, east, south, west: 0x00BC97C0, C8, D0, D8)
      * with terrain 0x8000040, or terrain 8 and a building of type 0x8A or 0x88; their count */
     static const int32_t step[4] = {-GRID_W, 1, GRID_W, -1};
-    static const uint32_t flag[4] = {0x00BC97C0u, 0x00BC97C8u, 0x00BC97D0u, 0x00BC97D8u};
+    static const uint32_t flag[4] = {G_SCRATCH, G_SCRATCH + 4u * 2u, G_SCRATCH + 4u * 4u, G_SCRATCH + 4u * 6u};
     uint32_t v[4];
     for (int i = 0; i < 4; i++) {
         v[i] = TER(o + step[i]) & 0x8000040u;
@@ -83,7 +76,7 @@ int32_t water_neighbours(game_state *st, int32_t o)
     }
     for (int i = 0; i < 4; i++) {
         if (TER(o + step[i]) & 8u) {
-            int16_t t = S16(st, BUILDING_ADDR(BGRID(o + step[i])) + 0x10);
+            int16_t t = S16(st, BUILDING_ADDR(BGRID(o + step[i])) + BLD_TYPE);
             if (t == 0x8A || t == 0x88) {
                 v[i] = 1;
                 S32(st, flag[i]) = 1;
@@ -115,7 +108,7 @@ int32_t bridge_passable(game_state *st, int32_t o)
 {
     /* @bin 0x0051C390 a bridge tile (image - 0x00F56B84, modulo 0x30) lets a path through when
      * the tiles beside it across its direction have no terrain 0x40 */
-    int32_t v = IMG(o) - S32(st, 0x00F56B84u);
+    int32_t v = IMG(o) - S32(st, G_CANAL_BASE);
     if (v >= 0x30) {
         v -= 0x30;
     }
@@ -124,18 +117,18 @@ int32_t bridge_passable(game_state *st, int32_t o)
         return 0;
     }
     if (crosswise(st, c)) {
-        if (U8(st, 0x00AF5990u + 4u * (uint32_t) o) & 0x40) { /* east */
+        if (U8(st, G_GRID_TERRAIN + 4u + 4u * (uint32_t) o) & 0x40) { /* east */
             return 0;
         }
-        if (U8(st, 0x00AF5988u + 4u * (uint32_t) o) & 0x40) { /* west */
+        if (U8(st, G_GRID_TERRAIN - 4u + 4u * (uint32_t) o) & 0x40) { /* west */
             return 0;
         }
         return 1;
     }
-    if (U8(st, 0x00AF55FCu + 4u * (uint32_t) o) & 0x40) { /* north */
+    if (U8(st, G_GRID_TERRAIN - 4u * GRID_SIZE + 4u * (uint32_t) o) & 0x40) { /* north */
         return 0;
     }
-    if (U8(st, 0x00AF5D1Cu + 4u * (uint32_t) o) & 0x40) { /* south */
+    if (U8(st, G_GRID_TERRAIN + 4u * GRID_SIZE + 4u * (uint32_t) o) & 0x40) { /* south */
         return 0;
     }
     return 1;
@@ -149,11 +142,11 @@ int32_t ramp_passable(game_state *st, int32_t o)
     if (TER(o) & 0x100u) {
         return bridge_passable(st, o);
     }
-    uint32_t obj = U32(st, OBJECT_GRID + 4u * (uint32_t) o);
+    uint32_t obj = U32(st, G_UD05720 + 4u * (uint32_t) o);
     if (obj == 0 || P8(st, obj + 0x18) != 0) {
         return 1;
     }
-    int32_t v = IMG(o) - S32(st, 0x00F56C34u);
+    int32_t v = IMG(o) - S32(st, G_DAY2_REDRAW_GROUPS + 8u * 528u);
     int along;
     if (v == 0x34 || v == 0x30) {
         along = 0;
@@ -163,18 +156,18 @@ int32_t ramp_passable(game_state *st, int32_t o)
         return 0;
     }
     if (crosswise(st, along)) {
-        if ((U8(st, 0x00AF55FCu + 4u * (uint32_t) o) & 0x40) || DIST(o - GRID_W) > 0) {
+        if ((U8(st, G_GRID_TERRAIN - 4u * GRID_SIZE + 4u * (uint32_t) o) & 0x40) || DIST(o - GRID_W) > 0) {
             return 0;
         }
-        if ((U8(st, 0x00AF5D1Cu + 4u * (uint32_t) o) & 0x40) || DIST(o + GRID_W) > 0) {
+        if ((U8(st, G_GRID_TERRAIN + 4u * GRID_SIZE + 4u * (uint32_t) o) & 0x40) || DIST(o + GRID_W) > 0) {
             return 0;
         }
         return 1;
     }
-    if ((U8(st, 0x00AF5990u + 4u * (uint32_t) o) & 0x40) || DIST(o + 1) > 0) {
+    if ((U8(st, G_GRID_TERRAIN + 4u + 4u * (uint32_t) o) & 0x40) || DIST(o + 1) > 0) {
         return 0;
     }
-    if ((U8(st, 0x00AF5988u + 4u * (uint32_t) o) & 0x40) || DIST(o - 1) > 0) {
+    if ((U8(st, G_GRID_TERRAIN - 4u + 4u * (uint32_t) o) & 0x40) || DIST(o - 1) > 0) {
         return 0;
     }
     return 1;
@@ -188,15 +181,15 @@ int32_t crossing_passable(game_state *st, int32_t o)
      * none); bitfield 0x80 tiles (image - 0x00F5695C below 3) pass with at most 2 water
      * neighbours on one axis only */
     int32_t b = BGRID(o);
-    if (b != 0 && S16(st, BUILDING_ADDR(b) + 0x10) == 0x8A) {
+    if (b != 0 && S16(st, BUILDING_ADDR(b) + BLD_TYPE) == 0x8A) {
         return 1;
     }
     int32_t img, base;
     if (TER(o) & 0x10000u) {
         img = IMG(o);
-        base = S32(st, 0x00F56CD4u);
-    } else if (U8(st, BITFIELDS + (uint32_t) o) & 0x80) {
-        if (IMG(o) - S32(st, 0x00F5695Cu) >= 3) {
+        base = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 548u);
+    } else if (U8(st, G_DAY2_DESTROY_BITS + (uint32_t) o) & 0x80) {
+        if (IMG(o) - S32(st, G_DAY2_REDRAW_GROUPS + 8u * 437u) >= 3) {
             return 0;
         }
         if (water_neighbours(st, o) > 2) {
@@ -205,10 +198,10 @@ int32_t crossing_passable(game_state *st, int32_t o)
         return (uint8_t) water_both_axes(st, o) == 0;
     } else {
         int32_t r = terrain_0x10000_or_desirable(st, o);
-        base = S32(st, 0x00F56C44u);
+        base = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 530u);
         img = IMG(o);
         if (r == 0) {
-            base = S32(st, 0x00F56C94u);
+            base = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 540u);
         }
     }
     uint32_t v = (uint32_t) (img - base);
@@ -244,12 +237,12 @@ int32_t crossing_passable(game_state *st, int32_t o)
 
 static void enqueue(game_state *st, int32_t o)
 {
-    int32_t t = S32(st, TAIL);
-    S32(st, QUEUE + 4u * (uint32_t) t) = o;
+    int32_t t = S32(st, G_ROUTE_QUEUE_TAIL);
+    S32(st, G_ROUTE_QUEUE + 4u * (uint32_t) t) = o;
     t++;
-    S32(st, TAIL) = t;
+    S32(st, G_ROUTE_QUEUE_TAIL) = t;
     if (t > QUEUE_LAST) {
-        S32(st, TAIL) = 0;
+        S32(st, G_ROUTE_QUEUE_TAIL) = 0;
     }
 }
 
@@ -273,7 +266,7 @@ static void path_visit(game_state *st, int32_t n, int32_t r_off, int32_t against
         blocked = 1;
         goto flags;
     }
-    r = S8(st, 0x00EE0C50u + (uint32_t) r_off);
+    r = S8(st, G_GRID_ROUTING + (uint32_t) r_off);
     if (r == -5) {
         if (canal != 0) {
             blocked = 1;
@@ -289,7 +282,7 @@ static void path_visit(game_state *st, int32_t n, int32_t r_off, int32_t against
         blocked = 1;
     }
 flags:
-    if ((U8(st, 0x00AF598Cu + 4u * (uint32_t) n) & 0x40) && canal != 0 && crossing_passable(st, n) == 0) {
+    if ((U8(st, G_GRID_TERRAIN + 4u * (uint32_t) n) & 0x40) && canal != 0 && crossing_passable(st, n) == 0) {
         DIST(n) = -1;
         return;
     }
@@ -297,7 +290,7 @@ flags:
         return;
     }
     DIST(n) = d;
-    if (S8(st, 0x00EE0C50u + (uint32_t) r_off) == -2) {
+    if (S8(st, G_GRID_ROUTING + (uint32_t) r_off) == -2) {
         DIST(n) = d + 4;
     }
     enqueue(st, n);
@@ -308,9 +301,9 @@ int32_t drag_path_fill(game_state *st, int32_t unused, int32_t x, int32_t y, int
     /* @bin 0x0051B680 (_, x, y, canal) the distances from the start tile over passable tiles
      * (canal: canals and water lifts, else roads); 0 when the start tile itself is blocked */
     (void) unused;
-    memset(state_ptr(st, 0x00EED760u, 0x32C40), 0, 0x32C40); /* 0x0040F8F0 */
-    int32_t o = S32(st, MAP_START) + y * GRID_W + x;
-    S32(st, START) = o;
+    memset(state_ptr(st, G_GRID_ROAD_DISTANCE, 0x32C40), 0, 0x32C40); /* 0x0040F8F0 */
+    int32_t o = S32(st, G_MAP_START) + y * GRID_W + x;
+    S32(st, G_ROUTE_START) = o;
     uint32_t ter = TER(o);
     uint32_t bridge = ter & 0x100u;
     /* @bin 0x0051B6CB the start tile */
@@ -322,7 +315,7 @@ int32_t drag_path_fill(game_state *st, int32_t unused, int32_t x, int32_t y, int
             if (!(ter & 8u)) {
                 return 0;
             }
-            int16_t t = S16(st, BUILDING_ADDR(BGRID(o)) + 0x10);
+            int16_t t = S16(st, BUILDING_ADDR(BGRID(o)) + BLD_TYPE);
             if (t != 0x5A && t != 0x8A) {
                 return 0;
             }
@@ -342,25 +335,25 @@ int32_t drag_path_fill(game_state *st, int32_t unused, int32_t x, int32_t y, int
     if ((ter & 0x40u) && canal != 0 && crossing_passable(st, o) == 0) {
         return 0;
     }
-    S32(st, 0x00EADFD4u) += 1;
-    memset(state_ptr(st, 0x00EAE010u, 0xCB10), 0, 0xCB10); /* 0x0040F8F0 */
-    DIST(S32(st, START)) = 1;
-    S32(st, QUEUE) = S32(st, START);
-    S32(st, HEAD) = 0;
-    S32(st, TAIL) = 1;
+    S32(st, G_ROUTE_SEARCHES) += 1;
+    memset(state_ptr(st, G_VISITS, 0xCB10), 0, 0xCB10); /* 0x0040F8F0 */
+    DIST(S32(st, G_ROUTE_START)) = 1;
+    S32(st, G_ROUTE_QUEUE) = S32(st, G_ROUTE_START);
+    S32(st, G_ROUTE_QUEUE_HEAD) = 0;
+    S32(st, G_ROUTE_QUEUE_TAIL) = 1;
     do {
-        int32_t c = S32(st, QUEUE + 4u * (uint32_t) S32(st, HEAD));
+        int32_t c = S32(st, G_ROUTE_QUEUE + 4u * (uint32_t) S32(st, G_ROUTE_QUEUE_HEAD));
         int32_t d = DIST(c) + 1;
         path_visit(st, c - GRID_W, c - GRID_W, -6, canal, d);
         path_visit(st, c + 1, c + 1, -4, canal, d);
         path_visit(st, c + GRID_W, c + GRID_W, -4, canal, d);
         path_visit(st, c - 1, c - 1, -4, canal, d);
-        int32_t h = S32(st, HEAD) + 1;
-        S32(st, HEAD) = h;
+        int32_t h = S32(st, G_ROUTE_QUEUE_HEAD) + 1;
+        S32(st, G_ROUTE_QUEUE_HEAD) = h;
         if (h > QUEUE_LAST) {
-            S32(st, HEAD) = 0;
+            S32(st, G_ROUTE_QUEUE_HEAD) = 0;
         }
-    } while (S32(st, HEAD) != S32(st, TAIL));
+    } while (S32(st, G_ROUTE_QUEUE_HEAD) != S32(st, G_ROUTE_QUEUE_TAIL));
     return 1;
 }
 
@@ -369,16 +362,16 @@ int32_t wall_path_fill(game_state *st, int32_t unused, int32_t x, int32_t y)
     /* @bin 0x0051C790 (_, x, y) the distances from the start tile over tiles whose routing byte
      * is 4 (walls) */
     (void) unused;
-    memset(state_ptr(st, 0x00EED760u, 0x32C40), 0, 0x32C40); /* 0x0040F8F0 */
-    int32_t o = S32(st, MAP_START) + y * GRID_W + x;
-    S32(st, START) = o;
+    memset(state_ptr(st, G_GRID_ROAD_DISTANCE, 0x32C40), 0, 0x32C40); /* 0x0040F8F0 */
+    int32_t o = S32(st, G_MAP_START) + y * GRID_W + x;
+    S32(st, G_ROUTE_START) = o;
     DIST(o) = 1;
-    S32(st, QUEUE) = S32(st, START);
-    S32(st, HEAD) = 0;
-    S32(st, TAIL) = 1;
+    S32(st, G_ROUTE_QUEUE) = S32(st, G_ROUTE_START);
+    S32(st, G_ROUTE_QUEUE_HEAD) = 0;
+    S32(st, G_ROUTE_QUEUE_TAIL) = 1;
     static const int32_t step[4] = {-GRID_W, 1, GRID_W, -1};
     do {
-        int32_t c = S32(st, QUEUE + 4u * (uint32_t) S32(st, HEAD));
+        int32_t c = S32(st, G_ROUTE_QUEUE + 4u * (uint32_t) S32(st, G_ROUTE_QUEUE_HEAD));
         int32_t d = DIST(c) + 1;
         for (int i = 0; i < 4; i++) {
             int32_t n = c + step[i];
@@ -387,12 +380,12 @@ int32_t wall_path_fill(game_state *st, int32_t unused, int32_t x, int32_t y)
                 enqueue(st, n);
             }
         }
-        int32_t h = S32(st, HEAD) + 1;
-        S32(st, HEAD) = h;
+        int32_t h = S32(st, G_ROUTE_QUEUE_HEAD) + 1;
+        S32(st, G_ROUTE_QUEUE_HEAD) = h;
         if (h > QUEUE_LAST) {
-            S32(st, HEAD) = 0;
+            S32(st, G_ROUTE_QUEUE_HEAD) = 0;
         }
-    } while (S32(st, HEAD) != S32(st, TAIL));
+    } while (S32(st, G_ROUTE_QUEUE_HEAD) != S32(st, G_ROUTE_QUEUE_TAIL));
     return 1;
 }
 

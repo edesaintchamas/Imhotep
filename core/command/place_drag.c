@@ -11,42 +11,28 @@
 
 #include "command/place.h"
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define MAP_W 0x00BCA2D0u
-#define MAP_H 0x00BCA2D4u
-#define MAP_START 0x00BCA2D8u
-#define ROW_EXTRA 0x00BCA2DCu /* @bin 0x0047562A added to the row skip */
-#define VIEW_DX 0x00BCA2E8u   /* @bin 0x004753D8 */
-#define VIEW_DY 0x00BCA2ECu
-#define COUNT 0x00BC971Cu
-#define REFUND 0x00BC9718u
-#define CUR_Y 0x00BC9760u
-#define CUR_X 0x00BC9764u
-#define CUR_OFF 0x00BC9768u
-#define TER(o) U32(st, 0x00AF598Cu + 4u * (uint32_t) (o))
-#define IMG(o) S32(st, 0x00B7482Cu + 4u * (uint32_t) (o))
-#define BITS(o) U8(st, 0x00B285CCu + (uint32_t) (o))
-#define EDGE(o) U8(st, 0x00B67D1Cu + (uint32_t) (o))
-#define BGRID(o) S16(st, 0x00B4E6FCu + 2u * (uint32_t) (o))
-#define FGRID(o) S16(st, 0x00B350DCu + 2u * (uint32_t) (o))
-#define ROUTE(o) S8(st, 0x00EE0C50u + (uint32_t) (o))
-#define DIST(o) S32(st, 0x00EED760u + 4u * (uint32_t) (o))
-#define OBJECT(o) U32(st, 0x00D05720u + 4u * (uint32_t) (o))
-#define QUEUE 0x00F203A0u
-#define HEAD 0x00EAE00Cu
-#define TAIL 0x00EAE008u
-#define START 0x00EAE004u
+#define TER(o) U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (o))
+#define IMG(o) S32(st, G_IMAGE + 4u * (uint32_t) (o))
+#define BITS(o) U8(st, G_DAY2_DESTROY_BITS + (uint32_t) (o))
+#define EDGE(o) U8(st, G_EDGE + (uint32_t) (o))
+#define BGRID(o) S16(st, G_BUILDING_GRID + 2u * (uint32_t) (o))
+#define FGRID(o) S16(st, G_FIGURE_GRID + 2u * (uint32_t) (o))
+#define ROUTE(o) S8(st, G_GRID_ROUTING + (uint32_t) (o))
+#define DIST(o) S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) (o))
+#define OBJECT(o) U32(st, G_UD05720 + 4u * (uint32_t) (o))
 
 static int32_t offset_of(game_state *st, int32_t x, int32_t y)
 {
-    return S32(st, MAP_START) + y * GRID_SIZE + x;
+    return S32(st, G_MAP_START) + y * GRID_SIZE + x;
 }
 
 static int16_t building_type(game_state *st, int32_t o)
 {
-    return S16(st, BUILDING_ADDR(BGRID(o)) + 0x10);
+    return S16(st, BUILDING_ADDR(BGRID(o)) + BLD_TYPE);
 }
 
 /* a floodplain object on the tile whose flag +0x18 is clear */
@@ -58,20 +44,20 @@ static int object_blocks(game_state *st, int32_t o)
 
 static void notice(game_state *st, int32_t id)
 {
-    GAME_CALL(st, 0x004E2970u, id, 0, 0);
+    GAME_CALL(st, FN_NOTICE_ADD_4E2970, id, 0, 0);
 }
 
 /* @bin 0x00474F54 / 0x004754D2 the grids restored from the start's backups (terrain, canals; with
  * all, also the bitfields and edge grids), then the images without a building */
 static void restore_grids(game_state *st, int all)
 {
-    GAME_CALL(st, 0x0040F860u, 0x009DE62C, 0x00AF598C, 0x32C40);
-    GAME_CALL(st, 0x0040F860u, 0x009D1B1C, 0x00AE8E7C, 0xCB10);
+    GAME_CALL(st, FN_COPY_BYTES, G_TERRAIN_BACKUP, G_GRID_TERRAIN, 0x32C40);
+    GAME_CALL(st, FN_COPY_BYTES, G_CANAL_BACKUP, G_CANAL, 0xCB10);
     if (all) {
-        GAME_CALL(st, 0x0040F860u, 0x009B84FC, 0x00B285CC, 0xCB10);
-        GAME_CALL(st, 0x0040F860u, 0x009AB9EC, 0x00B67D1C, 0xCB10);
+        GAME_CALL(st, FN_COPY_BYTES, G_BITS_BACKUP, G_DAY2_DESTROY_BITS, 0xCB10);
+        GAME_CALL(st, FN_COPY_BYTES, G_EDGE_BACKUP, G_EDGE, 0xCB10);
     }
-    GAME_CALL(st, 0x00485830u, 0);
+    GAME_CALL(st, FN_UNDO_RESTORE_IMAGES, 0);
 }
 
 /* ---- houses ------------------------------------------------------------------------------- */
@@ -87,25 +73,25 @@ void place_houses(game_state *st, int32_t preview, int32_t x1, int32_t y1, int32
     if (xmin < 0) {
         xmin = 0;
     }
-    if (xmax >= S32(st, MAP_W)) {
-        xmax = S32(st, MAP_W) - 1;
+    if (xmax >= S32(st, G_MAP_WIDTH)) {
+        xmax = S32(st, G_MAP_WIDTH) - 1;
     }
     if (ymin < 0) {
         ymin = 0;
     }
-    if (ymax >= S32(st, MAP_H)) {
-        ymax = S32(st, MAP_H) - 1;
+    if (ymax >= S32(st, G_MAP_HEIGHT)) {
+        ymax = S32(st, G_MAP_HEIGHT) - 1;
     }
     int32_t width = xmax - xmin + 1;
-    S32(st, COUNT) = 0;
-    GAME_CALL0(st, 0x00485080u);
-    S32(st, CUR_Y) = ymin;
+    S32(st, G_CONSTRUCTION_COUNT) = 0;
+    GAME_CALL0(st, FN_UNDO_FORGET);
+    S32(st, G_WALK_Y) = ymin;
     int32_t off = offset_of(st, xmin, ymin);
-    S32(st, CUR_OFF) = off;
+    S32(st, G_TILE_CURSOR) = off;
     if (ymin <= ymax) {
         int32_t y;
         do {
-            S32(st, CUR_X) = xmin;
+            S32(st, G_WALK_X) = xmin;
             if (xmin <= xmax) {
                 int32_t x;
                 do {
@@ -113,61 +99,61 @@ void place_houses(game_state *st, int32_t preview, int32_t x1, int32_t y1, int32
                     if (!(t & 0x10000u) && !object_blocks(st, off) && !(t & 0xEEFED77Fu) && FGRID(off) == 0) {
                         if (preview != 0) {
                             BITS(off) |= 0x10;
-                            S32(st, COUNT) += 1;
+                            S32(st, G_CONSTRUCTION_COUNT) += 1;
                         } else {
-                            int32_t b = GAME_CALL(st, 0x0046A400u, S32(st, CURRENT_PLAYER_ADDR), 0xA, S32(st, CUR_X),
-                                                  S32(st, CUR_Y), 0, 0);
-                            GAME_CALL(st, 0x00485100u, b);
+                            int32_t b = GAME_CALL(st, FN_BUILDING_CREATE, S32(st, CURRENT_PLAYER_ADDR), 0xA, S32(st, G_WALK_X),
+                                                  S32(st, G_WALK_Y), 0, 0);
+                            GAME_CALL(st, FN_BUILDING_KEEP_REMOVED, b);
                             if (b > 0) {
-                                S32(st, COUNT) += 1;
-                                int32_t g = S32(st, 0x00F5653Cu);
-                                GAME_CALL(st, 0x0047BF50u, b, S32(st, CUR_X), S32(st, CUR_Y), 1, 1, g, 8);
-                                if (GAME_CALL(st, 0x00482650u, S32(st, CUR_X), S32(st, CUR_Y), 1, 2, 0x40) == 0) {
+                                S32(st, G_CONSTRUCTION_COUNT) += 1;
+                                int32_t g = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 305u);
+                                GAME_CALL(st, FN_MAP_BUILDING_TILES, b, S32(st, G_WALK_X), S32(st, G_WALK_Y), 1, 1, g, 8);
+                                if (GAME_CALL(st, FN_TERRAIN_SCAN_MASK, S32(st, G_WALK_X), S32(st, G_WALK_Y), 1, 2, 0x40) == 0) {
                                     flag = 1;
                                 }
                             }
-                            off = S32(st, CUR_OFF);
+                            off = S32(st, G_TILE_CURSOR);
                         }
                     }
-                    x = S32(st, CUR_X) + 1;
+                    x = S32(st, G_WALK_X) + 1;
                     off++;
-                    S32(st, CUR_X) = x;
-                    S32(st, CUR_OFF) = off;
+                    S32(st, G_WALK_X) = x;
+                    S32(st, G_TILE_CURSOR) = off;
                 } while (x <= xmax);
             }
-            y = S32(st, CUR_Y) + 1;
+            y = S32(st, G_WALK_Y) + 1;
             off += GRID_SIZE - width;
-            S32(st, CUR_Y) = y;
-            S32(st, CUR_OFF) = off;
+            S32(st, G_WALK_Y) = y;
+            S32(st, G_TILE_CURSOR) = off;
         } while (y <= ymax);
     }
     if (preview != 0) {
         return;
     }
-    GAME_CALL(st, 0x004E3330u, 0xA);
+    GAME_CALL(st, FN_NOTICE_4E3330, 0xA);
     place_notice_4e2d80(st, 0xA);
     place_notice_4e2dd0(st, 0xA);
     place_notice_4e2fb0(st, 0xA);
     if (flag == 1) {
         notice(st, 0x3E);
     }
-    GAME_CALL(st, 0x00516F90u, x1, y1, x2, y2, 1);
-    GAME_CALL(st, 0x005173A0u, x1, y1, x2, y2);
-    U8(st, 0x00E38DCAu) = 1;
+    GAME_CALL(st, FN_ROUTING_FILL_EE0C50, x1, y1, x2, y2, 1);
+    GAME_CALL(st, FN_ROUTING_FILL_EC7630, x1, y1, x2, y2);
+    U8(st, G_REDRAW) = 1;
 }
 
 void place_notice_4e2d80(game_state *st, int32_t unused)
 {
     /* @bin 0x004E2D80 (0x00E38EBC or 0x00E38EA8 set) CITY+0x24 >= 300 and CITY+0x2BFC > 10 → 0x5C */
     (void) unused;
-    if (S32(st, 0x00605A3Cu) == 1) {
+    if (S32(st, G_EDITOR) == 1) {
         return;
     }
-    if (S32(st, 0x00E38EBCu) == 0 && U8(st, 0x00E38EA8u) == 0) {
+    if (S32(st, G_CUSTOM) == 0 && U8(st, G_MISSION) == 0) {
         return;
     }
     uint32_t c = CURRENT_CITY(st);
-    if (S32(st, c + 0x24) < 300 || S32(st, c + 0x2BFC) <= 10) {
+    if (S32(st, c + CITY_POPULATION) < 300 || S32(st, c + CITY_UNEMPLOYMENT) <= 10) {
         return;
     }
     notice(st, 0x5C);
@@ -177,14 +163,14 @@ void place_notice_4e2dd0(game_state *st, int32_t unused)
 {
     /* @bin 0x004E2DD0 CITY+0x24 >= 300 and CITY+0x296C <= CITY+0x45AC / 2 → 0x5D */
     (void) unused;
-    if (S32(st, 0x00605A3Cu) == 1) {
+    if (S32(st, G_EDITOR) == 1) {
         return;
     }
     uint32_t c = CURRENT_CITY(st);
-    if (S32(st, c + 0x24) < 300) {
+    if (S32(st, c + CITY_POPULATION) < 300) {
         return;
     }
-    if (S32(st, c + 0x296C) > S32(st, c + 0x45AC) / 2) {
+    if (S32(st, c + CITY_FOOD_TOTAL) > S32(st, c + CITY_U45AC) / 2) {
         return;
     }
     notice(st, 0x5D);
@@ -193,27 +179,27 @@ void place_notice_4e2dd0(game_state *st, int32_t unused)
 void place_notice_4e2fb0(game_state *st, int32_t quiet)
 {
     /* @bin 0x004E2FB0 (quiet: no 0x7A / 0x7B / 0x82) */
-    if (S32(st, 0x00605A3Cu) == 1) {
+    if (S32(st, G_EDITOR) == 1) {
         return;
     }
     uint32_t c = CURRENT_CITY(st);
-    if (S32(st, c + 0x24) < 0x14) {
+    if (S32(st, c + CITY_POPULATION) < 0x14) {
         return;
     }
-    if (S32(st, 0x00E38EBCu) == 0 && S8(st, 0x00E38EA8u) < 2) {
-        int32_t v = S32(st, c + 0x4410);
+    if (S32(st, G_CUSTOM) == 0 && S8(st, G_MISSION) < 2) {
+        int32_t v = S32(st, c + CITY_U4410);
         if (v == 0 || v == 1 || v == 3 || v == 5) {
             return;
         }
     }
-    int32_t k = S32(st, c + 0x2740);
+    int32_t k = S32(st, c + CITY_U2740);
     if (k != 0) {
         /* @bin 0x004E30BC */
         if (k != 1) {
             return;
         }
-        if (S32(st, c + 0x2728) == 0 && S32(st, c + 0x38) > 0) {
-            int32_t id = S32(st, c + 0x4410) + 0x83;
+        if (S32(st, c + CITY_U2728) == 0 && S32(st, c + CITY_HOUSE_ROOM_LEFT) > 0) {
+            int32_t id = S32(st, c + CITY_U4410) + 0x83;
             if (id != 0) {
                 notice(st, id);
             }
@@ -224,19 +210,19 @@ void place_notice_4e2fb0(game_state *st, int32_t quiet)
         }
         return;
     }
-    if (S32(st, c + 0x4644) + S32(st, c + 0x4634) > 3) {
+    if (S32(st, c + CITY_U4644) + S32(st, c + CITY_U4634) > 3) {
         notice(st, 0xD8);
         return;
     }
-    if (S32(st, c + 0x273C) < 5) {
-        if (S32(st, c + 0x2728) != 0 || S32(st, c + 0x38) <= 0) {
+    if (S32(st, c + CITY_IMMIGRANTS_MONTH) < 5) {
+        if (S32(st, c + CITY_U2728) != 0 || S32(st, c + CITY_HOUSE_ROOM_LEFT) <= 0) {
             if (quiet == 0) {
                 notice(st, 0x7B);
             }
             return;
         }
-        if (S32(st, c + 0x272C) < 0x50) {
-            int32_t id = S32(st, c + 0x4410) + 0x7C;
+        if (S32(st, c + CITY_MIGRATION_PERCENT) < 0x50) {
+            int32_t id = S32(st, c + CITY_U4410) + 0x7C;
             if (id != 0) {
                 notice(st, id);
             }
@@ -252,12 +238,12 @@ void place_notice_4e2fb0(game_state *st, int32_t quiet)
 
 static void enqueue(game_state *st, int32_t o)
 {
-    int32_t t = S32(st, TAIL);
-    S32(st, QUEUE + 4u * (uint32_t) t) = o;
+    int32_t t = S32(st, G_ROUTE_QUEUE_TAIL);
+    S32(st, G_ROUTE_QUEUE + 4u * (uint32_t) t) = o;
     t++;
-    S32(st, TAIL) = t;
+    S32(st, G_ROUTE_QUEUE_TAIL) = t;
     if (t > 0xCB0F) {
-        S32(st, TAIL) = 0;
+        S32(st, G_ROUTE_QUEUE_TAIL) = 0;
     }
 }
 
@@ -271,15 +257,15 @@ static void fill_visit(game_state *st, int32_t n, int32_t kind, int32_t canal, i
     }
     int blocked = 0;
     int8_t r = ROUTE(n);
-    if ((TER(n) & 0x100u) && GAME_CALL(st, 0x0051C390u, n) != 0) {
-        if (canal == 0 && GAME_CALL(st, 0x0051C390u, n) == 0) {
+    if ((TER(n) & 0x100u) && GAME_CALL(st, FN_BRIDGE_PASSABLE, n) != 0) {
+        if (canal == 0 && GAME_CALL(st, FN_BRIDGE_PASSABLE, n) == 0) {
             DIST(n) = -1;
             blocked = 1;
         }
     } else if (r == -5) {
         if (canal != 0) {
             blocked = 1;
-        } else if (GAME_CALL(st, 0x0051C510u, n) == 0) {
+        } else if (GAME_CALL(st, FN_RAMP_PASSABLE, n) == 0) {
             DIST(n) = -1;
             blocked = 1;
         }
@@ -293,14 +279,14 @@ static void fill_visit(game_state *st, int32_t n, int32_t kind, int32_t canal, i
             blocked = !(building_type(st, n) == 0x8A || (r == against && canal == 1));
         }
     }
-    if ((U8(st, 0x00AF598Cu + 4u * (uint32_t) n) & 0x40) && canal != 0 && GAME_CALL(st, 0x0051C630u, n) == 0) {
+    if ((U8(st, G_GRID_TERRAIN + 4u * (uint32_t) n) & 0x40) && canal != 0 && GAME_CALL(st, FN_CROSSING_PASSABLE, n) == 0) {
         DIST(n) = -1;
         return;
     }
     if (blocked) {
         return;
     }
-    if ((uint8_t) GAME_CALL(st, 0x0046F9A0u, n % GRID_SIZE, n / GRID_SIZE, 3) != 0) {
+    if ((uint8_t) GAME_CALL(st, FN_MAP_NEAR_EDGE, n % GRID_SIZE, n / GRID_SIZE, 3) != 0) {
         return;
     }
     DIST(n) = d;
@@ -315,10 +301,10 @@ int32_t place_path_fill(game_state *st, int32_t unused, int32_t x, int32_t y, in
     /* @bin 0x0051BC60 (_, x, y, canal) the distances from the start tile (as 0x0051B680, with the
      * map-edge test 0x0046F9A0 on every tile); 0 when the start tile is blocked */
     (void) unused;
-    GAME_CALL(st, 0x0040F8F0u, 0x00EED760, 0x32C40, 0);
+    GAME_CALL(st, FN_FILL_BYTES, G_GRID_ROAD_DISTANCE, 0x32C40, 0);
     int32_t o = offset_of(st, x, y);
     int8_t cl = ROUTE(o);
-    S32(st, START) = o;
+    S32(st, G_ROUTE_START) = o;
     uint32_t t = TER(o);
     if (cl == -1 || (t & 0x12040011u)) {
         if (canal == 0) {
@@ -337,42 +323,42 @@ int32_t place_path_fill(game_state *st, int32_t unused, int32_t x, int32_t y, in
     if (cl == 2) {
         return 0;
     }
-    if ((t & 0x100u) && GAME_CALL(st, 0x0051C390u, o) != 0 && canal == 0 &&
-        GAME_CALL(st, 0x0051C390u, S32(st, START)) == 0) {
+    if ((t & 0x100u) && GAME_CALL(st, FN_BRIDGE_PASSABLE, o) != 0 && canal == 0 &&
+        GAME_CALL(st, FN_BRIDGE_PASSABLE, S32(st, G_ROUTE_START)) == 0) {
         return 0;
     }
-    if (ROUTE(S32(st, START)) == -5) {
-        if (canal != 0 || GAME_CALL(st, 0x0051C510u, S32(st, START)) == 0) {
+    if (ROUTE(S32(st, G_ROUTE_START)) == -5) {
+        if (canal != 0 || GAME_CALL(st, FN_RAMP_PASSABLE, S32(st, G_ROUTE_START)) == 0) {
             return 0;
         }
     }
-    if ((t & 0x40u) && canal != 0 && GAME_CALL(st, 0x0051C630u, S32(st, START)) == 0) {
+    if ((t & 0x40u) && canal != 0 && GAME_CALL(st, FN_CROSSING_PASSABLE, S32(st, G_ROUTE_START)) == 0) {
         return 0;
     }
-    if ((uint8_t) GAME_CALL(st, 0x0046F9A0u, x + S32(st, VIEW_DX), y + S32(st, VIEW_DY), 3) != 0) {
+    if ((uint8_t) GAME_CALL(st, FN_MAP_NEAR_EDGE, x + S32(st, G_VIEW_DX), y + S32(st, G_VIEW_DY), 3) != 0) {
         return 0;
     }
-    S32(st, 0x00EADFD4u) += 1;
-    GAME_CALL(st, 0x0040F8F0u, 0x00EAE010, 0xCB10, 0);
-    DIST(S32(st, START)) = 1;
-    S32(st, QUEUE) = S32(st, START);
-    S32(st, HEAD) = 0;
-    S32(st, TAIL) = 1;
+    S32(st, G_ROUTE_SEARCHES) += 1;
+    GAME_CALL(st, FN_FILL_BYTES, G_VISITS, 0xCB10, 0);
+    DIST(S32(st, G_ROUTE_START)) = 1;
+    S32(st, G_ROUTE_QUEUE) = S32(st, G_ROUTE_START);
+    S32(st, G_ROUTE_QUEUE_HEAD) = 0;
+    S32(st, G_ROUTE_QUEUE_TAIL) = 1;
     int32_t h;
     do {
-        int32_t c = S32(st, QUEUE + 4u * (uint32_t) S32(st, HEAD));
+        int32_t c = S32(st, G_ROUTE_QUEUE + 4u * (uint32_t) S32(st, G_ROUTE_QUEUE_HEAD));
         int32_t d = DIST(c) + 1;
         fill_visit(st, c - GRID_SIZE, 0, canal, d);
         fill_visit(st, c + 1, 1, canal, d);
         fill_visit(st, c + GRID_SIZE, 2, canal, d);
         fill_visit(st, c - 1, 1, canal, d);
-        h = S32(st, HEAD) + 1;
-        S32(st, HEAD) = h;
+        h = S32(st, G_ROUTE_QUEUE_HEAD) + 1;
+        S32(st, G_ROUTE_QUEUE_HEAD) = h;
         if (h > 0xCB0F) {
             h = 0;
-            S32(st, HEAD) = 0;
+            S32(st, G_ROUTE_QUEUE_HEAD) = 0;
         }
-    } while (h != S32(st, TAIL));
+    } while (h != S32(st, G_ROUTE_QUEUE_TAIL));
     return 1;
 }
 
@@ -386,14 +372,14 @@ static void cell_neighbourhood(game_state *st, int32_t x, int32_t y, int32_t *x0
     if (*x0 < 0) {
         *w = *x0 + 3;
         *x0 = 0;
-    } else if (*x0 + 3 > S32(st, MAP_W)) {
-        *w = S32(st, MAP_W) - *x0;
+    } else if (*x0 + 3 > S32(st, G_MAP_WIDTH)) {
+        *w = S32(st, G_MAP_WIDTH) - *x0;
     }
     if (*y0 < 0) {
         *h = *y0 + 3;
         *y0 = 0;
-    } else if (*y0 + 3 > S32(st, MAP_H)) {
-        *h = S32(st, MAP_H) - *y0;
+    } else if (*y0 + 3 > S32(st, G_MAP_HEIGHT)) {
+        *h = S32(st, G_MAP_HEIGHT) - *y0;
     }
 }
 
@@ -402,48 +388,48 @@ void place_road_tile(game_state *st, int32_t x, int32_t y, int32_t set)
     /* @bin 0x0047B310 (x, y, set) terrain road bit 0x40 set or cleared (counted when new), then the
      * road images of the 3x3 block (0x0047DB00(0x8000040), 0x0047E5C0, 0x0047B670 on road tiles
      * without bits 0xC) and 0x004746D0 */
-    if ((uint8_t) GAME_CALL(st, 0x0046F930u, x + S32(st, VIEW_DX), y + S32(st, VIEW_DY)) == 0) {
+    if ((uint8_t) GAME_CALL(st, FN_MAP_TILE_INSIDE, x + S32(st, G_VIEW_DX), y + S32(st, G_VIEW_DY)) == 0) {
         return;
     }
     int32_t o = offset_of(st, x, y);
     uint32_t t = TER(o);
     if (!(t & 0x40u)) {
-        S32(st, COUNT) += 1;
+        S32(st, G_CONSTRUCTION_COUNT) += 1;
     }
     TER(o) = set == 1 ? (t | 0x40u) : (t & ~0x40u);
     BITS(o) &= 0xEF;
     int32_t x0, y0, w, h;
     cell_neighbourhood(st, x, y, &x0, &y0, &w, &h);
     int32_t yend = h + y0;
-    S32(st, CUR_Y) = y0;
+    S32(st, G_WALK_Y) = y0;
     int32_t off = offset_of(st, x0, y0);
-    S32(st, CUR_OFF) = off;
+    S32(st, G_TILE_CURSOR) = off;
     if (y0 < yend) {
         int32_t xend = w + x0;
         do {
-            S32(st, CUR_X) = x0;
+            S32(st, G_WALK_X) = x0;
             if (x0 < xend) {
                 int32_t cx;
                 do {
                     uint32_t v = TER(off);
                     if ((v & 0x40u) && !(v & 0xCu)) {
-                        GAME_CALL(st, 0x0047DB00u, 0x8000040);
-                        GAME_CALL0(st, 0x0047E5C0u);
-                        GAME_CALL0(st, 0x0047B670u);
-                        off = S32(st, CUR_OFF);
+                        GAME_CALL(st, FN_NEIGHBOURS_WITH_FLAGS, 0x8000040);
+                        GAME_CALL0(st, FN_GATEHOUSE_FLAGS);
+                        GAME_CALL0(st, FN_ROAD_TILE);
+                        off = S32(st, G_TILE_CURSOR);
                     }
-                    cx = S32(st, CUR_X) + 1;
+                    cx = S32(st, G_WALK_X) + 1;
                     off++;
-                    S32(st, CUR_X) = cx;
-                    S32(st, CUR_OFF) = off;
+                    S32(st, G_WALK_X) = cx;
+                    S32(st, G_TILE_CURSOR) = off;
                 } while (cx < xend);
             }
-            S32(st, CUR_Y) += 1;
+            S32(st, G_WALK_Y) += 1;
             off += GRID_SIZE - w;
-            S32(st, CUR_OFF) = off;
-        } while (S32(st, CUR_Y) < yend);
+            S32(st, G_TILE_CURSOR) = off;
+        } while (S32(st, G_WALK_Y) < yend);
     }
-    GAME_CALL(st, 0x004746D0u, x0, y0, w);
+    GAME_CALL(st, FN_TERRAIN_LAND_AROUND, x0, y0, w);
 }
 
 void place_canal_tile(game_state *st, int32_t x, int32_t y, int32_t arg3, int32_t set)
@@ -451,47 +437,47 @@ void place_canal_tile(game_state *st, int32_t x, int32_t y, int32_t arg3, int32_
     /* @bin 0x0047B960 (x, y, arg3, set) terrain canal bit 0x100 set or cleared (counted when new),
      * then the canal images of the 3x3 block (0x0047E870, 0x0047BE30(arg3) on canal tiles without
      * bits 0xC nor bitfield 0x80) and 0x004746D0 */
-    if ((uint8_t) GAME_CALL(st, 0x0046F930u, x + S32(st, VIEW_DX), y + S32(st, VIEW_DY)) == 0) {
+    if ((uint8_t) GAME_CALL(st, FN_MAP_TILE_INSIDE, x + S32(st, G_VIEW_DX), y + S32(st, G_VIEW_DY)) == 0) {
         return;
     }
     int32_t o = offset_of(st, x, y);
     uint32_t t = TER(o);
     if (!(t & 0x100u)) {
-        S32(st, COUNT) += 1;
+        S32(st, G_CONSTRUCTION_COUNT) += 1;
     }
     TER(o) = set == 1 ? (t | 0x100u) : (t & ~0x100u);
     BITS(o) &= 0xEF;
     int32_t x0, y0, w, h;
     cell_neighbourhood(st, x, y, &x0, &y0, &w, &h);
     int32_t yend = h + y0;
-    S32(st, CUR_Y) = y0;
+    S32(st, G_WALK_Y) = y0;
     int32_t off = offset_of(st, x0, y0);
-    S32(st, CUR_OFF) = off;
+    S32(st, G_TILE_CURSOR) = off;
     if (y0 < yend) {
         int32_t xend = w + x0;
         do {
-            S32(st, CUR_X) = x0;
+            S32(st, G_WALK_X) = x0;
             if (x0 < xend) {
                 int32_t cx;
                 do {
                     uint32_t v = TER(off);
                     if ((v & 0x100u) && !(v & 0xCu) && !(BITS(off) & 0x80)) {
-                        GAME_CALL0(st, 0x0047E870u);
-                        GAME_CALL(st, 0x0047BE30u, arg3);
-                        off = S32(st, CUR_OFF);
+                        GAME_CALL0(st, FN_CANAL_FLAGS);
+                        GAME_CALL(st, FN_CANAL_TILE, arg3);
+                        off = S32(st, G_TILE_CURSOR);
                     }
-                    cx = S32(st, CUR_X) + 1;
+                    cx = S32(st, G_WALK_X) + 1;
                     off++;
-                    S32(st, CUR_X) = cx;
-                    S32(st, CUR_OFF) = off;
+                    S32(st, G_WALK_X) = cx;
+                    S32(st, G_TILE_CURSOR) = off;
                 } while (cx < xend);
             }
-            S32(st, CUR_Y) += 1;
+            S32(st, G_WALK_Y) += 1;
             off += GRID_SIZE - w;
-            S32(st, CUR_OFF) = off;
-        } while (S32(st, CUR_Y) < yend);
+            S32(st, G_TILE_CURSOR) = off;
+        } while (S32(st, G_WALK_Y) < yend);
     }
-    GAME_CALL(st, 0x004746D0u, x0, y0, w);
+    GAME_CALL(st, FN_TERRAIN_LAND_AROUND, x0, y0, w);
 }
 
 int32_t place_path_walk(game_state *st, int32_t unused, int32_t xs, int32_t ys, int32_t x, int32_t y, int32_t mode)
@@ -501,49 +487,49 @@ int32_t place_path_walk(game_state *st, int32_t unused, int32_t xs, int32_t ys, 
      * offsets 0x005F80FC[], steps 0x005F811C[] / 0x005F8120[]), at most 400 tiles; each tile: mode 0
      * a road (0x0047B310), 2 counted only, 3 a canal (0x0047B960); 1 when the start is reached */
     (void) unused;
-    S32(st, COUNT) = 0;
+    S32(st, G_CONSTRUCTION_COUNT) = 0;
     int32_t steps = 1;
     int32_t o = offset_of(st, x, y);
-    S32(st, 0x00EAE000u) = o;
+    S32(st, G_PATH_TILE) = o;
     for (;;) {
         int32_t cur = DIST(o);
         if (cur <= 0 && building_type(st, o) != 0x8A) {
             return 0;
         }
         if (mode == 0) {
-            if ((TER(o) & 0x100u) && GAME_CALL(st, 0x0051C390u, o) == 0) {
+            if ((TER(o) & 0x100u) && GAME_CALL(st, FN_BRIDGE_PASSABLE, o) == 0) {
                 return 0;
             }
             place_road_tile(st, x, y, 1);
         } else if (mode == 2) {
-            S32(st, COUNT) += 1;
+            S32(st, G_CONSTRUCTION_COUNT) += 1;
         } else if (mode == 3) {
-            if ((TER(o) & 0x40u) && GAME_CALL(st, 0x0051C630u, o) == 0) {
+            if ((TER(o) & 0x40u) && GAME_CALL(st, FN_CROSSING_PASSABLE, o) == 0) {
                 return 0;
             }
             place_canal_tile(st, x, y, 1, 1);
         }
-        uint32_t d = (uint32_t) GAME_CALL(st, 0x0051CBA0u, x, y, xs, ys) & 0xFF;
+        uint32_t d = (uint32_t) GAME_CALL(st, FN_ROUTE_DIRECTION, x, y, xs, ys) & 0xFF;
         if (d == 8) {
             return 1;
         }
         int k;
         int32_t dir = 0;
         for (k = 0; k < 4; k++) {
-            dir = S32(st, 0x005F815Cu + 16u * d + 4u * (uint32_t) k);
-            o = S32(st, 0x005F80FCu + 4u * (uint32_t) dir) + S32(st, 0x00EAE000u);
+            dir = S32(st, G_PATH_DIRECTIONS + 16u * d + 4u * (uint32_t) k);
+            o = S32(st, G_DIRECTION_OFFSETS + 4u * (uint32_t) dir) + S32(st, G_PATH_TILE);
             int32_t dd = DIST(o);
             if (dd > 0 && dd < cur &&
-                (!((TER(o) >> 8) & 1) || GAME_CALL(st, 0x0051C390u, o) != 0)) {
+                (!((TER(o) >> 8) & 1) || GAME_CALL(st, FN_BRIDGE_PASSABLE, o) != 0)) {
                 break;
             }
         }
         if (k >= 4) {
             return 0;
         }
-        x += S32(st, 0x005F811Cu + 8u * (uint32_t) dir);
-        y += S32(st, 0x005F8120u + 8u * (uint32_t) dir);
-        S32(st, 0x00EAE000u) = o;
+        x += S32(st, G_DIRECTION_STEPS + 8u * (uint32_t) dir);
+        y += S32(st, G_DIRECTION_STEPS + 4u + 8u * (uint32_t) dir);
+        S32(st, G_PATH_TILE) = o;
         steps++;
         if (steps >= 400) {
             return 0;
@@ -562,7 +548,7 @@ static int end_tile_ok(game_state *st, int32_t o, int allow_8a)
             return 0;
         }
         int16_t b = BGRID(o);
-        if (b == 0 || S16(st, BUILDING_ADDR(b) + 0x10) != 0x8A) {
+        if (b == 0 || S16(st, BUILDING_ADDR(b) + BLD_TYPE) != 0x8A) {
             return 0;
         }
     }
@@ -573,32 +559,32 @@ void place_road(game_state *st, int32_t preview, int32_t x1, int32_t y1, int32_t
 {
     /* @bin 0x00474F50 */
     restore_grids(st, 0);
-    S32(st, COUNT) = 0;
+    S32(st, G_CONSTRUCTION_COUNT) = 0;
     if (!end_tile_ok(st, offset_of(st, x1, y1), 1) || !end_tile_ok(st, offset_of(st, x2, y2), 0)) {
         return;
     }
-    int32_t r = S32(st, 0x00605A3Cu) != 0 ? GAME_CALL(st, 0x0051B680u, 0, x1, y1, 0) : place_path_fill(st, 0, x1, y1, 0);
+    int32_t r = S32(st, G_EDITOR) != 0 ? GAME_CALL(st, FN_DRAG_PATH_FILL, 0, x1, y1, 0) : place_path_fill(st, 0, x1, y1, 0);
     if (r == 0) {
         return;
     }
     if (place_path_walk(st, 0, x1, y1, x2, y2, 0) == 0 || preview != 0) {
         return;
     }
-    GAME_CALL(st, 0x00516F90u, x1, y1, x2, y2, 1);
-    GAME_CALL(st, 0x005173A0u, x1, y1, x2, y2);
-    GAME_CALL(st, 0x004746D0u, x1, y1, x2 - x1);
-    U8(st, 0x00E38DCAu) = 1;
+    GAME_CALL(st, FN_ROUTING_FILL_EE0C50, x1, y1, x2, y2, 1);
+    GAME_CALL(st, FN_ROUTING_FILL_EC7630, x1, y1, x2, y2);
+    GAME_CALL(st, FN_TERRAIN_LAND_AROUND, x1, y1, x2 - x1);
+    U8(st, G_REDRAW) = 1;
 }
 
 void place_canal(game_state *st, int32_t preview, int32_t x1, int32_t y1, int32_t x2, int32_t y2)
 {
     /* @bin 0x00475090 */
     restore_grids(st, 0);
-    S32(st, COUNT) = 0;
+    S32(st, G_CONSTRUCTION_COUNT) = 0;
     if (!end_tile_ok(st, offset_of(st, x1, y1), 1) || !end_tile_ok(st, offset_of(st, x2, y2), 1)) {
         return;
     }
-    int32_t r = S32(st, 0x00605A3Cu) != 0 ? GAME_CALL(st, 0x0051B680u, 0, x1, y1, 1) : place_path_fill(st, 0, x1, y1, 1);
+    int32_t r = S32(st, G_EDITOR) != 0 ? GAME_CALL(st, FN_DRAG_PATH_FILL, 0, x1, y1, 1) : place_path_fill(st, 0, x1, y1, 1);
     if (r == 0) {
         return;
     }
@@ -607,12 +593,12 @@ void place_canal(game_state *st, int32_t preview, int32_t x1, int32_t y1, int32_
     }
     int32_t xa = x1 > x2 ? x2 : x1, xb = x1 > x2 ? x1 : x2;
     int32_t ya = y1 > y2 ? y2 : y1, yb = y1 > y2 ? y1 : y2;
-    GAME_CALL(st, 0x00475CC0u, xa - 1, ya - 1, xb + 1, yb + 1, 1);
-    GAME_CALL(st, 0x00517690u, xa, ya, xb, yb);
-    GAME_CALL0(st, 0x00517370u);
-    GAME_CALL(st, 0x005173A0u, xa, ya, xb, yb);
-    GAME_CALL0(st, 0x005178E0u);
-    U8(st, 0x00E38DCAu) = 1;
+    GAME_CALL(st, FN_WATER_PASS, xa - 1, ya - 1, xb + 1, yb + 1, 1);
+    GAME_CALL(st, FN_ROUTING_FILL_ED4140, xa, ya, xb, yb);
+    GAME_CALL0(st, FN_ROUTING_REBUILD_EE0C50);
+    GAME_CALL(st, FN_ROUTING_FILL_EC7630, xa, ya, xb, yb);
+    GAME_CALL0(st, FN_ROUTING_REBUILD_EBAB20);
+    U8(st, G_REDRAW) = 1;
 }
 
 /* ---- walls ---------------------------------------------------------------------------------- */
@@ -622,7 +608,7 @@ void place_wall_tile(game_state *st, int32_t x, int32_t y, int32_t mode, uint32_
     /* @bin 0x0047AD20 (x, y, mode, flag) mode 1: the wall kind bits 0xC04000 := flag (counted, and
      * a refund of half the cost of the kind replaced: 0x00705F94 for 0x4000, 0x007078E4 for 0x404000
      * replaced by 0x804000); else cleared; then the wall images of the 3x3 block */
-    if ((uint8_t) GAME_CALL(st, 0x0046F930u, x + S32(st, VIEW_DX), y + S32(st, VIEW_DY)) == 0) {
+    if ((uint8_t) GAME_CALL(st, FN_MAP_TILE_INSIDE, x + S32(st, G_VIEW_DX), y + S32(st, G_VIEW_DY)) == 0) {
         return;
     }
     int32_t o = offset_of(st, x, y);
@@ -632,14 +618,14 @@ void place_wall_tile(game_state *st, int32_t x, int32_t y, int32_t mode, uint32_
         if (kind != flag) {
             int32_t add;
             if (kind == 0x4000u) {
-                add = S32(st, 0x00705F94u) / 2;
+                add = S32(st, G_MODEL_BUILDING + 0x28u * 6u) / 2;
             } else if (kind == 0x404000u && flag == 0x804000u) {
-                add = S32(st, 0x007078E4u) / 2;
+                add = S32(st, G_MODEL_BUILDING + 0x28u * 0xA8u) / 2;
             } else {
                 add = 0;
             }
-            S32(st, COUNT) += 1;
-            S32(st, REFUND) += add;
+            S32(st, G_CONSTRUCTION_COUNT) += 1;
+            S32(st, G_REFUND) += add;
         }
         TER(o) = (t & 0xFF3FBFFFu) | flag;
     } else {
@@ -649,52 +635,52 @@ void place_wall_tile(game_state *st, int32_t x, int32_t y, int32_t mode, uint32_
     int32_t x0, y0, w, h;
     cell_neighbourhood(st, x, y, &x0, &y0, &w, &h);
     int32_t yend = h + y0;
-    S32(st, CUR_Y) = y0;
+    S32(st, G_WALK_Y) = y0;
     int32_t off = offset_of(st, x0, y0);
-    S32(st, CUR_OFF) = off;
+    S32(st, G_TILE_CURSOR) = off;
     if (y0 >= yend) {
         return;
     }
     int32_t xend = w + x0;
     do {
-        S32(st, CUR_X) = x0;
+        S32(st, G_WALK_X) = x0;
         if (x0 < xend) {
             int32_t cx;
             do {
                 uint32_t v = TER(off);
                 if ((v & 0x4000u) && !(v & 8u)) {
-                    GAME_CALL(st, 0x0047DB00u, 0x4000);
-                    GAME_CALL0(st, 0x00484F00u);
-                    GAME_CALL(st, 0x00484BE0u, 0x005CB9D8, 0x30, -1, 0);
-                    int32_t img = S32(st, 0x00F5686Cu) + S32(st, 0x00BC9740u) + S32(st, 0x00BC9748u);
-                    off = S32(st, CUR_OFF);
+                    GAME_CALL(st, FN_NEIGHBOURS_WITH_FLAGS, 0x4000);
+                    GAME_CALL0(st, FN_SCRATCH_INVERT);
+                    GAME_CALL(st, FN_LAND_PATTERN_MATCH, G_WALL_PATTERNS, 0x30, -1, 0);
+                    int32_t img = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 407u) + S32(st, G_M_VARIANT) + S32(st, G_M_OFFSET);
+                    off = S32(st, G_TILE_CURSOR);
                     IMG(off) = img;
                     EDGE(off) |= 0x40;
                     BITS(off) &= 0xF0;
-                    if (GAME_CALL0(st, 0x0047E000u) != 0) {
-                        GAME_CALL0(st, 0x0047E750u);
-                        if (GAME_CALL(st, 0x00484BE0u, 0x005CBCD8, 0xF, -1, 0) != 0) {
-                            img = S32(st, 0x00F5686Cu) + S32(st, 0x00BC9740u) + S32(st, 0x00BC9748u);
-                            IMG(S32(st, CUR_OFF)) = img;
+                    if (GAME_CALL0(st, FN_SCRATCH_WALLS_BUILDINGS) != 0) {
+                        GAME_CALL0(st, FN_SCRATCH_ADD_WALLS);
+                        if (GAME_CALL(st, FN_LAND_PATTERN_MATCH, G_WALL_PATTERNS_B, 0xF, -1, 0) != 0) {
+                            img = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 407u) + S32(st, G_M_VARIANT) + S32(st, G_M_OFFSET);
+                            IMG(S32(st, G_TILE_CURSOR)) = img;
                         } else {
-                            GAME_CALL(st, 0x0051F780u, 1);
+                            GAME_CALL(st, FN_NOTHING, 1);
                         }
                     } else {
-                        GAME_CALL(st, 0x0051F780u, 0);
+                        GAME_CALL(st, FN_NOTHING, 0);
                     }
-                    GAME_CALL(st, 0x004746D0u, S32(st, CUR_X), S32(st, CUR_Y), 1);
-                    off = S32(st, CUR_OFF);
+                    GAME_CALL(st, FN_TERRAIN_LAND_AROUND, S32(st, G_WALK_X), S32(st, G_WALK_Y), 1);
+                    off = S32(st, G_TILE_CURSOR);
                 }
-                cx = S32(st, CUR_X) + 1;
+                cx = S32(st, G_WALK_X) + 1;
                 off++;
-                S32(st, CUR_X) = cx;
-                S32(st, CUR_OFF) = off;
+                S32(st, G_WALK_X) = cx;
+                S32(st, G_TILE_CURSOR) = off;
             } while (cx < xend);
         }
-        S32(st, CUR_Y) += 1;
+        S32(st, G_WALK_Y) += 1;
         off += GRID_SIZE - w;
-        S32(st, CUR_OFF) = off;
-    } while (S32(st, CUR_Y) < yend);
+        S32(st, G_TILE_CURSOR) = off;
+    } while (S32(st, G_WALK_Y) < yend);
 }
 
 static int32_t clamp(int32_t v, int32_t hi)
@@ -716,7 +702,7 @@ void place_walls(game_state *st, int32_t preview, int32_t x1, int32_t y1, int32_
 {
     /* @bin 0x00475220 a wall two tiles thick along the longer side of the drag */
     restore_grids(st, 0);
-    int32_t wm = S32(st, MAP_W) - 1, hm = S32(st, MAP_H) - 1;
+    int32_t wm = S32(st, G_MAP_WIDTH) - 1, hm = S32(st, G_MAP_HEIGHT) - 1;
     int32_t xa = clamp(x1, wm), ya = clamp(y1, hm), xb = clamp(x2, wm), yb = clamp(y2, hm);
     if (absv(xb - xa) > absv(yb - ya)) {
         if (yb > ya) {
@@ -739,8 +725,8 @@ void place_walls(game_state *st, int32_t preview, int32_t x1, int32_t y1, int32_
         ya = yb;
         yb = t;
     }
-    S32(st, COUNT) = 0;
-    int32_t skip = S32(st, MAP_W) - xb + xa - 1;
+    S32(st, G_CONSTRUCTION_COUNT) = 0;
+    int32_t skip = S32(st, G_MAP_WIDTH) - xb + xa - 1;
     int32_t off = offset_of(st, xa, ya);
     for (int32_t y = ya; y <= yb; y++) {
         for (int32_t x = xa; x <= xb; x++, off++) {
@@ -750,7 +736,7 @@ void place_walls(game_state *st, int32_t preview, int32_t x1, int32_t y1, int32_
             if (object_blocks(st, off)) {
                 continue;
             }
-            if ((uint8_t) GAME_CALL(st, 0x0046F930u, x + S32(st, VIEW_DX), y + S32(st, VIEW_DY)) == 0) {
+            if ((uint8_t) GAME_CALL(st, FN_MAP_TILE_INSIDE, x + S32(st, G_VIEW_DX), y + S32(st, G_VIEW_DY)) == 0) {
                 continue;
             }
             if (place_special_point_in(st, x, y, x, y)) {
@@ -759,18 +745,18 @@ void place_walls(game_state *st, int32_t preview, int32_t x1, int32_t y1, int32_
             if (FGRID(off) != 0) {
                 continue;
             }
-            S32(st, CUR_OFF) = off;
+            S32(st, G_TILE_CURSOR) = off;
             place_wall_tile(st, x, y, 1, flag);
         }
-        off += S32(st, ROW_EXTRA) + skip;
+        off += S32(st, G_MAP_STRIDE_EXTRA) + skip;
     }
     if (preview != 0) {
         return;
     }
-    GAME_CALL(st, 0x00516F90u, xa, ya, xb, yb, 1);
-    GAME_CALL(st, 0x005173A0u, xa, ya, xb, yb);
-    GAME_CALL0(st, 0x005178E0u);
-    U8(st, 0x00E38DCAu) = 1;
+    GAME_CALL(st, FN_ROUTING_FILL_EE0C50, xa, ya, xb, yb, 1);
+    GAME_CALL(st, FN_ROUTING_FILL_EC7630, xa, ya, xb, yb);
+    GAME_CALL0(st, FN_ROUTING_REBUILD_EBAB20);
+    U8(st, G_REDRAW) = 1;
 }
 
 /* ---- plazas and gardens --------------------------------------------------------------------- */
@@ -790,14 +776,14 @@ void place_plaza(game_state *st, int32_t preview, int32_t x1, int32_t y1, int32_
     if (ya < 0) {
         ya = 0;
     }
-    if (xb >= S32(st, MAP_W)) {
-        xb = S32(st, MAP_W) - 1;
+    if (xb >= S32(st, G_MAP_WIDTH)) {
+        xb = S32(st, G_MAP_WIDTH) - 1;
     }
-    if (yb >= S32(st, MAP_H)) {
-        yb = S32(st, MAP_H) - 1;
+    if (yb >= S32(st, G_MAP_HEIGHT)) {
+        yb = S32(st, G_MAP_HEIGHT) - 1;
     }
-    S32(st, COUNT) = 0;
-    int32_t skip = S32(st, MAP_W) - xb + xa - 1;
+    S32(st, G_CONSTRUCTION_COUNT) = 0;
+    int32_t skip = S32(st, G_MAP_WIDTH) - xb + xa - 1;
     int32_t off = offset_of(st, xa, ya);
     for (int32_t y = ya; y <= yb; y++) {
         if (xa <= xb) {
@@ -806,21 +792,21 @@ void place_plaza(game_state *st, int32_t preview, int32_t x1, int32_t y1, int32_
                 if (!(t & 0x40) || (t & 0xC) || BGRID(off) != 0) {
                     continue;
                 }
-                if (GAME_CALL(st, 0x0047B8E0u, off) == 0) {
+                if (GAME_CALL(st, FN_TERRAIN_0X10000_OR_DESIRABLE, off) == 0) {
                     continue;
                 }
                 uint8_t b = BITS(off);
                 if (!(b & 0x80)) {
-                    S32(st, COUNT) += 1;
+                    S32(st, G_CONSTRUCTION_COUNT) += 1;
                 }
                 IMG(off) = 0;
                 BITS(off) = (uint8_t) ((b & 0xF0) | 0x80);
                 EDGE(off) |= 0x40;
             }
         }
-        off += S32(st, ROW_EXTRA) + skip;
+        off += S32(st, G_MAP_STRIDE_EXTRA) + skip;
     }
-    GAME_CALL(st, 0x00475720u, 0, 0, S32(st, MAP_W) - 1, S32(st, MAP_H) - 1, 1);
+    GAME_CALL(st, FN_PLAZA_RECT, 0, 0, S32(st, G_MAP_WIDTH) - 1, S32(st, G_MAP_HEIGHT) - 1, 1);
 }
 
 void place_gardens(game_state *st, int32_t preview, int32_t x1, int32_t y1, int32_t x2, int32_t y2)
@@ -837,14 +823,14 @@ void place_gardens(game_state *st, int32_t preview, int32_t x1, int32_t y1, int3
     if (ya < 0) {
         ya = 0;
     }
-    if (xb >= S32(st, MAP_W)) {
-        xb = S32(st, MAP_W) - 1;
+    if (xb >= S32(st, G_MAP_WIDTH)) {
+        xb = S32(st, G_MAP_WIDTH) - 1;
     }
-    if (yb >= S32(st, MAP_H)) {
-        yb = S32(st, MAP_H) - 1;
+    if (yb >= S32(st, G_MAP_HEIGHT)) {
+        yb = S32(st, G_MAP_HEIGHT) - 1;
     }
-    S32(st, COUNT) = 0;
-    int32_t skip = S32(st, MAP_W) - xb + xa - 1;
+    S32(st, G_CONSTRUCTION_COUNT) = 0;
+    int32_t skip = S32(st, G_MAP_WIDTH) - xb + xa - 1;
     int32_t off = offset_of(st, xa, ya);
     for (int32_t y = ya; y <= yb; y++) {
         for (int32_t x = xa; x <= xb; x++, off++) {
@@ -857,12 +843,12 @@ void place_gardens(game_state *st, int32_t preview, int32_t x1, int32_t y1, int3
             if (place_special_point_in(st, x, y, x, y)) {
                 continue;
             }
-            S32(st, COUNT) += 1;
+            S32(st, G_CONSTRUCTION_COUNT) += 1;
             TER(off) |= 0x20u;
         }
-        off += S32(st, ROW_EXTRA) + skip;
+        off += S32(st, G_MAP_STRIDE_EXTRA) + skip;
     }
-    GAME_CALL0(st, 0x00476530u);
+    GAME_CALL0(st, FN_FLAG_0X20_ALL);
 }
 
 /* ---- table ------------------------------------------------------------------------------------ */

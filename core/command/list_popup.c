@@ -6,6 +6,7 @@
 #include "newgame/start.h"
 #include "sim/call.h"
 #include "sim/platform.h"
+#include "state/layout.h"
 #include "state/ported.h"
 
 void list_popup_open(game_state *st, const int32_t *a)
@@ -27,37 +28,37 @@ void list_popup_open(game_state *st, const int32_t *a)
     if (per <= 0) {
         per = 0x1A;
     }
-    S32(st, 0x00605954u) = a[0];
-    S32(st, 0x00605938u) = a[7];
-    S32(st, 0x0060594Cu) = a[1];
-    S32(st, 0x00605930u) = a[5];
-    S32(st, 0x00605934u) = a[6];
-    S32(st, 0x00605944u) = a[3];
-    S32(st, 0x0060592Cu) = a[9];
-    S32(st, 0x0060593Cu) = a[8];
-    S32(st, 0x00605940u) = a[4];
-    U8(st, 0x006057F0u) = (uint8_t) a[14];
-    S32(st, 0x00605A50u) = a[11];
-    S32(st, 0x00605948u) = n;
-    S32(st, 0x00605950u) = per;
-    S32(st, 0x006057ECu) = (n + per - 1) / per;
+    S32(st, G_LIST_A1) = a[0];
+    S32(st, G_LIST_A8) = a[7];
+    S32(st, G_LIST_A2) = a[1];
+    S32(st, G_LIST_A6) = a[5];
+    S32(st, G_LIST_A7) = a[6];
+    S32(st, G_LIST_TEXT_GROUP) = a[3];
+    S32(st, G_LIST_A10) = a[9];
+    S32(st, G_LIST_A9) = a[8];
+    S32(st, G_LIST_TEXT_FIRST) = a[4];
+    U8(st, G_LIST_A15) = (uint8_t) a[14];
+    S32(st, G_LIST_A12) = a[11];
+    S32(st, G_LIST_COUNT) = n;
+    S32(st, G_LIST_PER_COLUMN) = per;
+    S32(st, G_LIST_COLUMNS) = (n + per - 1) / per;
     if ((uint8_t) a[10] == 0) {
         for (int32_t i = 0; i < n; i++) {
-            S32(st, 0x006057F4u + 4u * (uint32_t) i) = i;
+            S32(st, G_LIST_ORDER + 4u * (uint32_t) i) = i;
         }
     }
-    S32(st, 0x00605958u) = U8(st, 0x00E38DDAu);
-    S32(st, 0x00E38DDCu) = 0x14;
-    U8(st, 0x00E38DDAu) = (uint8_t) a[12] != 0 ? 0x48 : 0x0F;
+    S32(st, G_LIST_PREV_WINDOW) = U8(st, G_WINDOW);
+    S32(st, G_UE38DDC) = 0x14;
+    U8(st, G_WINDOW) = (uint8_t) a[12] != 0 ? 0x48 : 0x0F;
     for (int32_t i = 0; i < n; i++) {
-        uint32_t e = 0x00704DC8u + 0x1Cu * (uint32_t) i;
+        uint32_t e = G_LIST_BUTTONS + 0x1Cu * (uint32_t) i;
         int32_t col = i / per, row = i % per;
         S16(st, e) = (int16_t) (col * 200 + 5);
         S16(st, e + 2) = (int16_t) (row * 20 + 0x0E);
         S16(st, e + 4) = (int16_t) (col * 200 + 0xC9);
         S16(st, e + 6) = (int16_t) (row * 20 + 0x20);
         U32(st, e + 8) = 0x00403950u;
-        U32(st, e + 0x0C) = 0x0051F780u;
+        U32(st, e + 0x0C) = FN_NOTHING;
         U8(st, e + 0x10) = 0;
         U8(st, e + 0x11) = 0;
         U8(st, e + 0x12) = 0;
@@ -87,17 +88,17 @@ uint8_t replay_possible(game_state *st)
      * directory (0x005169C0) + "\" (0x005761D0) + "autosave_replay.sav" (0x0057BFC4) opens with
      * fopen "rb" (0x005763BC; then fclose). Otherwise 1 */
     char path[300] = "";
-    if (S32(st, 0x00E38EBCu) != 0) {
-        cat_state(path, sizeof(path), st, 0x0057626Cu);
-        cat_state(path, sizeof(path), st, 0x00E37078u);
+    if (S32(st, G_CUSTOM) != 0) {
+        cat_state(path, sizeof(path), st, G_STR_MAPS_DIR);
+        cat_state(path, sizeof(path), st, G_MAP_NAME);
         return newgame_map_file_exists(st, path) != 0;
     }
-    if (U8(st, 0x007027B4u) != 1) {
+    if (U8(st, G_CAMPAIGN_KIND) != 1) {
         return 1;
     }
     cat_state(path, sizeof(path), st, family_dir_path(st));
-    cat_state(path, sizeof(path), st, 0x005761D0u);
-    cat_state(path, sizeof(path), st, 0x0057BFC4u);
+    cat_state(path, sizeof(path), st, G_STR_BACKSLASH);
+    cat_state(path, sizeof(path), st, G_STR_AUTOSAVE_REPLAY);
     return platform_file_read(st, path, 0, NULL, 0) >= 0;
 }
 

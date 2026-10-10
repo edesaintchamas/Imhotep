@@ -17,59 +17,29 @@
 #include "figure/formation.h"
 #include "figure/helpers_x.h"
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define CURRENT_FIGURE 0x00D056F8u
-#define MAP_START 0x00BCA2D8u
-#define TERRAIN_GRID 0x00AF598Cu   /* u32 per tile */
-#define FIGURE_GRID 0x00B350DCu    /* i16 per tile: first figure on the tile */
-#define BUILDING_GRID 0x00B4E6FCu  /* i16 per tile: building */
-#define ROUTE_DIST 0x00EED760u     /* i32 per tile: distances of the last 0x00517A40 */
-#define ROAD_X 0x00D3B4E4u         /* outputs of 0x004806C0 */
-#define ROAD_Y 0x00D3B4E0u
 
-#define GATE 0x00E38E60u           /* u8, always 0 in single player (docs/commands.md §1.1) */
-#define WINDOW 0x00E38DDAu
-#define REDRAW 0x00E38DCAu
-#define PARAM1 0x00D3B198u
-#define PARAM2 0x00D3B194u
-#define CTX_FORMATION 0x00EADCCCu
-#define CTX_TRANSPORT 0x00EADCC8u
-#define CTX_WARSHIP 0x00EADCC4u
-#define SEL_FORMATION 0x00BCB9C0u
-#define SEL_TRANSPORT 0x00D05700u
-#define SEL_WARSHIP 0x00D05704u
-#define TRANSPORT_MODE 0x00D05708u
-#define WARSHIP_MODE 0x00D0570Cu
-#define MOUSE_OFFSET 0x00BCA2C4u
-#define MOUSE_X 0x00BCA2C8u
-#define MOUSE_Y 0x00BCA2CCu
-#define CONSTRUCTION_TYPE 0x006059E8u
-#define CURSOR 0x00E390DCu
 
 /* @bin 0x00406863 the sounds of the legion orders (0x0047D350(path, 1, 0)) */
-#define WAV_COHORT1 0x00576238
-#define WAV_COHORT2 0x00576224
-#define WAV_COHORT3 0x00576210
-#define WAV_COHORT4 0x005761FC
-#define WAV_COHORT5 0x0057624C
 
 static void sound(game_state *st, int32_t path)
 {
-    GAME_CALL(st, 0x0047D350u, path, 1, 0);
+    GAME_CALL(st, FN_RETURN_ZERO, path, 1, 0);
 }
 
 static uint32_t mouse_offset(game_state *st)
 {
     /* @bin 0x0040C469 map start + y·228 + x */
-    return U32(st, MAP_START) + 228u * U32(st, MOUSE_Y) + U32(st, MOUSE_X);
+    return U32(st, G_MAP_START) + 228u * U32(st, G_MOUSE_TILE_Y) + U32(st, G_MOUSE_TILE_X);
 }
 
 static void popup(game_state *st, int32_t text)
 {
     /* @bin 0x0040A42F confirmation popup 0x004264D0(text, 0x0051F780, 1) */
-    GAME_CALL(st, 0x004264D0u, text, 0x0051F780, 1);
+    GAME_CALL(st, FN_POPUP_CONFIRM_OPEN, text, FN_NOTHING, 1);
 }
 
 /* ---- helpers ------------------------------------------------------------------------------- */
@@ -78,27 +48,27 @@ int32_t tile_soldier_formation(game_state *st, int32_t offset)
 {
     /* @bin 0x004B5520 the formation (+0x60) of the first figure of types 0x0B..0x0E on the tile
      * (chain +0x08), else 0 */
-    int32_t id = S16(st, FIGURE_GRID + 2u * (uint32_t) offset);
+    int32_t id = S16(st, G_FIGURE_GRID + 2u * (uint32_t) offset);
     while (id != 0) {
         uint32_t f = FIGURE_ADDR(id);
-        uint8_t type = U8(st, f + 0x0A);
+        uint8_t type = U8(st, f + FIG_TYPE);
         if (type >= 0x0B && type <= 0x0E) {
-            return S16(st, f + 0x60);
+            return S16(st, f + FIG_FORMATION);
         }
-        id = S16(st, f + 0x08);
+        id = S16(st, f + FIG_NEXT_ON_TILE);
     }
     return 0;
 }
 
 static int32_t tile_figure_of_type(game_state *st, int32_t offset, uint8_t type)
 {
-    int32_t id = S16(st, FIGURE_GRID + 2u * (uint32_t) offset);
+    int32_t id = S16(st, G_FIGURE_GRID + 2u * (uint32_t) offset);
     while (id != 0) {
         uint32_t f = FIGURE_ADDR(id);
-        if (U8(st, f + 0x0A) == type) {
+        if (U8(st, f + FIG_TYPE) == type) {
             return id;
         }
-        id = S16(st, f + 0x08);
+        id = S16(st, f + FIG_NEXT_ON_TILE);
     }
     return 0;
 }
@@ -119,17 +89,17 @@ int32_t tile_fort_formation(game_state *st, int32_t offset)
 {
     /* @bin 0x004B55F0 the building on the tile, in use and of type 0x36 or 0x39: its +0x50
      * (formation), else 0 */
-    int32_t b = S16(st, BUILDING_GRID + 2u * (uint32_t) offset);
+    int32_t b = S16(st, G_BUILDING_GRID + 2u * (uint32_t) offset);
     if (b <= 0) {
         return 0;
     }
     uint32_t ba = BUILDING_ADDR(b);
-    if (U8(st, ba) != 1) {
+    if (U8(st, ba + BLD_STATE) != 1) {
         return 0;
     }
-    uint16_t type = U16(st, ba + 0x10);
+    uint16_t type = U16(st, ba + BLD_TYPE);
     if (type == 0x36 || type == 0x39) {
-        return S16(st, ba + 0x50);
+        return S16(st, ba + BLD_U50);
     }
     return 0;
 }
@@ -139,22 +109,22 @@ int32_t tile_enemy_figure(game_state *st, int32_t offset)
     /* @bin 0x004B5640 the first figure on the tile that is not dying (+0x38 4) and is of types
      * 0x2B..0x39, 0x29 in action 0x0B, or 0x52, 0x53, 0x68, 0x66, 0x67, 0x54, 0x6D, 0x63, 0x64,
      * 0x65, 0x5D, 0x5C; else 0 */
-    int32_t id = S16(st, FIGURE_GRID + 2u * (uint32_t) offset);
+    int32_t id = S16(st, G_FIGURE_GRID + 2u * (uint32_t) offset);
     if (id <= 0) {
         return 0;
     }
     do {
         uint32_t f = FIGURE_ADDR(id);
-        uint8_t action = U8(st, f + 0x38);
+        uint8_t action = U8(st, f + FIG_ACTION);
         if (action != 4) {
-            uint8_t t = U8(st, f + 0x0A);
+            uint8_t t = U8(st, f + FIG_TYPE);
             if ((t >= 0x2B && t <= 0x39) || (t == 0x29 && action == 0x0B) || t == 0x52 || t == 0x53 ||
                 t == 0x68 || t == 0x66 || t == 0x67 || t == 0x54 || t == 0x6D || t == 0x63 || t == 0x64 ||
                 t == 0x65 || t == 0x5D || t == 0x5C) {
                 return id;
             }
         }
-        id = S16(st, f + 0x08);
+        id = S16(st, f + FIG_NEXT_ON_TILE);
     } while (id > 0);
     return 0;
 }
@@ -165,7 +135,7 @@ int32_t tile_enemy_figure(game_state *st, int32_t offset)
 static int man_ready(game_state *st, uint32_t fa, int32_t id, int32_t fid, int fighting, int attack_check)
 {
     uint32_t f = FIGURE_ADDR(fid);
-    uint8_t action = U8(st, f + 0x38);
+    uint8_t action = U8(st, f + FIG_ACTION);
     if (action == 4 || (fighting && action == 5)) {
         return 0;
     }
@@ -186,7 +156,7 @@ static int man_ready(game_state *st, uint32_t fa, int32_t id, int32_t fid, int f
  * (+0x13C, +0x140); +0x00, +0x134 and the current figure's +0x01 cleared */
 static void chariots_recall(game_state *st, int32_t id, uint32_t fa, int32_t param)
 {
-    if (S16(st, fa + 4) != 0x0D || U8(st, FIGURE_ADDR(S16(st, fa + 8)) + 0x38) != 0x13 || param == 1) {
+    if (S16(st, fa + 4) != 0x0D || U8(st, FIGURE_ADDR(S16(st, fa + 8)) + FIG_ACTION) != 0x13 || param == 1) {
         return;
     }
     for (int32_t i = 0; i < 16; i++) {
@@ -198,12 +168,12 @@ static void chariots_recall(game_state *st, int32_t id, uint32_t fa, int32_t par
             continue;
         }
         uint32_t f = FIGURE_ADDR(fid);
-        U8(st, f + 0x00) = 0;
-        S32(st, f + 0x134) = 0;
-        S32(st, f + 0x13C) = S16(st, f + 0x14);
-        S32(st, f + 0x140) = S16(st, f + 0x16);
-        U8(st, f + 0x38) = 0x0C;
-        U8(st, FIGURE_ADDR(S32(st, CURRENT_FIGURE)) + 0x01) = 0;
+        U8(st, f + FIG_U00) = 0;
+        S32(st, f + FIG_U134) = 0;
+        S32(st, f + FIG_U13C) = S16(st, f + FIG_X);
+        S32(st, f + FIG_U140) = S16(st, f + FIG_Y);
+        U8(st, f + FIG_ACTION) = 0x0C;
+        U8(st, FIGURE_ADDR(S32(st, G_CURRENT_FIGURE)) + FIG_ANIM_FRAME) = 0;
     }
 }
 
@@ -219,14 +189,14 @@ int32_t formation_attack(game_state *st, int32_t x, int32_t y, int32_t id, int32
     static const int8_t dy[9] = {-1, 0, 1, -1, 0, 1, -1, 0, 1};
     uint32_t fa = FORMATION_ADDR(id);
     int32_t leader = S16(st, fa + 0x40);
-    if (U8(st, GATE) != 0) {
+    if (U8(st, G_GATE) != 0) {
         return 0;
     }
     route_distances_to(st, S16(st, fa + 0x2E), S16(st, fa + 0x30), -2, -2);
     uint32_t lf = FIGURE_ADDR(leader);
     int32_t k = 0, r = 0;
     for (; k < 9; k++) {
-        r = route_even_to(st, S16(st, lf + 0x14), S16(st, lf + 0x16), x + dx[k], y + dy[k]);
+        r = route_even_to(st, S16(st, lf + FIG_X), S16(st, lf + FIG_Y), x + dx[k], y + dy[k]);
         if (r != 0) {
             break;
         }
@@ -236,7 +206,7 @@ int32_t formation_attack(game_state *st, int32_t x, int32_t y, int32_t id, int32
         return 0;
     }
     int32_t tx = x + dx[k], ty = y + dy[k];
-    if (S32(st, ROUTE_DIST + 4u * (U32(st, MAP_START) + 228u * (uint32_t) ty + (uint32_t) tx)) <= 0) {
+    if (S32(st, G_GRID_ROAD_DISTANCE + 4u * (U32(st, G_MAP_START) + 228u * (uint32_t) ty + (uint32_t) tx)) <= 0) {
         return 0;
     }
     int16_t fx = S16(st, fa + 0x2E);
@@ -254,7 +224,7 @@ int32_t formation_attack(game_state *st, int32_t x, int32_t y, int32_t id, int32
     if (S16(st, fa + 0x2C) <= 0x14) {
         notice_add_4e2970(st, 0x33);
     }
-    if (S16(st, fa + 4) == 0x0D && U8(st, FIGURE_ADDR(S16(st, fa + 8)) + 0x38) == 0x13 && S32(st, PARAM1) != 1) {
+    if (S16(st, fa + 4) == 0x0D && U8(st, FIGURE_ADDR(S16(st, fa + 8)) + FIG_ACTION) == 0x13 && S32(st, G_PARAM1) != 1) {
         for (int32_t i = 0; i < 16; i++) {
             int32_t fid = S16(st, fa + 8 + 2u * (uint32_t) i);
             if (fid == 0) {
@@ -264,13 +234,13 @@ int32_t formation_attack(game_state *st, int32_t x, int32_t y, int32_t id, int32
                 continue;
             }
             uint32_t f = FIGURE_ADDR(fid);
-            U8(st, f + 0x00) = 0;
-            S32(st, f + 0x134) = 0;
-            S32(st, f + 0x13C) = S16(st, f + 0x14);
-            S32(st, f + 0x140) = S16(st, f + 0x16);
-            U8(st, f + 0x38) = 0x15;
-            S16(st, f + 0x82) = 0;
-            U8(st, FIGURE_ADDR(S32(st, CURRENT_FIGURE)) + 0x01) = 0;
+            U8(st, f + FIG_U00) = 0;
+            S32(st, f + FIG_U134) = 0;
+            S32(st, f + FIG_U13C) = S16(st, f + FIG_X);
+            S32(st, f + FIG_U140) = S16(st, f + FIG_Y);
+            U8(st, f + FIG_ACTION) = 0x15;
+            S16(st, f + FIG_TARGET) = 0;
+            U8(st, FIGURE_ADDR(S32(st, G_CURRENT_FIGURE)) + FIG_ANIM_FRAME) = 0;
         }
     }
     for (int32_t i = 0; i < 16; i++) {
@@ -282,9 +252,9 @@ int32_t formation_attack(game_state *st, int32_t x, int32_t y, int32_t id, int32
             continue;
         }
         uint32_t f = FIGURE_ADDR(fid);
-        U8(st, f + 0x00) = 0;
-        U8(st, f + 0x38) = 0x15;
-        S16(st, f + 0x82) = 0;
+        U8(st, f + FIG_U00) = 0;
+        U8(st, f + FIG_ACTION) = 0x15;
+        S16(st, f + FIG_TARGET) = 0;
         figure_route_release(st, fid);
     }
     return 1;
@@ -297,16 +267,16 @@ int32_t formation_charge_to(game_state *st, int32_t x, int32_t y, int32_t id)
      * +0x140 its tile) goes to action 0x13 */
     uint32_t fa = FORMATION_ADDR(id);
     int32_t leader = S16(st, fa + 0x40);
-    if (U8(st, GATE) != 0) {
+    if (U8(st, G_GATE) != 0) {
         return 0;
     }
     route_distances_to(st, S16(st, fa + 0x2E), S16(st, fa + 0x30), -2, -2);
     uint32_t lf = FIGURE_ADDR(leader);
-    if (route_even_to(st, S16(st, lf + 0x14), S16(st, lf + 0x16), x, y) == 0) {
+    if (route_even_to(st, S16(st, lf + FIG_X), S16(st, lf + FIG_Y), x, y) == 0) {
         notice_add_4e2970(st, 0xD3);
         return 0;
     }
-    if (S32(st, ROUTE_DIST + 4u * (U32(st, MAP_START) + 228u * (uint32_t) y + (uint32_t) x)) <= 0) {
+    if (S32(st, G_GRID_ROAD_DISTANCE + 4u * (U32(st, G_MAP_START) + 228u * (uint32_t) y + (uint32_t) x)) <= 0) {
         return 0;
     }
     if (x == S16(st, fa + 0x2E) && y == S16(st, fa + 0x30)) {
@@ -333,11 +303,11 @@ int32_t formation_charge_to(game_state *st, int32_t x, int32_t y, int32_t id)
             continue;
         }
         uint32_t f = FIGURE_ADDR(fid);
-        U8(st, f + 0x00) = 0;
-        S32(st, f + 0x134) = 0;
-        S32(st, f + 0x13C) = S16(st, f + 0x14);
-        S32(st, f + 0x140) = S16(st, f + 0x16);
-        U8(st, f + 0x38) = 0x13;
+        U8(st, f + FIG_U00) = 0;
+        S32(st, f + FIG_U134) = 0;
+        S32(st, f + FIG_U13C) = S16(st, f + FIG_X);
+        S32(st, f + FIG_U140) = S16(st, f + FIG_Y);
+        U8(st, f + FIG_ACTION) = 0x13;
         figure_route_release(st, fid);
     }
     return 1;
@@ -354,7 +324,7 @@ void formation_return(game_state *st, int32_t id, int32_t action)
     int32_t ship = S32(st, fa + 0x84);
     if (action != 0 && ship != 0) {
         uint32_t f = FIGURE_ADDR(ship);
-        U8(st, f + 0x38) = (uint8_t) action;
+        U8(st, f + FIG_ACTION) = (uint8_t) action;
         int32_t tx, ty;
         if (action == -1) {
             tx = S16(st, fa + 0x2E);
@@ -365,23 +335,23 @@ void formation_return(game_state *st, int32_t id, int32_t action)
         }
         /* the outputs are the original's argument slots (id, action) */
         int32_t px = id, py = action;
-        line_search_water(st, S16(st, f + 0x14), S16(st, f + 0x16), tx, ty, &px, &py);
-        S16(st, f + 0x24) = (int16_t) px;
-        S16(st, f + 0x26) = (int16_t) py;
-        S16(st, f + 0x30) = (int16_t) tx;
-        S16(st, f + 0x32) = (int16_t) ty;
+        line_search_water(st, S16(st, f + FIG_X), S16(st, f + FIG_Y), tx, ty, &px, &py);
+        S16(st, f + FIG_DEST_X) = (int16_t) px;
+        S16(st, f + FIG_DEST_Y) = (int16_t) py;
+        S16(st, f + FIG_U30) = (int16_t) tx;
+        S16(st, f + FIG_U32) = (int16_t) ty;
         figure_route_release(st, ship);
         return;
     }
     route_distances_to(st, S16(st, fa + 0x2E), S16(st, fa + 0x30), -2, -2);
     int32_t hx = S16(st, fa + 0x36), hy = S16(st, fa + 0x38);
-    uint32_t tile = U32(st, MAP_START) + 228u * (uint32_t) hy + (uint32_t) hx;
+    uint32_t tile = U32(st, G_MAP_START) + 228u * (uint32_t) hy + (uint32_t) hx;
     uint32_t lf = FIGURE_ADDR(leader);
-    if (route_even_to(st, S16(st, lf + 0x14), S16(st, lf + 0x16), hx, hy) == 0) {
+    if (route_even_to(st, S16(st, lf + FIG_X), S16(st, lf + FIG_Y), hx, hy) == 0) {
         notice_add_4e2970(st, 0xD3);
         return;
     }
-    if (S32(st, ROUTE_DIST + 4u * tile) <= 0 || S16(st, fa + 0x64) != 0) {
+    if (S32(st, G_GRID_ROAD_DISTANCE + 4u * tile) <= 0 || S16(st, fa + 0x64) != 0) {
         return;
     }
     U8(st, fa + 0x03) = 1;
@@ -393,7 +363,7 @@ void formation_return(game_state *st, int32_t id, int32_t action)
         if (!man_ready(st, fa, id, fid, 1, 1)) {
             continue;
         }
-        U8(st, FIGURE_ADDR(fid) + 0x38) = 9;
+        U8(st, FIGURE_ADDR(fid) + FIG_ACTION) = 9;
         figure_route_release(st, fid);
     }
 }
@@ -422,7 +392,7 @@ int32_t player_warship_by_row(game_state *st, int32_t row)
     uint32_t player = U32(st, CURRENT_PLAYER_ADDR);
     for (int32_t id = 1; id < FIGURE_COUNT; id++) {
         uint32_t f = FIGURE_ADDR(id);
-        if (U8(st, f + 0x0E) != 0 && U8(st, f + 0x0A) == 0x4E && U8(st, f + 0x0F) == player) {
+        if (U8(st, f + FIG_STATE) != 0 && U8(st, f + FIG_TYPE) == 0x4E && U8(st, f + FIG_OWNER) == player) {
             if (n == row) {
                 return id;
             }
@@ -437,26 +407,26 @@ int32_t player_warship_by_row(game_state *st, int32_t row)
  * (0x004B3250) is the current figure's (0x00D056F8), not the ship's. */
 static void ship_home(game_state *st, uint32_t f, int32_t mode_reset)
 {
-    int32_t save_y = S32(st, ROAD_Y), save_x = S32(st, ROAD_X);
-    uint32_t ba = BUILDING_ADDR(S16(st, f + 0x5A));
+    int32_t save_y = S32(st, G_ROAD_ACCESS_Y), save_x = S32(st, G_ROAD_ACCESS_X);
+    uint32_t ba = BUILDING_ADDR(S16(st, f + FIG_HOME));
     if (mode_reset) {
-        S32(st, TRANSPORT_MODE) = 0;
+        S32(st, G_TRANSPORT_MODE) = 0;
     }
-    building_find_road_8(st, S16(st, ba + 6), S16(st, ba + 8), U8(st, ba + 3));
-    S16(st, f + 0x2C) = S16(st, f + 0x14);
-    S16(st, f + 0x2E) = S16(st, f + 0x16);
-    S16(st, f + 0x24) = S16(st, ROAD_X);
-    S16(st, f + 0x26) = S16(st, ROAD_Y);
-    S32(st, ROAD_X) = save_x;
-    S32(st, ROAD_Y) = save_y;
-    figure_route_release(st, S32(st, CURRENT_FIGURE));
+    building_find_road_8(st, S16(st, ba + BLD_X), S16(st, ba + BLD_Y), U8(st, ba + BLD_SIZE));
+    S16(st, f + FIG_SOURCE_X) = S16(st, f + FIG_X);
+    S16(st, f + FIG_SOURCE_Y) = S16(st, f + FIG_Y);
+    S16(st, f + FIG_DEST_X) = S16(st, G_ROAD_ACCESS_X);
+    S16(st, f + FIG_DEST_Y) = S16(st, G_ROAD_ACCESS_Y);
+    S32(st, G_ROAD_ACCESS_X) = save_x;
+    S32(st, G_ROAD_ACCESS_Y) = save_y;
+    figure_route_release(st, S32(st, G_CURRENT_FIGURE));
 }
 
 void ship_return_to_wharf(game_state *st, int32_t id)
 {
     /* @bin 0x004BC670 ship `id` to action 0x0B, home */
     uint32_t f = FIGURE_ADDR(id);
-    U8(st, f + 0x38) = 0x0B;
+    U8(st, f + FIG_ACTION) = 0x0B;
     ship_home(st, f, 0);
 }
 
@@ -466,22 +436,22 @@ void ships_count(game_state *st)
      * warships (0x4E) CITY+0x4668, those with +0x02 set CITY+0x4669, transports (0x4D) +0x4664 */
     uint32_t player = U32(st, CURRENT_PLAYER_ADDR);
     uint32_t city = CITY_ADDR(player);
-    U8(st, city + 0x4669) = 0;
-    U8(st, city + 0x4668) = 0;
-    U8(st, city + 0x4664) = 0;
+    U8(st, city + CITY_U4669) = 0;
+    U8(st, city + CITY_WARSHIPS) = 0;
+    U8(st, city + CITY_TRANSPORTS) = 0;
     for (int32_t id = 1; id < FIGURE_COUNT; id++) {
         uint32_t f = FIGURE_ADDR(id);
-        if (U8(st, f + 0x0E) == 0 || U8(st, f + 0x0F) != player) {
+        if (U8(st, f + FIG_STATE) == 0 || U8(st, f + FIG_OWNER) != player) {
             continue;
         }
-        uint8_t type = U8(st, f + 0x0A);
+        uint8_t type = U8(st, f + FIG_TYPE);
         if (type == 0x4E) {
-            U8(st, city + 0x4668) += 1;
-            if (U8(st, f + 0x02) != 0) {
-                U8(st, city + 0x4669) += 1;
+            U8(st, city + CITY_WARSHIPS) += 1;
+            if (U8(st, f + FIG_U02) != 0) {
+                U8(st, city + CITY_U4669) += 1;
             }
         } else if (type == 0x4D) {
-            U8(st, city + 0x4664) += 1;
+            U8(st, city + CITY_TRANSPORTS) += 1;
         }
     }
 }
@@ -504,7 +474,7 @@ void military_requests(game_state *st, int32_t *first_other, int32_t *first_kind
         if (k < 0 || k >= 0x32) {
             continue;
         }
-        if (U8(st, 0x007770F0u + 0x144u * (uint32_t) k) == 2) {
+        if (U8(st, G_ARMIES + 0x144u * (uint32_t) k) == 2) {
             if (*first_kind2 < 0) {
                 *first_kind2 = P16(st, ev);
             }
@@ -533,12 +503,12 @@ void legion_order(game_state *st)
 {
     /* @bin 0x00406720 the legion window's layout buttons (table 0x005C66D8, p1 0..3) on formation
      * 0x00EADCCC, a player's (+0x82 < 0) */
-    int32_t id = S32(st, CTX_FORMATION);
+    int32_t id = S32(st, G_INFO_FORMATION);
     uint32_t fa = FORMATION_ADDR(id);
-    if (S16(st, fa + 0x82) >= 0 || U8(st, GATE) != 0) {
+    if (S16(st, fa + 0x82) >= 0 || U8(st, G_GATE) != 0) {
         return;
     }
-    int32_t p1 = S32(st, PARAM1);
+    int32_t p1 = S32(st, G_PARAM1);
     if (p1 == 3) {
         int16_t layout = S16(st, fa + 0x2A);
         if (layout != 6) {
@@ -546,12 +516,12 @@ void legion_order(game_state *st)
         }
     }
     chariots_recall(st, id, fa, p1);
-    p1 = S32(st, PARAM1);
+    p1 = S32(st, G_PARAM1);
     /* @bin 0x00406863 jump table 0x004069C4 */
     switch (p1) {
     case 0:
         S16(st, fa + 0x2A) = U8(st, fa + 0x77) != 0 ? 2 : 1;
-        sound(st, WAV_COHORT1);
+        sound(st, G_WAV_COHORT1);
         break;
     case 1:
         if (S16(st, fa + 4) == 0x0D) {
@@ -565,42 +535,42 @@ void legion_order(game_state *st)
         } else {
             S16(st, fa + 0x2A) = U8(st, fa + 0x77) != 0 ? 4 : 3;
         }
-        sound(st, WAV_COHORT2);
+        sound(st, G_WAV_COHORT2);
         break;
     case 2:
         S16(st, fa + 0x2A) = 0x0F;
-        sound(st, WAV_COHORT3);
+        sound(st, G_WAV_COHORT3);
         break;
     case 3:
         S16(st, fa + 0x2A) = 6;
-        sound(st, WAV_COHORT4);
+        sound(st, G_WAV_COHORT4);
         break;
     default:
         break;
     }
-    S32(st, SEL_FORMATION) = id;
+    S32(st, G_FORMATION) = id;
     int16_t layout = S16(st, fa + 0x2A);
     if (layout == 6) {
         S32(st, fa + 0x8C) = -1;
-        U8(st, WINDOW) = 1;
-        U8(st, REDRAW) = 1;
+        U8(st, G_WINDOW) = 1;
+        U8(st, G_REDRAW) = 1;
         return;
     }
     if (layout == 0) {
         S32(st, fa + 0x8C) = -1;
-        U8(st, WINDOW) = 0x49;
-        U8(st, REDRAW) = 1;
+        U8(st, G_WINDOW) = 0x49;
+        U8(st, G_REDRAW) = 1;
         return;
     }
     if (S16(st, fa + 0x7E) != 0) {
-        U8(st, WINDOW) = 9;
-        if (S32(st, PARAM1) != 1) {
-            U8(st, WINDOW) = 0x1E;
+        U8(st, G_WINDOW) = 9;
+        if (S32(st, G_PARAM1) != 1) {
+            U8(st, G_WINDOW) = 0x1E;
         }
     } else {
-        U8(st, WINDOW) = 0x1E;
+        U8(st, G_WINDOW) = 0x1E;
     }
-    U8(st, REDRAW) = 1;
+    U8(st, G_REDRAW) = 1;
     S32(st, fa + 0x8C) = -1;
 }
 
@@ -609,10 +579,10 @@ void legion_toggle_0x77(game_state *st)
     /* @bin 0x00407110 (image button 0x005C6768) formation +0x77 := 1 - +0x77; p1 from the layout
      * (table 0x004071AC: 1, 2 -> 0; 3, 4 -> 1; 0x0F -> 2); p2 1 applies 0x00406720 to the
      * selected formation 0x00BCB9C0 */
-    int32_t sel = S32(st, SEL_FORMATION);
-    int32_t ctx = S32(st, CTX_FORMATION);
+    int32_t sel = S32(st, G_FORMATION);
+    int32_t ctx = S32(st, G_INFO_FORMATION);
     int32_t id = (sel != 0 && sel == ctx) ? sel : ctx;
-    if (U8(st, GATE) != 0) {
+    if (U8(st, G_GATE) != 0) {
         return;
     }
     uint32_t fa = FORMATION_ADDR(id);
@@ -620,20 +590,20 @@ void legion_toggle_0x77(game_state *st)
     switch (S16(st, fa + 0x2A)) {
     case 1:
     case 2:
-        S32(st, PARAM1) = 0;
+        S32(st, G_PARAM1) = 0;
         break;
     case 3:
     case 4:
-        S32(st, PARAM1) = 1;
+        S32(st, G_PARAM1) = 1;
         break;
     case 0x0F:
-        S32(st, PARAM1) = 2;
+        S32(st, G_PARAM1) = 2;
         break;
     default:
         break;
     }
-    if (S32(st, PARAM2) == 1) {
-        S32(st, CTX_FORMATION) = sel;
+    if (S32(st, G_PARAM2) == 1) {
+        S32(st, G_INFO_FORMATION) = sel;
         legion_order(st);
     }
 }
@@ -642,56 +612,56 @@ void legion_return_to_fort(game_state *st)
 {
     /* @bin 0x00406FB0 (table 0x005C66D8 entry 4) formation 0x00EADCCC, a player's, not at home
      * (+0x03 1): home (0x004B6C20(id, 0x0E)) */
-    int32_t id = S32(st, CTX_FORMATION);
+    int32_t id = S32(st, G_INFO_FORMATION);
     uint32_t fa = FORMATION_ADDR(id);
-    if (S16(st, fa + 0x82) >= 0 || U8(st, fa + 0x03) == 1 || U8(st, GATE) != 0) {
+    if (S16(st, fa + 0x82) >= 0 || U8(st, fa + 0x03) == 1 || U8(st, G_GATE) != 0) {
         return;
     }
-    chariots_recall(st, id, fa, S32(st, PARAM1));
+    chariots_recall(st, id, fa, S32(st, G_PARAM1));
     formation_return(st, id, 0x0E);
-    sound(st, WAV_COHORT5);
-    U8(st, WINDOW) = 1;
-    U8(st, REDRAW) = 1;
+    sound(st, G_WAV_COHORT5);
+    U8(st, G_WINDOW) = 1;
+    U8(st, G_REDRAW) = 1;
 }
 
 void legion_window_close(game_state *st)
 {
     /* @bin 0x004071C0 the legion window (0x00EADD50 4) closes: 0x00406720 again with p1 from the
      * selected formation's layout (table 0x00407278) */
-    if (S32(st, 0x00EADCC0u) != 0) {
-        S32(st, 0x00EADCC0u) = 0;
-        U8(st, REDRAW) = 1;
+    if (S32(st, G_ORDERS) != 0) {
+        S32(st, G_ORDERS) = 0;
+        U8(st, G_REDRAW) = 1;
         return;
     }
-    if (S32(st, 0x00EADD50u) == 4) {
-        if (U8(st, GATE) != 0) {
+    if (S32(st, G_INFO_KIND) == 4) {
+        if (U8(st, G_GATE) != 0) {
             return;
         }
-        switch (S16(st, FORMATION_ADDR(S32(st, SEL_FORMATION)) + 0x2A)) {
+        switch (S16(st, FORMATION_ADDR(S32(st, G_FORMATION)) + 0x2A)) {
         case 1:
         case 2:
-            S32(st, PARAM1) = 0;
+            S32(st, G_PARAM1) = 0;
             legion_order(st);
-            U8(st, WINDOW) = 1;
-            U8(st, REDRAW) = 1;
+            U8(st, G_WINDOW) = 1;
+            U8(st, G_REDRAW) = 1;
             return;
         case 3:
         case 4:
-            S32(st, PARAM1) = 1;
+            S32(st, G_PARAM1) = 1;
             legion_order(st);
-            U8(st, WINDOW) = 1;
-            U8(st, REDRAW) = 1;
+            U8(st, G_WINDOW) = 1;
+            U8(st, G_REDRAW) = 1;
             return;
         case 0x0F:
-            S32(st, PARAM1) = 2;
+            S32(st, G_PARAM1) = 2;
             break;
         default:
             break;
         }
         legion_order(st);
     }
-    U8(st, WINDOW) = 1;
-    U8(st, REDRAW) = 1;
+    U8(st, G_WINDOW) = 1;
+    U8(st, G_REDRAW) = 1;
 }
 
 void legion_click_target(game_state *st)
@@ -700,80 +670,80 @@ void legion_click_target(game_state *st)
      * 0x00BCB9C0 (a player's, +0x64 clear): its own fort -> home (0x004B6C20(id, 0x0E)); a figure
      * to fight (0x004B5640) -> attack (its formation +0x60, or -1 for boats); else move
      * (0x004B6400) */
-    if (U8(st, GATE) != 0) {
+    if (U8(st, G_GATE) != 0) {
         return;
     }
-    if (S32(st, MOUSE_OFFSET) == 0) {
-        U8(st, WINDOW) = 1;
-        U8(st, REDRAW) = 1;
+    if (S32(st, G_MOUSE_OFFSET) == 0) {
+        U8(st, G_WINDOW) = 1;
+        U8(st, G_REDRAW) = 1;
         return;
     }
     int32_t tile = (int32_t) mouse_offset(st);
-    uint32_t fa = FORMATION_ADDR(S32(st, SEL_FORMATION));
+    uint32_t fa = FORMATION_ADDR(S32(st, G_FORMATION));
     if (S16(st, fa + 0x82) >= 0 || S16(st, fa + 0x64) != 0) {
         return;
     }
     int32_t fort = tile_fort_formation(st, tile);
     int32_t enemy = tile_enemy_figure(st, tile);
-    int32_t id = S32(st, SEL_FORMATION);
+    int32_t id = S32(st, G_FORMATION);
     if (fort != 0 && fort == id) {
         formation_return(st, id, 0x0E);
-        U8(st, WINDOW) = 1;
-        U8(st, REDRAW) = 1;
+        U8(st, G_WINDOW) = 1;
+        U8(st, G_REDRAW) = 1;
         return;
     }
     uint32_t ef = FIGURE_ADDR(enemy);
-    uint8_t type = U8(st, ef + 0x0A);
+    uint8_t type = U8(st, ef + FIG_TYPE);
     int32_t target = -1;
     if (type != 0x5C && type != 0x65 && type != 0x5D && type != 0x64) {
-        target = S16(st, ef + 0x60);
+        target = S16(st, ef + FIG_FORMATION);
     }
     if (enemy != 0) {
-        formation_attack(st, S32(st, MOUSE_X), S32(st, MOUSE_Y), id, target);
+        formation_attack(st, S32(st, G_MOUSE_TILE_X), S32(st, G_MOUSE_TILE_Y), id, target);
     } else {
-        formation_move_to(st, S32(st, MOUSE_X), S32(st, MOUSE_Y), id, 0);
+        formation_move_to(st, S32(st, G_MOUSE_TILE_X), S32(st, G_MOUSE_TILE_Y), id, 0);
     }
-    sound(st, WAV_COHORT5);
-    U8(st, WINDOW) = 1;
-    U8(st, REDRAW) = 1;
+    sound(st, G_WAV_COHORT5);
+    U8(st, G_WINDOW) = 1;
+    U8(st, G_REDRAW) = 1;
 }
 
 void legion_click_target_0x49(game_state *st)
 {
     /* @bin 0x0040C570 window 0x49 (layout 0), left click: own fort -> home; else 0x004B6A40 */
-    if (U8(st, GATE) != 0) {
+    if (U8(st, G_GATE) != 0) {
         return;
     }
-    if (S32(st, MOUSE_OFFSET) != 0) {
+    if (S32(st, G_MOUSE_OFFSET) != 0) {
         int32_t tile = (int32_t) mouse_offset(st);
-        uint32_t fa = FORMATION_ADDR(S32(st, SEL_FORMATION));
+        uint32_t fa = FORMATION_ADDR(S32(st, G_FORMATION));
         if (S16(st, fa + 0x82) >= 0 || S16(st, fa + 0x64) != 0) {
             return;
         }
         int32_t fort = tile_fort_formation(st, tile);
-        int32_t id = S32(st, SEL_FORMATION);
+        int32_t id = S32(st, G_FORMATION);
         if (fort != 0 && fort == id) {
             formation_return(st, id, 0x0E);
-            U8(st, WINDOW) = 1;
-            U8(st, REDRAW) = 1;
+            U8(st, G_WINDOW) = 1;
+            U8(st, G_REDRAW) = 1;
             return;
         }
-        formation_charge_to(st, S32(st, MOUSE_X), S32(st, MOUSE_Y), id);
-        sound(st, WAV_COHORT5);
+        formation_charge_to(st, S32(st, G_MOUSE_TILE_X), S32(st, G_MOUSE_TILE_Y), id);
+        sound(st, G_WAV_COHORT5);
     }
-    U8(st, WINDOW) = 1;
-    U8(st, REDRAW) = 1;
+    U8(st, G_WINDOW) = 1;
+    U8(st, G_REDRAW) = 1;
 }
 
 void advisor_legion_return(game_state *st)
 {
     /* @bin 0x0040A350 military advisor, return button of row p1 */
-    int32_t id = player_legion_by_row(st, S32(st, PARAM1));
+    int32_t id = player_legion_by_row(st, S32(st, G_PARAM1));
     if (id == 0 || S16(st, FORMATION_ADDR(id) + 0x82) >= 0) {
         return;
     }
     formation_return(st, id, 0x0E);
-    U8(st, REDRAW) = 1;
+    U8(st, G_REDRAW) = 1;
 }
 
 void advisor_legion_service(game_state *st)
@@ -781,7 +751,7 @@ void advisor_legion_service(game_state *st)
     /* @bin 0x0040A390 military advisor, kingdom service of row p1: formation +0x67 toggled when a
      * request allows it (0x00521A60; kind 2 for a formation away, 0x0040B5E0), else a popup (0x24,
      * 0x26, 0x28) and +0x67 := 0; formations rebuilt (0x004B7C80) */
-    int32_t id = player_legion_by_row(st, S32(st, PARAM1));
+    int32_t id = player_legion_by_row(st, S32(st, G_PARAM1));
     if (id == 0) {
         return;
     }
@@ -796,7 +766,7 @@ void advisor_legion_service(game_state *st)
     if (toggle) {
         U8(st, fa + 0x67) = U8(st, fa + 0x67) == 0;
         formations_rebuild(st);
-        U8(st, REDRAW) = 1;
+        U8(st, G_REDRAW) = 1;
         return;
     }
     if (!away && kind2 != 0) {
@@ -806,7 +776,7 @@ void advisor_legion_service(game_state *st)
     }
     U8(st, fa + 0x67) = 0;
     formations_rebuild(st);
-    U8(st, REDRAW) = 1;
+    U8(st, G_REDRAW) = 1;
 }
 
 /* ---- ship commands -------------------------------------------------------------------------- */
@@ -814,54 +784,54 @@ void advisor_legion_service(game_state *st)
 /* @bin 0x00406B7C the ship's hold +0x128 of +0x12C, in percent (0x004CDE60) */
 static int32_t ship_percent(game_state *st, uint32_t f)
 {
-    return calc_ratio_percent(S32(st, f + 0x128), S32(st, f + 0x12C));
+    return calc_ratio_percent(S32(st, f + FIG_HIT_POINTS), S32(st, f + FIG_HIT_POINTS_MAX));
 }
 
 void transport_order(game_state *st)
 {
     /* @bin 0x00406B40 transport window (0x00EADCC8, type 0x4D), table 0x005C6788, p1 0..3 (jump
      * table 0x00406C7C) */
-    int32_t id = S32(st, CTX_TRANSPORT);
-    S32(st, SEL_TRANSPORT) = id;
-    if (id <= 0 || U8(st, GATE) != 0) {
+    int32_t id = S32(st, G_INFO_TRANSPORT);
+    S32(st, G_SEL_TRANSPORT) = id;
+    if (id <= 0 || U8(st, G_GATE) != 0) {
         return;
     }
     uint32_t f = FIGURE_ADDR(id);
     int32_t pct = ship_percent(st, f);
-    uint8_t action = U8(st, f + 0x38);
+    uint8_t action = U8(st, f + FIG_ACTION);
     if ((action == 0x0B || action == 0x0F) && pct <= 0x0F) {
         return;
     }
-    int32_t p1 = S32(st, PARAM1);
+    int32_t p1 = S32(st, G_PARAM1);
     if (p1 == 3 && (action == 0x0B || action == 0x0F || pct == 100)) {
         return;
     }
     switch (p1) {
     case 0:
-        U8(st, f + 0x38) = 0x14;
-        S32(st, TRANSPORT_MODE) = 1;
-        U8(st, WINDOW) = 0x1F;
-        U8(st, REDRAW) = 1;
+        U8(st, f + FIG_ACTION) = 0x14;
+        S32(st, G_TRANSPORT_MODE) = 1;
+        U8(st, G_WINDOW) = 0x1F;
+        U8(st, G_REDRAW) = 1;
         break;
     case 1:
-        U8(st, f + 0x38) = 0x0A;
-        S16(st, f + 0x36) = 0x4B;
-        S32(st, f + 0x15C) = 0x10;
-        S32(st, TRANSPORT_MODE) = 0;
-        U8(st, WINDOW) = 1;
-        U8(st, REDRAW) = 1;
+        U8(st, f + FIG_ACTION) = 0x0A;
+        S16(st, f + FIG_WAIT_TICKS) = 0x4B;
+        S32(st, f + FIG_U15C) = 0x10;
+        S32(st, G_TRANSPORT_MODE) = 0;
+        U8(st, G_WINDOW) = 1;
+        U8(st, G_REDRAW) = 1;
         break;
     case 2:
-        U8(st, f + 0x38) = (uint8_t) (0x0C + (U8(st, f + 0x130) != 0));
-        S32(st, TRANSPORT_MODE) = 1;
-        U8(st, WINDOW) = 0x1F;
-        U8(st, REDRAW) = 1;
+        U8(st, f + FIG_ACTION) = (uint8_t) (0x0C + (U8(st, f + FIG_U130) != 0));
+        S32(st, G_TRANSPORT_MODE) = 1;
+        U8(st, G_WINDOW) = 0x1F;
+        U8(st, G_REDRAW) = 1;
         break;
     case 3:
-        S32(st, TRANSPORT_MODE) = 0;
+        S32(st, G_TRANSPORT_MODE) = 0;
         boat_seek_dock(st, id);
-        U8(st, WINDOW) = 0x1F;
-        U8(st, REDRAW) = 1;
+        U8(st, G_WINDOW) = 0x1F;
+        U8(st, G_REDRAW) = 1;
         break;
     default:
         break;
@@ -871,81 +841,81 @@ void transport_order(game_state *st)
 void transport_return(game_state *st)
 {
     /* @bin 0x00406E80 transport window, entry 4: not at its dock (0x004A4300) -> action 9, home */
-    int32_t id = S32(st, CTX_TRANSPORT);
-    S32(st, SEL_TRANSPORT) = id;
+    int32_t id = S32(st, G_INFO_TRANSPORT);
+    S32(st, G_SEL_TRANSPORT) = id;
     if (id <= 0) {
         return;
     }
     uint32_t f = FIGURE_ADDR(id);
     int32_t pct = ship_percent(st, f);
-    uint8_t action = U8(st, f + 0x38);
+    uint8_t action = U8(st, f + FIG_ACTION);
     if ((action == 0x0B || action == 0x0F) && pct <= 0x0F) {
         return;
     }
-    if (S32(st, PARAM1) == 4) {
+    if (S32(st, G_PARAM1) == 4) {
         if ((uint8_t) boat_at_dock(st, id) != 0) {
             return;
         }
-        if (S32(st, PARAM1) == 4) {
-            U8(st, f + 0x38) = 9;
+        if (S32(st, G_PARAM1) == 4) {
+            U8(st, f + FIG_ACTION) = 9;
             ship_home(st, f, 1);
         }
     }
-    U8(st, WINDOW) = 1;
-    U8(st, REDRAW) = 1;
+    U8(st, G_WINDOW) = 1;
+    U8(st, G_REDRAW) = 1;
 }
 
 void warship_order(game_state *st)
 {
     /* @bin 0x00406C90 warship window (0x00EADCC4, type 0x4E, a player's: +0x132 < 0), table
      * 0x005C6818, p1 0..3 (jump table 0x00406DCC) */
-    if (U8(st, GATE) != 0) {
+    if (U8(st, G_GATE) != 0) {
         return;
     }
-    int32_t id = S32(st, CTX_WARSHIP);
-    S32(st, SEL_WARSHIP) = id;
+    int32_t id = S32(st, G_INFO_WARSHIP);
+    S32(st, G_SEL_WARSHIP) = id;
     if (id <= 0) {
         return;
     }
     uint32_t f = FIGURE_ADDR(id);
     int32_t pct = ship_percent(st, f);
-    uint8_t action = U8(st, f + 0x38);
+    uint8_t action = U8(st, f + FIG_ACTION);
     if ((action == 0x0D || action == 0x0F) && pct <= 0x0F) {
         return;
     }
-    int32_t p1 = S32(st, PARAM1);
+    int32_t p1 = S32(st, G_PARAM1);
     if (p1 == 3 && (action == 0x0D || action == 0x0F || pct == 100)) {
         return;
     }
-    if (S16(st, f + 0x132) >= 0) {
+    if (S16(st, f + FIG_U132) >= 0) {
         return;
     }
     switch (p1) {
     case 0:
-        U8(st, f + 0x38) = 0x14;
-        S32(st, WARSHIP_MODE) = 1;
-        U8(st, WINDOW) = 0x20;
-        U8(st, REDRAW) = 1;
+        U8(st, f + FIG_ACTION) = 0x14;
+        S32(st, G_WARSHIP_MODE) = 1;
+        U8(st, G_WINDOW) = 0x20;
+        U8(st, G_REDRAW) = 1;
         break;
     case 1:
-        U8(st, f + 0x38) = 0x17;
-        S32(st, f + 0x15C) = 0x16;
-        S32(st, WARSHIP_MODE) = 1;
-        U8(st, WINDOW) = 0x20;
-        U8(st, REDRAW) = 1;
+        U8(st, f + FIG_ACTION) = 0x17;
+        S32(st, f + FIG_U15C) = 0x16;
+        S32(st, G_WARSHIP_MODE) = 1;
+        U8(st, G_WINDOW) = 0x20;
+        U8(st, G_REDRAW) = 1;
         break;
     case 2:
-        U8(st, f + 0x38) = 0x0A;
-        S32(st, f + 0x15C) = 0x10;
-        S32(st, WARSHIP_MODE) = 0;
-        U8(st, WINDOW) = 1;
-        U8(st, REDRAW) = 1;
+        U8(st, f + FIG_ACTION) = 0x0A;
+        S32(st, f + FIG_U15C) = 0x10;
+        S32(st, G_WARSHIP_MODE) = 0;
+        U8(st, G_WINDOW) = 1;
+        U8(st, G_REDRAW) = 1;
         break;
     case 3:
-        S32(st, WARSHIP_MODE) = 0;
+        S32(st, G_WARSHIP_MODE) = 0;
         boat_seek_dock(st, id);
-        U8(st, WINDOW) = 0x20;
-        U8(st, REDRAW) = 1;
+        U8(st, G_WINDOW) = 0x20;
+        U8(st, G_REDRAW) = 1;
         break;
     default:
         break;
@@ -955,35 +925,35 @@ void warship_order(game_state *st)
 void warship_return(game_state *st)
 {
     /* @bin 0x00406DE0 warship window, entry 4: not at its dock -> 0x004BC670 */
-    int32_t id = S32(st, CTX_WARSHIP);
-    if (id <= 0 || U8(st, GATE) != 0) {
+    int32_t id = S32(st, G_INFO_WARSHIP);
+    if (id <= 0 || U8(st, G_GATE) != 0) {
         return;
     }
     uint32_t f = FIGURE_ADDR(id);
     int32_t pct = ship_percent(st, f);
-    uint8_t action = U8(st, f + 0x38);
+    uint8_t action = U8(st, f + FIG_ACTION);
     if ((action == 0x0D || action == 0x0F) && pct <= 0x0F) {
         return;
     }
-    if (S32(st, PARAM1) == 4 && (uint8_t) boat_at_dock(st, id) != 0) {
+    if (S32(st, G_PARAM1) == 4 && (uint8_t) boat_at_dock(st, id) != 0) {
         return;
     }
-    if (S16(st, f + 0x132) >= 0) {
+    if (S16(st, f + FIG_U132) >= 0) {
         return;
     }
-    if (S32(st, PARAM1) == 4) {
-        S32(st, WARSHIP_MODE) = 0;
+    if (S32(st, G_PARAM1) == 4) {
+        S32(st, G_WARSHIP_MODE) = 0;
         ship_return_to_wharf(st, id);
     }
-    U8(st, WINDOW) = 1;
-    U8(st, REDRAW) = 1;
+    U8(st, G_WINDOW) = 1;
+    U8(st, G_REDRAW) = 1;
 }
 
 /* @bin 0x0040BACE the ship's destination: the water tile nearest the mouse tile on the line from
  * the ship (0x0040C180) */
 static void ship_aim(game_state *st, uint32_t f, int32_t *px, int32_t *py)
 {
-    line_search_water(st, S16(st, f + 0x14), S16(st, f + 0x16), S32(st, MOUSE_X), S32(st, MOUSE_Y), px, py);
+    line_search_water(st, S16(st, f + FIG_X), S16(st, f + FIG_Y), S32(st, G_MOUSE_TILE_X), S32(st, G_MOUSE_TILE_Y), px, py);
 }
 
 void transport_click_target(game_state *st)
@@ -991,42 +961,42 @@ void transport_click_target(game_state *st)
     /* @bin 0x0040BA40 window 0x1F, left click with transport 0x00D05700 (not in action 8): in
      * mode 0x00D05708 the cursor 0x00E390DC picks action 0x0C (= 0x00E390C8, board) or 0x0D
      * (= 0x00E390C4, unload); then by action (jump table 0x0040BD64) */
-    if (U8(st, GATE) != 0) {
+    if (U8(st, G_GATE) != 0) {
         return;
     }
-    int32_t id = S32(st, SEL_TRANSPORT);
+    int32_t id = S32(st, G_SEL_TRANSPORT);
     uint32_t f = FIGURE_ADDR(id);
-    if (id <= 0 || U8(st, f + 0x38) == 8 || S32(st, MOUSE_OFFSET) == 0) {
-        U8(st, WINDOW) = 1;
-        U8(st, REDRAW) = 1;
+    if (id <= 0 || U8(st, f + FIG_ACTION) == 8 || S32(st, G_MOUSE_OFFSET) == 0) {
+        U8(st, G_WINDOW) = 1;
+        U8(st, G_REDRAW) = 1;
         return;
     }
-    if (S32(st, TRANSPORT_MODE) != 0) {
-        int32_t cursor = S32(st, CURSOR);
-        if (cursor == S32(st, 0x00E390C8u)) {
-            U8(st, f + 0x38) = 0x0C;
+    if (S32(st, G_TRANSPORT_MODE) != 0) {
+        int32_t cursor = S32(st, G_CURSOR);
+        if (cursor == S32(st, G_CURSOR_BOARD)) {
+            U8(st, f + FIG_ACTION) = 0x0C;
         }
-        if (cursor == S32(st, 0x00E390C4u)) {
-            U8(st, f + 0x38) = 0x0D;
+        if (cursor == S32(st, G_CURSOR_UNLOAD)) {
+            U8(st, f + FIG_ACTION) = 0x0D;
         }
     }
     int32_t px, py;
-    switch (U8(st, f + 0x38)) {
+    switch (U8(st, f + FIG_ACTION)) {
     case 0x09:
     case 0x0B:
     case 0x14:
         ship_aim(st, f, &px, &py);
-        S16(st, f + 0x24) = (int16_t) px;
-        S16(st, f + 0x26) = (int16_t) py;
+        S16(st, f + FIG_DEST_X) = (int16_t) px;
+        S16(st, f + FIG_DEST_Y) = (int16_t) py;
         figure_route_release(st, id);
-        U8(st, REDRAW) = 1;
+        U8(st, G_REDRAW) = 1;
         return;
     case 0x0A:
         ship_aim(st, f, &px, &py);
-        S16(st, f + 0x24) = (int16_t) px;
-        S16(st, f + 0x26) = (int16_t) py;
-        U8(st, f + 0x11) = (uint8_t) direction_to_fine(st, S16(st, f + 0x14), S16(st, f + 0x16), px, py);
-        S32(st, f + 0x15C) = 9;
+        S16(st, f + FIG_DEST_X) = (int16_t) px;
+        S16(st, f + FIG_DEST_Y) = (int16_t) py;
+        U8(st, f + FIG_DIRECTION) = (uint8_t) direction_to_fine(st, S16(st, f + FIG_X), S16(st, f + FIG_Y), px, py);
+        S32(st, f + FIG_U15C) = 9;
         figure_route_release(st, id);
         break;
     case 0x0C: {
@@ -1037,40 +1007,40 @@ void transport_click_target(game_state *st)
         int32_t legion = tile_soldier_formation(st, (int32_t) mouse_offset(st));
         if (legion != 0) {
             int32_t lx = 0, ly = 0;
-            line_search_land(st, S32(st, MOUSE_X), S32(st, MOUSE_Y), px, py, &lx, &ly);
+            line_search_land(st, S32(st, G_MOUSE_TILE_X), S32(st, G_MOUSE_TILE_Y), px, py, &lx, &ly);
             if (formation_move_to(st, lx, ly, legion, 0) != 0) {
-                U8(st, f + 0x92) = (uint8_t) legion;
-                S16(st, f + 0x24) = (int16_t) px;
-                S16(st, f + 0x26) = (int16_t) py;
+                U8(st, f + FIG_U92) = (uint8_t) legion;
+                S16(st, f + FIG_DEST_X) = (int16_t) px;
+                S16(st, f + FIG_DEST_Y) = (int16_t) py;
                 figure_route_release(st, id);
             }
         } else {
-            S16(st, f + 0x24) = (int16_t) px;
-            S16(st, f + 0x26) = (int16_t) py;
+            S16(st, f + FIG_DEST_X) = (int16_t) px;
+            S16(st, f + FIG_DEST_Y) = (int16_t) py;
         }
         break;
     }
     case 0x0D:
         /* @bin 0x0040BCAE unload (only with men on board, +0x130) on a land tile: +0x30/+0x32 the
          * mouse tile */
-        if (U8(st, f + 0x130) == 0) {
+        if (U8(st, f + FIG_U130) == 0) {
             return;
         }
-        if ((U32(st, TERRAIN_GRID + 4u * mouse_offset(st)) & 4) != 4) {
+        if ((U32(st, G_GRID_TERRAIN + 4u * mouse_offset(st)) & 4) != 4) {
             ship_aim(st, f, &px, &py);
-            S16(st, f + 0x24) = (int16_t) px;
-            S16(st, f + 0x26) = (int16_t) py;
-            S16(st, f + 0x30) = (int16_t) S32(st, MOUSE_X);
-            S16(st, f + 0x32) = (int16_t) S32(st, MOUSE_Y);
+            S16(st, f + FIG_DEST_X) = (int16_t) px;
+            S16(st, f + FIG_DEST_Y) = (int16_t) py;
+            S16(st, f + FIG_U30) = (int16_t) S32(st, G_MOUSE_TILE_X);
+            S16(st, f + FIG_U32) = (int16_t) S32(st, G_MOUSE_TILE_Y);
             figure_route_release(st, id);
         }
         break;
     default:
         return;
     }
-    U8(st, WINDOW) = 1;
-    U8(st, REDRAW) = 1;
-    S32(st, TRANSPORT_MODE) = 0;
+    U8(st, G_WINDOW) = 1;
+    U8(st, G_REDRAW) = 1;
+    S32(st, G_TRANSPORT_MODE) = 0;
 }
 
 void warship_click_target(game_state *st)
@@ -1078,32 +1048,32 @@ void warship_click_target(game_state *st)
     /* @bin 0x0040B830 window 0x20, left click with warship 0x00D05704 (a player's, not in action
      * 8): a figure to fight on the tile (0x004B5640) -> action 0x18 against it (+0x10 the action
      * before); else by action (table 0x0040BA2C) */
-    int32_t id = S32(st, SEL_WARSHIP);
+    int32_t id = S32(st, G_SEL_WARSHIP);
     uint32_t f = FIGURE_ADDR(id);
-    if (id <= 0 || S16(st, f + 0x132) >= 0 || U8(st, f + 0x38) == 8 || S32(st, MOUSE_OFFSET) == 0) {
-        U8(st, WINDOW) = 1;
-        U8(st, REDRAW) = 1;
+    if (id <= 0 || S16(st, f + FIG_U132) >= 0 || U8(st, f + FIG_ACTION) == 8 || S32(st, G_MOUSE_OFFSET) == 0) {
+        U8(st, G_WINDOW) = 1;
+        U8(st, G_REDRAW) = 1;
         return;
     }
     int32_t enemy = tile_enemy_figure(st, (int32_t) mouse_offset(st));
     if (enemy != 0) {
-        U8(st, f + 0x10) = U8(st, f + 0x38);
-        U8(st, f + 0x38) = 0x18;
-        S32(st, f + 0x15C) = 0x10;
-        S16(st, f + 0x82) = (int16_t) enemy;
-        U8(st, WINDOW) = 1;
-        S32(st, WARSHIP_MODE) = 0;
+        U8(st, f + FIG_ACTION_BEFORE_ATTACK) = U8(st, f + FIG_ACTION);
+        U8(st, f + FIG_ACTION) = 0x18;
+        S32(st, f + FIG_U15C) = 0x10;
+        S16(st, f + FIG_TARGET) = (int16_t) enemy;
+        U8(st, G_WINDOW) = 1;
+        S32(st, G_WARSHIP_MODE) = 0;
         return;
     }
     int32_t px, py;
-    uint8_t action = U8(st, f + 0x38);
+    uint8_t action = U8(st, f + FIG_ACTION);
     switch (action) {
     case 0x09:
         ship_aim(st, f, &px, &py);
-        S16(st, f + 0x24) = (int16_t) px;
-        S16(st, f + 0x26) = (int16_t) py;
+        S16(st, f + FIG_DEST_X) = (int16_t) px;
+        S16(st, f + FIG_DEST_Y) = (int16_t) py;
         figure_route_release(st, id);
-        U8(st, REDRAW) = 1;
+        U8(st, G_REDRAW) = 1;
         return;
     case 0x0A:
     case 0x0B:
@@ -1112,19 +1082,19 @@ void warship_click_target(game_state *st)
     case 0x14:
     case 0x17:
         ship_aim(st, f, &px, &py);
-        S16(st, f + 0x24) = (int16_t) px;
-        S16(st, f + 0x26) = (int16_t) py;
-        S16(st, f + 0x14C) = S16(st, f + 0x24);
-        S16(st, f + 0x14E) = S16(st, f + 0x26);
+        S16(st, f + FIG_DEST_X) = (int16_t) px;
+        S16(st, f + FIG_DEST_Y) = (int16_t) py;
+        S16(st, f + FIG_U14C) = S16(st, f + FIG_DEST_X);
+        S16(st, f + FIG_U14E) = S16(st, f + FIG_DEST_Y);
         figure_route_release(st, id);
-        action = U8(st, f + 0x38);
-        U8(st, REDRAW) = 1;
+        action = U8(st, f + FIG_ACTION);
+        U8(st, G_REDRAW) = 1;
         if (action == 0x17) {
-            S32(st, f + 0x15C) = 0x16;
+            S32(st, f + FIG_U15C) = 0x16;
         } else if (action == 0x0A) {
-            S32(st, f + 0x15C) = 0x10;
-            U8(st, WINDOW) = 1;
-            S32(st, WARSHIP_MODE) = 0;
+            S32(st, f + FIG_U15C) = 0x10;
+            U8(st, G_WINDOW) = 1;
+            S32(st, G_WARSHIP_MODE) = 0;
         }
         return;
     default:
@@ -1135,12 +1105,12 @@ void warship_click_target(game_state *st)
 void advisor_warship_return(game_state *st)
 {
     /* @bin 0x0040A5C0 military advisor, warship row p1 (0x004BC620): home (0x004BC670) */
-    int32_t id = player_warship_by_row(st, S32(st, PARAM1));
-    if (id == 0 || S16(st, FIGURE_ADDR(id) + 0x132) >= 0) {
+    int32_t id = player_warship_by_row(st, S32(st, G_PARAM1));
+    if (id == 0 || S16(st, FIGURE_ADDR(id) + FIG_U132) >= 0) {
         return;
     }
     ship_return_to_wharf(st, id);
-    U8(st, REDRAW) = 1;
+    U8(st, G_REDRAW) = 1;
 }
 
 void advisor_warship_service(game_state *st)
@@ -1148,24 +1118,24 @@ void advisor_warship_service(game_state *st)
     /* @bin 0x0040A600 military advisor, warship row p1: kingdom service flag +0x02 toggled when a
      * request of kind 2 is open (0x00521A60), else a popup (0x26 / 0x28) and +0x02 := 0; ships
      * counted again (0x004B8AA0) */
-    int32_t id = player_warship_by_row(st, S32(st, PARAM1));
+    int32_t id = player_warship_by_row(st, S32(st, G_PARAM1));
     if (id == 0) {
         return;
     }
     uint8_t other, kind2;
     military_requests_open(st, &other, &kind2);
     uint32_t f = FIGURE_ADDR(id);
-    if (S16(st, f + 0x132) >= 0) {
+    if (S16(st, f + FIG_U132) >= 0) {
         return;
     }
     if (kind2 != 0) {
-        U8(st, f + 0x02) = U8(st, f + 0x02) == 0;
+        U8(st, f + FIG_U02) = U8(st, f + FIG_U02) == 0;
     } else {
         popup(st, other != 0 ? 0x26 : 0x28);
-        U8(st, f + 0x02) = 0;
+        U8(st, f + FIG_U02) = 0;
     }
     ships_count(st);
-    U8(st, REDRAW) = 1;
+    U8(st, G_REDRAW) = 1;
 }
 
 void figure_order_select(game_state *st)
@@ -1175,26 +1145,26 @@ void figure_order_select(game_state *st)
      * and the index search below picks another; when that one's counter is above 1 it is taken:
      * cleared, +0x7D := it, 0x00EADCDC := it, +0x131 := table[it] */
     static const uint8_t table[8] = {8, 0x0D, 2, 1, 0x0B, 5, 1, 0x0A};
-    int32_t fid = S32(st, 0x00EADD24u + 4u * U32(st, 0x00EADCE4u));
+    int32_t fid = S32(st, G_FIGURES + 4u * U32(st, G_FIGURE_ROW));
     uint32_t f = FIGURE_ADDR(fid);
-    int32_t slot = S8(st, f + 0x7D);
+    int32_t slot = S8(st, f + FIG_U7D);
     if (slot != 9) {
-        U8(st, (uint32_t) ((int32_t) 0x00F55BA4 + slot)) = 0;
+        U8(st, (uint32_t) ((int32_t) G_MOOD + slot)) = 0;
         /* @bin 0x0053D7A8 the comparison is against the index found so far, not its counter */
         uint8_t best = 0;
         for (uint8_t i = 0; i < 8; i++) {
-            if (U8(st, 0x00F55BA4u + i) > best) {
+            if (U8(st, G_MOOD + i) > best) {
                 best = i;
             }
         }
-        if (U8(st, 0x00F55BA4u + best) > 1) {
-            U8(st, 0x00F55BA4u + best) = 0;
-            U8(st, f + 0x7D) = best;
-            S32(st, 0x00EADCDCu) = best;
-            U8(st, f + 0x131) = table[best];
+        if (U8(st, G_MOOD + best) > 1) {
+            U8(st, G_MOOD + best) = 0;
+            U8(st, f + FIG_U7D) = best;
+            S32(st, G_PHRASE) = best;
+            U8(st, f + FIG_U131) = table[best];
         }
     }
-    U8(st, REDRAW) = 1;
+    U8(st, G_REDRAW) = 1;
 }
 
 /* ---- kingdom requests ---------------------------------------------------------------------- */
@@ -1224,32 +1194,32 @@ int32_t request_row_check(game_state *st, int32_t row, int32_t *event)
     uint32_t city = CURRENT_CITY(st);
     uint16_t type = (uint16_t) P16(st, ev + 4);
     if (type == 0x24) {
-        if (S32(st, city + 0x0C) > P16(st, ev + 0x0C)) {
+        if (S32(st, city + CITY_TREASURY) > P16(st, ev + 0x0C)) {
             return P16(st, ev) + 1;
         }
         return -1;
     }
     if (type == 0x25) {
         int32_t k = P16(st, ev + 0x1C);
-        if (k >= 0 && k < 0x32 && U8(st, 0x007770F0u + 0x144u * (uint32_t) k) == 2) {
-            if (U8(st, city + 0x4668) == 0 && U8(st, city + 0x466A) == 0) {
+        if (k >= 0 && k < 0x32 && U8(st, G_ARMIES + 0x144u * (uint32_t) k) == 2) {
+            if (U8(st, city + CITY_WARSHIPS) == 0 && U8(st, city + CITY_U466A) == 0) {
                 return -6;
             }
-            if (U8(st, city + 0x4669) != 0 || U8(st, city + 0x4665) != 0) {
+            if (U8(st, city + CITY_U4669) != 0 || U8(st, city + CITY_U4665) != 0) {
                 return -2;
             }
             return -5;
         }
-        if (U8(st, city + 0x466B) == 0) {
+        if (U8(st, city + CITY_U466B) == 0) {
             return -4;
         }
-        if (U8(st, city + 0x4666) != 0) {
+        if (U8(st, city + CITY_U4666) != 0) {
             return -2;
         }
         return -3;
     }
     /* @bin 0x0044D63D goods: player·0x1276 + type dwords from 0x00EA6160 */
-    int32_t stock = S32(st, 0x00EA6160u + 4u * (U32(st, CURRENT_PLAYER_ADDR) * 0x1276u + (uint32_t) (int32_t) (int16_t) type));
+    int32_t stock = S32(st, CITY_BASE + CITY_STORAGE_STOCK + 4u * (U32(st, CURRENT_PLAYER_ADDR) * 0x1276u + (uint32_t) (int32_t) (int16_t) type));
     if (stock < P16(st, ev + 0x0C) * 100) {
         return -1;
     }
@@ -1263,37 +1233,37 @@ void advisor_dispatch_troops(game_state *st)
      * ships CITY+0x4665 or +0x4669). Several of one kind: the list window (0x0040A0E0, p1 4) and
      * popup 0x66; else each of the first 5 rows (p1) whose event is the first of its kind is
      * dispatched (0x0044C1A0, event in 0x006057E4) */
-    if (U8(st, 0x005F8518u) == 0) {
+    if (U8(st, G_DISPATCH_ENABLED) == 0) {
         return;
     }
     int32_t first_other, first_kind2, n_other, n_kind2;
     military_requests(st, &first_other, &first_kind2, &n_other, &n_kind2);
     uint32_t city = CURRENT_CITY(st);
-    if (U8(st, city + 0x4666) == 0) {
+    if (U8(st, city + CITY_U4666) == 0) {
         first_other = -1;
     }
-    if (U8(st, city + 0x4665) == 0 && U8(st, city + 0x4669) == 0) {
+    if (U8(st, city + CITY_U4665) == 0 && U8(st, city + CITY_U4669) == 0) {
         first_kind2 = -1;
     }
     if ((n_other > 1 && first_other >= 0) || (n_kind2 > 1 && first_kind2 >= 0)) {
-        S32(st, PARAM1) = 4;
-        GAME_CALL0(st, 0x0040A0E0u);
-        GAME_CALL(st, 0x004264D0u, 0x66, 0x0051F780, 0);
+        S32(st, G_PARAM1) = 4;
+        GAME_CALL0(st, FN_ADVISOR_OPEN);
+        GAME_CALL(st, FN_POPUP_CONFIRM_OPEN, 0x66, FN_NOTHING, 0);
         return;
     }
     /* the original's slot is not initialised: a row without an event leaves it unchanged (first
      * row: whatever the stack held; taken as 0 here) */
     int32_t event = 0;
-    S32(st, PARAM1) = 0;
+    S32(st, G_PARAM1) = 0;
     do {
-        request_row_check(st, S32(st, PARAM1), &event);
+        request_row_check(st, S32(st, G_PARAM1), &event);
         if (event == first_other || event == first_kind2) {
-            S32(st, 0x006057E4u) = event;
-            GAME_CALL(st, 0x0044C1A0u, event);
+            S32(st, G_REQUEST_EVENT) = event;
+            GAME_CALL(st, FN_REQUEST_DISPATCH, event);
         }
-        S32(st, PARAM1) += 1;
-    } while (S32(st, PARAM1) < 5);
-    U8(st, REDRAW) = 1;
+        S32(st, G_PARAM1) += 1;
+    } while (S32(st, G_PARAM1) < 5);
+    U8(st, G_REDRAW) = 1;
 }
 
 /* ---- city view clicks ----------------------------------------------------------------------- */
@@ -1302,10 +1272,10 @@ int32_t city_click_legion(game_state *st)
 {
     /* @bin 0x0040B630 left press in the city view (no building chosen) on a player's soldier whose
      * formation is not away (0x0040B5E0): selected (0x00BCB9C0), window 0x1E */
-    if (U8(st, WINDOW) == 1 && S32(st, CONSTRUCTION_TYPE) != 0) {
+    if (U8(st, G_WINDOW) == 1 && S32(st, G_CONSTRUCTION_UI_TYPE) != 0) {
         return 0;
     }
-    if (S32(st, MOUSE_OFFSET) == 0) {
+    if (S32(st, G_MOUSE_OFFSET) == 0) {
         return 0;
     }
     int32_t id = tile_soldier_formation(st, (int32_t) mouse_offset(st));
@@ -1315,9 +1285,9 @@ int32_t city_click_legion(game_state *st)
     if (formation_has_action_0x12(st, id) != 0) {
         return 0;
     }
-    S32(st, SEL_FORMATION) = id;
-    U8(st, WINDOW) = 0x1E;
-    U8(st, REDRAW) = 1;
+    S32(st, G_FORMATION) = id;
+    U8(st, G_WINDOW) = 0x1E;
+    U8(st, G_REDRAW) = 1;
     return 1;
 }
 
@@ -1326,19 +1296,19 @@ int32_t city_click_warship(game_state *st)
     /* @bin 0x0040B6D0 left press on a warship: on the tile one that is not a player's (+0x132 >=
      * 0), else on the 8 tiles around (offsets 0x005F80FC) a player's: selected (0x00D05704),
      * window 0x20 */
-    if (U8(st, WINDOW) == 1 && S32(st, CONSTRUCTION_TYPE) != 0) {
+    if (U8(st, G_WINDOW) == 1 && S32(st, G_CONSTRUCTION_UI_TYPE) != 0) {
         return 0;
     }
-    if (S32(st, MOUSE_OFFSET) == 0) {
+    if (S32(st, G_MOUSE_OFFSET) == 0) {
         return 0;
     }
     int32_t tile = (int32_t) mouse_offset(st);
     int32_t id = tile_warship(st, tile);
-    if (!(id > 0 && S16(st, FIGURE_ADDR(id) + 0x132) >= 0)) {
+    if (!(id > 0 && S16(st, FIGURE_ADDR(id) + FIG_U132) >= 0)) {
         id = 0;
         for (int i = 0; i < 8; i++) {
-            int32_t c = tile_warship(st, S32(st, 0x005F80FCu + 4u * (uint32_t) i) + tile);
-            if (c > 0 && S16(st, FIGURE_ADDR(c) + 0x132) < 0) {
+            int32_t c = tile_warship(st, S32(st, G_DIRECTION_OFFSETS + 4u * (uint32_t) i) + tile);
+            if (c > 0 && S16(st, FIGURE_ADDR(c) + FIG_U132) < 0) {
                 id = c;
                 break;
             }
@@ -1347,10 +1317,10 @@ int32_t city_click_warship(game_state *st)
             return 0;
         }
     }
-    S32(st, SEL_WARSHIP) = id;
-    S32(st, WARSHIP_MODE) = 1;
-    U8(st, REDRAW) = 1;
-    U8(st, WINDOW) = 0x20;
+    S32(st, G_SEL_WARSHIP) = id;
+    S32(st, G_WARSHIP_MODE) = 1;
+    U8(st, G_REDRAW) = 1;
+    U8(st, G_WINDOW) = 0x20;
     return 1;
 }
 
@@ -1358,24 +1328,24 @@ int32_t city_click_transport(game_state *st)
 {
     /* @bin 0x0040B790 left press on a transport (the tile, then the 8 around): selected
      * (0x00D05700), window 0x1F */
-    if (U8(st, WINDOW) == 1 && S32(st, CONSTRUCTION_TYPE) != 0) {
+    if (U8(st, G_WINDOW) == 1 && S32(st, G_CONSTRUCTION_UI_TYPE) != 0) {
         return 0;
     }
-    if (S32(st, MOUSE_OFFSET) == 0) {
+    if (S32(st, G_MOUSE_OFFSET) == 0) {
         return 0;
     }
     int32_t tile = (int32_t) mouse_offset(st);
     int32_t id = tile_transport(st, tile);
     for (int i = 0; id <= 0 && i < 8; i++) {
-        id = tile_transport(st, S32(st, 0x005F80FCu + 4u * (uint32_t) i) + tile);
+        id = tile_transport(st, S32(st, G_DIRECTION_OFFSETS + 4u * (uint32_t) i) + tile);
     }
     if (id <= 0) {
         return 0;
     }
-    S32(st, SEL_TRANSPORT) = id;
-    S32(st, TRANSPORT_MODE) = 1;
-    U8(st, REDRAW) = 1;
-    U8(st, WINDOW) = 0x1F;
+    S32(st, G_SEL_TRANSPORT) = id;
+    S32(st, G_TRANSPORT_MODE) = 1;
+    U8(st, G_REDRAW) = 1;
+    U8(st, G_WINDOW) = 0x1F;
     return 1;
 }
 

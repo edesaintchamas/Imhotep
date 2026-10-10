@@ -6,10 +6,9 @@
  * mouse tile (0x004ED0D0) and stops at the first tile the callback 0x004ED2D0 accepts. */
 #include "command/place.h"
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 
-#define MAP_START 0x00BCA2D8u
-#define VARIANT 0x005E6970u
 
 int32_t pyramid_tile_4ed2d0(game_state *st, int32_t grid, int32_t x, int32_t y, int32_t param)
 {
@@ -20,19 +19,19 @@ int32_t pyramid_tile_4ed2d0(game_state *st, int32_t grid, int32_t x, int32_t y, 
     (void) y;
     (void) param;
     int32_t reason = 0;
-    if (place_pyramid_fits(st, grid, S32(st, VARIANT), &reason) == 0) {
+    if (place_pyramid_fits(st, grid, S32(st, G_VARIANT), &reason) == 0) {
         return 1;
     }
-    int32_t rel = grid - S32(st, MAP_START);
-    S32(st, 0x00BCA300u) = grid;
-    S32(st, 0x00BCA304u) = rel % 0xE4;
-    S32(st, 0x00BCA308u) = rel / 0xE4;
+    int32_t rel = grid - S32(st, G_MAP_START);
+    S32(st, G_HOVER_TILE) = grid;
+    S32(st, G_HOVER_X) = rel % 0xE4;
+    S32(st, G_HOVER_Y) = rel / 0xE4;
     return 0;
 }
 
 static int32_t ring_call(game_state *st, uint32_t cb, int32_t grid, int32_t x, int32_t y, int32_t param)
 {
-    if (cb == 0x004ED2D0u) {
+    if (cb == FN_PYRAMID_TILE_4ED2D0) {
         return pyramid_tile_4ed2d0(st, grid, x, y, param);
     }
     return GAME_CALL(st, cb, grid, x, y, param);
@@ -54,20 +53,20 @@ void tile_rings_4ed0d0(game_state *st, int32_t tile, int32_t n, uint32_t cb, int
     for (int32_t r = 0; r < n; r++, top--, bottom++) {
         int32_t x0 = cx - cy + top, x1 = cx - cy + bottom, y0 = top, y1 = bottom;
         int cl = 0, cr = 0, ct = 0, cb_ = 0;
-        if (x0 < S32(st, 0x00BCA2E8u)) {
-            x0 = S32(st, 0x00BCA2E8u);
+        if (x0 < S32(st, G_VIEW_DX)) {
+            x0 = S32(st, G_VIEW_DX);
             cl = 1;
         }
-        if (x1 > S32(st, 0x00BCA2F0u)) {
-            x1 = S32(st, 0x00BCA2F0u);
+        if (x1 > S32(st, G_MAP_XE)) {
+            x1 = S32(st, G_MAP_XE);
             cr = 1;
         }
-        if (y0 < S32(st, 0x00BCA2ECu)) {
-            y0 = S32(st, 0x00BCA2ECu);
+        if (y0 < S32(st, G_VIEW_DY)) {
+            y0 = S32(st, G_VIEW_DY);
             ct = 1;
         }
-        if (y1 > S32(st, 0x00BCA2F4u)) {
-            y1 = S32(st, 0x00BCA2F4u);
+        if (y1 > S32(st, G_MAP_YE)) {
+            y1 = S32(st, G_MAP_YE);
             cb_ = 1;
         }
         if (!(ct && cb_)) {
@@ -97,7 +96,7 @@ void pyramid_nearest_4ed330(game_state *st)
 {
     /* @bin 0x004ED330 the rings around the mouse tile 0x00BCA2C4, as many as 0x005F5D1C[variant],
      * with the callback 0x004ED2D0 */
-    tile_rings_4ed0d0(st, S32(st, 0x00BCA2C4u), S32(st, 0x005F5D1Cu + 4u * U32(st, VARIANT)), 0x004ED2D0u, 0);
+    tile_rings_4ed0d0(st, S32(st, G_MOUSE_OFFSET), S32(st, G_PYRAMID_RINGS + 4u * U32(st, G_VARIANT)), FN_PYRAMID_TILE_4ED2D0, 0);
 }
 
 static int32_t run_4ed2d0(game_state *st, const int32_t *a)
