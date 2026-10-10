@@ -9,20 +9,15 @@
 #include <string.h>
 
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 
-#define MESSAGES 0x00E95228u
-#define MESSAGE_SIZE 0x30u
-#define MESSAGE_TYPES 0x00E209B0u /* 0x50 bytes per message id */
-#define WINDOW 0x00E38DDAu
-#define POPUP 0x00E950DCu
-#define SETTINGS 0x00E38EF0u
 
 int32_t message_free_slot(game_state *st)
 {
     /* @bin 0x004E1750 the first record whose +0x0A (i16) is 0 */
-    for (int32_t k = 0; k < 1000; k++) {
-        if (S16(st, MESSAGES + MESSAGE_SIZE * (uint32_t) k + 0x0A) == 0) {
+    for (int32_t k = 0; k < MESSAGE_COUNT; k++) {
+        if (S16(st, MESSAGE_ADDR(k) + MSG_ID) == 0) {
             return k;
         }
     }
@@ -44,19 +39,19 @@ void message_kind(game_state *st, int32_t id)
     case 0x12D: case 0x12E: case 0x12F: v = 6; break;
     default: v = 0; break;
     }
-    S32(st, 0x00D3A6E8u) = v;
+    S32(st, G_MESSAGE_ADVISOR) = v;
 }
 
 static int32_t notice(game_state *st, int32_t n)
 {
-    GAME_CALL(st, 0x004E2970u, n, 0, 0);
+    GAME_CALL(st, FN_NOTICE_ADD_4E2970, n, 0, 0);
     return 0;
 }
 
 int32_t message_allowed(game_state *st, int32_t id, const uint8_t *block)
 {
     /* @bin 0x004E0F90 each filtered message id has its bit in 0x00E38EF0 and its notice */
-    uint32_t f = U32(st, SETTINGS);
+    uint32_t f = U32(st, G_MESSAGE_SETTINGS);
     switch (id) {
     case 0x84: return 1;
     case 0x15D: return (f & 2) ? notice(st, 0xDB) : 1;
@@ -76,7 +71,7 @@ int32_t message_allowed(game_state *st, int32_t id, const uint8_t *block)
     case 0x83: {
         int16_t w;
         if (!block) {
-            state_unported(st, 0x004E0F90u); /* the original reads through a null pointer */
+            state_unported(st, FN_MESSAGE_ALLOWED); /* the original reads through a null pointer */
             return 1;
         }
         memcpy(&w, block, 2); /* the original reads its block unconditionally */
@@ -94,8 +89,8 @@ int32_t message_allowed(game_state *st, int32_t id, const uint8_t *block)
         return notice(st, 0xEA);
     }
     if (id == 0x135 || (id == 0x13A && (f & 8))) {
-        GAME_CALL(st, 0x004E2970u, 0xEB, 0, 0);
-        GAME_CALL(st, 0x0044C1A0u, S32(st, 0x006057E4u));
+        GAME_CALL(st, FN_NOTICE_ADD_4E2970, 0xEB, 0, 0);
+        GAME_CALL(st, FN_REQUEST_DISPATCH, S32(st, G_REQUEST_EVENT));
         return 0;
     }
     if (id == 0x13A) {
@@ -117,94 +112,94 @@ void message_post(game_state *st, int32_t id, int32_t a, int32_t b, const uint8_
 {
     /* @bin 0x004E0CF0 */
     if ((uint8_t) arg5 != 0) {
-        S32(st, POPUP) = 1;
+        S32(st, G_MESSAGE_POPUP) = 1;
     } else {
-        S32(st, POPUP) = message_allowed(st, id, block);
+        S32(st, G_MESSAGE_POPUP) = message_allowed(st, id, block);
     }
-    uint8_t w = U8(st, WINDOW);
+    uint8_t w = U8(st, G_WINDOW);
     if (w == 0x1E || w == 0x49 || w == 0x1F || w == 0x20) {
-        U8(st, WINDOW) = 1;
+        U8(st, G_WINDOW) = 1;
     }
     int32_t k = message_free_slot(st);
     if (k == -1) {
         return;
     }
-    GAME_CALL(st, 0x0053B090u, 9);
-    if (S32(st, POPUP) == 0) {
-        U8(st, 0x005C755Fu) = 1;
+    GAME_CALL(st, FN_UI_SOUND, 9);
+    if (S32(st, G_MESSAGE_POPUP) == 0) {
+        U8(st, G_U5C755F) = 1;
     }
     /* @bin 0x004E0D67 the record: +0x0A id, +0x0E shown, +0x08 year, +0x0F month, +0, +4 the
      * parameters, +0x0C its sequence number (0x00E951F0), +0x10..+0x2D the block (or -1, -1, -1) */
-    uint32_t m = MESSAGES + MESSAGE_SIZE * (uint32_t) k;
-    S16(st, m + 0x0A) = (int16_t) id;
-    U8(st, m + 0x0E) = 0;
-    S16(st, m + 0x08) = (int16_t) S32(st, 0x0078D7BCu);
-    U8(st, m + 0x0F) = (uint8_t) S32(st, 0x0078D7C0u);
-    S32(st, m) = a;
-    S32(st, m + 4) = b;
-    S32(st, 0x00E951ECu) += 1;
-    S16(st, m + 0x0C) = (int16_t) S32(st, 0x00E951F0u);
-    S32(st, 0x00E951E8u) = k;
-    S32(st, 0x00E951F0u) += 1;
+    uint32_t m = MESSAGE_ADDR(k);
+    S16(st, m + MSG_ID) = (int16_t) id;
+    U8(st, m + MSG_READ) = 0;
+    S16(st, m + MSG_YEAR) = (int16_t) S32(st, G_YEAR);
+    U8(st, m + MSG_MONTH) = (uint8_t) S32(st, G_MONTH);
+    S32(st, m + MSG_PARAM_A) = a;
+    S32(st, m + MSG_PARAM_B) = b;
+    S32(st, G_MESSAGE_TOTAL) += 1;
+    S16(st, m + MSG_SEQUENCE) = (int16_t) S32(st, G_MESSAGE_SEQUENCE);
+    S32(st, G_MESSAGE_SLOT) = k;
+    S32(st, G_MESSAGE_SEQUENCE) += 1;
     uint32_t flag;
     if (block == NULL) {
-        S16(st, m + 0x10) = -1;
-        S16(st, m + 0x12) = -1;
+        S16(st, m + MSG_DATA) = -1;
+        S16(st, m + MSG_DATA + 2) = -1;
         flag = 0;
-        S16(st, m + 0x14) = -1;
+        S16(st, m + MSG_DATA + 4) = -1;
     } else {
-        for (uint32_t i = 0; i < 30; i++) {
-            U8(st, m + 0x10 + i) = block[i];
+        for (uint32_t i = 0; i < MSG_DATA_SIZE; i++) {
+            U8(st, m + MSG_DATA + i) = block[i];
         }
         int16_t first;
         memcpy(&first, block, 2);
         flag = first >= 0;
     }
     arg5 = (arg5 & 0xFFFFFF00u) | flag; /* the original reuses its argument's byte */
-    if (U8(st, WINDOW) == 1) {
+    if (U8(st, G_WINDOW) == 1) {
         message_kind(st, id);
     }
-    uint32_t type = MESSAGE_TYPES + 0x50u * (uint32_t) id;
-    if (S16(st, type + 0x0A) == 1 || S16(st, type + 0x0A) == 7) {
-        S32(st, 0x00E951D8u) = 1;
-        U8(st, 0x00E38DCAu) = 1;
+    uint32_t type = G_MESSAGE_TYPES + MSGTYPE_SIZE * (uint32_t) id;
+    if (S16(st, type + MSGTYPE_U0A) == 1 || S16(st, type + MSGTYPE_U0A) == 7) {
+        S32(st, G_UE951D8) = 1;
+        U8(st, G_REDRAW) = 1;
     }
-    k = S32(st, 0x00E951E8u);
-    if (S32(st, POPUP) != 0) {
-        if (U8(st, WINDOW) == 1) {
+    k = S32(st, G_MESSAGE_SLOT);
+    if (S32(st, G_MESSAGE_POPUP) != 0) {
+        if (U8(st, G_WINDOW) == 1) {
             /* @bin 0x004E0E6A the message window opens on it */
-            m = MESSAGES + MESSAGE_SIZE * (uint32_t) k;
-            S32(st, 0x00E951E4u) = k;
-            S32(st, 0x00EA0DA8u) = 5;
-            U8(st, m + 0x0E) = 1;
-            S32(st, 0x00D3B178u) = S16(st, m + 0x08);
-            S32(st, 0x00D3B174u) = U8(st, m + 0x0F);
-            S32(st, 0x00D3B170u) = S32(st, m);
-            U8(st, 0x00E3908Cu) = 0;
-            S32(st, 0x00D3B16Cu) = S32(st, m + 4);
-            S32(st, 0x00E951DCu) = id;
-            GAME_CALL0(st, 0x004CA980u);
-            if (GAME_CALL(st, 0x004CE3F0u, (int32_t) (U32(st, type + 0x44) + U32(st, 0x00E36C74u))) == 0) {
-                GAME_CALL(st, 0x0047D350u, S32(st, type + 0x40) == 1 ? 7 : 6);
+            m = MESSAGE_ADDR(k);
+            S32(st, G_MESSAGE_CURRENT) = k;
+            S32(st, G_POPUP_DELAY) = 5;
+            U8(st, m + MSG_READ) = 1;
+            S32(st, G_MESSAGE_WINDOW_YEAR) = S16(st, m + MSG_YEAR);
+            S32(st, G_MESSAGE_WINDOW_MONTH) = U8(st, m + MSG_MONTH);
+            S32(st, G_MESSAGE_WINDOW_PARAM_A) = S32(st, m + MSG_PARAM_A);
+            U8(st, G_FAST_FORWARD) = 0;
+            S32(st, G_MESSAGE_WINDOW_PARAM_B) = S32(st, m + MSG_PARAM_B);
+            S32(st, G_MESSAGE_SHOWN_ID) = id;
+            GAME_CALL0(st, FN_MESSAGE_POPUP_CLOCK);
+            if (GAME_CALL(st, FN_FILE_EXISTS, (int32_t) (U32(st, type + MSGTYPE_VIDEO) + U32(st, G_MM_TEXT))) == 0) {
+                GAME_CALL(st, FN_RETURN_ZERO, S32(st, type + MSGTYPE_U40) == 1 ? 7 : 6);
             } else {
-                S32(st, 0x00F54118u) = 1;
+                S32(st, G_VIDEO_STATE) = 1;
             }
-            GAME_CALL(st, 0x004C5BF0u, S32(st, 0x00E951DCu), 0, (int32_t) arg5);
+            GAME_CALL(st, FN_MESSAGE_WINDOW_OPEN, S32(st, G_MESSAGE_SHOWN_ID), 0, (int32_t) arg5);
         } else {
             /* @bin 0x004E0F25 the first free entry of the 20 pending ones */
-            for (uint32_t i = 0; i < 20; i++) {
-                if (S32(st, 0x00E95080u + 4 * i) == 0) {
-                    S32(st, 0x00E95080u + 4 * i) = S16(st, MESSAGES + MESSAGE_SIZE * (uint32_t) k + 0x0C);
+            for (uint32_t i = 0; i < G_MESSAGE_PENDING_COUNT; i++) {
+                if (S32(st, G_MESSAGE_PENDING + 4 * i) == 0) {
+                    S32(st, G_MESSAGE_PENDING + 4 * i) = S16(st, MESSAGE_ADDR(k) + MSG_SEQUENCE);
                     break;
                 }
             }
         }
-    } else if (S32(st, 0x00E950E0u) == 1) {
-        GAME_CALL(st, 0x0047D350u, S32(st, type + 0x40) == 1 ? 7 : 6);
+    } else if (S32(st, G_UE950E0) == 1) {
+        GAME_CALL(st, FN_RETURN_ZERO, S32(st, type + MSGTYPE_U40) == 1 ? 7 : 6);
     }
-    S32(st, 0x00E950E0u) = 1;
-    S32(st, POPUP) = 0;
-    U8(st, 0x00E38DC9u) = 1;
+    S32(st, G_UE950E0) = 1;
+    S32(st, G_MESSAGE_POPUP) = 0;
+    U8(st, G_REDRAW_SIDEBAR) = 1;
 }
 
 static const uint8_t *block_arg(game_state *st, int32_t p, uint32_t addr, int *bad)
@@ -223,7 +218,7 @@ static const uint8_t *block_arg(game_state *st, int32_t p, uint32_t addr, int *b
 static int32_t run_post(game_state *st, const int32_t *a)
 {
     int bad = 0;
-    const uint8_t *b = block_arg(st, a[3], 0x004E0CF0u, &bad);
+    const uint8_t *b = block_arg(st, a[3], FN_MESSAGE_POST, &bad);
     if (!bad) {
         message_post(st, a[0], a[1], a[2], b, (uint32_t) a[4]);
     }
@@ -234,10 +229,10 @@ static int32_t run_allowed(game_state *st, const int32_t *a)
 {
     int bad = 0;
     static const uint8_t none[30] = {0};
-    const uint8_t *b = a[0] == 0x83 ? block_arg(st, a[1], 0x004E0F90u, &bad) : none;
+    const uint8_t *b = a[0] == 0x83 ? block_arg(st, a[1], FN_MESSAGE_ALLOWED, &bad) : none;
     if (bad || !b) {
         if (!bad) {
-            state_unported(st, 0x004E0F90u);
+            state_unported(st, FN_MESSAGE_ALLOWED);
         }
         return 0;
     }

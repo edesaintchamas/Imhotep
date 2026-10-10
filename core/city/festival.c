@@ -4,16 +4,9 @@
 #include "city/festival.h"
 
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
-
-/* @bin 0x005DA544 four i32 shares (percent) and 0x005DA554 four 0-terminated lists of building
- * types (12 i32 each, 0x30 bytes): the four kinds of venues; 0x0070573C i32 by building type: the
- * number of such buildings */
-#define SHARES 0x005DA544u
-#define LISTS 0x005DA554u
-#define LIST_END 0x005DA614u
-#define TYPE_COUNT 0x0070573Cu
 
 void festival_performer(game_state *st, int32_t b)
 {
@@ -22,16 +15,16 @@ void festival_performer(game_state *st, int32_t b)
      * +0x0B by the building type (table 0x00461E6C); +0x70 / +0x98 from a counter by that kind
      * (table 0x00461F58: the counter of 0x00D0569C..0x00D056E0 cycles, its limit, the value) */
     uint32_t r = BUILDING_ADDR(b);
-    if (GAME_CALL(st, 0x00480180u, S16(st, r + 6), S16(st, r + 8), U8(st, r + 3)) == 0) {
+    if (GAME_CALL(st, FN_BUILDING_ROAD_ACCESS, S16(st, r + BLD_X), S16(st, r + BLD_Y), U8(st, r + BLD_SIZE)) == 0) {
         return;
     }
-    int32_t f = GAME_CALL(st, 0x004B4800u, U8(st, r + 1), 0x5B, S32(st, 0x00D3B4E4u), S32(st, 0x00D3B4E0u), 0);
-    S16(st, r + 0x2A) = (int16_t) f;
+    int32_t f = GAME_CALL(st, FN_FIGURE_CREATE, U8(st, r + BLD_OWNER), 0x5B, S32(st, G_ROAD_ACCESS_X), S32(st, G_ROAD_ACCESS_Y), 0);
+    S16(st, r + BLD_WALKER) = (int16_t) f;
     uint32_t fr = FIGURE_ADDR(f);
-    int32_t type = S16(st, r + 0x10);
-    U8(st, fr + 0x38) = 8;
-    S16(st, fr + 0x5A) = (int16_t) b;
-    S16(st, fr + 0x36) = 0;
+    int32_t type = S16(st, r + BLD_TYPE);
+    U8(st, fr + FIG_ACTION) = 8;
+    S16(st, fr + FIG_HOME) = (int16_t) b;
+    S16(st, fr + FIG_WAIT_TICKS) = 0;
     uint8_t kind;
     switch (type) {
     case 0x1E: case 0x22: kind = 0x10; break;
@@ -42,30 +35,30 @@ void festival_performer(game_state *st, int32_t b)
     case 0x45: case 0x97: case 0x9C: kind = 0x1B; break;
     default: kind = 0x28; break;
     }
-    U8(st, fr + 0x0B) = kind;
+    U8(st, fr + FIG_RESOURCE) = kind;
     uint32_t counter;
     int32_t limit, value;
     switch (kind) {
-    case 0xF: counter = 0x00D056BCu; limit = 0x20; value = 0x107; break;
-    case 0x10: counter = 0x00D056B8u; limit = 0x20; value = 0x108; break;
-    case 0x11: counter = 0x00D056B4u; limit = 0x10; value = 0x109; break;
-    case 0x1D: counter = 0x00D0569Cu; limit = 0x20; value = 0x10F; break;
-    case 0x28: counter = 0x00D056D4u; limit = 0x20; value = 0x101; break;
+    case 0xF: counter = G_NAME_COUNTER_107; limit = 0x20; value = 0x107; break;
+    case 0x10: counter = G_NAME_COUNTER_108; limit = 0x20; value = 0x108; break;
+    case 0x11: counter = G_NAME_COUNTER_109; limit = 0x10; value = 0x109; break;
+    case 0x1D: counter = G_NAME_COUNTER_10F; limit = 0x20; value = 0x10F; break;
+    case 0x28: counter = G_NAME_COUNTER_101; limit = 0x20; value = 0x101; break;
     default: { /* 0x1B: by 0x004C5120(the building), 0..4 */
-        int32_t lv = GAME_CALL(st, 0x004C5120u, S16(st, fr + 0x5A));
+        int32_t lv = GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S16(st, fr + FIG_HOME));
         if ((uint32_t) lv > 4) {
             return;
         }
-        counter = 0x00D056B0u - 4u * (uint32_t) lv;
+        counter = G_NAME_COUNTER_10A - 4u * (uint32_t) lv;
         limit = 0x10;
         value = 0x10A + lv;
         break;
     }
     }
     int32_t n = S32(st, counter);
-    S16(st, fr + 0x70) = (int16_t) n;
+    S16(st, fr + FIG_NAME_INDEX) = (int16_t) n;
     n++;
-    S32(st, fr + 0x98) = value;
+    S32(st, fr + FIG_NAME_GROUP) = value;
     S32(st, counter) = n;
     if (n >= limit) {
         S32(st, counter) = 0;
@@ -80,11 +73,11 @@ void festival_performers(game_state *st, int32_t amount)
      * (0x00461B20) while their kind still wants some; stop when none is wanted */
     int32_t want[4], have[4];
     for (int i = 0; i < 4; i++) {
-        int32_t part = (int32_t) (U32(st, SHARES + 4u * (uint32_t) i) * (uint32_t) amount) / 100;
+        int32_t part = (int32_t) (U32(st, G_FESTIVAL_SHARES + 4u * (uint32_t) i) * (uint32_t) amount) / 100;
         want[i] = i == 0 ? part : want[i] + part;
         have[i] = 0;
-        for (uint32_t p = LISTS + 0x30u * (uint32_t) i; S32(st, p) != 0; p += 4) {
-            have[i] += S32(st, TYPE_COUNT + 4u * (uint32_t) S32(st, p));
+        for (uint32_t p = G_FESTIVAL_VENUES + G_FESTIVAL_VENUES_STRIDE * (uint32_t) i; S32(st, p) != 0; p += 4) {
+            have[i] += S32(st, G_TYPE_COUNT + 4u * (uint32_t) S32(st, p));
         }
         if (i != 3) {
             want[i + 1] = 0;
@@ -95,16 +88,16 @@ void festival_performers(game_state *st, int32_t amount)
             want[i + 1] = want[i] - have[i];
         }
     }
-    for (int32_t b = 0; b <= S32(st, 0x0078D790u); b++) {
+    for (int32_t b = 0; b <= S32(st, G_BUILDING_HIGHEST); b++) {
         uint32_t r = BUILDING_ADDR(b);
-        if (U8(st, r) != 1) {
+        if (U8(st, r + BLD_STATE) != 1) {
             continue;
         }
-        uint32_t m = BUILDING_ADDR(GAME_CALL(st, 0x00475B50u, b));
-        if (S16(st, m + 0x40) == 0 && U8(st, m + 5) == 0) {
+        uint32_t m = BUILDING_ADDR(GAME_CALL(st, FN_BUILDING_MAIN_PART, b));
+        if (S16(st, m + BLD_WORKERS) == 0 && U8(st, m + BLD_HOUSE_SIZE) == 0) {
             continue;
         }
-        if (U8(st, m + 5) != 0 && S16(st, m + 0x1C) == 0) {
+        if (U8(st, m + BLD_HOUSE_SIZE) != 0 && S16(st, m + BLD_POPULATION) == 0) {
             continue;
         }
         int none = 1;
@@ -113,8 +106,8 @@ void festival_performers(game_state *st, int32_t amount)
                 continue;
             }
             none = 0;
-            for (uint32_t p = LISTS + 0x30u * (uint32_t) i; S32(st, p) != 0; p += 4) {
-                if ((int32_t) S16(st, r + 0x10) == S32(st, p)) {
+            for (uint32_t p = G_FESTIVAL_VENUES + G_FESTIVAL_VENUES_STRIDE * (uint32_t) i; S32(st, p) != 0; p += 4) {
+                if ((int32_t) S16(st, r + BLD_TYPE) == S32(st, p)) {
                     have[i]--;
                     festival_performer(st, b);
                 }
