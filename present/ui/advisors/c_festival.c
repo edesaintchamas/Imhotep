@@ -9,23 +9,17 @@
 
 #include "draw/draw.h"
 #include "draw/text.h"
+#include "present_layout.h"
 #include "sidebar/sidebar.h"
 #include "state/records.h"
 
-#define PX (S32(st, ADV_PANEL_X))
-#define PY (S32(st, ADV_PANEL_Y))
-#define DX (S32(st, ADV_DX))
-#define DY (S32(st, ADV_DY))
-#define FONT_NORMAL (S32(st, ADV_FONT_NORMAL))
-#define FONT_LARGE (S32(st, ADV_FONT_LARGE))
-#define TEXT_CURSOR 0x00E20778u
-#define SUFFIX 0x0057C048u
+#define PX (S32(st, G_ADVISOR_X))
+#define PY (S32(st, G_ADVISOR_Y))
+#define DX (S32(st, G_LAYOUT_DX))
+#define DY (S32(st, G_LAYOUT_DY))
+#define FONT_NORMAL (S32(st, G_FONT_LARGE))
+#define FONT_LARGE (S32(st, G_FONT_TITLE))
 #define CITY (CURRENT_CITY(st))
-#define GODS_AVAILABLE 0x007848E2u /* i16[5] */
-#define GOD_IMAGES 0x00F55C5Cu
-#define HOVERED 0x007056C8u
-#define FESTIVAL_GOD 0x44F0u
-#define FESTIVAL_SIZE 0x44F4u
 
 /* @bin 0x00529320 / 0x00516080 one god's portrait at (x, y) = the image's position: available ->
  * framed (layout_frame 1, (x - 4, y - 4), 0x5A x 0x64, lit) and image +0x15 + god when chosen, else
@@ -34,20 +28,20 @@
 static void god_portrait(game_state *st, int32_t god, int32_t x, int32_t y, int32_t dx, int32_t dy, int32_t fx,
                          int32_t fy)
 {
-    if (U16(st, GODS_AVAILABLE + 2u * (uint32_t) god) != 0) {
-        if (god == S32(st, CITY + FESTIVAL_GOD)) {
+    if (U16(st, G_GOD_MODE + 2u * (uint32_t) god) != 0) {
+        if (god == S32(st, CITY + CITY_FESTIVAL_GOD_CHOSEN)) {
             layout_frame(st, 1, fx, fy, 0x5A, 0x64, 1, dx, dy);
-            image_draw(st, S32(st, GOD_IMAGES) + god + 0x15, x, y);
+            image_draw(st, S32(st, G_GOD_IMAGES) + god + 0x15, x, y);
         } else {
-            image_draw(st, S32(st, GOD_IMAGES) + god + 0x10, x, y);
+            image_draw(st, S32(st, G_GOD_IMAGES) + god + 0x10, x, y);
         }
         return;
     }
-    uint32_t p = CITY + FESTIVAL_GOD;
+    uint32_t p = CITY + CITY_FESTIVAL_GOD_CHOSEN;
     if (god == S32(st, p)) {
         S32(st, p) = god + 1; /* @bin 0x0052940F */
     }
-    image_draw(st, S32(st, GOD_IMAGES) + god + 0x10, x, y);
+    image_draw(st, S32(st, G_GOD_IMAGES) + god + 0x10, x, y);
     rect_grey(st, x + 5, y + 5, 0x48, 0x52, 0);
 }
 
@@ -58,28 +52,28 @@ void festival_dialog_draw_sizes(game_state *st)
      * festival's +0x4510 (group 0x17 text 0xF); greyed when the treasury (city +0x0C) <= -5000 (all
      * three) or when +0x4514 is set (the third) */
     static const int32_t frame_y[3] = {0xD8, 0xF6, 0x114};
-    static const uint32_t cost[3] = {0x4504u, 0x4508u, 0x450Cu};
+    static const uint32_t cost[3] = {CITY_FESTIVAL_COST, CITY_FESTIVAL_COST + 4u, CITY_FESTIVAL_COST + 8u};
     for (int i = 0; i < 3; i++) {
         int32_t y = frame_y[i];
-        layout_frame(st, 1, PX + 0x66, PY + y, 0x1AE, 0x1A, S32(st, HOVERED) == 6 + i, DX, DY);
-        S32(st, TEXT_CURSOR) = 0;
+        layout_frame(st, 1, PX + 0x66, PY + y, 0x1AE, 0x1A, S32(st, G_HOVER) == 6 + i, DX, DY);
+        S32(st, G_TEXT_X) = 0;
         layout_group(st, 0x3A, 0x1F + i, PX + 0x6E, PY + y + 8, FONT_NORMAL, 0, DX, DY);
-        int32_t tx = S32(st, TEXT_CURSOR);
+        int32_t tx = S32(st, G_TEXT_X);
         text_count_draw(st, 8, 0, S32(st, CITY + cost[i]), tx + PX + 0x6E, PY + y + 8, FONT_NORMAL, 0);
         if (i == 2) {
             /* @bin 0x005297B9 the cursor: its value after the count plus the one before */
-            S32(st, TEXT_CURSOR) = S32(st, TEXT_CURSOR) + tx;
-            layout_number_at(st, S32(st, CITY + 0x4510u), 0x40, SUFFIX, S32(st, TEXT_CURSOR) + PX + 0x78, PY + 0x11C,
+            S32(st, G_TEXT_X) = S32(st, G_TEXT_X) + tx;
+            layout_number_at(st, S32(st, CITY + CITY_FESTIVAL_BEER), 0x40, G_NUMBER_SUFFIX, S32(st, G_TEXT_X) + PX + 0x78, PY + 0x11C,
                              FONT_NORMAL, 0, DX, DY);
-            layout_group(st, 0x17, 0xF, S32(st, TEXT_CURSOR) + PX + 0x78, PY + 0x11C, FONT_NORMAL, 0, DX, DY);
+            layout_group(st, 0x17, 0xF, S32(st, G_TEXT_X) + PX + 0x78, PY + 0x11C, FONT_NORMAL, 0, DX, DY);
         }
     }
     uint32_t c = CITY;
-    if (S32(st, c + 0x0Cu) <= -5000) { /* @bin 0x00529825 */
+    if (S32(st, c + CITY_TREASURY) <= -5000) { /* @bin 0x00529825 */
         rect_grey(st, PX + 0x68, PY + 0xDA, 0x1AA, 0x16, 0);
         rect_grey(st, PX + 0x68, PY + 0xF8, 0x1AA, 0x16, 0);
         rect_grey(st, PX + 0x68, PY + 0x116, 0x1AA, 0x16, 0);
-    } else if (S32(st, c + 0x4514u) != 0) {
+    } else if (S32(st, c + CITY_U4514) != 0) {
         rect_grey(st, PX + 0x68, PY + 0x116, 0x1AA, 0x16, 0);
     }
 }
@@ -94,13 +88,13 @@ void festival_dialog_draw(game_state *st)
         int32_t off = god * 100;
         god_portrait(st, god, PX + off + 0x46, PY + 0x60, DX, DY, PX + off + 0x42, PY + 0x5C);
     }
-    int32_t g = S32(st, CITY + FESTIVAL_GOD);
+    int32_t g = S32(st, CITY + CITY_FESTIVAL_GOD_CHOSEN);
     if (g < 5) {
         layout_group_centred(st, 0x3A, g + 0x19, PX + 0x30, PY + 0x3C, 0x220, FONT_LARGE, 0, DX, DY);
     }
     festival_dialog_draw_sizes(st);
-    S32(st, TEXT_CURSOR) = 0;
-    layout_group(st, 0x3A, S32(st, CITY + FESTIVAL_SIZE) + 0x1E, PX + 0xB4, PY + 0x142, FONT_NORMAL, 0, DX, DY);
+    S32(st, G_TEXT_X) = 0;
+    layout_group(st, 0x3A, S32(st, CITY + CITY_FESTIVAL_SIZE_CHOSEN) + 0x1E, PX + 0xB4, PY + 0x142, FONT_NORMAL, 0, DX, DY);
 }
 
 void festival_dialog_draw_building(game_state *st)
@@ -110,14 +104,14 @@ void festival_dialog_draw_building(game_state *st)
     panel_draw(st, 0x4E, 0x4E, 0x22, 0x14);
     for (int32_t god = 0; god < 5; god++) {
         int32_t x = 100 + god * 100;
-        god_portrait(st, god, x, 0x7E, S32(st, 0x00EADD90u), S32(st, 0x00EADD8Cu), x - 4, 0x7A);
+        god_portrait(st, god, x, 0x7E, S32(st, G_INFO_X), S32(st, G_INFO_Y), x - 4, 0x7A);
     }
-    int32_t g = S32(st, CITY + FESTIVAL_GOD);
+    int32_t g = S32(st, CITY + CITY_FESTIVAL_GOD_CHOSEN);
     if (g < 5) {
-        layout_group_centred(st, 0x3A, g + 0x19, 0x4E, 0x5A, 0x220, FONT_LARGE, 0, S32(st, 0x00EADD90u),
-                             S32(st, 0x00EADD8Cu));
+        layout_group_centred(st, 0x3A, g + 0x19, 0x4E, 0x5A, 0x220, FONT_LARGE, 0, S32(st, G_INFO_X),
+                             S32(st, G_INFO_Y));
     }
-    S32(st, TEXT_CURSOR) = 0;
-    layout_group(st, 0x3A, S32(st, CITY + FESTIVAL_SIZE) + 0x1E, 0xD2, 0x160, FONT_NORMAL, 0, S32(st, 0x00EADD90u),
-                 S32(st, 0x00EADD8Cu));
+    S32(st, G_TEXT_X) = 0;
+    layout_group(st, 0x3A, S32(st, CITY + CITY_FESTIVAL_SIZE_CHOSEN) + 0x1E, 0xD2, 0x160, FONT_NORMAL, 0, S32(st, G_INFO_X),
+                 S32(st, G_INFO_Y));
 }

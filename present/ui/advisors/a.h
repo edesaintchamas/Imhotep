@@ -6,9 +6,8 @@
 
 #include <stdint.h>
 
+#include "present_layout.h"
 #include "state/state.h"
-
-#define ADV_SLIDE 0x00F53F48u /* i32 the window's slide-in step (pages draw a black frame while < 5) */
 
 /* a_labour.c */
 void advisor_labour_draw(game_state *st);          /* @bin 0x00521080 page 1 */

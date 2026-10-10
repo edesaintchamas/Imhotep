@@ -368,9 +368,9 @@ void mission_briefing_draw(game_state *st)
         slot = 1;
         goal_box(st, S32(st, G_SCREEN_X) + gx, S32(st, G_SCREEN_Y) + gy, 0x0F);
         S32(st, G_TEXT_X) = 0;
-        GAME_CALL(st, FN_TEXT_GROUP_DRAW, 0x3E, 0x0B, S32(st, G_SCREEN_X) + gx + 8, S32(st, G_SCREEN_Y) + gy + 3, S32(st, G_UF56FA4), 0);
+        GAME_CALL(st, FN_TEXT_GROUP_DRAW, 0x3E, 0x0B, S32(st, G_SCREEN_X) + gx + 8, S32(st, G_SCREEN_Y) + gy + 3, S32(st, G_FONT_RED), 0);
         GAME_CALL(st, FN_NUMBER_DRAW, S32(st, G_GOAL_POPULATION), 0x40, G_NUMBER_SUFFIX, S32(st, G_TEXT_X) + S32(st, G_SCREEN_X) + gx + 8,
-                  S32(st, G_SCREEN_Y) + gy + 3, S32(st, G_UF56FA4), 0);
+                  S32(st, G_SCREEN_Y) + gy + 3, S32(st, G_FONT_RED), 0);
     }
     if (S32(st, G_GOAL_HOUSES) != 0) {
         int32_t gy = S32(st, G_GOAL_BOXES + 4u + 8u * (uint32_t) slot), gx = S32(st, G_GOAL_BOXES + 8u * (uint32_t) slot);
@@ -378,9 +378,9 @@ void mission_briefing_draw(game_state *st)
         goal_box(st, S32(st, G_SCREEN_X) + gx, S32(st, G_SCREEN_Y) + gy, 0x0F);
         S32(st, G_TEXT_X) = 0;
         GAME_CALL(st, FN_NUMBER_DRAW, S32(st, G_GOAL_HOUSES), 0x40, G_NUMBER_SUFFIX, S32(st, G_SCREEN_X) + gx + 8,
-                  S32(st, G_SCREEN_Y) + gy + 3, S32(st, G_UF56FA4), 0);
+                  S32(st, G_SCREEN_Y) + gy + 3, S32(st, G_FONT_RED), 0);
         GAME_CALL(st, FN_TEXT_GROUP_DRAW, 0x1D, S32(st, G_GOAL_HOUSE_LEVEL) + 0x14, S32(st, G_TEXT_X) + S32(st, G_SCREEN_X) + gx + 8,
-                  S32(st, G_SCREEN_Y) + gy + 3, S32(st, G_UF56FA4), 0);
+                  S32(st, G_SCREEN_Y) + gy + 3, S32(st, G_FONT_RED), 0);
     }
     uint32_t pt = G_GOAL_BOXES + 4u + 8u * (uint32_t) slot;
     int32_t index = 0x0C;
@@ -392,19 +392,19 @@ void mission_briefing_draw(game_state *st)
         pt += 8;
         goal_box(st, S32(st, G_SCREEN_X) + gx, S32(st, G_SCREEN_Y) + gy, 0x0F);
         S32(st, G_TEXT_X) = 0;
-        GAME_CALL(st, FN_TEXT_GROUP_DRAW, 0x3E, index, S32(st, G_SCREEN_X) + gx + 8, S32(st, G_SCREEN_Y) + gy + 3, S32(st, G_UF56FA4), 0);
+        GAME_CALL(st, FN_TEXT_GROUP_DRAW, 0x3E, index, S32(st, G_SCREEN_X) + gx + 8, S32(st, G_SCREEN_Y) + gy + 3, S32(st, G_FONT_RED), 0);
         GAME_CALL(st, FN_NUMBER_DRAW, S32(st, v), 0x40, G_NUMBER_SUFFIX, S32(st, G_TEXT_X) + S32(st, G_SCREEN_X) + gx + 8,
-                  S32(st, G_SCREEN_Y) + gy + 3, S32(st, G_UF56FA4), 0);
+                  S32(st, G_SCREEN_Y) + gy + 3, S32(st, G_FONT_RED), 0);
     }
     if ((uint8_t) mission_goal_hint(st) != 0) {
         int32_t gy = S32(st, G_GOAL_BOXES + 0x24u), gx = S32(st, G_GOAL_BOXES + 0x20u);
         goal_box(st, S32(st, G_SCREEN_X) + gx, S32(st, G_SCREEN_Y) + gy, S32(st, G_MESSAGE_WINDOW_BOX_W) - 1);
         GAME_CALL(st, FN_TEXT_DRAW, S32(st, G_TEXT_CURSOR), S32(st, G_SCREEN_X) + gx + 8, S32(st, G_SCREEN_Y) + gy + 3,
-                  S32(st, G_UF56FA4), 0);
+                  S32(st, G_FONT_RED), 0);
     }
     GAME_CALL(st, FN_PANEL_DRAW_INNER, S32(st, G_SCREEN_X) + 0x10, S32(st, G_SCREEN_Y) + 0xA8, S32(st, G_MESSAGE_WINDOW_BOX_W) - 2, 0x0F);
     S32(st, G_MESSAGE_WINDOW_FONT_TEXT) = S32(st, G_FONT_9C);
-    S32(st, G_MESSAGE_WINDOW_FONT_LINK) = S32(st, G_UF56FA4);
+    S32(st, G_MESSAGE_WINDOW_FONT_LINK) = S32(st, G_FONT_RED);
     S32(st, G_MESSAGE_WINDOW_BOX_X) = S32(st, G_SCREEN_X) - 6;
     S32(st, G_MESSAGE_WINDOW_BOX_Y) = S32(st, G_SCREEN_Y) + 0xAA;
     int32_t lines = S32(st, G_TEXT_LINES);

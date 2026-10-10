@@ -26,28 +26,8 @@
 
 #include <stdint.h>
 
+#include "present_layout.h"
 #include "state/state.h"
-
-/* globals (docs/presentation.md 3.2; meanings from the functions that use them) */
-#define ADV_PAGE 0x00605A44u        /* i32 the advisor page shown in window 7 (1-14) */
-#define ADV_WINDOW 0x00E38DDAu      /* u8 the current window */
-#define ADV_REDRAW 0x00E38DCAu      /* u8 full redraw this frame */
-#define ADV_SCREEN_W 0x00E38DB0u    /* i32 */
-#define ADV_SCREEN_H 0x00E38DACu    /* i32 */
-#define ADV_DX 0x00E38DA8u          /* i32 (width - 640) / 2: the 640 x 480 layout's origin */
-#define ADV_DY 0x00E38DA4u          /* i32 (height - 480) / 2 */
-#define ADV_PANEL_X 0x00F53F0Cu     /* i32 the page panel's origin x (written by the pages) */
-#define ADV_PANEL_Y 0x00F53F08u     /* i32 */
-#define ADV_PANEL_W 0x00F53F04u     /* i32 the page panel's width in 16-px pieces */
-#define ADV_PANEL_H 0x00F53F00u     /* i32 the page panel's height in 16-px pieces */
-#define ADV_PARAM1 0x00D3B198u      /* i32 the clicked button's first parameter */
-#define ADV_PARAM2 0x00D3B194u      /* i32 the clicked button's second parameter */
-#define ADV_IMAGES 0x00F55BB0u      /* `this` of the image draw 0x0053E590 */
-#define ADV_FONT_SMALL 0x00F56F84u
-#define ADV_FONT_NORMAL 0x00F56F8Cu
-#define ADV_FONT_LARGE 0x00F56FB4u
-#define ADV_TABS 0x005F8320u        /* the hall's 14 page buttons (0x24-byte entries, sidebar.h buttons_draw) */
-#define ADV_AVAILABLE 0x006FDC88u   /* u8[] advisor available, by page */
 
 /* hall.c */
 void advisors_draw(game_state *st);              /* @bin 0x00520EA0 */

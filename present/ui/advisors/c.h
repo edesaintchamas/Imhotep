@@ -5,9 +5,8 @@
 
 #include <stdint.h>
 
+#include "present_layout.h"
 #include "state/state.h"
-
-#define ADV_OPENING 0x00F53F48u /* i32 the page's opening count (6 on opening; 5 - it > 0: a growing frame) */
 
 /* c_pages.c */
 void advisor_draw_page8(game_state *st);       /* @bin 0x00527BF0 */

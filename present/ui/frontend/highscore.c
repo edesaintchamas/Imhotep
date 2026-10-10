@@ -461,7 +461,7 @@ void choice_window_draw(game_state *st)
         } else if (i + 1 == S32(st, G_HOVER)) {
             font = S32(st, G_FONT_LINK);
         } else if (i == S32(st, G_NAME_PICK)) {
-            font = S32(st, G_UF56FA4);
+            font = S32(st, G_FONT_RED);
         } else {
             font = S32(st, G_FONT_LARGE);
         }

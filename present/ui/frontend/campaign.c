@@ -136,7 +136,7 @@ void period_screen_frame(game_state *st)
         int32_t font = S32(st, G_FONT_LARGE);
         if (closed) {
             lit = 0;
-            font = S32(st, G_UF56FA4);
+            font = S32(st, G_FONT_RED);
         }
         fe_button_draw(st, 6, bx, by, width / 16, lit);
         GAME_CALL(st, FN_LAYOUT_TEXT_GROUP_CENTRED, 0x1B, i, (int32_t) e, font, 0, 0, 6);

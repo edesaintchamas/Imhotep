@@ -288,7 +288,7 @@ void list_rows_draw(game_state *st)
         } else if (S32(st, G_HOVER) == 0 && S32(st, G_SCENARIO_FIRST) + k - 1 == S32(st, G_SCENARIO_LIST_ROW)) {
             font = S32(st, G_FONT_9C);
         } else if (list_row_kind(st, G_LIST_OBJECT, S32(st, G_SCENARIO_FIRST) - 1 + k) == 2) {
-            font = S32(st, G_UF56FA4);
+            font = S32(st, G_FONT_RED);
         }
         int32_t off = S32(st, G_SCENARIO_LIST_MODE) != 1 ? -0x20 : 0;
         GAME_CALL(st, FN_TEXT_DRAW, (int32_t) name, S32(st, G_LAYOUT_DX) + 0x18, S32(st, G_LAYOUT_DY) + y + off + 0xFC - 0x10, font, 0);
