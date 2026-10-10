@@ -289,7 +289,7 @@ static void layout_file_read(game_state *st)
      * garbage in its high bytes): assumed 0 */
     uint8_t count[4] = {0, 0, 0, 0};
     int32_t k = 0;
-    for (uint32_t e = G_LAYOUT_REGISTRY + 4u; e <= G_LAYOUT_REGISTRY + 0x78u * 0x10u + 3u; e += 0x10, k++) {
+    for (uint32_t e = G_LAYOUT_LISTS + 4u; e <= G_LAYOUT_LISTS + 0x78u * 0x10u + 3u; e += 0x10, k++) {
         stream_read4(&f, count);
         layout_list_read(st, &f, le32(count), e);
         if (U32(st, e) != 0) {
@@ -300,7 +300,7 @@ static void layout_file_read(game_state *st)
         stream_read4(&f, count);
         layout_list_read(st, &f, le32(count), e + 4);
         if (f.flags & 0x30) {
-            uint32_t b = G_LAYOUT_REGISTRY + (uint32_t) k * 16u;
+            uint32_t b = G_LAYOUT_LISTS + (uint32_t) k * 16u;
             S32(st, b + 4) = 0;
             S32(st, b) = 0;
             S32(st, b + 8) = 0;
@@ -315,7 +315,7 @@ void play_layout_fill(game_state *st)
 {
     /* @bin 0x004D5D90 the registry's 0x78 entries emptied (+0xC := 1), marked filled (0x00E94D9C),
      * then the menu widths, the menu bar's width and the overrides of "dialog.loc" */
-    for (uint32_t a = G_LAYOUT_REGISTRY + 8u; a < G_LAYOUT_REGISTRY + 0x78u * 0x10u + 8u; a += 0x10) {
+    for (uint32_t a = G_LAYOUT_LISTS + 8u; a < G_LAYOUT_LISTS + 0x78u * 0x10u + 8u; a += 0x10) {
         S32(st, a - 4) = 0;
         S32(st, a) = 0;
         S32(st, a - 8) = 0;

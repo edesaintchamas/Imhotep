@@ -7,18 +7,14 @@
  * lookups go through text_seek 0x004CC110 (the pointer 0x00E20768 into the text file). */
 #include "sidebar.h"
 
+#include "present_layout.h"
 #include "sim/call.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define TIP_TEXT 0x00D3A4C0u           /* char[] the tooltip buffer */
-#define TEXT_PTR 0x00E20768u           /* char * the text found by 0x004CC110 */
-#define NUMBER_TEXT 0x00E34238u        /* char[] the number written by 0x004CC5C0 */
-#define LINE_BREAK 0x005E03F8u         /* "@L" */
-
 static void text_seek(game_state *st, int32_t group, int32_t id)
 {
-    GAME_CALL(st, 0x004CC110u, group, id);
+    GAME_CALL(st, FN_TEXT_SEEK, group, id);
 }
 
 static uint32_t str_len(game_state *st, uint32_t s)
@@ -51,7 +47,7 @@ static uint32_t building(int32_t id)
 
 static int occupied(game_state *st, int32_t id)
 {
-    return U8(st, building(id) + 5) != 0;
+    return U8(st, building(id) + BLD_HOUSE_SIZE) != 0;
 }
 
 void tooltip_text_stock(game_state *st, int32_t id, int32_t a, int32_t b, int32_t *length)
@@ -72,26 +68,26 @@ void tooltip_text_stock(game_state *st, int32_t id, int32_t a, int32_t b, int32_
     case 0x13: k = 0x0A; break;
     default: k = 0x0E; break;
     }
-    int16_t t = S16(st, building(id) + 0x10);
+    int16_t t = S16(st, building(id) + BLD_TYPE);
     int32_t v;
     if (t == 0x46 || t == 0xBE) {
-        v = S16(st, building(id) + 0x56 + 2u * (uint32_t) b);
+        v = S16(st, building(id) + BLD_INVENTORY + 2u * (uint32_t) b);
     } else if (t == 0x47 || t == 0xBF) {
-        v = S16(st, building(id) + 0x56 + 2u * (uint32_t) a);
+        v = S16(st, building(id) + BLD_INVENTORY + 2u * (uint32_t) a);
     } else if (t == 0x48 || t == 0xC1) {
-        v = GAME_CALL(st, 0x0045D510u, id, a);
+        v = GAME_CALL(st, FN_BUILDING_PARTS_STOCK, id, a);
     } else if (t == 0x49) {
-        int32_t r = GAME_CALL(st, 0x00475B50u, id, a);
-        v = GAME_CALL(st, 0x0045D510u, r, a);
+        int32_t r = GAME_CALL(st, FN_BUILDING_MAIN_PART, id, a);
+        v = GAME_CALL(st, FN_BUILDING_PARTS_STOCK, r, a);
     } else {
         if (!occupied(st, id)) {
             text_seek(st, 0x42, 0x7E);
             return;
         }
-        v = S16(st, building(id) + 0x54 + 2u * (uint32_t) b);
+        v = S16(st, building(id) + BLD_HOUSE_INVENTORY + 2u * (uint32_t) b);
     }
-    *length += GAME_CALL(st, 0x004CC5C0u, v, 0, 0);
-    str_copy(st, TIP_TEXT, NUMBER_TEXT);
+    *length += GAME_CALL(st, FN_NUMBER_FORMAT, v, 0, 0);
+    str_copy(st, G_TIP_TEXT, G_NUMBER_TEXT);
     text_seek(st, 0x42, k + (v == 1 ? 0x6F : 0x6E));
 }
 
@@ -101,7 +97,7 @@ void tooltip_text_0xE8(game_state *st, int32_t id)
      * (or an empty building) 0x88 */
     int32_t k = 0;
     if (occupied(st, id)) {
-        int32_t v = S32(st, building(id) + 0xE8) / 10;
+        int32_t v = S32(st, building(id) + BLD_MALARIA_RISK) / 10;
         if (v >= 0x55) {
             k = 4;
         } else if (v >= 0x3C) {
@@ -120,7 +116,7 @@ void tooltip_text_0xFC(game_state *st, int32_t id)
     /* @bin 0x004CA6D0 i32 +0xFC: >= 850 text 0x83, >= 600 0x82, >= 450 0x81, >= 10 0x80, else 0x7F */
     int32_t k = 0;
     if (occupied(st, id)) {
-        int32_t v = S32(st, building(id) + 0xFC);
+        int32_t v = S32(st, building(id) + BLD_DISEASE_RISK);
         if (v >= 0x352) {
             k = 4;
         } else if (v >= 0x258) {
@@ -139,24 +135,24 @@ int32_t tooltip_text_problems(game_state *st, int32_t id)
     /* @bin 0x004CA770 the problems of the building's main part (0x00475B50): none -> 0; else the
      * text 0x8D (0x8E when empty), then per bit k < 14 of +0x100 a numbered line "@L%d. " and the
      * text 0x8F + k */
-    int32_t main = GAME_CALL(st, 0x00475B50u, id);
+    int32_t main = GAME_CALL(st, FN_BUILDING_MAIN_PART, id);
     uint32_t b = building(main);
-    if (U32(st, b + 0x100) == 0) {
+    if (U32(st, b + BLD_PROBLEMS) == 0) {
         return 0;
     }
-    text_seek(st, 0x42, U8(st, b + 5) != 0 ? 0x8D : 0x8E);
-    str_copy(st, TIP_TEXT, U32(st, TEXT_PTR));
-    str_cat(st, TIP_TEXT, LINE_BREAK);
+    text_seek(st, 0x42, U8(st, b + BLD_HOUSE_SIZE) != 0 ? 0x8D : 0x8E);
+    str_copy(st, G_TIP_TEXT, U32(st, G_TEXT_CURSOR));
+    str_cat(st, G_TIP_TEXT, G_LINE_BREAK);
     int32_t n = 0;
     for (int32_t k = 0; k < 0x0E; k++) {
-        if ((U32(st, b + 0x100) & (1u << k)) == 0) {
+        if ((U32(st, b + BLD_PROBLEMS) & (1u << k)) == 0) {
             continue;
         }
-        str_cat(st, TIP_TEXT, LINE_BREAK);
+        str_cat(st, G_TIP_TEXT, G_LINE_BREAK);
         n++;
         /* @bin 0x004CA894 sprintf(local, "%d. " (0x005E03F0), n): the call is made (its buffer, in
          * the original's frame, is given as 0: crt_sprintf then only counts), the text built here */
-        GAME_CALL(st, 0x00561A36u, 0, 0x005E03F0, n);
+        GAME_CALL(st, FN_CRT_SPRINTF, 0, G_STR_NUMBER_DOT, n);
         char number[16];
         int len = 0;
         int32_t v = n;
@@ -171,13 +167,13 @@ int32_t tooltip_text_problems(game_state *st, int32_t id)
         }
         number[len++] = '.';
         number[len++] = ' ';
-        uint32_t end = TIP_TEXT + str_len(st, TIP_TEXT);
+        uint32_t end = G_TIP_TEXT + str_len(st, G_TIP_TEXT);
         for (int i = 0; i < len; i++) {
             P8(st, end + (uint32_t) i) = (uint8_t) number[i];
         }
         P8(st, end + (uint32_t) len) = 0;
         text_seek(st, 0x42, k + 0x8F);
-        str_cat(st, TIP_TEXT, U32(st, TEXT_PTR));
+        str_cat(st, G_TIP_TEXT, U32(st, G_TEXT_CURSOR));
     }
     return 1;
 }
@@ -220,27 +216,27 @@ int32_t tooltip_overlay_text(game_state *st)
     /* @bin 0x004C9750 (see the file comment); the overlay table 0x005E0350 (3 bytes per overlay):
      * +1 needs a building, +0 = 1 an occupied one, = 2 an empty one, +2 a tile with a value in
      * 0x00A5D4CC */
-    if (S32(st, 0x00E38EACu) == 0 || U8(st, 0x00E38DF4u) != 0 || U8(st, WINDOW_ID) != 1 ||
-        S32(st, EDITOR_MODE) == 1) {
+    if (S32(st, G_TIPS_ON) == 0 || U8(st, G_RIGHT_HELD) != 0 || U8(st, G_WINDOW) != 1 ||
+        S32(st, G_EDITOR) == 1) {
         return 0;
     }
-    int32_t tile = S32(st, 0x00BCA2C4u);
+    int32_t tile = S32(st, G_MOUSE_OFFSET);
     if (tile == 0) {
         return 0;
     }
-    int32_t overlay = S32(st, 0x00E94E0Cu);
+    int32_t overlay = S32(st, G_OVERLAY);
     if (overlay == 0 || overlay == 2 || overlay == 1 || overlay == 3 || overlay == 5 || overlay == 6 ||
         overlay == 7) {
         return 0;
     }
     int32_t id = 0;
-    int32_t grid_building = S16(st, 0x00B4E6FCu + 2u * (uint32_t) tile);
-    if ((U8(st, 0x00AF598Cu + 4u * (uint32_t) tile) & 0x40) == 0 &&
-        S16(st, building(grid_building) + 0x10) != 0xD1) {
-        id = GAME_CALL(st, 0x00475B50u, grid_building);
-        overlay = S32(st, 0x00E94E0Cu);
+    int32_t grid_building = S16(st, G_GRID_BUILDING + 2u * (uint32_t) tile);
+    if ((U8(st, G_GRID_TERRAIN + 4u * (uint32_t) tile) & 0x40) == 0 &&
+        S16(st, building(grid_building) + BLD_TYPE) != 0xD1) {
+        id = GAME_CALL(st, FN_BUILDING_MAIN_PART, grid_building);
+        overlay = S32(st, G_OVERLAY);
     }
-    uint32_t row = 0x005E0350u + 3u * (uint32_t) overlay;
+    uint32_t row = G_OVERLAY_TIPS + 3u * (uint32_t) overlay;
     if (U8(st, row + 1) != 0 && id == 0) {
         return 0;
     }
@@ -250,31 +246,31 @@ int32_t tooltip_overlay_text(game_state *st)
     if (U8(st, row) == 2 && occupied(st, id)) {
         return 0;
     }
-    if (U8(st, row + 2) != 0 && U8(st, 0x00A5D4CCu + (uint32_t) tile) == 0) {
+    if (U8(st, row + 2) != 0 && U8(st, G_FERTILITY_GRID + (uint32_t) tile) == 0) {
         return 0;
     }
     int32_t length = 0;
     text_seek(st, 0x42, 0);
-    overlay = S32(st, 0x00E94E0Cu);
+    overlay = S32(st, G_OVERLAY);
     uint32_t b = building(id);
     int32_t text = -1; /* -1: keep the current text */
     switch (overlay) {
     case 0x2D:
         if (id != 0 && occupied(st, id)) {
-            uint8_t v = U8(st, b + 0x77);
+            uint8_t v = U8(st, b + BLD_ACCESS_WATER);
             if (v >= 0x50) {
                 text = 9;
             } else if (v > 0x10) {
                 text = 10;
             } else if (v != 0) {
                 text = 11;
-            } else if ((U32(st, 0x00AF598Cu + 4u * (uint32_t) tile) & 0x2000u) != 0) {
+            } else if ((U32(st, G_GRID_TERRAIN + 4u * (uint32_t) tile) & 0x2000u) != 0) {
                 text = 3;
             } else {
-                text = U8(st, b + 0x3F) != 0 ? 3 : 2;
+                text = U8(st, b + BLD_WELL_ACCESS) != 0 ? 3 : 2;
             }
         } else {
-            uint32_t terrain = U32(st, 0x00AF598Cu + 4u * (uint32_t) tile);
+            uint32_t terrain = U32(st, G_GRID_TERRAIN + 4u * (uint32_t) tile);
             if ((terrain & 0x80) != 0) {
                 text = (terrain & 0x2000u) != 0 ? 3 : 1;
             } else if ((terrain & 0x2000u) != 0) {
@@ -285,23 +281,23 @@ int32_t tooltip_overlay_text(game_state *st)
         }
         break;
     case 4: {
-        int8_t v = S8(st, b + 0x83);
+        int8_t v = S8(st, b + BLD_RELIGION);
         text = v <= 0 ? 0x0C : v <= 1 ? 0x0D : v <= 2 ? 0x0E : v <= 3 ? 0x0F : v <= 4 ? 0x10 : v <= 5 ? 0x11 : 0x12;
         break;
     }
     case 8:
-        text = by_word_level(S16(st, b + 0x48), 0x2E);
+        text = by_word_level(S16(st, b + BLD_FIRE_RISK), 0x2E);
         break;
     case 9:
-        text = by_word_level(S16(st, b + 0x46), 0x34);
+        text = by_word_level(S16(st, b + BLD_COLLAPSE_RISK), 0x34);
         break;
     case 0x0A: {
-        int32_t v = S32(st, b + 0xE4);
+        int32_t v = S32(st, b + BLD_CRIME_RISK);
         text = v <= 0 ? 0x3A : v <= 0x64 ? 0x3B : v <= 0xC8 ? 0x3C : v <= 0x12C ? 0x3D : v < 0x1F4 ? 0x3E : 0x3F;
         break;
     }
     case 0x0B: {
-        int8_t v = S8(st, b + 0x80);
+        int8_t v = S8(st, b + BLD_ENTERTAINMENT);
         if (v <= 0) {
             text = 0x40;
         } else if (v >= 0x5A) {
@@ -311,13 +307,13 @@ int32_t tooltip_overlay_text(game_state *st)
         }
         break;
     }
-    case 0x0C: text = by_byte_level(U8(st, b + 0x6C), 0x4B, 0x4C, 0x4E, 0x4D); break;
-    case 0x0D: text = by_byte_level(U8(st, b + 0x6D), 0x4F, 0x50, 0x52, 0x51); break;
-    case 0x0E: text = by_byte_level(U8(st, b + 0x6F), 0x53, 0x54, 0x56, 0x55); break;
-    case 0x0F: text = by_byte_level(U8(st, b + 0x71), 0x57, 0x58, 0x5A, 0x59); break;
-    case 0x10: text = by_byte_level(U8(st, b + 0x86), 0xA8, 0xA9, 0xAB, 0xAA); break;
+    case 0x0C: text = by_byte_level(U8(st, b + BLD_ACCESS_JUGGLER), 0x4B, 0x4C, 0x4E, 0x4D); break;
+    case 0x0D: text = by_byte_level(U8(st, b + BLD_ACCESS_MUSICIAN), 0x4F, 0x50, 0x52, 0x51); break;
+    case 0x0E: text = by_byte_level(U8(st, b + BLD_ACCESS_DANCER), 0x53, 0x54, 0x56, 0x55); break;
+    case 0x0F: text = by_byte_level(U8(st, b + BLD_ACCESS_SENET), 0x57, 0x58, 0x5A, 0x59); break;
+    case 0x10: text = by_byte_level(U8(st, b + BLD_ACCESS_ZOOKEEPER), 0xA8, 0xA9, 0xAB, 0xAA); break;
     case 0x11: {
-        uint8_t v = U8(st, b + 0x81);
+        uint8_t v = U8(st, b + BLD_EDUCATION);
         if (v == 0) {
             text = 0x64;
         } else if (v == 1) {
@@ -327,21 +323,21 @@ int32_t tooltip_overlay_text(game_state *st)
         }
         break;
     }
-    case 0x12: text = by_byte_level(U8(st, b + 0x72), 0x13, 0x14, 0x16, 0x15); break;
-    case 0x13: text = by_byte_level(U8(st, b + 0x73), 0x17, 0x18, 0x1A, 0x19); break;
-    case 0x15: text = by_byte_level(U8(st, b + 0x75), 0x1F, 0x20, 0x22, 0x21); break;
-    case 0x17: text = by_byte_level(U8(st, b + 0x76), 0x23, 0x24, 0x26, 0x25); break;
-    case 0x16: text = by_byte_level(U8(st, b + 0x6E), 0x84, 0x87, 0x85, 0x86); break;
-    case 0x18: text = by_byte_level(U8(st, b + 0x78), 0x27, 0x28, 0x2A, 0x29); break;
+    case 0x12: text = by_byte_level(U8(st, b + BLD_ACCESS_TEACHER), 0x13, 0x14, 0x16, 0x15); break;
+    case 0x13: text = by_byte_level(U8(st, b + BLD_ACCESS_LIBRARIAN), 0x17, 0x18, 0x1A, 0x19); break;
+    case 0x15: text = by_byte_level(U8(st, b + BLD_ACCESS_DENTIST), 0x1F, 0x20, 0x22, 0x21); break;
+    case 0x17: text = by_byte_level(U8(st, b + BLD_ACCESS_HERBALIST), 0x23, 0x24, 0x26, 0x25); break;
+    case 0x16: text = by_byte_level(U8(st, b + BLD_ACCESS_PHYSICIAN), 0x84, 0x87, 0x85, 0x86); break;
+    case 0x18: text = by_byte_level(U8(st, b + BLD_ACCESS_EMBALMER), 0x27, 0x28, 0x2A, 0x29); break;
     case 0x19: {
-        int32_t v = GAME_CALL(st, 0x0046F1C0u, id);
+        int32_t v = GAME_CALL(st, FN_BUILDING_0X46F1C0, id);
         if (v <= 0) {
-            text = U8(st, b + 0x4E) != 0 ? 0x2C : 0x2B;
+            text = U8(st, b + BLD_TAX_COVERAGE) != 0 ? 0x2C : 0x2B;
             break;
         }
         /* @bin 0x004C9E3C the number, then the text 0x2D after it */
-        length += GAME_CALL(st, 0x004CC5C0u, v, 0, 0);
-        str_copy(st, TIP_TEXT, NUMBER_TEXT);
+        length += GAME_CALL(st, FN_NUMBER_FORMAT, v, 0, 0);
+        str_copy(st, G_TIP_TEXT, G_NUMBER_TEXT);
         text_seek(st, 0x42, 0x2D);
         break;
     }
@@ -359,25 +355,25 @@ int32_t tooltip_overlay_text(game_state *st)
     case 0x1A: {
         /* @bin 0x004C9FA5 a house's food: the 8 goods kept (+0x54 + 2 k for the goods k + 1 that
          * the city trades, 0x00443B90 / 0x004439C0) against its need */
-        int16_t people = S16(st, b + 0x1C);
+        int16_t people = S16(st, b + BLD_POPULATION);
         if (people <= 0) {
             return 0;
         }
-        int32_t need = S32(st, 0x0070CDF4u + 0x58u * (uint32_t) (int32_t) S16(st, b + 0x12));
+        int32_t need = S32(st, G_HOUSE_LEVEL_U28 + 0x58u * (uint32_t) (int32_t) S16(st, b + BLD_SUBTYPE));
         if (need != 0) {
             need = people;
         }
         int32_t sum = 0;
         for (int32_t g = 1; g <= 8; g++) {
-            if (GAME_CALL(st, 0x00443B90u, g) != 0 || GAME_CALL(st, 0x004439C0u, g) != 0) {
-                sum += S16(st, b + 0x54 + 2u * (uint32_t) (g - 1));
+            if (GAME_CALL(st, FN_GOODS_CHAIN_B90, g) != 0 || GAME_CALL(st, FN_GOODS_TRADE_CITY, g) != 0) {
+                sum += S16(st, b + BLD_HOUSE_INVENTORY + 2u * (uint32_t) (g - 1));
             }
         }
         if (need == 0) {
             text = 0x68;
             break;
         }
-        int32_t r = GAME_CALL(st, 0x004CDE60u, sum, need);
+        int32_t r = GAME_CALL(st, FN_CALC_RATIO_PERCENT, sum, need);
         if (need <= 0) {
             text = 0x68;
         } else if (r > 0x3E8) {
@@ -390,18 +386,18 @@ int32_t tooltip_overlay_text(game_state *st)
         break;
     }
     case 0x1B: {
-        int32_t v = S8(st, 0x00AC2D4Cu + (uint32_t) tile);
+        int32_t v = S8(st, G_GRID_DESIRABILITY + (uint32_t) tile);
         text = v < -10 ? 0xA2 : v < 0 ? 0xA3 : v <= 0x0F ? 0xA4 : v <= 0x28 ? 0xA5 : v <= 0x46 ? 0xA6 : 0xA7;
         break;
     }
     case 0x1C: {
-        int32_t v = U8(st, 0x00A5D4CCu + (uint32_t) tile);
+        int32_t v = U8(st, G_FERTILITY_GRID + (uint32_t) tile);
         text = v == 0 ? 0x6D : v < 0x19 ? 0x6C : v < 0x32 ? 0x6B : v < 0x4B ? 0x6A : 0x69;
         break;
     }
     case 0x1D: {
-        int32_t r = GAME_CALL(st, 0x004CDE60u, S16(st, b + 0x18), 0x12C);
-        if (S16(st, b + 0x18) <= 0) {
+        int32_t r = GAME_CALL(st, FN_CALC_RATIO_PERCENT, S16(st, b + BLD_SERVICE), 0x12C);
+        if (S16(st, b + BLD_SERVICE) <= 0) {
             text = 0x5E;
         } else {
             text = r <= 0x14 ? 0x5F : r <= 0x28 ? 0x60 : r <= 0x3C ? 0x61 : r <= 0x50 ? 0x62 : 0x63;
@@ -412,16 +408,16 @@ int32_t tooltip_overlay_text(game_state *st)
         if (!occupied(st, id)) {
             return 0;
         }
-        if (U8(st, b + 0x87) == 1) {
+        if (U8(st, b + BLD_NO_ROOM) == 1) {
             text = 0x83;
-        } else if (U8(st, b + 0x87) == 2) {
+        } else if (U8(st, b + BLD_NO_ROOM) == 2) {
             text = 0xAC;
         } else {
             return 0;
         }
         break;
     case 0x2E:
-        if (!occupied(st, id) || S16(st, b + 0x1C) != 0) {
+        if (!occupied(st, id) || S16(st, b + BLD_POPULATION) != 0) {
             return 0;
         }
         text = 0x9C;
@@ -430,32 +426,32 @@ int32_t tooltip_overlay_text(game_state *st)
         if (tooltip_text_problems(st, id) == 0) {
             return 0;
         }
-        U32(st, TEXT_PTR) = 0;
+        U32(st, G_TEXT_CURSOR) = 0;
         goto done;
     case 0x1E:
     case 0x31:
     case 0x33:
         return 0;
-    case 0x32: text = by_byte_level(U8(st, b + 0x70), 0x9E, 0x9F, 0xA1, 0xA0); break;
+    case 0x32: text = by_byte_level(U8(st, b + BLD_ACCESS_MAGISTRATE), 0x9E, 0x9F, 0xA1, 0xA0); break;
     default:
         break;
     }
     if (text >= 0) {
         text_seek(st, 0x42, text);
     }
-    if (U32(st, TEXT_PTR) != 0) {
-        str_copy(st, TIP_TEXT + (uint32_t) length, U32(st, TEXT_PTR));
+    if (U32(st, G_TEXT_CURSOR) != 0) {
+        str_copy(st, G_TIP_TEXT + (uint32_t) length, U32(st, G_TEXT_CURSOR));
     }
 done:
-    S32(st, 0x00D3A6B8u) = S32(st, 0x00D3B13Cu);
-    S32(st, 0x00D3A6BCu) = S32(st, 0x00D3B130u);
-    S32(st, 0x00D3A6B4u) = S32(st, 0x00D3B138u);
-    S32(st, 0x00D3A6E0u) = 0;
-    S32(st, 0x00D3A6DCu) = S32(st, 0x00BCA2C4u);
-    S32(st, 0x00D3A6C4u) = U8(st, WINDOW_ID);
-    S32(st, 0x00D3A6E4u) = 1;
-    S32(st, 0x00D3A6C0u) = 1;
-    U8(st, REDRAW_ALL) = 1;
+    S32(st, G_TIP_SAVED_VISIBLE) = S32(st, G_MESSAGE_WINDOW_VISIBLE);
+    S32(st, G_TIP_SAVED_SCROLL) = S32(st, G_SCROLL);
+    S32(st, G_TIP_SAVED_LINES) = S32(st, G_TEXT_LINES);
+    S32(st, G_UD3A6E0) = 0;
+    S32(st, G_UD3A6DC) = S32(st, G_MOUSE_OFFSET);
+    S32(st, G_TIP_WINDOW) = U8(st, G_WINDOW);
+    S32(st, G_TIP_ID) = 1;
+    S32(st, G_TIP_KIND) = 1;
+    U8(st, G_REDRAW) = 1;
     return 1;
 }
 

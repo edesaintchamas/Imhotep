@@ -12,12 +12,11 @@
 #define G_RAMP_FOUND 0x00EAAE84u   /* @bin 0x004F5D90 u8 := 1 by the ramp walk 0x004ED360 when it reaches G_RAMP_TARGET (core/city/events_actions.c) */
 #define G_RAMP_TARGET 0x00EAAE88u  /* @bin 0x004F5D90 i32 the building the ramp walk looks for */
 #define G_HARVEST_MONTHS 0x0056F5B8u /* @bin 0x00489240 i32[10][4] the farms' harvest months by season row, -1 ends a row (core/city/day_buildings.c) */
-#define G_U5D2A3C 0x005D2A3Cu      /* @bin 0x0050E3C0 i32, 8 bytes per walker type: its kind + 0x26 (core/city/day_city.c 0x00559FC0) */
+#define G_CITY_KIND_TEXTS 0x005D2A3Cu      /* @bin 0x0050E3C0 i32, 8 bytes per walker type: its kind + 0x26 (core/city/day_city.c 0x00559FC0) */
 #define G_U78D728 0x0078D728u      /* @bin 0x0050E3C0 i32 > 0: the house's entertainment need 0 is met (core/city/day_buildings.c: type 0x71) */
 
 /* [g_building.h] the monuments' work lists: 16-byte entries (+0 stage or key, +4 resource / figure type, +8 the
  * work object: +0x0C amount, +0x12 done), END the bound (core/building/monument.c) */
-#define G_WORKS_SUN_TEMPLE_END 0x00596150u
 #define G_WORKS_E1_END 0x0059EF98u
 #define G_WORKS_E6_END 0x005A84C0u
 #define G_WORKS_E3_END 0x005AD3C0u

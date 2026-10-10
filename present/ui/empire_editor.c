@@ -475,10 +475,10 @@ void empire_editor_input(game_state *st, int32_t mouse_x, int32_t mouse_y)
                 return;
             }
             if (U8(st, e + 0x18) == 0) {
-                if (rects(st, G_EMPIRE_EDITOR_SELLS_RECTS, 0x0E) != 0) {
+                if (rects(st, G_TRADE_KIND0_SLOTS, 0x0E) != 0) {
                     return;
                 }
-            } else if (rects(st, G_EMPIRE_EDITOR_BUYS_RECTS, 0x10) != 0) {
+            } else if (rects(st, G_TRADE_SOLD_SLOTS, 0x10) != 0) {
                 return;
             }
             GAME_CALL(st, 0x00442A40u, o);

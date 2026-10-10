@@ -10,6 +10,7 @@
 #include "building/rest_redraw.h"
 #include "command/place.h"
 #include "command/place_misc.h"
+#include "present_layout.h"
 #include "state/ported.h"
 
 /* @bin 0x004E5490 (thiscall: parts, count) / 0x00545FC0 (the same with the part this +0x50 that
@@ -17,13 +18,13 @@
  * function) */
 static void monument_parts(game_state *st, uint32_t self, uint32_t parts, int32_t count, int big)
 {
-    uint32_t table = big ? 0x00603258u : 0x005E44D0u; /* the footprint tile order */
-    int32_t e = S32(st, G_ORIENT) / 2;
+    uint32_t table = big ? G_MONUMENT_FOOT_ORDER_BIG : G_MONUMENT_FOOT_ORDER; /* the footprint tile order */
+    int32_t e = S32(st, G_VIEW_ORIENTATION) / 2;
     int32_t xstep = S32(st, G_TILE_W) + 1;
     int32_t ystep = S32(st, G_TILE_H);
     int32_t sx = 0, sy = 0;
     view_tile_to_screen(st, S32(st, G_HOVER_X), S32(st, G_HOVER_Y), &sx, &sy);
-    int32_t rel = S32(st, G_HOVER) - S32(st, G_MAP_START);
+    int32_t rel = S32(st, G_HOVER_TILE) - S32(st, G_MAP_START);
     int32_t tx = rel % 0xE4, ty = rel / 0xE4;
     for (int32_t k = 0; k < count; k++) {
         uint32_t rec = parts + 0x34u * (uint32_t) k;
@@ -41,17 +42,17 @@ static void monument_parts(game_state *st, uint32_t self, uint32_t parts, int32_
         }
         int32_t ry = S32(st, rec + 4) + ty;
         int32_t rx = S32(st, rec) + tx;
-        S32(st, 0x00BC9768u) = S32(st, G_MAP_START) + ry * 0xE4 + rx;
+        S32(st, G_TILE_CURSOR) = S32(st, G_MAP_START) + ry * 0xE4 + rx;
         int32_t n = S32(st, rec + 8);
         for (int32_t i = 0; i < n; i++) {
             for (int32_t j = 0; j < n; j++) {
                 int32_t x = S32(st, rec + 0x14 + 4u * (uint32_t) e) + sx;
                 int32_t y = S32(st, rec + 0x24 + 4u * (uint32_t) e) + S32(st, G_TILE_H) + sy;
-                if ((GAME_CALL(st, 0x0046F9A0u, S32(st, G_CAMERA_TX) + j + rx, i + ry + S32(st, G_CAMERA_TY), 3) & 0xFF) !=
+                if ((GAME_CALL(st, FN_MAP_NEAR_EDGE, S32(st, G_VIEW_DX) + j + rx, i + ry + S32(st, G_VIEW_DY), 3) & 0xFF) !=
                     0) {
                     continue;
                 }
-                int32_t off = S32(st, 0x005CC8C0u + 8u * (uint32_t) (6 * i + j)) + S32(st, 0x00BC9768u);
+                int32_t off = S32(st, G_FOOTPRINT_OFFSETS + 8u * (uint32_t) (6 * i + j)) + S32(st, G_TILE_CURSOR);
                 uint32_t fn = U32(st, U32(st, self) + 0x10);
                 int ok = (GAME_CALLT(st, self, fn, (int32_t) g_terrain(st, off), k) & 0xFF) != 0;
                 int32_t colour;
@@ -63,7 +64,7 @@ static void monument_parts(game_state *st, uint32_t self, uint32_t parts, int32_
                     colour = (k != S32(st, self + 0x50) || near_ok) ? 0x1FE3 : 0xF863;
                 }
                 int32_t idx = 0;
-                int32_t o = S32(st, G_ORIENT);
+                int32_t o = S32(st, G_VIEW_ORIENTATION);
                 if (o == 0) {
                     idx = S32(st, table + 4u * (uint32_t) (i + 6 * j));
                 } else if (o == 2) {
@@ -78,7 +79,7 @@ static void monument_parts(game_state *st, uint32_t self, uint32_t parts, int32_
                     x -= (n - 1) * xstep;
                     y -= (n - 1) * ystep;
                 }
-                g_foot(st, S32(st, IMG_FOOTPRINT), S32(st, G_FOOT_OFFS + 8u * (uint32_t) idx) + x,
+                g_foot(st, S32(st, G_IMG_FOOTPRINT), S32(st, G_FOOT_OFFS + 8u * (uint32_t) idx) + x,
                        S32(st, G_FOOT_OFFS + 4 + 8u * (uint32_t) idx) - S32(st, G_TILE_H) + y, colour);
             }
         }
@@ -102,7 +103,7 @@ static void shift_for_view(game_state *st, int32_t n, int32_t *x, int32_t *y)
     if (n <= 1) {
         return;
     }
-    int32_t o = S32(st, G_ORIENT);
+    int32_t o = S32(st, G_VIEW_ORIENTATION);
     int32_t w = S32(st, G_TILE_W) + 1, h = S32(st, G_TILE_H);
     if (o == 2) {
         *x += (n - 1) * w;
@@ -119,7 +120,7 @@ static void plain_footprint(game_state *st, int32_t count, int32_t x, int32_t y,
 {
     for (int32_t i = 0; i < count; i++) {
         uint32_t d = G_FOOT_OFFS + 8u * (uint32_t) i;
-        g_foot(st, S32(st, IMG_FOOTPRINT), S32(st, d) + x, S32(st, d + 4) - S32(st, G_TILE_H) + y, colour);
+        g_foot(st, S32(st, G_IMG_FOOTPRINT), S32(st, d) + x, S32(st, d + 4) - S32(st, G_TILE_H) + y, colour);
     }
 }
 
@@ -127,11 +128,11 @@ void ghost_541c00(game_state *st)
 {
     /* @bin 0x00541C00 monument 0xD5: one colour (place_monument_d5_fits 0x00541AE0) for its 100
      * parts (0x00601DE0, 0x34 bytes: +0 size, +0xC + 4 e x, +0x1C + 4 e y) */
-    int32_t colour = place_monument_d5_fits(st, S32(st, G_HOVER)) ? 0x1FE3 : 0xF863;
-    int32_t e = S32(st, G_ORIENT) / 2;
+    int32_t colour = place_monument_d5_fits(st, S32(st, G_HOVER_TILE)) ? 0x1FE3 : 0xF863;
+    int32_t e = S32(st, G_VIEW_ORIENTATION) / 2;
     int32_t sx = 0, sy = 0;
     view_tile_to_screen(st, S32(st, G_HOVER_X), S32(st, G_HOVER_Y), &sx, &sy);
-    for (uint32_t rec = 0x00601DE0u; rec < 0x00603230u; rec += 0x34) {
+    for (uint32_t rec = G_SUN_TEMPLE_PARTS + 8u; rec < G_SUN_TEMPLE_PARTS + 8u + 100u * 0x34u; rec += 0x34) {
         int32_t x = S32(st, rec + 0xC + 4u * (uint32_t) e) + sx;
         int32_t y = S32(st, G_TILE_H) + sy + S32(st, rec + 0x1C + 4u * (uint32_t) e);
         int32_t n = S32(st, rec);
@@ -145,13 +146,13 @@ void ghost_4debe0(game_state *st)
 {
     /* @bin 0x004DEBE0 monument 0xDE: one colour (place_monument_de_fits 0x004DEF00) for its 0x74
      * parts laid out by 0x004DED50 (+0x14 + 4 e x, +0x24 + 4 e y, +8 size) */
-    int32_t colour = place_monument_de_fits(st, S32(st, G_HOVER)) ? 0x1FE3 : 0xF863;
-    int32_t e = S32(st, G_ORIENT) / 2;
+    int32_t colour = place_monument_de_fits(st, S32(st, G_HOVER_TILE)) ? 0x1FE3 : 0xF863;
+    int32_t e = S32(st, G_VIEW_ORIENTATION) / 2;
     int32_t sx = 0, sy = 0;
     view_tile_to_screen(st, S32(st, G_HOVER_X), S32(st, G_HOVER_Y), &sx, &sy);
     for (int32_t k = 0; k < 0x74; k++) {
         int32_t lay[13];
-        monument_part_layout_4ded50(st, lay, k, S32(st, G_ORIENT), S32(st, G_ORIENT));
+        monument_part_layout_4ded50(st, lay, k, S32(st, G_VIEW_ORIENTATION), S32(st, G_VIEW_ORIENTATION));
         int32_t y = lay[9 + e] + S32(st, G_TILE_H) + sy;
         int32_t x = lay[5 + e] + sx;
         int32_t n = lay[2];
@@ -161,20 +162,19 @@ void ghost_4debe0(game_state *st)
     }
 }
 
-
 static int ramp_near(game_state *st, int32_t x, int32_t y)
 {
-    return (GAME_CALL(st, 0x0046F9A0u, S32(st, G_CAMERA_TX) + x, S32(st, G_CAMERA_TY) + y, 3) & 0xFF) != 0;
+    return (GAME_CALL(st, FN_MAP_NEAR_EDGE, S32(st, G_VIEW_DX) + x, S32(st, G_VIEW_DY) + y, 3) & 0xFF) != 0;
 }
 
 static void ramp_foot(game_state *st, int32_t x, int32_t y, int32_t colour)
 {
     int32_t sx = x, sy = y;
     view_tile_to_screen(st, x, y, &sx, &sy);
-    int32_t n = S32(st, 0x005CFCDCu);
+    int32_t n = S32(st, G_PYRAMID_PIECE_TILES);
     for (int32_t i = 0; i < n; i++) {
         uint32_t d = G_FOOT_OFFS + 8u * (uint32_t) i;
-        g_foot(st, S32(st, IMG_FOOTPRINT), S32(st, d) + sx, S32(st, d + 4) + sy, colour);
+        g_foot(st, S32(st, G_IMG_FOOTPRINT), S32(st, d) + sx, S32(st, d + 4) + sy, colour);
     }
 }
 
@@ -186,15 +186,15 @@ static void ramp_foot(game_state *st, int32_t x, int32_t y, int32_t colour)
 static void ghost_ramp(game_state *st, int32_t x, int32_t y, int32_t colour)
 {
     const uint32_t m14 = 0xEEFFD76Eu, m8 = 0xFBFFFF7Bu;
-    U8(st, 0x00EAAE84u) = 0;
-    S32(st, 0x00EAAEA0u) = 1;
-    S32(st, 0x00EAAE94u) = 2;
-    S32(st, 0x00EAAE9Cu) = 0;
-    S32(st, 0x00EAAE98u) = 0;
+    U8(st, G_RAMP_FOUND) = 0;
+    S32(st, G_RAMP_STEP) = 1;
+    S32(st, G_UEAAE94) = 2;
+    S32(st, G_RAMP_LAST_TILE) = 0;
+    S32(st, G_RAMP_STEPS) = 0;
     int32_t t = S32(st, G_MAP_START) + y * 0xE4 + x;
-    S32(st, 0x00EAAE90u) = 0;
-    S32(st, 0x00EAAEA4u) = t;
-    S32(st, 0x00EAAE8Cu) = 0;
+    S32(st, G_RAMP_WALK_TILE) = 0;
+    S32(st, G_RAMP_START) = t;
+    S32(st, G_RAMP_WALK_TYPE) = 0;
     if (ramp_near(st, x, y) || ramp_near(st, x + 1, y + 1)) {
         return;
     }
@@ -202,7 +202,7 @@ static void ghost_ramp(game_state *st, int32_t x, int32_t y, int32_t colour)
         return;
     }
     ramp_foot(st, x, y, colour);
-    t += S32(st, 0x00EAAEA0u) * 2;
+    t += S32(st, G_RAMP_STEP) * 2;
     int32_t x2 = x + 2;
     if (ramp_near(st, x2, y)) {
         return;
@@ -213,7 +213,7 @@ static void ghost_ramp(game_state *st, int32_t x, int32_t y, int32_t colour)
         }
         if ((g_terrain(st, t + 1) & m14) || (g_terrain(st, t + 0xE4) & m14) || (g_terrain(st, t + 0xE5) & m14)) {
             /* @bin 0x004ED92F an obstacle: the walk ends on it when it is a road */
-            if (S32(st, 0x00EAAE98u) == 0) {
+            if (S32(st, G_RAMP_STEPS) == 0) {
                 return;
             }
             uint32_t a = g_terrain(st, t + 1);
@@ -228,18 +228,18 @@ static void ghost_ramp(game_state *st, int32_t x, int32_t y, int32_t colour)
                 return;
             }
             ramp_foot(st, x2, y, colour);
-            S32(st, 0x00EAAE9Cu) = t;
+            S32(st, G_RAMP_LAST_TILE) = t;
             return;
         }
         ramp_foot(st, x2, y, colour);
-        S32(st, 0x00EAAE98u) = S32(st, 0x00EAAE98u) + 1;
-        if (S32(st, 0x00EAAE98u) > 0x14) {
+        S32(st, G_RAMP_STEPS) = S32(st, G_RAMP_STEPS) + 1;
+        if (S32(st, G_RAMP_STEPS) > 0x14) {
             return;
         }
-        if (S32(st, G_CAMERA_TY) + y >= S32(st, 0x00BCA2F4u)) {
+        if (S32(st, G_VIEW_DY) + y >= S32(st, G_MAP_YE)) {
             return;
         }
-        t += S32(st, 0x00EAAEA0u) * 2;
+        t += S32(st, G_RAMP_STEP) * 2;
         x2 += 2;
         if (ramp_near(st, x2, y)) {
             return;
@@ -255,33 +255,33 @@ void ghost_4edbb0(game_state *st)
      * 0x004ECEA0 accepts; then the tiles of 0x005700B4.. that hold terrain 0xFEFFD72E in red */
     int32_t red_all = g_treasury_low(st);
     int32_t reason = 0;
-    int32_t colour = place_pyramid_fits(st, S32(st, G_HOVER), S32(st, 0x005E6970u), &reason) ? 0x1FE3 : 0xF863;
-    int32_t e = S32(st, G_ORIENT) / 2;
+    int32_t colour = place_pyramid_fits(st, S32(st, G_HOVER_TILE), S32(st, G_VARIANT), &reason) ? 0x1FE3 : 0xF863;
+    int32_t e = S32(st, G_VIEW_ORIENTATION) / 2;
     int32_t sx = 0, sy = 0;
     view_tile_to_screen(st, S32(st, G_HOVER_X), S32(st, G_HOVER_Y), &sx, &sy);
     for (int32_t k = 0;; k++) {
-        int32_t v = S32(st, 0x005E6970u);
-        int alt = S32(st, 0x005E4EF4u) == 5;
-        int32_t limit = alt ? S32(st, 0x0056F7ECu + 4u * (uint32_t) v) : S32(st, 0x0056F7D8u + 4u * (uint32_t) v);
+        int32_t v = S32(st, G_VARIANT);
+        int alt = S32(st, G_PYRAMID_KIND) == 5;
+        int32_t limit = alt ? S32(st, G_PYRAMID_PARTS_KIND5 + 4u * (uint32_t) v) : S32(st, G_PYRAMID_PARTS + 4u * (uint32_t) v);
         if (k >= limit) {
             break;
         }
         int32_t tile, x0, y0;
         if (alt) {
-            uint32_t rec = 0x005F1D74u + 16u * (uint32_t) (k + 36 * (4 * v + e));
+            uint32_t rec = G_PYRAMID_BLOCKS5 + 16u * (uint32_t) (k + 36 * (4 * v + e));
             int32_t p = S32(st, rec + 8);
-            tile = S32(st, 0x0056FD10u + 8u * (uint32_t) p) + S32(st, 0x0056FD14u + 8u * (uint32_t) p) * 0xE4 + S32(st, G_HOVER);
-            x0 = S32(st, rec) * (S32(st, 0x0070E458u) + 2);
+            tile = S32(st, G_PYRAMID_ANCHORS_XY + 8u * (uint32_t) p) + S32(st, G_PYRAMID_ANCHORS_XY + 4u + 8u * (uint32_t) p) * 0xE4 + S32(st, G_HOVER_TILE);
+            x0 = S32(st, rec) * (S32(st, G_U70E458) + 2);
             y0 = S32(st, rec + 4);
         } else {
-            uint32_t rec = 0x005E6974u + 16u * (uint32_t) (k + 144 * (4 * v + e));
-            tile = S32(st, 0x0056FE30u + 4u * U32(st, rec + 8)) + S32(st, G_HOVER);
-            x0 = S32(st, rec) * (S32(st, 0x0070E458u) + 2);
+            uint32_t rec = G_PYRAMID_BLOCKS + 16u * (uint32_t) (k + 144 * (4 * v + e));
+            tile = S32(st, G_PYRAMID_ANCHORS + 4u * U32(st, rec + 8)) + S32(st, G_HOVER_TILE);
+            x0 = S32(st, rec) * (S32(st, G_U70E458) + 2);
             y0 = S32(st, rec + 4);
         }
-        y0 = y0 * S32(st, G_TILE_TOP) + sy;
+        y0 = y0 * S32(st, G_U70E448) + sy;
         x0 += sx;
-        int32_t count = S32(st, 0x005CFCDCu);
+        int32_t count = S32(st, G_PYRAMID_PIECE_TILES);
         if (count <= 0) {
             continue;
         }
@@ -292,30 +292,30 @@ void ghost_4edbb0(game_state *st)
             int32_t x = S32(st, d) + x0;
             int32_t y = S32(st, d + 4) + y0;
             uint32_t t = g_terrain(st, S32(st, row + 4u * (uint32_t) i) + tile) & 0xFEFFD76Eu;
-            int near = (GAME_CALL(st, 0x0046F9A0u, tx, ty, 3) & 0xFF) != 0;
-            g_foot(st, S32(st, IMG_FOOTPRINT), x, y, (near || t || red_all) ? RED : GREEN);
+            int near = (GAME_CALL(st, FN_MAP_NEAR_EDGE, tx, ty, 3) & 0xFF) != 0;
+            g_foot(st, S32(st, G_IMG_FOOTPRINT), x, y, (near || t || red_all) ? RED : GREEN);
         }
     }
-    if ((GAME_CALL(st, 0x004ECEA0u, S32(st, 0x005E6970u)) & 0xFF) != 0) {
+    if ((GAME_CALL(st, FN_PYRAMID_KIND_OK, S32(st, G_VARIANT)) & 0xFF) != 0) {
         /* @bin 0x004EDE40 the ramp */
-        int32_t off = S32(st, 0x005F5D08u + 4u * U32(st, 0x005E6970u)) + S32(st, G_HOVER) - S32(st, G_MAP_START);
+        int32_t off = S32(st, G_PYRAMID_RAMP_START + 4u * U32(st, G_VARIANT)) + S32(st, G_HOVER_TILE) - S32(st, G_MAP_START);
         ghost_ramp(st, off % 0xE4, off / 0xE4, colour & 0xFFFF); /* 0x004ED360 mode 1 */
     }
-    int32_t v = S32(st, 0x005E6970u);
+    int32_t v = S32(st, G_VARIANT);
     int32_t n, base;
-    if (S32(st, 0x005E4EF4u) == 5) {
-        n = S32(st, 0x005700A8u + 4u * (uint32_t) v);
-        base = S32(st, 0x005700C8u + 4u * (uint32_t) v);
+    if (S32(st, G_PYRAMID_KIND) == 5) {
+        n = S32(st, G_PYRAMID_ROW_COUNT5 + 4u * (uint32_t) v);
+        base = S32(st, G_PYRAMID_ROW_FROM5 + 4u * (uint32_t) v);
     } else {
-        n = S32(st, 0x00570094u + 4u * (uint32_t) v);
-        base = S32(st, 0x005700B4u + 4u * (uint32_t) v);
+        n = S32(st, G_PYRAMID_ROW_COUNT + 4u * (uint32_t) v);
+        base = S32(st, G_PYRAMID_ROW_FROM + 4u * (uint32_t) v);
     }
     for (int32_t s = 0; s < n; s++) {
-        int32_t off = S32(st, G_HOVER) + base + s;
+        int32_t off = S32(st, G_HOVER_TILE) + base + s;
         if (g_terrain(st, off) & 0xFEFFD72Eu) {
             int32_t x = 0, y = 0;
-            view_tile_to_screen(st, off % 0xE4 - S32(st, G_CAMERA_TX), off / 0xE4 - S32(st, G_CAMERA_TY), &x, &y);
-            g_foot(st, S32(st, IMG_FOOTPRINT), x, y, RED);
+            view_tile_to_screen(st, off % 0xE4 - S32(st, G_VIEW_DX), off / 0xE4 - S32(st, G_VIEW_DY), &x, &y);
+            g_foot(st, S32(st, G_IMG_FOOTPRINT), x, y, RED);
         }
     }
 }
@@ -339,7 +339,6 @@ THUNK_BIG(run_5456e0, 0x1E5C, 0xA7)
 THUNK_BIG(run_54f410, 0x5C88, 0x201)
 THUNK_BIG(run_555e20, 0x4EE0, 0x1B5)
 THUNK_BIG(run_558b80, 0x1CBC, 0x9E)
-
 
 /* the monuments' virtual function +0x10 (thiscall (terrain, part), al: the tile suits the part);
  * terrain bits 0xFEFFD76F */

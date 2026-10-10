@@ -72,14 +72,8 @@
 #define G_FLT_4 0x0056F550u /* @bin 0x00434C81 float 4.0 (house levels of the overlay level images; core/city/monument_rating.c) */
 #define G_BUILD_MENU_RECTS 0x005C28A8u /* @bin 0x00403E00 the build menu's rows (window 6, 0x1C-byte entries; docs/commands.md) */
 #define G_SIDEBAR_RECT 0x005C6CB8u /* @bin 0x004D8310 the sidebar's rectangle table (1 entry; present/sidebar/input.c) */
-#define G_SIDEBAR_BUTTONS_TOP 0x005C7300u /* @bin 0x0051EC90 the expanded sidebar's 2 buttons (present/sidebar/sidebar.c) */
-#define G_SIDEBAR_BUTTONS_COLLAPSED 0x005C7348u /* @bin 0x0051EC90 the collapsed sidebar's button (present/sidebar/sidebar.c) */
 #define G_SIDEBAR_BUTTONS 0x005C7370u /* @bin 0x0051EC90 the expanded sidebar's 16 buttons (present/sidebar/sidebar.c) */
-#define G_SIDEBAR_BUTTONS_COLLAPSED2 0x005C75B0u /* @bin 0x0051EC90 the collapsed sidebar's 12 buttons (present/sidebar/sidebar.c) */
 #define G_EDITOR_SIDEBAR_BUTTONS 0x005C7760u /* @bin 0x004D8746 the editor's sidebar buttons (docs/provenance/frontier.md) */
-#define G_SIDEBAR_BUTTONS_ADVISORS 0x005C7980u /* @bin 0x0051EC90 the expanded sidebar's advisors / empire buttons (present/sidebar/input.c) */
-#define G_MENU_BAR 0x005C91F0u /* @bin 0x00426100 the game's menu bar, four menus of 0x10 bytes (core/command/menu_items.c) */
-#define G_EDITOR_MENU_BAR 0x005C9230u /* @bin 0x00426100 the editor's menu bar (docs/provenance/frontier.md) */
 #define G_STR_SPACE_DB 0x005E03ECu /* @bin 0x00524840 " Db" (the suffix of an amount of deben) */
 #define G_STR_COMMA 0x005E0400u /* @bin 0x00535080 "," */
 #define G_STR_CLOSE_PAREN 0x005F7E78u /* @bin 0x00535080 ")" */
@@ -88,7 +82,6 @@
 #define G_CARRY_GROUP_1 0x006FDCD0u /* @bin 0x00417B40 u8 the second waiting group's flag */
 #define G_CARRY_GROUP_2 0x006FDCDCu /* @bin 0x00417B40 u8 the third waiting group's flag */
 #define G_TOPBAR_HOVER 0x0070569Cu /* @bin 0x00406250 i32 the top bar's figure under the mouse (present/sidebar/input.c) */
-#define G_MENU_BAR_HOVER 0x007056A8u /* @bin 0x00426100 i32 the menu bar's title under the mouse (present/sidebar/input.c) */
 #define G_SQUARE_BUTTON_HOVER 0x007056B0u /* @bin 0x00425E80 i32 the square button under the mouse (base + index) */
 #define G_HOUSE_NEED_ENTERTAINMENT 0x0070CDD4u /* @bin 0x00453B40 i32 +0 of house level 0's needs (stride 0x58, G_HOUSE_LEVELS + 8): entertainment (core/building/day_houses.c) */
 #define G_HOUSE_NEED_EDUCATION 0x0070CDDCu /* @bin 0x00453B40 i32 +8 of the needs: education */
@@ -126,17 +119,10 @@
 #define G_GROUP_WIDTH_4 0x00E945DCu /* @bin 0x004D5EF0 i32 group 4's */
 #define G_GROUP_WIDTH_7 0x00E945E0u /* @bin 0x004D5EF0 i32 group 7's */
 #define G_GROUP_WIDTH_10 0x00E945E4u /* @bin 0x004D5EF0 i32 group 10's */
-#define G_LAYOUT_HIT 0x00E945F8u /* @bin 0x004D6740 i32 the layout element's hit (present/draw/layout.c) */
-#define G_LAYOUT_HIT_U 0x00E945FCu /* @bin 0x004D6740 i32 := 0 with the element kept */
-#define G_LAYOUT_HIT_X 0x00E94600u /* @bin 0x004D6740 i32 the element's x */
-#define G_LAYOUT_HIT_Y 0x00E94604u /* @bin 0x004D6740 i32 the element's y */
-#define G_LAYOUT_HIT_W 0x00E94608u /* @bin 0x004D6740 i32 the element's width */
-#define G_LAYOUT_HIT_H 0x00E9460Cu /* @bin 0x004D6740 i32 the element's height */
 #define G_LAYOUT_RECT_LISTS 0x00E9461Cu /* @bin 0x004D6740 u32 per window key (stride 16): its list of rectangle overrides (present/draw/layout.c) */
 #define G_LAYOUT_RECTS_DONE 0x00E94624u /* @bin 0x004D6740 i32 per window key (stride 16): the overrides applied */
 #define G_LAYOUT_HIT_ENTRY 0x00E94DA0u /* @bin 0x004D6740 u32 the hit rectangle's entry */
 #define G_LAYOUT_HIT_INDEX 0x00E94DA4u /* @bin 0x004D6740 i32 the hit rectangle's index */
-#define G_SIDEBAR_REDRAW_BG 0x00F53F74u /* @bin 0x00425F20 i32 asks the sidebar for a background redraw (present/sidebar/sidebar.c) */
 #define G_WAS_IN_SET 0x00F55B9Cu /* @bin 0x00534610 i32 "was_in_set" */
 #define G_WAS_IN_INT 0x00F55BA0u /* @bin 0x00534610 i32 "was_in_int" */
 #define G_PORTRAIT_IMAGES 0x00F55C7Cu /* @bin 0x004FA8C0 i32 the first figure portrait image (present/ui/info/figure.c) */

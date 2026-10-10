@@ -13,9 +13,8 @@
 
 #include <stdint.h>
 
+#include "present_layout.h"
 #include "state/state.h"
-
-#define GFX_OBJECT 0x00F55BB0u /* the graphics object: `this` of every image draw call */
 
 /* ---- images (thiscall on the graphics object; the _on forms take `this`) ---- */
 

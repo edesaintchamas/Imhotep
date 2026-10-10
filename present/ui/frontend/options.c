@@ -77,12 +77,12 @@ void layout_small_button(game_state *st, int32_t kind, int32_t x, int32_t y, int
     if (S32(st, G_LAYOUT_MODE) == 3 && px < S32(st, G_MOUSE_X) && width * 16 + px > S32(st, G_MOUSE_X) &&
         py < S32(st, G_MOUSE_Y) && py + 0x18 > S32(st, G_MOUSE_Y)) {
         layout_mode_panel(st);
-        S32(st, G_LAYOUT_HIT_X) = nx;
-        S32(st, G_LAYOUT_HIT_Y) = ny;
-        S32(st, G_LAYOUT_HIT_W) = width;
-        S32(st, G_LAYOUT_HIT_H) = 0x18;
-        S32(st, G_LAYOUT_HIT) = ox;
-        S32(st, G_LAYOUT_HIT_U) = oy;
+        S32(st, G_LAYOUT_PANEL_X) = nx;
+        S32(st, G_LAYOUT_PANEL_Y) = ny;
+        S32(st, G_LAYOUT_PANEL_W) = width;
+        S32(st, G_LAYOUT_PANEL_H) = 0x18;
+        S32(st, G_LAYOUT_PANEL_OX) = ox;
+        S32(st, G_LAYOUT_PANEL_OY) = oy;
         panel_draw_frame(st, 1, px, py, width * 16, 0x18, 0xFFFF);
         panel_draw_frame(st, 0, px, py, width * 16, 0x18, 0xFFFF);
     }

@@ -139,7 +139,7 @@ int32_t info_house_needs(game_state *st, int32_t *needs, int32_t entertainment)
         if ((uint8_t) GAME_CALL(st, FN_EMPIRE_CITY_TRADES, id, 0x13) == 0) {
             continue;
         }
-        needs[S32(st, G_U5D2A3C + 8u * U8(st, p + 1)) - 0x26]++;
+        needs[S32(st, G_CITY_KIND_TEXTS + 8u * U8(st, p + 1)) - 0x26]++;
     }
     if (entertainment) {
         /* @bin 0x0050E4D9 the kinds the city has (city +0x284C 1 or 3) cleared */
@@ -157,7 +157,7 @@ int32_t info_house_needs(game_state *st, int32_t *needs, int32_t entertainment)
             if ((uint8_t) GAME_CALL(st, FN_EMPIRE_CITY_TRADES, id, 0x13) == 0) {
                 continue;
             }
-            int32_t *n = &needs[S32(st, G_U5D2A3C + 8u * U8(st, p)) - 0x26];
+            int32_t *n = &needs[S32(st, G_CITY_KIND_TEXTS + 8u * U8(st, p)) - 0x26];
             if (*n != 0) {
                 *n = 0;
             }

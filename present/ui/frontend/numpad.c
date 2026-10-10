@@ -150,7 +150,7 @@ static int32_t choice_value(game_state *st, uint32_t entry)
     if (S32(st, G_EDITOR) == 1 && S32(st, G_LIST_TEXT_GROUP) == 0x17) {
         if (S32(st, entry) == 0x13) {
             uint8_t b = U8(st, G_EMPIRE_OBJECTS + 0x19u + 0x62u * (uint32_t) S32(st, G_EDITOR_OBJECT));
-            return S32(st, G_U5D2A3C + 8u * b);
+            return S32(st, G_CITY_KIND_TEXTS + 8u * b);
         }
         return S32(st, entry) + S32(st, G_LIST_TEXT_FIRST);
     }

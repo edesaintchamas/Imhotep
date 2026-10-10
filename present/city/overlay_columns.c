@@ -8,29 +8,28 @@
 #include "city.h"
 
 #include "frame/view.h"
+#include "present_layout.h"
 #include "sim/call.h"
 #include "state/ported.h"
 #include "state/records.h"
-
-#define COLUMN_GROUP 0x00F56754u
 
 int city_overlay_shows(game_state *st, int32_t b)
 {
     /* @bin 0x00431690 overlay 0x33: every building; overlay 8: a building with +0x4A set; else its
      * type (movsx) in the zero-terminated i32 list 0x005D25AC[overlay] */
-    int32_t overlay = S32(st, OVERLAY);
+    int32_t overlay = S32(st, G_OVERLAY);
     if (overlay == 0x33) {
         return 1;
     }
-    if (overlay == 8 && S16(st, BUILDING_ADDR(b) + 0x4A) != 0) {
+    if (overlay == 8 && S16(st, BUILDING_ADDR(b) + BLD_BURNING) != 0) {
         return 1;
     }
-    uint32_t list = U32(st, 0x005D25ACu + 4u * (uint32_t) overlay);
+    uint32_t list = U32(st, G_OVERLAY_TYPE_LISTS + 4u * (uint32_t) overlay);
     if (list == 0) {
         return 0;
     }
     for (int32_t t = S32(st, list); t != 0; t = S32(st, list)) {
-        if (t == S16(st, BUILDING_ADDR(b) + 0x10)) {
+        if (t == S16(st, BUILDING_ADDR(b) + BLD_TYPE)) {
             return 1;
         }
         list += 4;
@@ -58,10 +57,10 @@ void city_overlay_column(game_state *st, int32_t level, int32_t x, int32_t y, in
             colour = 3;
         }
     }
-    int32_t base = S32(st, COLUMN_GROUP) + colour;
+    int32_t base = S32(st, G_COLUMN_GROUP) + colour;
     int32_t head = S16(st, cv_image_entry(st, base) + 0x16);
     if (level == 0) {
-        S32(st, DRAW_IMAGE) = base + 2;
+        S32(st, G_GLYPH_LAST) = base + 2;
         cv_image_draw(st, base + 2, x + 9, y - 8);
         return;
     }
@@ -72,12 +71,12 @@ void city_overlay_column(game_state *st, int32_t level, int32_t x, int32_t y, in
     }
     cv_image_draw(st, base + 2, x + 9, y - 8);
     cv_image_draw(st, base, x + 5, y - level * 10 - head + 0xF);
-    S32(st, DRAW_IMAGE) = S32(st, COLUMN_GROUP) + colour + 1;
+    S32(st, G_GLYPH_LAST) = S32(st, G_COLUMN_GROUP) + colour + 1;
     int32_t n = level - 1;
     if (n > 0) {
         int32_t yy = y - 5;
         do {
-            cv_image_draw(st, S32(st, DRAW_IMAGE), x + 0x11, yy);
+            cv_image_draw(st, S32(st, G_GLYPH_LAST), x + 0x11, yy);
             yy -= 10;
         } while (--n != 0);
     }
@@ -86,12 +85,12 @@ void city_overlay_column(game_state *st, int32_t level, int32_t x, int32_t y, in
 static void tile_image(game_state *st)
 {
     /* the column functions start with the image drawn := the tile's image */
-    S32(st, DRAW_IMAGE) = S32(st, IMAGE_GRID + 4u * (uint32_t) S32(st, VIEW_TILE));
+    S32(st, G_GLYPH_LAST) = S32(st, G_GRID_IMAGE + 4u * (uint32_t) S32(st, G_VIEW_TILE));
 }
 
 static int in_use(game_state *st, int32_t b)
 {
-    return U8(st, BUILDING_ADDR(b) + 5) != 0;
+    return U8(st, BUILDING_ADDR(b) + BLD_HOUSE_SIZE) != 0;
 }
 
 /* the simple column functions: a building field scaled to the level, a mode */
@@ -102,24 +101,24 @@ static const struct {
     uint8_t kind;
     uint8_t mode;
 } simple_columns[] = {
-    {0x004354B0u, 0xFC, F_S32_100, 1}, /* overlay 0x2B (via 0x00436180) */
-    {0x00435510u, 0xE8, F_S32_100, 1}, /* 0x30 (via 0x00436180) */
-    {0x00435570u, 0xE4, F_S32_100, 1}, /* 0xA */
-    {0x004355D0u, 0x80, F_S8_10, 0},   /* 0xB */
-    {0x004356A0u, 0x6C, F_U8_10, 0},   /* 0xC */
-    {0x00435700u, 0x6D, F_U8_10, 0},   /* 0xD */
-    {0x00435760u, 0x6F, F_U8_10, 0},   /* 0xE */
-    {0x004357C0u, 0x71, F_U8_10, 0},   /* 0xF */
-    {0x00435820u, 0x86, F_U8_10, 0},   /* 0x10 */
-    {0x00435A10u, 0x77, F_U8_10, 2},   /* 0x2D */
-    {0x00435A70u, 0x83, F_S8_X17, 0},  /* 4 */
-    {0x00435AC0u, 0x72, F_U8_10, 0},   /* 0x12 */
-    {0x00435B20u, 0x73, F_U8_10, 0},   /* 0x13 */
-    {0x00435B80u, 0x75, F_U8_10, 0},   /* 0x15 */
-    {0x00435BE0u, 0x6E, F_U8_10, 0},   /* 0x16 */
-    {0x00435C40u, 0x76, F_U8_10, 0},   /* 0x17 */
-    {0x00435CA0u, 0x78, F_U8_10, 0},   /* 0x18 */
-    {0x00435D00u, 0x70, F_U8_10, 0},   /* 0x32 */
+    {FN_OVERLAY_COLUMN_2B, 0xFC, F_S32_100, 1}, /* overlay 0x2B (via 0x00436180) */
+    {FN_OVERLAY_COLUMN_30, 0xE8, F_S32_100, 1}, /* 0x30 (via 0x00436180) */
+    {FN_OVERLAY_COLUMN_0A, 0xE4, F_S32_100, 1}, /* 0xA */
+    {FN_OVERLAY_COLUMN_0B, 0x80, F_S8_10, 0},   /* 0xB */
+    {FN_OVERLAY_COLUMN_0C, 0x6C, F_U8_10, 0},   /* 0xC */
+    {FN_OVERLAY_COLUMN_0D, 0x6D, F_U8_10, 0},   /* 0xD */
+    {FN_OVERLAY_COLUMN_0E, 0x6F, F_U8_10, 0},   /* 0xE */
+    {FN_OVERLAY_COLUMN_0F, 0x71, F_U8_10, 0},   /* 0xF */
+    {FN_OVERLAY_COLUMN_10, 0x86, F_U8_10, 0},   /* 0x10 */
+    {FN_OVERLAY_COLUMN_2D, 0x77, F_U8_10, 2},   /* 0x2D */
+    {FN_OVERLAY_COLUMN_04, 0x83, F_S8_X17, 0},  /* 4 */
+    {FN_OVERLAY_COLUMN_12, 0x72, F_U8_10, 0},   /* 0x12 */
+    {FN_OVERLAY_COLUMN_13, 0x73, F_U8_10, 0},   /* 0x13 */
+    {FN_OVERLAY_COLUMN_15, 0x75, F_U8_10, 0},   /* 0x15 */
+    {FN_OVERLAY_COLUMN_16, 0x6E, F_U8_10, 0},   /* 0x16 */
+    {FN_OVERLAY_COLUMN_17, 0x76, F_U8_10, 0},   /* 0x17 */
+    {FN_OVERLAY_COLUMN_18, 0x78, F_U8_10, 0},   /* 0x18 */
+    {FN_OVERLAY_COLUMN_32, 0x70, F_U8_10, 0},   /* 0x32 */
 };
 
 static void simple_column(game_state *st, int k, int32_t b, int32_t x, int32_t y)
@@ -155,12 +154,12 @@ static void water_column(game_state *st, int32_t b, int32_t x, int32_t y, uint32
      * 0x41 .. 0x45 at the screen position (0x004F0BA0) of +6 / +8 moved by the table 0x005D1FF8
      * [+0xAA >> 1] */
     uint32_t r = BUILDING_ADDR(b);
-    if (S16(st, r + 0x38) != 0) {
+    if (S16(st, r + BLD_PREV_PART) != 0) {
         return;
     }
-    if ((uint8_t) GAME_CALLT(st, 0x00BCA350u, 0x00488030u, b) != 0) {
-        uint32_t draw = U8(st, TILE_DRAW + (uint32_t) S32(st, VIEW_TILE));
-        switch (S32(st, ORIENTATION)) {
+    if ((uint8_t) GAME_CALLT(st, G_BUILDING_MANAGER, FN_BUILDING_IS_TYPE_0X487F80, b) != 0) {
+        uint32_t draw = U8(st, G_GRID_EDGE + (uint32_t) S32(st, G_VIEW_TILE));
+        switch (S32(st, G_VIEW_ORIENTATION)) {
         case 0:
             if (draw != 0x50) {
                 return;
@@ -186,10 +185,10 @@ static void water_column(game_state *st, int32_t b, int32_t x, int32_t y, uint32
         }
     }
     int32_t level = S16(st, r + field) / 100;
-    int32_t type = S16(st, r + 0x10);
+    int32_t type = S16(st, r + BLD_TYPE);
     if (type >= 0x41 && type <= 0x45) {
-        uint32_t k = (uint32_t) (U8(st, r + 0xAA) >> 1) * 8u;
-        view_tile_to_screen(st, S16(st, r + 6) + S32(st, 0x005D1FF8u + k), S16(st, r + 8) + S32(st, 0x005D1FFCu + k),
+        uint32_t k = (uint32_t) (U8(st, r + BLD_ORIENTATION) >> 1) * 8u;
+        view_tile_to_screen(st, S16(st, r + BLD_X) + S32(st, G_COMPLEX_ORIGIN_SHIFT + k), S16(st, r + BLD_Y) + S32(st, G_COMPLEX_ORIGIN_SHIFT + 4u + k),
                             &x, &y);
     }
     city_overlay_column(st, level, x, y, 1);
@@ -203,7 +202,7 @@ static void entertainment_column(game_state *st, int32_t b, int32_t x, int32_t y
         return;
     }
     int32_t level;
-    switch (U8(st, BUILDING_ADDR(b) + 0x81)) {
+    switch (U8(st, BUILDING_ADDR(b) + BLD_EDUCATION)) {
     case 1:
         level = 2;
         break;
@@ -229,17 +228,17 @@ static void goods_column(game_state *st, int32_t b, int32_t x, int32_t y)
         return;
     }
     uint32_t r = BUILDING_ADDR(b);
-    int32_t of = S32(st, 0x0070CDF4u + 0x58u * (uint32_t) S16(st, r + 0x12));
+    int32_t of = S32(st, G_HOUSE_LEVEL_U28 + 0x58u * (uint32_t) S16(st, r + BLD_SUBTYPE));
     if (of != 0) {
-        of = S16(st, r + 0x1C);
+        of = S16(st, r + BLD_POPULATION);
     }
     int32_t sum = 0;
     for (int32_t good = 1; good <= 8; good++) {
-        if (GAME_CALL(st, 0x00443B90u, good) != 0 || GAME_CALL(st, 0x004439C0u, good) != 0) {
-            sum += S16(st, r + 0x54 + 2u * (uint32_t) (good - 1));
+        if (GAME_CALL(st, FN_GOODS_CHAIN_B90, good) != 0 || GAME_CALL(st, FN_GOODS_TRADE_CITY, good) != 0) {
+            sum += S16(st, r + BLD_HOUSE_INVENTORY + 2u * (uint32_t) (good - 1));
         }
     }
-    int32_t v = of != 0 ? GAME_CALL(st, 0x004CDE60u, sum, of) : 0;
+    int32_t v = of != 0 ? GAME_CALL(st, FN_CALC_RATIO_PERCENT, sum, of) : 0;
     city_overlay_column(st, v / 100, x, y, 0);
 }
 
@@ -249,7 +248,7 @@ int32_t city_building_0x46f1c0(game_state *st, int32_t b)
     if (!in_use(st, b)) {
         return 0;
     }
-    return (int32_t) ((uint32_t) S32(st, BUILDING_ADDR(b) + 0x8C) + 0x1388u) / 10000;
+    return (int32_t) ((uint32_t) S32(st, BUILDING_ADDR(b) + BLD_U8C) + 0x1388u) / 10000;
 }
 
 static void coins(game_state *st, int32_t v, int32_t x, int32_t y)
@@ -267,7 +266,7 @@ static void coins(game_state *st, int32_t v, int32_t x, int32_t y)
     int32_t yy = y + 0xA;
     while (n > 0) {
         int32_t k = n >= 4 ? 3 : n % 4 - 1;
-        cv_image_draw(st, S32(st, 0x00F56A34u) + k, x + 0xF, yy);
+        cv_image_draw(st, S32(st, G_IMAGE_GROUP(464)) + k, x + 0xF, yy);
         n -= 4;
         yy -= 0xC;
     }
@@ -280,7 +279,7 @@ static void tax_column(game_state *st, int32_t b, int32_t x, int32_t y)
     if (!in_use(st, b)) {
         return;
     }
-    city_overlay_column(st, (int32_t) U8(st, BUILDING_ADDR(b) + 0x4E) * 20 / 100, x, y, 0);
+    city_overlay_column(st, (int32_t) U8(st, BUILDING_ADDR(b) + BLD_TAX_COVERAGE) * 20 / 100, x, y, 0);
     coins(st, city_building_0x46f1c0(st, b), x, y);
 }
 
@@ -293,12 +292,12 @@ static void column_2c(game_state *st, int32_t b, int32_t x, int32_t y)
         return;
     }
     uint32_t r = BUILDING_ADDR(b);
-    uint8_t k = U8(st, r + 0x87);
-    int32_t dx = ((int32_t) U8(st, r + 3) - 1) * S32(st, 0x0070E45Cu) + x + 0x12;
+    uint8_t k = U8(st, r + BLD_NO_ROOM);
+    int32_t dx = ((int32_t) U8(st, r + BLD_SIZE) - 1) * S32(st, G_TILE_W) + x + 0x12;
     if (k == 1) {
-        cv_image_draw(st, S32(st, 0x00F56724u), dx, y);
+        cv_image_draw(st, S32(st, G_IMAGE_GROUP(366)), dx, y);
     } else if (k == 2) {
-        cv_image_draw(st, S32(st, 0x00F572E4u), dx, y);
+        cv_image_draw(st, S32(st, G_IMAGE_GROUP(742)), dx, y);
     }
 }
 
@@ -308,7 +307,7 @@ static void column_1d(game_state *st, int32_t b, int32_t x, int32_t y)
     if (in_use(st, b)) {
         return;
     }
-    int32_t v = GAME_CALL(st, 0x004CDE60u, (int32_t) S16(st, BUILDING_ADDR(b) + 0x18), 0x12C);
+    int32_t v = GAME_CALL(st, FN_CALC_RATIO_PERCENT, (int32_t) S16(st, BUILDING_ADDR(b) + BLD_SERVICE), 0x12C);
     city_overlay_column(st, v, x, y, 0);
 }
 

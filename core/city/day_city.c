@@ -452,7 +452,7 @@ int32_t trade_open_routes_559fc0(game_state *st, int32_t *kinds)
         if ((mode != 1 && mode != 3) || U8(st, e + 0x3D) == 0 || !empire_city_trades(st, i, 0x13)) {
             continue;
         }
-        int32_t k = S32(st, G_U5D2A3C + 8u * U8(st, e + 3)) - 0x26;
+        int32_t k = S32(st, G_CITY_KIND_TEXTS + 8u * U8(st, e + 3)) - 0x26;
         if (k < 0 || k >= 16) {
             state_unported(st, FN_TRADE_OPEN_ROUTES_559FC0); /* outside the caller's buffer: its stack */
             return 0;

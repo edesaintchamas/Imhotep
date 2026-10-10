@@ -3,9 +3,10 @@
 #include "draw.h"
 #include "text.h"
 
+#include "present_layout.h"
 #include "state/ported.h"
 
-#define THIS(a) ((a)[PORT_THIS_ARG] ? (uint32_t) (a)[PORT_THIS_ARG] : GFX_OBJECT)
+#define THIS(a) ((a)[PORT_THIS_ARG] ? (uint32_t) (a)[PORT_THIS_ARG] : G_GRAPHICS_GFX)
 #define U(x) ((uint32_t) (x))
 
 static int32_t run_clip_h(game_state *st, const int32_t *a) { (void) a; clip_horizontal(st); return 0; }
@@ -79,7 +80,7 @@ static int32_t run_size(game_state *st, const int32_t *a)
     state_s32 *pw = (state_s32 *) state_ptr(st, U(a[1]), 4);
     state_s32 *ph = (state_s32 *) state_ptr(st, U(a[2]), 4);
     if (!pw || !ph) {
-        state_unported(st, 0x0053E530u); /* outputs on the caller's stack */
+        state_unported(st, FN_IMAGE_SIZE); /* outputs on the caller's stack */
         return 0;
     }
     int32_t r = image_size_on(st, THIS(a), a[0], &w, &h);
@@ -103,7 +104,7 @@ static int32_t run_set_ext(game_state *st, const int32_t *a)
     for (; i < sizeof(path) - 1; i++) {
         const uint8_t *c = state_ptr(st, p + i, 1);
         if (!c) {
-            state_unported(st, 0x004CE310u);
+            state_unported(st, FN_PATH_SET_EXTENSION);
             return 0;
         }
         path[i] = (char) *c;
@@ -132,14 +133,14 @@ static int32_t run_replace_ext(game_state *st, const int32_t *a)
     for (;; p++) {
         const uint8_t *c = state_ptr(st, p, 1);
         if (!c) {
-            state_unported(st, 0x004CE370u);
+            state_unported(st, FN_PATH_REPLACE_EXTENSION);
             return 0;
         }
         if (*c == '.') {
             for (uint32_t k = 0; k < 3; k++) {
                 uint8_t *d = state_ptr(st, p + 1 + k, 1);
                 if (d) {
-                    *d = U8(st, 0x00E38AECu + k);
+                    *d = U8(st, G_START_EXT + k);
                 }
             }
             uint8_t *z = state_ptr(st, p + 4, 1);
@@ -334,14 +335,14 @@ const ported_function draw_ports[] = {
     {0x0042CEE0u, "footprint_4x4", 0, 32, 0, run_fp4, 0},
     {0x0042D810u, "footprint_5x5", 0, 32, 0, run_fp5, 0},
     {0x0042E680u, "footprint_6x6", 0, 32, 0, run_fp6, 0},
-    {0x0053E590u, "image_draw", 3, 32, GFX_OBJECT, run_image, 0},
-    {0x0053FA40u, "image_draw_flipped", 3, 32, GFX_OBJECT, run_flipped, 0},
-    {0x0053F250u, "image_draw_top", 3, 32, GFX_OBJECT, run_top, 0},
-    {0x0053F4F0u, "image_draw_tinted", 4, 32, GFX_OBJECT, run_tinted, 0},
-    {0x0053F4A0u, "image_draw_pixel_pair", 3, 32, GFX_OBJECT, run_pair, 0},
-    {0x0053E530u, "image_size", 3, 8, GFX_OBJECT, run_size, 0},
+    {0x0053E590u, "image_draw", 3, 32, G_GRAPHICS_GFX, run_image, 0},
+    {0x0053FA40u, "image_draw_flipped", 3, 32, G_GRAPHICS_GFX, run_flipped, 0},
+    {0x0053F250u, "image_draw_top", 3, 32, G_GRAPHICS_GFX, run_top, 0},
+    {0x0053F4F0u, "image_draw_tinted", 4, 32, G_GRAPHICS_GFX, run_tinted, 0},
+    {0x0053F4A0u, "image_draw_pixel_pair", 3, 32, G_GRAPHICS_GFX, run_pair, 0},
+    {0x0053E530u, "image_size", 3, 8, G_GRAPHICS_GFX, run_size, 0},
     {0x0053F790u, "external_buffer_free", 2, 0, 0, run_free, 0},
-    {0x0053F7D0u, "external_image_read", 5, 32, GFX_OBJECT, run_ext_read, 0},
+    {0x0053F7D0u, "external_image_read", 5, 32, G_GRAPHICS_GFX, run_ext_read, 0},
     {0x004CE310u, "path_set_extension", 2, 0, 0, run_set_ext, 0},
     {0x004CE370u, "path_replace_extension", 1, 0, 0, run_replace_ext, 0},
 };

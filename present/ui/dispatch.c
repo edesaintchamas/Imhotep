@@ -65,12 +65,12 @@ int32_t rect_highlight(game_state *st, int32_t x, int32_t y, uint32_t table, int
         panel_draw(st, 0, 0, 6, 6);
         S32(st, G_LAYOUT_HIT_ENTRY) = (int32_t) e;
         S32(st, G_LAYOUT_HIT_INDEX) = hit;
-        S32(st, G_LAYOUT_HIT_X) = P16(st, e);
-        S32(st, G_LAYOUT_HIT_Y) = P16(st, e + 2);
-        S32(st, G_LAYOUT_HIT_W) = P16(st, e + 4) - P16(st, e);
-        S32(st, G_LAYOUT_HIT) = hit;
-        S32(st, G_LAYOUT_HIT_H) = P16(st, e + 6) - P16(st, e + 2);
-        S32(st, G_LAYOUT_HIT_U) = 0;
+        S32(st, G_LAYOUT_PANEL_X) = P16(st, e);
+        S32(st, G_LAYOUT_PANEL_Y) = P16(st, e + 2);
+        S32(st, G_LAYOUT_PANEL_W) = P16(st, e + 4) - P16(st, e);
+        S32(st, G_LAYOUT_PANEL_OX) = hit;
+        S32(st, G_LAYOUT_PANEL_H) = P16(st, e + 6) - P16(st, e + 2);
+        S32(st, G_LAYOUT_PANEL_OY) = 0;
         int32_t y0 = P16(st, e + 2), x0 = P16(st, e);
         panel_draw_frame(st, 0, x0 + x, y0 + y, P16(st, e + 4) - x0, P16(st, e + 6) - y0, 0xFFFF);
     }
@@ -596,8 +596,8 @@ static void city_input(game_state *st)
 {
     /* @bin 0x004D865B window 1: menu bar, scrolling, minimap, sidebar, then the city's mouse */
     S32(st, G_UE94E14) = 0;
-    uint32_t menus = S32(st, G_EDITOR) == 1 ? G_EDITOR_MENU_BAR : G_MENU_BAR;
-    S32(st, G_MENU_BAR_HOVER) = GAME_CALL(st, FN_MENUBAR_HOVER, (int32_t) menus, 4);
+    uint32_t menus = S32(st, G_EDITOR) == 1 ? G_EDITOR_MENUBAR : G_MENUBAR;
+    S32(st, G_MENUBAR_HOVER) = GAME_CALL(st, FN_MENUBAR_HOVER, (int32_t) menus, 4);
     if (GAME_CALL(st, FN_MENUBAR_CLICK, (int32_t) menus, 4) != 0) {
         return;
     }
@@ -649,7 +649,7 @@ static void city_input(game_state *st)
             return;
         }
         int32_t x = S32(st, G_SIDEBAR_X);
-        if (hover_click(st, x, 0x1E, G_SIDEBAR_BUTTONS_TOP, 2, 0x0A) != 0) {
+        if (hover_click(st, x, 0x1E, G_SIDEBAR_TOP_BUTTONS, 2, 0x0A) != 0) {
             U8(st, G_REDRAW_SIDEBAR) = 1;
             return;
         }
@@ -661,7 +661,7 @@ static void city_input(game_state *st)
             U8(st, G_REDRAW_SIDEBAR) = 1;
             return;
         }
-        if (hover_click(st, S32(st, G_SIDEBAR_X), 0x1E, G_SIDEBAR_BUTTONS_ADVISORS, 2, 0x32) != 0) {
+        if (hover_click(st, S32(st, G_SIDEBAR_X), 0x1E, G_SIDEBAR_LOW_BUTTONS, 2, 0x32) != 0) {
             U8(st, G_REDRAW_SIDEBAR) = 1;
             return;
         }
@@ -669,8 +669,8 @@ static void city_input(game_state *st)
         if (topbar_input(st) != 0) {
             return;
         }
-        if (hover_click(st, S32(st, G_SIDEBAR_X_COLLAPSED), 0x18, G_SIDEBAR_BUTTONS_COLLAPSED, 1, 0x0A) != 0 ||
-            hover_click(st, S32(st, G_SIDEBAR_X_COLLAPSED), 0x18, G_SIDEBAR_BUTTONS_COLLAPSED2, 0x0C, 0x1E) != 0) {
+        if (hover_click(st, S32(st, G_SIDEBAR_X_COLLAPSED), 0x18, G_SIDEBAR_COLLAPSED_TOP_BUTTONS, 1, 0x0A) != 0 ||
+            hover_click(st, S32(st, G_SIDEBAR_X_COLLAPSED), 0x18, G_SIDEBAR_COLLAPSED_BUTTONS, 0x0C, 0x1E) != 0) {
             U8(st, G_REDRAW_SIDEBAR) = 1;
             return;
         }
@@ -702,7 +702,7 @@ static void build_menu_input(game_state *st)
         }
         r = click(st, S32(st, G_SIDEBAR_X), 0x1E, G_SIDEBAR_BUTTONS, 0x10);
     } else if (collapsed == 1) {
-        r = click(st, S32(st, G_SIDEBAR_X_COLLAPSED), 0x18, G_SIDEBAR_BUTTONS_COLLAPSED2, 0x0C);
+        r = click(st, S32(st, G_SIDEBAR_X_COLLAPSED), 0x18, G_SIDEBAR_COLLAPSED_BUTTONS, 0x0C);
     } else {
         return;
     }
@@ -998,7 +998,7 @@ void ui_input(game_state *st)
     S32(st, G_CARET_FIELD) = 0;
     S32(st, G_HOVER_BUTTON) = 0;
     S32(st, G_SQUARE_BUTTON_HOVER) = 0;
-    S32(st, G_MENU_BAR_HOVER) = 0;
+    S32(st, G_MENUBAR_HOVER) = 0;
     S32(st, G_HIT_X) = mx;
     S32(st, G_HIT_Y) = my;
     if (drag == 2) {
@@ -1074,7 +1074,7 @@ void ui_input(game_state *st)
     }
     case 0x09: GAME_CALL0(st, FN_INFO_INPUT); return;
     case 0x03: {
-        uint32_t menus = S32(st, G_EDITOR) == 1 ? G_EDITOR_MENU_BAR : G_MENU_BAR;
+        uint32_t menus = S32(st, G_EDITOR) == 1 ? G_EDITOR_MENUBAR : G_MENUBAR;
         if (GAME_CALL(st, FN_MENU_INPUT, (int32_t) menus, 4) != 0) {
             return;
         }

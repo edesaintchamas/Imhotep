@@ -37,8 +37,6 @@
 #define G_EMPIRE_EDITOR_RECTS_E 0x005C3DC0u /* @bin 0x004D9CB5 empire editor rectangles (docs/provenance/frontier.md) */
 #define G_EMPIRE_EDITOR_RECTS_F 0x005C3E68u /* @bin 0x004D9CB5 empire editor rectangle (docs/provenance/frontier.md) */
 #define G_EMPIRE_EDITOR_RECTS_G 0x005C3E88u /* @bin 0x004D9CB5 empire editor rectangles (docs/provenance/frontier.md) */
-#define G_EMPIRE_EDITOR_SELLS_RECTS 0x005C3EC0u /* @bin 0x004DB24A empire editor: a city's goods sold, 14 entries (docs/provenance/frontier.md) */
-#define G_EMPIRE_EDITOR_BUYS_RECTS 0x005C4048u /* @bin 0x004DB271 empire editor: a city's goods, 16 entries (docs/provenance/frontier.md) */
 #define G_NUMPAD_RECTS 0x005C4208u /* @bin 0x004D8310 window 0x0E's rectangles (present/ui/frontend/numpad.c) */
 #define G_ADVISOR1_RECTS 0x005C4AB8u /* @bin 0x004DBF4E advisor page 1's rectangles */
 #define G_PRIORITY_RECTS 0x005C4BB8u /* @bin 0x0040A730 window 0x2A's rectangles: a labour category's priority (docs/commands.md) */

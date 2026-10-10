@@ -184,7 +184,7 @@ void menu_close(game_state *st)
     S32(st, G_MENU_HOVER) = 0;
     S32(st, G_MENU_TITLE) = 0;
     S32(st, G_MENU_OPEN) = 0;
-    S32(st, G_SIDEBAR_REDRAW_BG) = 1;
+    S32(st, G_TOPBAR_REDRAW) = 1;
     U8(st, G_REDRAW) = 1;
 }
 
@@ -194,7 +194,7 @@ void menu_forget(game_state *st)
     S32(st, G_MENU_HOVER) = 0;
     S32(st, G_MENU_TITLE) = 0;
     S32(st, G_MENU_OPEN) = 0;
-    S32(st, G_SIDEBAR_REDRAW_BG) = 1;
+    S32(st, G_TOPBAR_REDRAW) = 1;
     U8(st, G_REDRAW) = 1;
 }
 
@@ -219,7 +219,7 @@ int32_t menu_input(game_state *st, uint32_t table, int32_t count)
         GAME_CALL0(st, P32(st, it + 4));
         if (S32(st, G_MENU_REDRAW) == 1) {
             U8(st, G_REDRAW) = 1;
-            S32(st, G_SIDEBAR_REDRAW_BG) = 1;
+            S32(st, G_TOPBAR_REDRAW) = 1;
             U8(st, G_WINDOW) = 3;
             return 1;
         }
@@ -235,7 +235,7 @@ int32_t menu_input(game_state *st, uint32_t table, int32_t count)
         S32(st, G_MENU_HOVER) = 0;
         m = (uint32_t) title * 16u + table - 16u;
         U32(st, G_MENU_OPEN) = m;
-        S32(st, G_SIDEBAR_REDRAW_BG) = 1;
+        S32(st, G_TOPBAR_REDRAW) = 1;
         U8(st, G_REDRAW) = 1;
     } else {
         m = U32(st, G_MENU_OPEN);

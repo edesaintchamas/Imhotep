@@ -10,24 +10,10 @@
 
 #include <stdint.h>
 
+#include "present_layout.h"
 #include "state/state.h"
 
-/* globals (docs/presentation.md 2.1, 3.1) */
-#define SCREEN_WIDTH 0x00E38DB0u       /* i32 */
-#define SCREEN_HEIGHT 0x00E38DACu      /* i32 */
-#define SCREEN_HEIGHT2 0x00E38D98u     /* i32, the same value (set together by 0x004CF960) */
-#define LAYOUT_DX 0x00E38DA8u          /* i32 (width - 640) / 2 */
-#define LAYOUT_DY 0x00E38DA4u          /* i32 (height - 480) / 2 */
-#define SIDEBAR_X 0x00F53F64u          /* i32 x of the expanded sidebar (0x0051E930) */
-#define SIDEBAR_X_COLLAPSED 0x00F53F60u /* i32 x of the collapsed sidebar */
-#define SIDEBAR_COLLAPSED 0x00F53F78u  /* i32 0 expanded, 1 collapsed */
-#define EDITOR_MODE 0x00605A3Cu        /* i32 1 in the scenario editor */
-#define WINDOW_ID 0x00E38DDAu          /* u8 */
-#define REDRAW_ALL 0x00E38DCAu         /* u8 full redraw of the window this frame */
-#define REDRAW_SIDEBAR 0x00E38DC9u     /* u8 */
-#define TEXT_X 0x00E20778u             /* i32 text cursor x after a draw (text: package blit) */
-#define IMAGES 0x00F55BB0u             /* `this` of the image draw 0x0053E590 */
-#define IMAGE_GROUPS 0x00F55BB4u       /* i32 first image of group g at +8 g */
+/* globals (docs/presentation.md 2.1, 3.1): named in present_layout.h */
 
 void sidebar_set_x(game_state *st);
 void sidebar_draw(game_state *st);

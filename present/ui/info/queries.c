@@ -66,7 +66,7 @@ static uint8_t goods_needed(game_state *st, uint32_t from, uint32_t to, int32_t 
 }
 
 /* @bin 0x004205B0 table 0x00596080..0x00596150 */
-static uint8_t needed_596080(game_state *st, int32_t g, int32_t k) { return goods_needed(st, G_WORK_SLOTS_D5, G_WORKS_SUN_TEMPLE_END, g, k); }
+static uint8_t needed_596080(game_state *st, int32_t g, int32_t k) { return goods_needed(st, G_WORK_SLOTS_D5, G_PART_SET, g, k); }
 /* @bin 0x00420990 table 0x0059EDE8..0x0059EF98 */
 static uint8_t needed_59ede8(game_state *st, int32_t g, int32_t k) { return goods_needed(st, G_WORK_SLOTS_E1, G_WORKS_E1_END, g, k); }
 /* @bin 0x00420CC0 table 0x005A8140..0x005A84C0 */

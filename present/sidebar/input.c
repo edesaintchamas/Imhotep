@@ -15,24 +15,11 @@
  * pressed 0x00E38DF7, right released 0x00E38DF8 (docs/presentation.md 5.2). */
 #include "sidebar.h"
 
+#include "present_layout.h"
 #include "sim/call.h"
 #include "sim/platform.h"
 #include "state/ported.h"
 #include "state/records.h"
-
-#define MOUSE_X 0x00E38E34u
-#define MOUSE_Y 0x00E38E30u
-#define HIT_X 0x00E38E2Cu
-#define HIT_Y 0x00E38E28u
-#define LEFT_PRESSED 0x00E38E03u
-#define LEFT_HELD 0x00E38E00u
-#define LEFT_RELEASED 0x00E38E04u
-#define LEFT_LATCH 0x00E38E02u
-#define RIGHT_PRESSED 0x00E38DF7u
-#define RIGHT_RELEASED 0x00E38DF8u
-#define PARAM1 0x00D3B198u
-#define PARAM2 0x00D3B194u
-#define HOVER_BUTTON 0x007056B8u
 
 static void callback(game_state *st, uint32_t pointer)
 {
@@ -47,15 +34,15 @@ void buttons_hover(game_state *st, int32_t x, int32_t y, uint32_t table, int32_t
     if (count <= 0) {
         return;
     }
-    int32_t mx = S32(st, MOUSE_X), my = S32(st, MOUSE_Y);
+    int32_t mx = S32(st, G_MOUSE_X), my = S32(st, G_MOUSE_Y);
     uint32_t e = table;
     for (int32_t k = 0; k < count; k++, e += 0x24) {
         int32_t bx = P16(st, e) + x;
         int32_t by = P16(st, e + 2) + y;
         if (bx <= mx && P16(st, e + 4) + bx > mx && by <= my && P16(st, e + 6) + by > my) {
-            S32(st, HIT_X) = mx;
-            S32(st, HIT_Y) = my;
-            S32(st, HOVER_BUTTON) = k + base;
+            S32(st, G_HIT_X) = mx;
+            S32(st, G_HIT_Y) = my;
+            S32(st, G_HOVER_BUTTON) = k + base;
             return;
         }
     }
@@ -68,7 +55,7 @@ static void buttons_release_toggles(game_state *st, uint32_t table, int32_t coun
     for (int32_t k = 0; k < count; k++, e += 0x24) {
         if (P8(st, e) != 0 && P16(st, e - 0x11) == 2) {
             P8(st, e) = 0;
-            U8(st, REDRAW_SIDEBAR) = 1;
+            U8(st, G_REDRAW_SIDEBAR) = 1;
         }
     }
 }
@@ -86,7 +73,7 @@ static void buttons_count_down(game_state *st, uint32_t table, int32_t count)
                 P8(st, e) = v;
                 if (v == 0) {
                     P8(st, e) = 0;
-                    U8(st, REDRAW_SIDEBAR) = 1;
+                    U8(st, G_REDRAW_SIDEBAR) = 1;
                 }
             }
         }
@@ -119,12 +106,12 @@ int32_t buttons_click(game_state *st, int32_t x, int32_t y, uint32_t table, int3
             }
             int32_t bx = P16(st, e) + x;
             int32_t by = P16(st, e + 2) + y;
-            if (bx > S32(st, MOUSE_X) || P16(st, e + 4) + bx <= S32(st, MOUSE_X) || by > S32(st, MOUSE_Y) ||
-                P16(st, e + 6) + by <= S32(st, MOUSE_Y)) {
+            if (bx > S32(st, G_MOUSE_X) || P16(st, e + 4) + bx <= S32(st, G_MOUSE_X) || by > S32(st, G_MOUSE_Y) ||
+                P16(st, e + 6) + by <= S32(st, G_MOUSE_Y)) {
                 continue;
             }
-            S32(st, HIT_Y) = S32(st, MOUSE_Y);
-            S32(st, HIT_X) = S32(st, MOUSE_X);
+            S32(st, G_HIT_Y) = S32(st, G_MOUSE_Y);
+            S32(st, G_HIT_X) = S32(st, G_MOUSE_X);
             if (P8(st, e + 0x1A) == 0) {
                 changed = 1;
             }
@@ -132,12 +119,12 @@ int32_t buttons_click(game_state *st, int32_t x, int32_t y, uint32_t table, int3
         }
     }
     int16_t kind = P16(st, e + 8);
-    uint8_t pressed = U8(st, LEFT_PRESSED);
+    uint8_t pressed = U8(st, G_LEFT_PRESSED);
     if (kind == 2 || kind == 4) {
-        if (pressed == 0 && U8(st, RIGHT_RELEASED) == 0) {
+        if (pressed == 0 && U8(st, G_RIGHT_RELEASED) == 0) {
             return changed;
         }
-    } else if (kind == 6 && pressed == 0 && U8(st, LEFT_HELD) == 0) {
+    } else if (kind == 6 && pressed == 0 && U8(st, G_LEFT_HELD) == 0) {
         return changed;
     }
     e = table;
@@ -152,22 +139,22 @@ int32_t buttons_click(game_state *st, int32_t x, int32_t y, uint32_t table, int3
     }
     if (P16(st, e + 8) == 2) {
         buttons_release_toggles(st, table, count);
-        pressed = U8(st, LEFT_PRESSED);
+        pressed = U8(st, G_LEFT_PRESSED);
     }
-    S32(st, PARAM1) = P32(st, e + 0x1C);
-    S32(st, PARAM2) = P32(st, e + 0x20);
+    S32(st, G_PARAM1) = P32(st, e + 0x1C);
+    S32(st, G_PARAM2) = P32(st, e + 0x20);
     if (pressed != 0) {
-        GAME_CALL(st, 0x0047D350u, 3);
+        GAME_CALL(st, FN_RETURN_ZERO, 3);
         P8(st, e + 0x19) = 0x14;
         P8(st, e + 0x1B) = 0;
         callback(st, e + 0x10);
         return k + 1;
     }
-    if (U8(st, RIGHT_RELEASED) != 0) {
+    if (U8(st, G_RIGHT_RELEASED) != 0) {
         callback(st, e + 0x14);
         return k + 1;
     }
-    if (P16(st, e + 8) == 6 && U8(st, LEFT_HELD) != 0) {
+    if (P16(st, e + 8) == 6 && U8(st, G_LEFT_HELD) != 0) {
         P8(st, e + 0x19) = 0x14;
         callback(st, e + 0x10);
     }
@@ -184,52 +171,52 @@ int32_t buttons_rect_click(game_state *st, int32_t x, int32_t y, uint32_t table,
     if (count <= 0) {
         return 0;
     }
-    uint8_t pressed = U8(st, LEFT_PRESSED);
-    uint8_t latch = U8(st, LEFT_LATCH);
+    uint8_t pressed = U8(st, G_LEFT_PRESSED);
+    uint8_t latch = U8(st, G_LEFT_LATCH);
     uint32_t e = table;
     int32_t k = 0;
     for (;;) {
-        int32_t mx = S32(st, MOUSE_X);
+        int32_t mx = S32(st, G_MOUSE_X);
         int hit = !(P16(st, e) + x > mx || P16(st, e + 4) + x <= mx);
         if (hit) {
-            int32_t my = S32(st, MOUSE_Y);
+            int32_t my = S32(st, G_MOUSE_Y);
             hit = !(P16(st, e + 2) + y > my || P16(st, e + 6) + y <= my);
         }
         int advance = 1;
         if (hit) {
             uint8_t kind = P8(st, e + 0x13);
             if (kind == 1) {
-                if (pressed != 0 || U8(st, RIGHT_PRESSED) != 0 || latch != 0) {
-                    S32(st, PARAM1) = P32(st, e + 0x14);
+                if (pressed != 0 || U8(st, G_RIGHT_PRESSED) != 0 || latch != 0) {
+                    S32(st, G_PARAM1) = P32(st, e + 0x14);
                     P8(st, e + 0x11) = 1;
-                    S32(st, PARAM2) = P32(st, e + 0x18);
-                    if (U8(st, LEFT_PRESSED) != 0 || U8(st, LEFT_LATCH) != 0) {
+                    S32(st, G_PARAM2) = P32(st, e + 0x18);
+                    if (U8(st, G_LEFT_PRESSED) != 0 || U8(st, G_LEFT_LATCH) != 0) {
                         callback(st, e + 8);
-                    } else if (U8(st, RIGHT_PRESSED) != 0) {
+                    } else if (U8(st, G_RIGHT_PRESSED) != 0) {
                         callback(st, e + 0x0C);
                     }
                     return k + 1;
                 }
             } else if (kind == 3) {
-                if (U8(st, LEFT_RELEASED) != 0 || U8(st, RIGHT_RELEASED) != 0) {
-                    S32(st, PARAM1) = P32(st, e + 0x14);
+                if (U8(st, G_LEFT_RELEASED) != 0 || U8(st, G_RIGHT_RELEASED) != 0) {
+                    S32(st, G_PARAM1) = P32(st, e + 0x14);
                     P8(st, e + 0x11) = 1;
-                    S32(st, PARAM2) = P32(st, e + 0x18);
-                    if (U8(st, LEFT_RELEASED) != 0) {
+                    S32(st, G_PARAM2) = P32(st, e + 0x18);
+                    if (U8(st, G_LEFT_RELEASED) != 0) {
                         callback(st, e + 8);
-                    } else if (U8(st, RIGHT_RELEASED) != 0) {
+                    } else if (U8(st, G_RIGHT_RELEASED) != 0) {
                         callback(st, e + 0x0C);
                     }
                     return k + 1;
                 }
             } else if (kind == 2) {
                 int call = 0, clear = 0;
-                if (U8(st, LEFT_HELD) == 0) {
+                if (U8(st, G_LEFT_HELD) == 0) {
                     if (pressed != 0 || latch != 0) {
                         call = clear = 1;
-                    } else if (U8(st, 0x00E38DF4u) != 0) {
+                    } else if (U8(st, G_RIGHT_HELD) != 0) {
                         goto hold;
-                    } else if (U8(st, RIGHT_PRESSED) != 0 || U8(st, 0x00E38DF6u) != 0) {
+                    } else if (U8(st, G_RIGHT_PRESSED) != 0 || U8(st, G_UE38DF6) != 0) {
                         call = clear = 1;
                     }
                 } else if (pressed != 0 || latch != 0) {
@@ -237,9 +224,9 @@ int32_t buttons_rect_click(game_state *st, int32_t x, int32_t y, uint32_t table,
                 } else {
                 hold:
                     /* @bin 0x004262EC */
-                    if (U8(st, RIGHT_PRESSED) != 0 || U8(st, 0x00E38DF6u) != 0) {
+                    if (U8(st, G_RIGHT_PRESSED) != 0 || U8(st, G_UE38DF6) != 0) {
                         call = clear = 1;
-                    } else if (S32(st, 0x00D3B3ACu) != 0) {
+                    } else if (S32(st, G_UD3B3AC) != 0) {
                         call = 1;
                     } else {
                         advance = 0; /* @bin 0x00426316 the next index on the same entry */
@@ -247,23 +234,23 @@ int32_t buttons_rect_click(game_state *st, int32_t x, int32_t y, uint32_t table,
                 }
                 if (call) {
                     if (clear) {
-                        S32(st, 0x00D3B3C8u) = 0;
+                        S32(st, G_UD3B3C8) = 0;
                     }
-                    S32(st, PARAM1) = P32(st, e + 0x14);
+                    S32(st, G_PARAM1) = P32(st, e + 0x14);
                     P8(st, e + 0x11) = 1;
-                    S32(st, PARAM2) = P32(st, e + 0x18);
-                    if (U8(st, LEFT_HELD) != 0) {
+                    S32(st, G_PARAM2) = P32(st, e + 0x18);
+                    if (U8(st, G_LEFT_HELD) != 0) {
                         callback(st, e + 8);
-                    } else if (U8(st, 0x00E38DF4u) != 0) {
+                    } else if (U8(st, G_RIGHT_HELD) != 0) {
                         callback(st, e + 0x0C);
                     }
                     return k + 1;
                 }
             } else if (kind == 4) {
                 if (pressed != 0 || latch != 0) {
-                    S32(st, PARAM1) = P32(st, e + 0x14);
+                    S32(st, G_PARAM1) = P32(st, e + 0x14);
                     P8(st, e + 0x11) = 1;
-                    S32(st, PARAM2) = P32(st, e + 0x18);
+                    S32(st, G_PARAM2) = P32(st, e + 0x18);
                     callback(st, e + 8);
                     return k + 1;
                 }
@@ -288,11 +275,11 @@ int32_t buttons_editor_click(game_state *st, int32_t x, int32_t y, uint32_t tabl
      * 0x005C9268, at most 0x2F), kind 2 toggles, kind 5 arms a timer of 10 */
     uint32_t now = platform_clock_ms(st); /* @bin 0x00425C45 timeGetTime */
     int32_t tick;
-    if ((int32_t) (now - U32(st, 0x00705690u)) < 0x1E) {
+    if ((int32_t) (now - U32(st, G_BUTTON_REPEAT_CLOCK)) < 0x1E) {
         tick = 0;
     } else {
         tick = 1;
-        U32(st, 0x00705690u) = now;
+        U32(st, G_BUTTON_REPEAT_CLOCK) = now;
     }
     if (count > 0) {
         uint32_t t = table + 0x0D;
@@ -305,8 +292,8 @@ int32_t buttons_editor_click(game_state *st, int32_t x, int32_t y, uint32_t tabl
                     P8(st, t - 1) = 1;
                     P8(st, t + 1) = 0;
                     if (P8(st, t + 2) == 5) {
-                        S32(st, PARAM1) = P32(st, t + 3);
-                        S32(st, PARAM2) = P32(st, t + 7);
+                        S32(st, G_PARAM1) = P32(st, t + 3);
+                        S32(st, G_PARAM2) = P32(st, t + 7);
                         callback(st, t - 5);
                     }
                 }
@@ -322,32 +309,32 @@ int32_t buttons_editor_click(game_state *st, int32_t x, int32_t y, uint32_t tabl
     for (int32_t k = 0; k < count; k++, e += 0x18) {
         int32_t bx = P16(st, e) + x;
         int32_t size = P16(st, e + 6);
-        if (bx > S32(st, MOUSE_X) || P16(st, e) + size + x <= S32(st, MOUSE_X)) {
+        if (bx > S32(st, G_MOUSE_X) || P16(st, e) + size + x <= S32(st, G_MOUSE_X)) {
             continue;
         }
         int32_t by = P16(st, e + 2) + y;
-        if (by > S32(st, MOUSE_Y) || P16(st, e + 2) + size + y <= S32(st, MOUSE_Y)) {
+        if (by > S32(st, G_MOUSE_Y) || P16(st, e + 2) + size + y <= S32(st, G_MOUSE_Y)) {
             continue;
         }
-        if (S32(st, 0x00605A38u) > 0 && U8(st, WINDOW_ID) == 1 && S32(st, EDITOR_MODE) == 1) {
-            S32(st, HOVER_BUTTON) = k + 1;
+        if (S32(st, G_U605A38) > 0 && U8(st, G_WINDOW) == 1 && S32(st, G_EDITOR) == 1) {
+            S32(st, G_HOVER_BUTTON) = k + 1;
             if (k > -1) {
-                S32(st, HOVER_BUTTON) = 0x15;
+                S32(st, G_HOVER_BUTTON) = 0x15;
             }
         }
         uint8_t kind = P8(st, e + 0x0F);
         if (kind == 4) {
-            if (U8(st, LEFT_PRESSED) != 0 || U8(st, LEFT_LATCH) != 0) {
+            if (U8(st, G_LEFT_PRESSED) != 0 || U8(st, G_LEFT_LATCH) != 0) {
                 P8(st, e + 0x0C) = 1;
                 P8(st, e + 0x0D) = 3;
                 P8(st, e + 0x0E) = 0;
-                S32(st, PARAM1) = P32(st, e + 0x10);
-                S32(st, PARAM2) = P32(st, e + 0x14);
-                S32(st, 0x00D3B190u) = 0;
+                S32(st, G_PARAM1) = P32(st, e + 0x10);
+                S32(st, G_PARAM2) = P32(st, e + 0x14);
+                S32(st, G_BUTTON_REPEAT) = 0;
                 callback(st, e + 8);
                 return k + 1;
             }
-            if (U8(st, LEFT_HELD) == 0) {
+            if (U8(st, G_LEFT_HELD) == 0) {
                 return 0;
             }
             P8(st, e + 0x0D) = 3;
@@ -358,12 +345,12 @@ int32_t buttons_editor_click(game_state *st, int32_t x, int32_t y, uint32_t tabl
             P8(st, e + 0x0E) = r;
             if (r >= 0x30) {
                 P8(st, e + 0x0E) = 0x2F;
-            } else if (r < 8 || U8(st, 0x005C9268u + r) == 0) {
+            } else if (r < 8 || U8(st, G_BUTTON_REPEAT_STEPS + r) == 0) {
                 return 0;
             }
-            S32(st, PARAM1) = P32(st, e + 0x10);
-            S32(st, PARAM2) = P32(st, e + 0x14);
-            S32(st, 0x00D3B190u) = P8(st, e + 0x0E);
+            S32(st, G_PARAM1) = P32(st, e + 0x10);
+            S32(st, G_PARAM2) = P32(st, e + 0x14);
+            S32(st, G_BUTTON_REPEAT) = P8(st, e + 0x0E);
             callback(st, e + 8);
             return k + 1;
         }
@@ -371,14 +358,14 @@ int32_t buttons_editor_click(game_state *st, int32_t x, int32_t y, uint32_t tabl
             P8(st, e + 0x0D) = 1;
             if (P8(st, e + 0x0E) == 0) {
                 P8(st, e + 0x0C) ^= 1;
-                S32(st, PARAM1) = P32(st, e + 0x10);
-                S32(st, PARAM2) = P32(st, e + 0x14);
+                S32(st, G_PARAM1) = P32(st, e + 0x10);
+                S32(st, G_PARAM2) = P32(st, e + 0x14);
                 callback(st, e + 8);
             }
             return k + 1;
         }
         if (kind == 5) {
-            if (U8(st, LEFT_PRESSED) == 0 && U8(st, LEFT_LATCH) == 0) {
+            if (U8(st, G_LEFT_PRESSED) == 0 && U8(st, G_LEFT_LATCH) == 0) {
                 return 0;
             }
             P8(st, e + 0x0D) = 0x0A;
@@ -393,7 +380,7 @@ int32_t menubar_hover(game_state *st, uint32_t table, int32_t count)
 {
     /* @bin 0x00426100 the menu title under the mouse (entries of 0x10: +0 x0, +2 x1, +4 y; 12 high),
      * 1-based, or 0 */
-    int32_t mx = S32(st, MOUSE_X), my = S32(st, MOUSE_Y);
+    int32_t mx = S32(st, G_MOUSE_X), my = S32(st, G_MOUSE_Y);
     uint32_t e = table;
     for (int32_t k = 1; k <= count; k++, e += 0x10) {
         if (P16(st, e) <= mx && P16(st, e + 2) > mx && P16(st, e + 4) <= my && P16(st, e + 4) + 0x0C > my) {
@@ -408,16 +395,16 @@ int32_t menubar_click(game_state *st, int32_t table)
     /* @bin 0x00426030 a left press on a menu title (0x007056A8) opens it: window 3, the menu's
      * entries 0x00705724 := table + 0x10 (title - 1), 0x0070572C := 0, the previous window in
      * 0x00705728, top bar redraw */
-    if (U8(st, LEFT_PRESSED) == 0 || S32(st, 0x007056A8u) <= 0) {
+    if (U8(st, G_LEFT_PRESSED) == 0 || S32(st, G_MENUBAR_HOVER) <= 0) {
         return 0;
     }
-    int32_t title = S32(st, 0x00705730u);
-    S32(st, 0x0070572Cu) = 0;
-    S32(st, 0x00705728u) = U8(st, WINDOW_ID);
-    U8(st, WINDOW_ID) = 3;
-    S32(st, 0x00705724u) = (int32_t) ((uint32_t) title * 16u + (uint32_t) table - 0x10u);
-    S32(st, 0x00F53F74u) = 1;
-    U8(st, REDRAW_ALL) = 1;
+    int32_t title = S32(st, G_MENU_TITLE);
+    S32(st, G_MENU_HOVER) = 0;
+    S32(st, G_MENU_PREV) = U8(st, G_WINDOW);
+    U8(st, G_WINDOW) = 3;
+    S32(st, G_MENU_OPEN) = (int32_t) ((uint32_t) title * 16u + (uint32_t) table - 0x10u);
+    S32(st, G_TOPBAR_REDRAW) = 1;
+    U8(st, G_REDRAW) = 1;
     return 1;
 }
 
@@ -426,27 +413,27 @@ int32_t menubar_button_click(game_state *st)
     /* @bin 0x00425840 the button at the right of the menu bar (0x005C79C8, one entry): a click
      * picks its third under the mouse (0, 1, 2 from the left: 1, 0, 2) as 0x00D3B198 and
      * 0x005C79E4, hover id 0x14, 0x00705698 := that + 1, and redraws it */
-    int32_t saved = S32(st, HOVER_BUTTON);
-    S32(st, 0x00705698u) = 0;
-    if (buttons_click(st, 0, 0, 0x005C79C8u, 1) == 0) {
-        S32(st, HOVER_BUTTON) = saved;
+    int32_t saved = S32(st, G_HOVER_BUTTON);
+    S32(st, G_MENUBAR_BUTTON_HOVER) = 0;
+    if (buttons_click(st, 0, 0, G_MENUBAR_BUTTON, 1) == 0) {
+        S32(st, G_HOVER_BUTTON) = saved;
         return 0;
     }
-    int32_t w = S16(st, 0x005C79CCu);
-    int32_t x = S16(st, 0x005C79C8u);
-    int32_t mx = S32(st, MOUSE_X);
-    S32(st, HOVER_BUTTON) = 0x14;
+    int32_t w = S16(st, G_MENUBAR_BUTTON + BUTTON_W);
+    int32_t x = S16(st, G_MENUBAR_BUTTON);
+    int32_t mx = S32(st, G_MOUSE_X);
+    S32(st, G_HOVER_BUTTON) = 0x14;
     int32_t part;
     if (mx < w / 3 + x) {
         part = 1;
     } else {
         part = mx >= (2 * w) / 3 + x ? 2 : 0;
     }
-    S32(st, PARAM1) = part;
-    S32(st, 0x005C79E4u) = part;
-    U8(st, REDRAW_SIDEBAR) = 1;
+    S32(st, G_PARAM1) = part;
+    S32(st, G_MENUBAR_BUTTON + BUTTON_PART) = part;
+    U8(st, G_REDRAW_SIDEBAR) = 1;
     menubar_draw_button(st);
-    S32(st, 0x00705698u) = S32(st, PARAM1) + 1;
+    S32(st, G_MENUBAR_BUTTON_HOVER) = S32(st, G_PARAM1) + 1;
     return 1;
 }
 
@@ -454,16 +441,16 @@ void minimap_hover(game_state *st)
 {
     /* @bin 0x00406190 0x007056A0 := 1 when the mouse is on the minimap (its rectangle 0x0070E3D4,
      * 0x0070E3D0 .. 0x0070E3CC, 0x0070E3C8, set by its draw) */
-    int32_t mx = S32(st, MOUSE_X);
-    S32(st, 0x007056A0u) = 0;
-    if (mx < S32(st, 0x0070E3D4u) || mx >= S32(st, 0x0070E3CCu)) {
+    int32_t mx = S32(st, G_MOUSE_X);
+    S32(st, G_MINIMAP_HOVER) = 0;
+    if (mx < S32(st, G_MINIMAP_LEFT) || mx >= S32(st, G_MINIMAP_RIGHT)) {
         return;
     }
-    int32_t my = S32(st, MOUSE_Y);
-    if (my < S32(st, 0x0070E3D0u) || my >= S32(st, 0x0070E3C8u)) {
+    int32_t my = S32(st, G_MOUSE_Y);
+    if (my < S32(st, G_MINIMAP_TOP) || my >= S32(st, G_MINIMAP_BOTTOM)) {
         return;
     }
-    S32(st, 0x007056A0u) = 1;
+    S32(st, G_MINIMAP_HOVER) = 1;
 }
 
 int32_t minimap_tile_at_mouse(game_state *st, int32_t x, int32_t y, int32_t w, int32_t h)
@@ -473,13 +460,13 @@ int32_t minimap_tile_at_mouse(game_state *st, int32_t x, int32_t y, int32_t w, i
      * 0 when none or off the map */
     int odd = 0;
     minimap_first_tile(st, w, h);
-    S32(st, 0x0070E3D0u) = y;
+    S32(st, G_MINIMAP_TOP) = y;
     int32_t row_y = y - 4;
-    S32(st, 0x0070E3D4u) = x;
-    int32_t ty = S32(st, 0x0070E3D8u) - 4;
-    S32(st, 0x0070E3CCu) = x + w * 2;
-    S32(st, 0x0070E3C8u) = y + h;
-    S32(st, 0x0070E47Cu) = ty;
+    S32(st, G_MINIMAP_LEFT) = x;
+    int32_t ty = S32(st, G_MINIMAP_FIRST_ROW) - 4;
+    S32(st, G_MINIMAP_RIGHT) = x + w * 2;
+    S32(st, G_MINIMAP_BOTTOM) = y + h;
+    S32(st, G_VIEW_ROW) = ty;
     if (h + 4 <= -4) {
         return 0;
     }
@@ -492,24 +479,24 @@ int32_t minimap_tile_at_mouse(game_state *st, int32_t x, int32_t y, int32_t w, i
             px = x - 9;
             odd = 0;
         }
-        int32_t tx = S32(st, 0x0070E3DCu) - 4;
-        S32(st, 0x0070E480u) = tx;
+        int32_t tx = S32(st, G_MINIMAP_FIRST_COLUMN) - 4;
+        S32(st, G_VIEW_COLUMN) = tx;
         if (w > -4) {
             for (int32_t col = -4; col < w; col++) {
-                if (tx >= 0 && tx < 0xE7 && ty >= 0 && ty < 0x1C9 && S32(st, MOUSE_Y) == row_y &&
-                    (S32(st, MOUSE_X) == px || S32(st, MOUSE_X) == px + 1)) {
-                    int32_t v = S32(st, 0x0070E494u + 4u * (uint32_t) (ty * 0xE7 + tx));
-                    S32(st, 0x0070E488u) = v;
+                if (tx >= 0 && tx < 0xE7 && ty >= 0 && ty < 0x1C9 && S32(st, G_MOUSE_Y) == row_y &&
+                    (S32(st, G_MOUSE_X) == px || S32(st, G_MOUSE_X) == px + 1)) {
+                    int32_t v = S32(st, G_VIEW_TABLE + 4u * (uint32_t) (ty * 0xE7 + tx));
+                    S32(st, G_VIEW_TILE) = v;
                     return v >= 0x0FFF0000 ? 0 : v;
                 }
                 px += 2;
                 tx++;
-                S32(st, 0x0070E480u) = tx;
+                S32(st, G_VIEW_COLUMN) = tx;
             }
         }
         row_y++;
         ty++;
-        S32(st, 0x0070E47Cu) = ty;
+        S32(st, G_VIEW_ROW) = ty;
     }
     return 0;
 }
@@ -518,17 +505,17 @@ int32_t minimap_click(game_state *st)
 {
     /* @bin 0x004061E0 a left or right press on the minimap moves the camera to the tile there
      * (0x00430CD0); returns 1 when it did */
-    if (S32(st, 0x007056A0u) != 1) {
+    if (S32(st, G_MINIMAP_HOVER) != 1) {
         return 0;
     }
-    if (U8(st, LEFT_PRESSED) == 0 && U8(st, RIGHT_PRESSED) == 0) {
+    if (U8(st, G_LEFT_PRESSED) == 0 && U8(st, G_RIGHT_PRESSED) == 0) {
         return 0;
     }
-    int32_t tile = minimap_tile_at_mouse(st, S32(st, SIDEBAR_X) + 8, S32(st, EDITOR_MODE) == 0 ? 0x3B : 0x1E, 0x49, 0x6F);
+    int32_t tile = minimap_tile_at_mouse(st, S32(st, G_SIDEBAR_X) + 8, S32(st, G_EDITOR) == 0 ? 0x3B : 0x1E, 0x49, 0x6F);
     if (tile <= 0) {
         return 0;
     }
-    GAME_CALL(st, 0x00430CD0u, tile);
+    GAME_CALL(st, FN_CAMERA_GO_TO, tile);
     return 1;
 }
 
@@ -536,38 +523,38 @@ void topbar_hover(game_state *st)
 {
     /* @bin 0x00406250 the top bar's figure under the mouse (0x0070569C: 1 treasury, 2 population, 3
      * date: 128 pixels from their anchors 0x00F53DC4, 0x00F53DC0, 0x00F53DBC; rows 4..17) */
-    int32_t my = S32(st, MOUSE_Y);
-    S32(st, 0x0070569Cu) = 0;
+    int32_t my = S32(st, G_MOUSE_Y);
+    S32(st, G_TOPBAR_HOVER) = 0;
     if (my < 4 || my >= 0x12) {
         return;
     }
-    int32_t mx = S32(st, MOUSE_X);
-    int32_t a = S32(st, 0x00F53DC4u);
+    int32_t mx = S32(st, G_MOUSE_X);
+    int32_t a = S32(st, G_TOPBAR_TREASURY_X);
     if (mx > a && mx < a + 0x80) {
-        S32(st, 0x0070569Cu) = 1;
+        S32(st, G_TOPBAR_HOVER) = 1;
     }
-    a = S32(st, 0x00F53DC0u);
+    a = S32(st, G_TOPBAR_POPULATION_X);
     if (mx > a && mx < a + 0x80) {
-        S32(st, 0x0070569Cu) = 2;
+        S32(st, G_TOPBAR_HOVER) = 2;
     }
-    a = S32(st, 0x00F53DBCu);
+    a = S32(st, G_TOPBAR_DATE_X);
     if (mx > a && mx < a + 0x80) {
-        S32(st, 0x0070569Cu) = 3;
+        S32(st, G_TOPBAR_HOVER) = 3;
     }
 }
 
 void topbar_help(game_state *st)
 {
     /* @bin 0x004072C0 right click on a top bar figure: its help message (0x0F, 0x10, 0x11) */
-    int32_t v = S32(st, 0x0070569Cu);
+    int32_t v = S32(st, G_TOPBAR_HOVER);
     if (v == 1) {
-        GAME_CALL(st, 0x004C5BF0u, 0x0F, 0, 0);
+        GAME_CALL(st, FN_MESSAGE_WINDOW_OPEN, 0x0F, 0, 0);
     } else if (v == 2) {
-        GAME_CALL(st, 0x004C5BF0u, 0x10, 0, 0);
+        GAME_CALL(st, FN_MESSAGE_WINDOW_OPEN, 0x10, 0, 0);
     } else if (v == 3) {
-        GAME_CALL(st, 0x004C5BF0u, 0x11, 0, 0);
+        GAME_CALL(st, FN_MESSAGE_WINDOW_OPEN, 0x11, 0, 0);
     }
-    U8(st, REDRAW_ALL) = 1;
+    U8(st, G_REDRAW) = 1;
 }
 
 /* ---- the button callbacks of the sidebar tables ---- */
@@ -575,28 +562,28 @@ void topbar_help(game_state *st)
 void sidebar_collapse_click(game_state *st)
 {
     /* @bin 0x00409D10 (0x005C7300 / 0x005C7348 entry 0) start sliding the sidebar: window 2 */
-    S32(st, 0x00F53F7Cu) = 0;
-    U8(st, WINDOW_ID) = 2;
-    GAME_CALL0(st, 0x004DDEC0u);
-    GAME_CALL0(st, 0x004DE080u);
-    GAME_CALL(st, 0x0047D350u, 2);
-    GAME_CALL(st, 0x0053B090u, 6);
+    S32(st, G_SIDEBAR_SLIDE_STEP) = 0;
+    U8(st, G_WINDOW) = 2;
+    GAME_CALL0(st, FN_VIEW_GEOMETRY_A);
+    GAME_CALL0(st, FN_CAMERA_CLAMP);
+    GAME_CALL(st, FN_RETURN_ZERO, 2);
+    GAME_CALL(st, FN_UI_SOUND, 6);
 }
 
 void sidebar_overlays_click(game_state *st)
 {
     /* @bin 0x00409D40 (0x005C7300 entry 1) the overlays menu: window 8 and its layout */
-    U8(st, WINDOW_ID) = 8;
-    S32(st, 0x007056F0u) = 0x14;
-    S32(st, 0x007056E8u) = 0x28;
-    S32(st, 0x007056E4u) = 0x0C;
-    S32(st, 0x007056E0u) = 0;
-    S32(st, 0x007056DCu) = 0;
-    S32(st, 0x007056D8u) = 0;
-    S32(st, 0x007056D4u) = 0;
-    S32(st, 0x007056D0u) = 0x28;
-    S32(st, 0x007056CCu) = 0x0C;
-    U8(st, REDRAW_ALL) = 1;
+    U8(st, G_WINDOW) = 8;
+    S32(st, G_MENU_COUNT) = 0x14;
+    S32(st, G_MENU_Y) = 0x28;
+    S32(st, G_U7056E4) = 0x0C;
+    S32(st, G_U7056E0) = 0;
+    S32(st, G_OVL_GROUP) = 0;
+    S32(st, G_OVL_ROWS) = 0;
+    S32(st, G_U7056D4) = 0;
+    S32(st, G_OVL_ROW) = 0x28;
+    S32(st, G_U7056CC) = 0x0C;
+    U8(st, G_REDRAW) = 1;
 }
 
 void sidebar_build_click(game_state *st)
@@ -605,33 +592,33 @@ void sidebar_build_click(game_state *st)
      * menu 0x007056EC (menu 1 is 0x0D when 0x00978D70 = 1), its item count (0x00404120) and the
      * layout 0x005CF63C / 0x005CF640 by count; menus 1, 2, 3 have one building: chosen at once
      * (0x00405200 with item 1) */
-    if (U8(st, WINDOW_ID) == 6 && S32(st, EDITOR_MODE) == 1) {
+    if (U8(st, G_WINDOW) == 6 && S32(st, G_EDITOR) == 1) {
         return;
     }
-    U8(st, WINDOW_ID) = 6;
-    int32_t menu = S32(st, PARAM1);
-    S32(st, 0x007056ECu) = menu;
-    if (menu == 1 && S32(st, 0x00978D70u) == 1) {
-        S32(st, 0x007056ECu) = 0x0D;
+    U8(st, G_WINDOW) = 6;
+    int32_t menu = S32(st, G_PARAM1);
+    S32(st, G_SUBMENU) = menu;
+    if (menu == 1 && S32(st, G_U978D70) == 1) {
+        S32(st, G_SUBMENU) = 0x0D;
     }
-    int32_t n = GAME_CALL0(st, 0x00404120u);
-    S32(st, 0x007056F0u) = n;
-    S32(st, 0x007056E8u) = S32(st, 0x005CF63Cu + 8u * (uint32_t) n);
-    S32(st, 0x007056E4u) = S32(st, 0x005CF640u + 8u * (uint32_t) n);
-    menu = S32(st, 0x007056ECu);
+    int32_t n = GAME_CALL0(st, FN_BUILD_MENU_COUNT);
+    S32(st, G_MENU_COUNT) = n;
+    S32(st, G_MENU_Y) = S32(st, G_MENU_LAYOUT + 8u * (uint32_t) n);
+    S32(st, G_U7056E4) = S32(st, G_MENU_LAYOUT + 4u + 8u * (uint32_t) n);
+    menu = S32(st, G_SUBMENU);
     if (menu == 2 || menu == 3 || menu == 1) {
-        S32(st, PARAM1) = 1;
-        GAME_CALL0(st, 0x00405200u);
+        S32(st, G_PARAM1) = 1;
+        GAME_CALL0(st, FN_CONSTRUCTION_CHOOSE_BUILDING);
     }
-    U8(st, REDRAW_ALL) = 1;
+    U8(st, G_REDRAW) = 1;
 }
 
 void messages_open(game_state *st)
 {
     /* @bin 0x004E1620 the message list (sorted, 0x004E1640): window 0x11 */
-    GAME_CALL0(st, 0x004E1640u);
-    U8(st, WINDOW_ID) = 0x11;
-    U8(st, REDRAW_ALL) = 1;
+    GAME_CALL0(st, FN_MESSAGE_SORT);
+    U8(st, G_WINDOW) = 0x11;
+    U8(st, G_REDRAW) = 1;
 }
 
 void sidebar_messages_click(game_state *st)
@@ -645,68 +632,68 @@ void sidebar_next_message_click(game_state *st)
     /* @bin 0x00406030 (0x005C7370 entry 14, 0x005C6CB8) the next important message (0x004E23E0),
      * with 0x00D3B198 set; the cycle restarts (0x00E951D4 := 0) after 3 s of wall clock since the
      * last use (0x00E951D0) */
-    if (S32(st, PARAM1) == 0) {
+    if (S32(st, G_PARAM1) == 0) {
         return;
     }
     uint32_t now = platform_clock_ms(st); /* @bin 0x00406039 timeGetTime */
-    if ((int32_t) (now - U32(st, 0x00E951D0u)) > 0xBB8) {
-        S32(st, 0x00E951D4u) = 0;
+    if ((int32_t) (now - U32(st, G_NEXT_MESSAGE_TIME)) > 0xBB8) {
+        S32(st, G_NEXT_MESSAGE_INDEX) = 0;
     }
-    U32(st, 0x00E951D0u) = now;
-    GAME_CALL0(st, 0x004E23E0u);
-    U8(st, REDRAW_ALL) = 1;
+    U32(st, G_NEXT_MESSAGE_TIME) = now;
+    GAME_CALL0(st, FN_MESSAGE_NEXT_IMPORTANT);
+    U8(st, G_REDRAW) = 1;
 }
 
 void sidebar_mission_click(game_state *st)
 {
     /* @bin 0x00418390 (0x005C7370 entry 15) the mission briefing: a fade to window 0x3B */
-    if (S32(st, 0x00E38EBCu) != 0) {
+    if (S32(st, G_CUSTOM) != 0) {
         return;
     }
-    GAME_CALL(st, 0x0041AA20u, 0, 0x3B, 1000);
-    S32(st, 0x00D3B130u) = 0;
-    S32(st, 0x00D3B138u) = 0;
-    S32(st, 0x00D3A6E4u) = 0;
-    S32(st, 0x00D3B128u) = 0;
-    U8(st, REDRAW_ALL) = 1;
+    GAME_CALL(st, FN_FADE_START, 0, 0x3B, 1000);
+    S32(st, G_SCROLL) = 0;
+    S32(st, G_TEXT_LINES) = 0;
+    S32(st, G_TIP_ID) = 0;
+    S32(st, G_MW_THUMB_Y) = 0;
+    U8(st, G_REDRAW) = 1;
 }
 
 void sidebar_advisors_click(game_state *st)
 {
     /* @bin 0x0040B520 (0x005C7980 entry 0) the advisors (window 7) at the last advisor 0x00E38EA4,
      * unless not available (0x004179A0) outside the tutorial 0x00E38EBC: a notice 0x0D */
-    if (S32(st, 0x00E38EBCu) == 0 && (GAME_CALL(st, 0x004179A0u, 0x00E38EA4) & 0xFF) == 0) {
-        GAME_CALL(st, 0x004E2970u, 0x0D, 0, 0);
+    if (S32(st, G_CUSTOM) == 0 && (GAME_CALL(st, FN_PLAY_ADVISOR_NEXT, G_LAST_ADVISOR) & 0xFF) == 0) {
+        GAME_CALL(st, FN_NOTICE_ADD_4E2970, 0x0D, 0, 0);
         return;
     }
-    U8(st, WINDOW_ID) = 7;
-    S32(st, 0x00605A44u) = S32(st, 0x00E38EA4u);
-    U8(st, CURRENT_CITY(st) + 0x49CCu) = 0;
-    GAME_CALL0(st, 0x0040A160u);
-    U8(st, REDRAW_ALL) = 1;
-    S32(st, 0x00F53F48u) = 6;
+    U8(st, G_WINDOW) = 7;
+    S32(st, G_PAGE) = S32(st, G_LAST_ADVISOR);
+    U8(st, CURRENT_CITY(st) + CITY_U49CC) = 0;
+    GAME_CALL0(st, FN_ADVISORS_REFRESH);
+    U8(st, G_REDRAW) = 1;
+    S32(st, G_ADVISOR_SLIDE) = 6;
 }
 
 void sidebar_empire_click(game_state *st)
 {
     /* @bin 0x0040B590 (0x005C7980 entry 1) the empire map (0x00409FA0 from the city, else
      * 0x0040A090); outside the editor and the tutorial, with 0x0078D828 set, a notice 0x0D */
-    if (S32(st, EDITOR_MODE) != 1 && S32(st, 0x00E38EBCu) == 0 && S32(st, 0x0078D828u) != 0) {
-        GAME_CALL(st, 0x004E2970u, 0x0D, 0, 0);
+    if (S32(st, G_EDITOR) != 1 && S32(st, G_CUSTOM) == 0 && S32(st, G_U78D828) != 0) {
+        GAME_CALL(st, FN_NOTICE_ADD_4E2970, 0x0D, 0, 0);
         return;
     }
-    if (U8(st, WINDOW_ID) == 1) {
+    if (U8(st, G_WINDOW) == 1) {
         GAME_CALL0(st, 0x00409FA0u);
         return;
     }
-    GAME_CALL0(st, 0x0040A090u);
+    GAME_CALL0(st, FN_EMPIRE_CLOSE_40A090);
 }
 
 void sidebar_help_click(game_state *st)
 {
     /* @bin 0x00407320 the right-click help of a button: the message 0x00D3B194 */
-    GAME_CALL(st, 0x004C5BF0u, S32(st, PARAM2), 0, 0);
-    U8(st, REDRAW_ALL) = 1;
+    GAME_CALL(st, FN_MESSAGE_WINDOW_OPEN, S32(st, G_PARAM2), 0, 0);
+    U8(st, G_REDRAW) = 1;
 }
 
 /* ---- port table ---- */

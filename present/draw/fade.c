@@ -9,6 +9,7 @@
  * (a step of the game's generator 0x004D7090, written into the state like the tick's), so it is
  * ported whole here. The rows are walked width pixels apart (no pitch), from row 0x1E, left of the
  * sidebar's x (0x00F53F64, or 0x00F53F60 while 0x00F53F78 is set). */
+#include "present_layout.h"
 #include "random/random.h"
 #include "state/ported.h"
 
@@ -36,12 +37,12 @@ void fade_step_4d0650(game_state *st, uint32_t self, int32_t surface)
     if (U8(st, self + 0x18) != 0) {
         /* @bin 0x004D0682 jitter: one random step; delta += (15-bit value % 16) - 8 */
         random_next_state(st);
-        delta += (S32(st, 0x00D3B370u) % 16) - 8;
+        delta += (S32(st, G_R_1_15) % 16) - 8;
     }
     int32_t h = S32(st, self + 0x0C);
     uint32_t p = U32(st, self + 0x24 + 4u * (uint32_t) surface);
     int32_t w = S32(st, self + 8);
-    int32_t limit = S32(st, 0x00F53F78u) != 0 ? S32(st, 0x00F53F60u) : S32(st, 0x00F53F64u);
+    int32_t limit = S32(st, G_SIDEBAR_COLLAPSED) != 0 ? S32(st, G_SIDEBAR_X_COLLAPSED) : S32(st, G_SIDEBAR_X);
     int32_t format = S32(st, self + 0x10);
     /* the primary's pixels (+0x24) are the platform's screen in the port (0x004D0480 leaves 0):
      * the random steps are kept, the pixels are not drawn */
@@ -71,7 +72,7 @@ void fade_step_4d0650(game_state *st, uint32_t self, int32_t surface)
      * 0x8000; 565: per channel) */
     for (int32_t y = 0; y < h; y++) {
         random_next_state(st);
-        int32_t r = S32(st, 0x00D3B370u);
+        int32_t r = S32(st, G_R_1_15);
         for (int32_t x = 0; x < w; x++, p += 2) {
             if (x >= limit || y < 0x1E || !draw) {
                 continue;
@@ -111,7 +112,7 @@ void fade_start_4d05f0(game_state *st, uint32_t self, int32_t surface, int32_t s
 
 static uint32_t self_of(const int32_t *a)
 {
-    return a[PORT_THIS_ARG] ? (uint32_t) a[PORT_THIS_ARG] : 0x006DE518u;
+    return a[PORT_THIS_ARG] ? (uint32_t) a[PORT_THIS_ARG] : G_SURFACE_LOCK;
 }
 
 static int32_t run_clamp(game_state *st, const int32_t *a)
@@ -134,7 +135,7 @@ static int32_t run_start(game_state *st, const int32_t *a)
 
 const ported_function fade_ports[] = {
     {0x004D0630u, "fade_clamp_4d0630", 3, 32, 0, run_clamp, 0},
-    {0x004D0650u, "fade_step_4d0650", 1, 0, 0x006DE518u, run_step, 0},
-    {0x004D05F0u, "fade_start_4d05f0", 5, 0, 0x006DE518u, run_start, 0},
+    {0x004D0650u, "fade_step_4d0650", 1, 0, G_SURFACE_LOCK, run_step, 0},
+    {0x004D05F0u, "fade_start_4d05f0", 5, 0, G_SURFACE_LOCK, run_start, 0},
 };
 const int fade_ports_count = sizeof(fade_ports) / sizeof(fade_ports[0]);

@@ -15,6 +15,7 @@
 #include "draw.h"
 
 #include "mem.h"
+#include "present_layout.h"
 
 typedef struct {
     uint16_t src;
@@ -66,9 +67,9 @@ static const fp_span tile_right_bottom[] = {
 static void tile_spans(game_state *st, uint32_t src, int32_t clip_y, const fp_span *top, int ntop,
                        const fp_span *bottom, int nbottom, int tinted)
 {
-    uint32_t d = screen_at(st, S32(st, DRAW_X), S32(st, DRAW_Y));
-    uint32_t pitch = U32(st, PITCH);
-    uint16_t mask = U16(st, TINT);
+    uint32_t d = screen_at(st, S32(st, G_BLIT_X), S32(st, G_BLIT_Y));
+    uint32_t pitch = U32(st, G_SCREEN_PITCH);
+    uint16_t mask = U16(st, G_TINT);
     uint32_t row0 = 0;
     if (clip_y != 3) {
         for (int i = 0; i < ntop; i++) {
@@ -103,7 +104,7 @@ void footprint_tile_tinted(game_state *st, uint32_t src, int32_t clip_y)
 void footprint_tile(game_state *st, uint32_t src, int32_t clip_y)
 {
     /* @bin 0x00427A20 one 58 x 30 tile at (x, y); the tinted twin 0x00428C00 when [0x0070E120] != 0 */
-    if (U16(st, TINT) != 0) {
+    if (U16(st, G_TINT) != 0) {
         footprint_tile_tinted(st, src, clip_y);
         return;
     }
@@ -119,7 +120,7 @@ void footprint_tile_left_tinted(game_state *st, uint32_t src, int32_t clip_y)
 void footprint_tile_left(game_state *st, uint32_t src, int32_t clip_y)
 {
     /* @bin 0x0042A160 the tile cut by the clip's left edge: its columns 30..57 at x (the edge) */
-    if (U16(st, TINT) != 0) {
+    if (U16(st, G_TINT) != 0) {
         footprint_tile_left_tinted(st, src, clip_y);
         return;
     }
@@ -135,7 +136,7 @@ void footprint_tile_right_tinted(game_state *st, uint32_t src, int32_t clip_y)
 void footprint_tile_right(game_state *st, uint32_t src, int32_t clip_y)
 {
     /* @bin 0x0042B440 the tile cut by the clip's right edge: its columns 0..27 */
-    if (U16(st, TINT) != 0) {
+    if (U16(st, G_TINT) != 0) {
         footprint_tile_right_tinted(st, src, clip_y);
         return;
     }
@@ -150,26 +151,26 @@ int32_t footprint_draw(game_state *st, int32_t n)
      * further left and 15 px lower than the one above (positions from (x, y) as given, before any
      * clip); each tile is clipped as a 58 x 30 image (0x004CDAD0, 0x004CDB80) and drawn whole,
      * as its left or right half, or not (clip state 5). Returns 58. */
-    int32_t x0 = S32(st, DRAW_X);
-    int32_t y0 = S32(st, DRAW_Y);
-    S16(st, IMG_W) = 0x3A;
-    S16(st, IMG_H) = 0x1E;
+    int32_t x0 = S32(st, G_BLIT_X);
+    int32_t y0 = S32(st, G_BLIT_Y);
+    S16(st, G_UD3B5BE) = 0x3A;
+    S16(st, G_UD3B5BC) = 0x1E;
     uint32_t tile = 0;
     for (int32_t r = 0; r < 2 * n - 1; r++) {
         int32_t count = r < n ? r + 1 : 2 * n - 1 - r;
         for (int32_t k = 0; k < count; k++, tile++) {
             if (tile != 0) {
-                S32(st, DRAW_X) = x0 - 30 * (count - 1) + 60 * k;
-                S32(st, DRAW_Y) = y0 + 15 * r;
+                S32(st, G_BLIT_X) = x0 - 30 * (count - 1) + 60 * k;
+                S32(st, G_BLIT_Y) = y0 + 15 * r;
             }
             clip_horizontal(st);
             clip_vertical(st);
-            uint8_t cy = U8(st, CLIP_Y);
+            uint8_t cy = U8(st, G_CLIP_Y);
             if (cy == 5) {
                 continue;
             }
-            uint32_t src = U32(st, SRC) + U32(st, 0x00E36C80u) + 0x708u * tile;
-            uint8_t cx = U8(st, CLIP_X);
+            uint32_t src = U32(st, G_MEM_SRC) + U32(st, G_UE36C80) + 0x708u * tile;
+            uint8_t cx = U8(st, G_CLIP_X);
             if (cx == 1) {
                 footprint_tile_left(st, src, cy);
             } else if (cx == 2) {

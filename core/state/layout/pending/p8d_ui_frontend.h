@@ -22,7 +22,7 @@
 #define G_U784B60 0x00784B60u             /* @bin 0x004EA2C0 i16: != 0: no goals are tested (window 0x3D shows text 0x91, 0) */
 #define G_UEA17FC 0x00EA17FCu             /* @bin 0x004EA2C0 u8: := 0 by the goals' test, := 1 in some of its cases; 0x004EA880 tests it [g_city.h] */
 #define G_UEA1380 0x00EA1380u             /* @bin 0x004EA920 u8: := 0x004183D0's result; 0x004EA880: clear, mission end kind 1 [g_city.h] */
-#define G_U5D2A3C 0x005D2A3Cu             /* @bin 0x00559FC0 i32, 8 bytes per empire city kind (an object's +0x19): an id from 0x26 [g_city.h] */
+#define G_CITY_KIND_TEXTS 0x005D2A3Cu             /* @bin 0x00559FC0 i32, 8 bytes per empire city kind (an object's +0x19): an id from 0x26 [g_city.h] */
 
 /* the message window's body scroll buttons (present/ui/messages, present/ui/msgwin.c) [g_ui_main.h] */
 

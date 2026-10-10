@@ -383,14 +383,14 @@ void ramp_walk(game_state *st, int32_t x, int32_t y, int32_t mode, int32_t arg4)
         return;
     }
     U8(st, G_RAMP_FOUND) = 0;
-    S32(st, G_UEAAEA0) = 1;
+    S32(st, G_RAMP_STEP) = 1;
     S32(st, G_UEAAE94) = 2;
     uint32_t m14 = 0xEEFFD76Eu, m8 = 0xFBFFFF7Bu;
     S32(st, G_RAMP_LAST_TILE) = 0;
-    S32(st, G_UEAAE98) = 0;
+    S32(st, G_RAMP_STEPS) = 0;
     int32_t t = (int32_t) (U32(st, G_MAP_START) + (uint32_t) y * 0xE4u + (uint32_t) x);
     S32(st, G_RAMP_WALK_TILE) = 0;
-    S32(st, G_UEAAEA4) = t;
+    S32(st, G_RAMP_START) = t;
     S32(st, G_RAMP_WALK_TYPE) = 0;
     if (mode == 3 || mode == 4 || mode == 5 || mode == 6) {
         m14 = 0xEEFFD766u;
@@ -448,7 +448,7 @@ void ramp_walk(game_state *st, int32_t x, int32_t y, int32_t mode, int32_t arg4)
         break;
     }
     /* @bin 0x004ED4D3 the next 2x2 eastwards */
-    t += S32(st, G_UEAAEA0) * 2;
+    t += S32(st, G_RAMP_STEP) * 2;
     int32_t x2 = x + 2;
     if (near_edge(st, x2, y)) {
         return;
@@ -459,7 +459,7 @@ void ramp_walk(game_state *st, int32_t x, int32_t y, int32_t mode, int32_t arg4)
         }
         if (blocked(st, t, m14)) {
             /* @bin 0x004ED92F the walk ends on the next obstacle when it is a road (bit 4) */
-            if (S32(st, G_UEAAE98) == 0 || (m8 & U32(st, TERRAIN(t + 1))) || (U32(st, TERRAIN(t + 0xE4)) & m14) ||
+            if (S32(st, G_RAMP_STEPS) == 0 || (m8 & U32(st, TERRAIN(t + 1))) || (U32(st, TERRAIN(t + 0xE4)) & m14) ||
                 (m8 & U32(st, TERRAIN(t + 0xE5))) || !(U32(st, TERRAIN(t + 1)) & 4) || !(U32(st, TERRAIN(t + 0xE5)) & 4)) {
                 return;
             }
@@ -549,14 +549,14 @@ void ramp_walk(game_state *st, int32_t x, int32_t y, int32_t mode, int32_t arg4)
             break;
         }
         /* @bin 0x004ED8BD */
-        S32(st, G_UEAAE98) += 1;
-        if (S32(st, G_UEAAE98) > 0x14) {
+        S32(st, G_RAMP_STEPS) += 1;
+        if (S32(st, G_RAMP_STEPS) > 0x14) {
             return;
         }
         if ((int32_t) (U32(st, G_VIEW_DY) + (uint32_t) y) >= S32(st, G_MAP_YE)) {
             return;
         }
-        t += S32(st, G_UEAAEA0) * 2;
+        t += S32(st, G_RAMP_STEP) * 2;
         x2 += 2;
         if (near_edge(st, x2, y)) {
             return;

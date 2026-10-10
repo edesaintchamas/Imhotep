@@ -15,7 +15,6 @@
 #define G_STR_NETWORK_INFO 0x005F8F28u  /* @bin 0x00536620 "Network info (F2)" */
 
 /* ---- the layout registry (present/draw/layout.c) and the menus' widths ---- */
-#define G_LAYOUT_REGISTRY 0x00E94618u   /* @bin 0x004D5D90 0x78 entries of 16 bytes: three lists +0, +4, +8, +0xC empty */
 #define G_LAYOUT_READY 0x00E94D9Cu      /* @bin 0x004D5D90 i32 := 1 once the registry is filled */
 #define G_MENU_WIDTHS 0x00E945D0u       /* @bin 0x004D5DD0 i32[6]: the top menus' widths in 16-pixel pieces */
 #define G_MENU_BAR_PIECES 0x00E94DB0u   /* @bin 0x004D5E70 i32: the menu bar's width in pieces */

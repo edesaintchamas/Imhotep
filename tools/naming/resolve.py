@@ -77,6 +77,37 @@ def drop_define(lines, name):
     return out
 
 
+def define_block(lines, name):
+    """(start, end) of the #define of name with its comment's continuation lines, or None"""
+    for i, line in enumerate(lines):
+        m = DEFINE.match(line)
+        if m and m.group(1) == name:
+            j = i
+            tail = line[line.find('/*'):] if '/*' in line else ''
+            if tail and '*/' not in tail:
+                while j + 1 < len(lines) and '*/' not in lines[j]:
+                    j += 1
+            return i, j + 1
+    return None
+
+
+def move_define(name, src, dst):
+    """the #define of name moved from header src to header dst (before its include guard's #endif)"""
+    a = open(src).read().splitlines(True)
+    span = define_block(a, name)
+    if not span:
+        return
+    block = a[span[0]:span[1]]
+    del a[span[0]:span[1]]
+    with open(src, 'w') as f:
+        f.write(''.join(a))
+    b = open(dst).read().splitlines(True)
+    end = max([i for i, l in enumerate(b) if l.startswith('#endif')] or [len(b)])
+    b[end:end] = block
+    with open(dst, 'w') as f:
+        f.write(''.join(b))
+
+
 def repair(path):
     """remove comment continuation lines left outside any comment (an earlier drop that kept them)"""
     out, inside, removed = [], False, 0
@@ -210,6 +241,12 @@ def main():
             continue
         defs.sort()
         keep = defs[0][3]
+        keep_path = defs[0][4]
+        core_loser = next((d[4] for d in defs[1:] if '/core/state/layout/' in d[4].replace(os.sep, '/')), None)
+        if not dry and core_loser and '/present/layout/' in keep_path.replace(os.sep, '/'):
+            # core cannot include present/ headers: the kept name's definition moves to the core header
+            move_define(keep, keep_path, core_loser)
+            print('0x%08X: %s moved to %s (core uses the address)' % (addr, keep, os.path.relpath(core_loser, ROOT)))
         for _, _, _, name, path in defs[1:]:
             if name == keep:
                 continue

@@ -26,19 +26,6 @@
 #define FIGTYPE_U30 0x30u /* @bin 0x00446A30 i32 */
 
 /* globals used most by other packages (the area of each: [header]) */
-#define G_U596088 0x00596088u /* @bin 0x0041FF40 the part list of type 0xD5, 16-byte entries (present/city/parts.c) [g_building.h] */
-#define G_U596158 0x00596158u /* @bin 0x0041FF40 its end [g_building.h] */
-#define G_U59EDF0 0x0059EDF0u /* @bin 0x004206D0 a part list, 16-byte entries (present/city/parts.c) [g_building.h] */
-#define G_U59EFA0 0x0059EFA0u /* @bin 0x004206D0 its end [g_building.h] */
-#define G_U5A8148 0x005A8148u /* @bin 0x00420A10 the part list of type 0xE6, 16-byte entries (present/city/parts.c) [g_building.h] */
-#define G_U5A84C8 0x005A84C8u /* @bin 0x00420A10 its end [g_building.h] */
-#define G_U5AD218 0x005AD218u /* @bin 0x00420D40 the part list of type 0xE3, 16-byte entries (present/city/parts.c) [g_building.h] */
-#define G_U5AD3C8 0x005AD3C8u /* @bin 0x00420D40 its end [g_building.h] */
-#define G_U5B0060 0x005B0060u /* @bin 0x00421040 the part list of type 0xE4, 16-byte entries (present/city/parts.c) [g_building.h] */
-#define G_U5B0150 0x005B0150u /* @bin 0x00421040 its end [g_building.h] */
-#define G_ANIM_LISTS 0x005BE510u /* @bin 0x004216D0 25 lists of three 16-byte entries (0x30 bytes each) stepped by 0x004216D0 [g_building.h] */
-#define G_U5C2750 0x005C2750u /* @bin 0x0041FF20 the part list of type 0xD2, 16-byte entries (present/city/parts.c) [g_building.h] */
-#define G_U5C28B0 0x005C28B0u /* @bin 0x0041FF20 its end [g_building.h] */
 #define G_HOUSE_LEVEL_U44 0x0070CE10u /* @bin the house level table, i32 (save.md §5: 0x0070CDCC + level * 0x58) */
 #define G_HOUSE_LEVEL_U50 0x0070CE1Cu /* @bin the house level table, i32 (save.md §5: 0x0070CDCC + level * 0x58) */
 #define G_HOUSE_LEVEL_U54 0x0070CE20u /* @bin the house level table, i32 (save.md §5: 0x0070CDCC + level * 0x58) */

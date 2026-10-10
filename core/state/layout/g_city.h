@@ -55,7 +55,6 @@
 #define G_U5CCCC8 0x005CCCC8u /* @bin 0x0047CBD0 i32[4]: grid offsets of a 2x2 block */
 #define G_U5D19B0 0x005D19B0u /* @bin 0x00446A30 i32 per difficulty: an invasion percent (core/city/events_troops.c) */
 #define G_U5D2A38 0x005D2A38u /* @bin 0x0044E9C0 u32, 8 bytes per kind (core/city/events_handlers.c) */
-#define G_U5D2A3C 0x005D2A3Cu /* @bin 0x00559FC0 i32, 8 bytes per walker kind (present/ui/info/house.c) */
 #define G_U5D2E8C 0x005D2E8Cu /* @bin 0x004433C3 i32[6]: the kinds valued by population (core/city/day_city.c) */
 #define G_U5D9A40 0x005D9A40u /* @bin 0x0044BA90 i32: the event being run (core/city/month.c) */
 #define G_U5D9C18 0x005D9C18u /* @bin 0x00449370 u8 per event type */
@@ -169,9 +168,6 @@
 #define G_UEA17FC 0x00EA17FCu /* @bin 0x004EA2C0 u8 (present/ui/frontend/victory.c) */
 #define G_UEAAC2C 0x00EAAC2Cu /* @bin 0x004E81D0 u8: passed to house_mood_month, then cleared */
 #define G_UEAAE94 0x00EAAE94u /* @bin 0x004ED360 i32 := 2 */
-#define G_UEAAE98 0x00EAAE98u /* @bin 0x004ED360 i32: the steps, at most 20 */
-#define G_UEAAEA0 0x00EAAEA0u /* @bin 0x004ED360 i32: the step eastwards, x 2 */
-#define G_UEAAEA4 0x00EAAEA4u /* @bin 0x004ED360 i32: the first tile */
 #define G_GOODS_AVAILABLE 0x00F53E70u /* @bin 0x005596D0 i32 list of available goods, 1..35 (core/city/goods.h) */
 #define G_UF55B94 0x00F55B94u /* @bin 0x004E6EB0 i32 := 1 with an ambient track (core/sim/tick.c) */
 #define G_UF560A4 0x00F560A4u /* @bin 0x00488B1E i32: an image base of the farm overlay */

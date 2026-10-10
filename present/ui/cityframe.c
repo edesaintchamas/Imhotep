@@ -531,7 +531,7 @@ void overlay_level_draw(game_state *st, int32_t x, int32_t y, int32_t good, int3
      * the level image 0x00F56CA4 + a level from the building's goods: a storage yard (0x46 / 0xBE)
      * its i16 +0x56 + 2 good2, a granary (0x47 / 0xBF) +0x56 + 2 good, a market (0x48 / 0xC1) or a
      * dock (0x49, its main part 0x00475B50) 0x0045D510 of good, a house +0x54 + 2 good2 x 4; others 0 */
-    uint32_t t = U32(st, G_U70E488);
+    uint32_t t = U32(st, G_VIEW_TILE);
     uint32_t kind = U32(st, G_GRID_TERRAIN + 4u * t);
     int32_t id = S16(st, G_GRID_BUILDING + 2u * t);
     int32_t img;

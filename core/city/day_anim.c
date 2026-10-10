@@ -128,26 +128,26 @@ static void step_list(game_state *st, uint32_t from, uint32_t to)
     }
 }
 
-static void list_41ff20(game_state *st) { step_list(st, G_U5C2750, G_U5C28B0); }
-static void list_41ff40(game_state *st) { step_list(st, G_U596088, G_U596158); }
-static void list_420d40(game_state *st) { step_list(st, G_U5AD218, G_U5AD3C8); }
-static void list_4206d0(game_state *st) { step_list(st, G_U59EDF0, G_U59EFA0); }
-static void list_420a10(game_state *st) { step_list(st, G_U5A8148, G_U5A84C8); }
-static void list_421040(game_state *st) { step_list(st, G_U5B0060, G_U5B0150); }
+static void list_41ff20(game_state *st) { step_list(st, G_PARTS_D2, G_PARTS_D2_END); }
+static void list_41ff40(game_state *st) { step_list(st, G_PARTS_D5, G_PARTS_D5_END); }
+static void list_420d40(game_state *st) { step_list(st, G_PARTS_E3, G_PARTS_E3_END); }
+static void list_4206d0(game_state *st) { step_list(st, G_PARTS_E1, G_PARTS_E1_END); }
+static void list_420a10(game_state *st) { step_list(st, G_PARTS_E6, G_PARTS_E6_END); }
+static void list_421040(game_state *st) { step_list(st, G_PARTS_E4, G_PARTS_E4_END); }
 
 static void list_4216d0(game_state *st)
 {
     /* @bin 0x004216D0 */
     static const uint32_t ranges[][2] = {
-        {G_ANIM_LISTS, G_ANIM_LISTS + 0x30 * 1}, {G_ANIM_LISTS + 0x30 * 1, G_ANIM_LISTS + 0x30 * 2}, {G_ANIM_LISTS + 0x30 * 2, G_ANIM_LISTS + 0x30 * 3},
-        {G_ANIM_LISTS + 0x30 * 12, G_ANIM_LISTS + 0x30 * 13}, {G_ANIM_LISTS + 0x30 * 13, G_ANIM_LISTS + 0x30 * 14}, {G_ANIM_LISTS + 0x30 * 3, G_ANIM_LISTS + 0x30 * 4},
-        {G_ANIM_LISTS + 0x30 * 4, G_ANIM_LISTS + 0x30 * 5}, {G_ANIM_LISTS + 0x30 * 5, G_ANIM_LISTS + 0x30 * 6}, {G_ANIM_LISTS + 0x30 * 6, G_ANIM_LISTS + 0x30 * 7},
-        {G_ANIM_LISTS + 0x30 * 14, G_ANIM_LISTS + 0x30 * 15}, {G_ANIM_LISTS + 0x30 * 15, G_ANIM_LISTS + 0x30 * 16}, {G_ANIM_LISTS + 0x30 * 7, G_ANIM_LISTS + 0x30 * 8},
-        {G_ANIM_LISTS + 0x30 * 8, G_ANIM_LISTS + 0x30 * 9}, {G_ANIM_LISTS + 0x30 * 19, G_ANIM_LISTS + 0x30 * 20}, {G_ANIM_LISTS + 0x30 * 16, G_ANIM_LISTS + 0x30 * 17},
-        {G_ANIM_LISTS + 0x30 * 20, G_ANIM_LISTS + 0x30 * 21}, {G_ANIM_LISTS + 0x30 * 21, G_ANIM_LISTS + 0x30 * 22}, {G_ANIM_LISTS + 0x30 * 9, G_ANIM_LISTS + 0x30 * 10},
-        {G_ANIM_LISTS + 0x30 * 10, G_ANIM_LISTS + 0x30 * 11}, {G_ANIM_LISTS + 0x30 * 11, G_ANIM_LISTS + 0x30 * 12}, {G_ANIM_LISTS + 0x30 * 17, G_ANIM_LISTS + 0x30 * 18},
-        {G_ANIM_LISTS + 0x30 * 18, G_ANIM_LISTS + 0x30 * 19}, {G_ANIM_LISTS + 0x30 * 22, G_ANIM_LISTS + 0x30 * 23}, {G_ANIM_LISTS + 0x30 * 23, G_ANIM_LISTS + 0x30 * 24},
-        {G_ANIM_LISTS + 0x30 * 24, G_ANIM_LISTS + 0x30 * 25},
+        {G_PARTS_E5, G_PARTS_E5 + 0x30 * 1}, {G_PARTS_E5 + 0x30 * 1, G_PARTS_E5 + 0x30 * 2}, {G_PARTS_E5 + 0x30 * 2, G_PARTS_E5 + 0x30 * 3},
+        {G_PARTS_E5 + 0x30 * 12, G_PARTS_E5 + 0x30 * 13}, {G_PARTS_E5 + 0x30 * 13, G_PARTS_E5 + 0x30 * 14}, {G_PARTS_E5 + 0x30 * 3, G_PARTS_E5 + 0x30 * 4},
+        {G_PARTS_E5 + 0x30 * 4, G_PARTS_E5 + 0x30 * 5}, {G_PARTS_E5 + 0x30 * 5, G_PARTS_E5 + 0x30 * 6}, {G_PARTS_E5 + 0x30 * 6, G_PARTS_E5 + 0x30 * 7},
+        {G_PARTS_E5 + 0x30 * 14, G_PARTS_E5 + 0x30 * 15}, {G_PARTS_E5 + 0x30 * 15, G_PARTS_E5 + 0x30 * 16}, {G_PARTS_E5 + 0x30 * 7, G_PARTS_E5 + 0x30 * 8},
+        {G_PARTS_E5 + 0x30 * 8, G_PARTS_E5 + 0x30 * 9}, {G_PARTS_E5 + 0x30 * 19, G_PARTS_E5 + 0x30 * 20}, {G_PARTS_E5 + 0x30 * 16, G_PARTS_E5 + 0x30 * 17},
+        {G_PARTS_E5 + 0x30 * 20, G_PARTS_E5 + 0x30 * 21}, {G_PARTS_E5 + 0x30 * 21, G_PARTS_E5 + 0x30 * 22}, {G_PARTS_E5 + 0x30 * 9, G_PARTS_E5 + 0x30 * 10},
+        {G_PARTS_E5 + 0x30 * 10, G_PARTS_E5 + 0x30 * 11}, {G_PARTS_E5 + 0x30 * 11, G_PARTS_E5 + 0x30 * 12}, {G_PARTS_E5 + 0x30 * 17, G_PARTS_E5 + 0x30 * 18},
+        {G_PARTS_E5 + 0x30 * 18, G_PARTS_E5 + 0x30 * 19}, {G_PARTS_E5 + 0x30 * 22, G_PARTS_E5 + 0x30 * 23}, {G_PARTS_E5 + 0x30 * 23, G_PARTS_E5 + 0x30 * 24},
+        {G_PARTS_E5 + 0x30 * 24, G_PARTS_E5 + 0x30 * 25},
     };
     for (unsigned i = 0; i < sizeof(ranges) / sizeof(ranges[0]); i++) {
         step_list(st, ranges[i][0], ranges[i][1]);
