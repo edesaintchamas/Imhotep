@@ -6,35 +6,35 @@
 
 #include "city/monument_rating.h"
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define PYRAMID_MODE 0x005E4EF4u /* the scenario's pyramid kind (1..5), read by 0x004F1310 too */
 
 static int32_t figure_kind(game_state *st, int32_t f)
 {
-    return U8(st, FIGURE_ADDR(f) + 0xA);
+    return U8(st, FIGURE_ADDR(f) + FIG_TYPE);
 }
 
 int32_t monument_d5_worker_busy(game_state *st, int32_t b)
 {
     /* @bin 0x00542110 */
-    uint32_t slot = BUILDING_ADDR(b) + 0x5C;
+    uint32_t slot = BUILDING_ADDR(b) + BLD_U5C;
     int32_t f = S32(st, slot);
     if (f == 0) {
         return 0;
     }
     uint32_t fr = FIGURE_ADDR(f);
-    if (U8(st, fr + 0xE) == 0) {
+    if (U8(st, fr + FIG_STATE) == 0) {
         /* @bin 0x00542147 a dead figure: forgotten */
         S32(st, slot) = 0;
         return 0;
     }
-    uint32_t action = U8(st, fr + 0x38);
+    uint32_t action = U8(st, fr + FIG_ACTION);
     if (action == 6 || action == 7) {
-        action = U8(st, fr + 0x10); /* @bin 0x00542163 the action before the current one */
+        action = U8(st, fr + FIG_ACTION_BEFORE_ATTACK); /* @bin 0x00542163 the action before the current one */
     }
-    switch (U8(st, fr + 0xA)) {
+    switch (U8(st, fr + FIG_TYPE)) {
     case 0x4F: /* @bin 0x005421B0 */
         if (action == 9 || action == 10) {
             return 1;
@@ -62,7 +62,7 @@ void monument_count_kind(game_state *st, int32_t kind, int32_t *out)
     /* @bin 0x004204A0 13 entries of 16 bytes: +0 a figure kind, +4 a pointer to an object whose
      * word +0x12 tells whether it is live */
     *out = 0;
-    for (uint32_t e = 0x00596084u; e < 0x00596154u; e += 0x10) {
+    for (uint32_t e = G_U596084; e < G_U596154; e += 0x10) {
         uint32_t p = U32(st, e + 4);
         if (P16(st, p + 0x12) != 0 && S32(st, e) == kind) {
             (*out)++;
@@ -75,8 +75,8 @@ int32_t monument_d5_status(game_state *st, int32_t b, int32_t *out)
     /* @bin 0x00542AD0 the 100 parts from the first one (b - S16 +0x12): their figures (+0x5C,
      * kinds 0x4F, 0x51, 0x55), their stage (+0x58) by role (table 0x00601DE4, 0x34-byte entries,
      * by the part's S16 +0x12) */
-    int32_t p = b - S16(st, BUILDING_ADDR(b) + 0x12);
-    uint32_t flags = U32(st, BUILDING_ADDR(p) + 0x64);
+    int32_t p = b - S16(st, BUILDING_ADDR(b) + BLD_PART);
+    uint32_t flags = U32(st, BUILDING_ADDR(p) + BLD_U64);
     uint8_t flag2 = (uint8_t) ((flags >> 1) & 1);
     int32_t zero = 0, left = 0, n1 = 0, n2 = 0, n3 = 0, q = 0, q10 = 0, u = 0, o = 0, n4 = 0;
     int32_t stage = 1;
@@ -84,14 +84,14 @@ int32_t monument_d5_status(game_state *st, int32_t b, int32_t *out)
     for (int32_t k = 0; k < 100; k++, p++) {
         uint32_t r = BUILDING_ADDR(p);
         if ((uint8_t) monument_d5_worker_busy(st, p) != 0) {
-            int32_t f = S32(st, r + 0x5C);
+            int32_t f = S32(st, r + BLD_U5C);
             if (f == 0) {
                 return 0; /* @bin 0x00542B55 (out not written) */
             }
             switch (figure_kind(st, f)) {
             case 0x4F: o++; break;
             case 0x51:
-                if (U8(st, FIGURE_ADDR(f) + 0x38) == 0xA) {
+                if (U8(st, FIGURE_ADDR(f) + FIG_ACTION) == 0xA) {
                     q10++;
                 }
                 q++;
@@ -100,8 +100,8 @@ int32_t monument_d5_status(game_state *st, int32_t b, int32_t *out)
             default: break;
             }
         }
-        uint32_t role = U32(st, 0x00601DE4u + 0x34u * (uint32_t) (int32_t) S16(st, r + 0x12));
-        uint32_t v = U32(st, r + 0x58);
+        uint32_t role = U32(st, G_MONUMENT_PART_KINDS + 0x34u * (uint32_t) (int32_t) S16(st, r + BLD_PART));
+        uint32_t v = U32(st, r + BLD_MONUMENT_STAGE);
         if (role > 0xC) {
             continue;
         }
@@ -187,8 +187,8 @@ int32_t monument_de_status(game_state *st, int32_t b, int32_t *out)
 {
     /* @bin 0x004DF040 the 116 parts from the first one; roles from table 0x005E2AE4 (low byte of
      * 0x34-byte entries) */
-    int32_t p = b - S16(st, BUILDING_ADDR(b) + 0x12);
-    uint32_t flags = U32(st, BUILDING_ADDR(p) + 0x64);
+    int32_t p = b - S16(st, BUILDING_ADDR(b) + BLD_PART);
+    uint32_t flags = U32(st, BUILDING_ADDR(p) + BLD_U64);
     uint8_t bit0 = (uint8_t) (flags & 1), bit1 = (uint8_t) ((flags >> 1) & 1);
     int32_t level = 0;
     if (bit0 != 0) {
@@ -208,15 +208,15 @@ int32_t monument_de_status(game_state *st, int32_t b, int32_t *out)
     uint32_t work = 0;
     for (int32_t k = 0; k < 0x74; k++, p++) {
         uint32_t r = BUILDING_ADDR(p);
-        if ((uint8_t) GAME_CALL(st, 0x004E0530u, p) != 0) {
-            int32_t f = S32(st, r + 0x5C);
+        if ((uint8_t) GAME_CALL(st, FN_MASTABA_WORKER_BUSY, p) != 0) {
+            int32_t f = S32(st, r + BLD_U5C);
             if (f == 0) {
                 return 0; /* @bin 0x004DF104 (out not written) */
             }
             switch (figure_kind(st, f)) {
             case 0x4F: o++; break;
             case 0x51:
-                if (U8(st, FIGURE_ADDR(f) + 0x38) == 0xA) {
+                if (U8(st, FIGURE_ADDR(f) + FIG_ACTION) == 0xA) {
                     q10++;
                 }
                 q++;
@@ -225,8 +225,8 @@ int32_t monument_de_status(game_state *st, int32_t b, int32_t *out)
             default: break;
             }
         }
-        uint32_t role = U32(st, 0x005E2AE4u + 0x34u * (uint32_t) (int32_t) S16(st, r + 0x12)) & 0xFF;
-        uint32_t v = U32(st, r + 0x58);
+        uint32_t role = U32(st, G_MONUMENT_PARTS + 0x34u * (uint32_t) (int32_t) S16(st, r + BLD_PART)) & 0xFF;
+        uint32_t v = U32(st, r + BLD_MONUMENT_STAGE);
         if (role <= 3) {
             /* @bin 0x004DF173 16 blocks, one bit each */
             int32_t set = 0;
@@ -322,13 +322,13 @@ int32_t monument_goods_needed(game_state *st, int32_t good)
      * building in use asks that monument what is left; an empty slot counts the whole plan */
     uint32_t need = 0;
     for (int32_t slot = 0; slot < 3; slot++) {
-        uint32_t i = (uint32_t) S32(st, 0x00EAAC28u) * 0x1276u + (uint32_t) slot;
-        int32_t b = S32(st, 0x00EA5FACu + 4u * i);
-        if (b == 0 || U8(st, BUILDING_ADDR(b)) != 1) {
-            need += (uint32_t) slot_plan_need(S16(st, 0x00784DE0u + 2u * (uint32_t) slot), good);
+        uint32_t i = (uint32_t) S32(st, G_PLAYER) * 0x1276u + (uint32_t) slot;
+        int32_t b = S32(st, CITY_BASE + CITY_MONUMENTS + 4u * i);
+        if (b == 0 || U8(st, BUILDING_ADDR(b) + BLD_STATE) != 1) {
+            need += (uint32_t) slot_plan_need(S16(st, G_MONUMENT_SLOTS + 2u * (uint32_t) slot), good);
             continue;
         }
-        int16_t type = S16(st, BUILDING_ADDR(b) + 0x10);
+        int16_t type = S16(st, BUILDING_ADDR(b) + BLD_TYPE);
         if (type == 0xDE) {
             int32_t s[0xC] = {0}; /* always written: 0x004E0530 is true only with a figure */
             monument_de_status(st, b, s);
@@ -347,7 +347,7 @@ int32_t monument_goods_needed(game_state *st, int32_t good)
             /* @bin 0x004F5867 by pyramid kind (jump table 0x004F5B48): the stones left, s[8]
              * and s[9], 400 each */
             int32_t a = s[8], c = s[9];
-            switch (S32(st, PYRAMID_MODE)) {
+            switch (S32(st, G_PYRAMID_KIND)) {
             case 1: case 4:
                 if (good == 0x19) {
                     if (c > 0) {
@@ -415,18 +415,18 @@ static int32_t run_status(game_state *st, const int32_t *a, uint32_t address, in
 
 static int32_t run_d5_status(game_state *st, const int32_t *a)
 {
-    return run_status(st, a, 0x00542AD0u, 0xE, monument_d5_status);
+    return run_status(st, a, FN_MONUMENT_D5_STATUS, 0xE, monument_d5_status);
 }
 
 static int32_t run_de_status(game_state *st, const int32_t *a)
 {
-    return run_status(st, a, 0x004DF040u, 0xC, monument_de_status);
+    return run_status(st, a, FN_MONUMENT_DE_STATUS, 0xC, monument_de_status);
 }
 
 static int32_t run_count_kind(game_state *st, const int32_t *a)
 {
     if (state_ptr(st, (uint32_t) a[1], 4) == NULL) {
-        state_unported(st, 0x004204A0u);
+        state_unported(st, FN_MONUMENT_COUNT_KIND);
         return 0;
     }
     int32_t n;

@@ -109,6 +109,12 @@ def main():
                 break
             old, new = a.split('=')
             aliases.append((old, new))
+    table = os.path.join(ROOT, 'tools', 'naming', 'aliases.txt')
+    if os.path.exists(table):
+        for line in open(table):
+            line = line.split('#')[0].split()
+            if len(line) == 2:
+                aliases.append(tuple(line))
     files = sources()
     if '--repair' in argv:
         for path, _ in headers():
@@ -138,7 +144,9 @@ def main():
             if name == keep:
                 continue
             if not dry:
-                open(path, 'w').write(''.join(drop_define(open(path).read().splitlines(True), name)))
+                kept = drop_define(open(path).read().splitlines(True), name)  # read before opening to write
+                with open(path, 'w') as f:
+                    f.write(''.join(kept))
             uses = rename_everywhere(name, keep, files, dry)
             print('0x%08X: kept %s, removed %s (%s, %d uses renamed)'
                   % (addr, keep, name, os.path.relpath(path, ROOT), uses))

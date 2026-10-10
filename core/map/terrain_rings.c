@@ -52,8 +52,8 @@ void ring_offsets_build(game_state *st)
                                     G_RINGS_1X1_DATA + 0x440u, G_RINGS_1X1_DATA + 0x3F0u, G_RINGS_1X1_DATA + 0x390u,
                                     G_RINGS_1X1_DATA + 0x320u, G_RINGS_1X1_DATA + 0x2A0u, G_RINGS_1X1_DATA + 0x210u,
                                     G_RINGS_1X1_DATA + 0x170u, G_RINGS_1X1_DATA + 0xC0u, G_RINGS_1X1_DATA};
-    static const uint32_t S2[6] = {G_RING_SOURCES_2, G_RING_SOURCES_2 + 0x18u, G_RING_SOURCES_2 + 0x40u,
-                                   G_RING_SOURCES_2 + 0x78u, G_RING_SOURCES_2 + 0xC0u, G_RING_SOURCES_2 + 0x118u};
+    static const uint32_t S2[6] = {G_RINGS, G_RINGS + 0x18u, G_RINGS + 0x40u,
+                                   G_RINGS + 0x78u, G_RINGS + 0xC0u, G_RINGS + 0x118u};
     static const uint32_t S3[6] = {G_RING_SOURCES_3, G_RING_SOURCES_3 + 0x20u, G_RING_SOURCES_3 + 0x50u,
                                    G_RING_SOURCES_3 + 0x90u, G_RING_SOURCES_3 + 0xE0u, G_RING_SOURCES_3 + 0x140u};
     static const uint32_t S4[6] = {G_RING_SOURCES_4, G_RING_SOURCES_4 + 0x28u, G_RING_SOURCES_4 + 0x60u,

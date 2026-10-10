@@ -114,7 +114,6 @@
 #define G_CAMERA_X_MIN 0x00E94DD0u       /* @bin 0x004DDF90 i32: first column */
 /* advisors, messages, military */
 #define G_LAST_ADVISOR 0x00E38EA4u       /* @bin 0x0040A0E0 i32: the advisor last opened */
-#define G_U784C38 0x00784C38u            /* @bin 0x004F6AD0 i32: the argument of houses_at_least (a goal's kind, b_ratings.c) */
 #define G_DISPATCH_ENABLED 0x005F8518u   /* @bin 0x0040A450 u8: set by the military advisor's drawing */
 #define G_HISTORY_STACK1 0x00D3AAE4u     /* @bin 0x004C5BF0 u32[]: the message window's page stacks (msgwin.c) */
 #define G_HISTORY_STACK2 0x00D3AE04u     /* @bin 0x004C5BF0 u32[] */

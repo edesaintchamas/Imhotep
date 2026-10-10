@@ -27,7 +27,6 @@
 #define G_GRID_ROAD_NETWORK 0x00A76AECu /* @bin 0x00457AF0 u8 road network id per tile */
 #define G_GRID_ROUTING 0x00EE0C50u      /* @bin 0x00517A40 i8 per tile: passable when >= 0 */
 #define G_GRID_ROAD_DISTANCE 0x00EED760u /* @bin 0x00517A40 i32 per tile: distance + 1 from the search start */
-#define G_GRID_FERTILITY 0x00A5D4CCu    /* @bin 0x00477500 u8 per tile: soil fertility (chunk 135) */
 #define G_GRID_MOISTURE 0x00A509BCu     /* @bin 0x00477500 u8 per tile: moisture (chunk 170) */
 #define G_GRID_DAMAGE 0x00A9CC1Cu       /* @bin 0x004690F0 i16 per tile: damage counter (chunk 18) */
 #define G_GRID_RUBBLE 0x00A9010Cu       /* @bin 0x0047C480 u8 per tile: rubble building type (chunk 168) */
@@ -88,7 +87,6 @@
 #define G_RING_COUNTS_4 0x005C9B30u
 #define G_RING_COUNTS_5 0x005C9B3Cu
 #define G_RING_COUNTS_6 0x005C9B48u
-#define G_RING_SOURCES_2 0x005C9BA8u /* rings 1..6 in order */
 #define G_RING_SOURCES_3 0x005C9D28u
 #define G_RING_SOURCES_4 0x005C9ED8u
 #define G_RING_SOURCES_5 0x005CA0B8u

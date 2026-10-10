@@ -101,7 +101,7 @@ static void mock_attack(game_state *st, int32_t a, int32_t b)
     }
     S32(st, G_MESSAGE_POPUP) = 1;
     int32_t kind = S16(st, G_SCENARIO_ENEMY) < 0xC ? 0x7A : 0x139;
-    GAME_CALL(st, FN_MESSAGE_POST, kind, S16(st, G_INVASION_COUNTER), r, 0, 0);
+    GAME_CALL(st, FN_MESSAGE_POST, kind, S16(st, G_INVASION_SEQUENCE), r, 0, 0);
 }
 
 static void cheat_mock_attack_1(game_state *st) { mock_attack(st, 0xF, 8); }

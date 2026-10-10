@@ -137,8 +137,6 @@
 #define G_U5CDB78 0x005CDB78u /* @bin 0x004BB98F (dx, dy) pairs of i32, 8 bytes each: the second offsets table (herds, invader camps) [g_figure.h] */
 #define G_SCENARIO_MAP_WIDTH 0x00784904u /* @bin 0x004DE6A2 i32: the scenario's map width -> G_MAP_WIDTH [g_map.h] */
 #define G_SCENARIO_MAP_HEIGHT 0x00784908u /* @bin 0x004DE6A2 i32 -> G_MAP_HEIGHT [g_map.h] */
-#define G_POINTS8_X 0x00784B74u /* @bin 0x004BBC10 i16[8]: 8 points, x (x > 0 in use; figures 0x5F, 0x41; 0x00480C60) [g_city.h] */
-#define G_POINTS8_Y 0x00784B84u /* @bin 0x004BBC10 i16[8] [g_city.h] */
 #define G_OVERLAY_PREV 0x00E94E10u /* @bin 0x004168E0 i32: the previous overlay [g_frame.h] */
 #define G_UF55B94 0x00F55B94u /* @bin 0x00418301 i32: := 1 when the ambient track starts (core/city/events_actions.c), := 0 here [g_city.h] */
 /* city record fields */

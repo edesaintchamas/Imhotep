@@ -873,7 +873,7 @@ uint8_t place_pyramid_fits(game_state *st, int32_t offset, int32_t variant, int3
     /* @bin 0x004ED003 0x004ECEA0(variant): the entry 0x005F5D08[variant] must reach (0x004ED360,
      * result 0x00EAAE9C) → else reason bit 2 */
     if ((uint8_t) GAME_CALL(st, FN_PYRAMID_KIND_OK, variant) != 0) {
-        int32_t t = S32(st, G_RAMP_OFFSETS + 4u * (uint32_t) variant) + offset - S32(st, G_MAP_START);
+        int32_t t = S32(st, G_PYRAMID_RAMP + 4u * (uint32_t) variant) + offset - S32(st, G_MAP_START);
         GAME_CALL(st, FN_RAMP_WALK, t % GRID_SIZE, t / GRID_SIZE, 0, 0);
         if (S32(st, G_RAMP_LAST_TILE) == 0) {
             ok = 0;

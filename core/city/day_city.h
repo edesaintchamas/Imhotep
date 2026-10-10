@@ -5,9 +5,11 @@
 
 #include <stdint.h>
 
+#include "state/layout/g_city.h"
 #include "state/state.h"
 
-#define EVENTS 0x00785D70u /* the event list: i32 count, then records of 0x7C bytes */
+/* kept for the ports outside core/city that use it (docs/naming.md); core/city uses G_EVENTS */
+#define EVENTS G_EVENTS /* the event list: i32 count, then records of 0x7C bytes */
 
 /* @bin 0x0044BAF0 (thiscall on the event list) the next active event record after `prev` (0:
  * the first); its +0 gets its index */

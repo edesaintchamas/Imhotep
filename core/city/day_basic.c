@@ -5,29 +5,28 @@
 #include "building/day_access.h"
 #include "sim/call.h"
 #include "sim/platform.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define BUILDING_HIGHEST 0x0078D790u
-#define CITY1_FLAG 0x00EA624Au /* u8: city record 1, +0x2 */
 
 void day_clear_counters(game_state *st)
 {
     /* @bin 0x0046A060 */
-    S32(st, 0x0078D5E0u) = 0;
-    S32(st, 0x0078D5DCu) = 0;
-    S32(st, 0x0078D5CCu) = 0;
-    S32(st, 0x0078D5C8u) = 0;
+    S32(st, G_U78D5E0) = 0;
+    S32(st, G_U78D5DC) = 0;
+    S32(st, G_U78D5CC) = 0;
+    S32(st, G_U78D5C8) = 0;
 }
 
 void day_building_countdown(game_state *st)
 {
     /* @bin 0x004599A0 the highest id is read once */
-    int32_t n = S32(st, BUILDING_HIGHEST);
+    int32_t n = S32(st, G_BUILDING_HIGHEST);
     for (int32_t id = 1; id <= n; id++) {
         uint32_t b = BUILDING_ADDR(id);
-        if (U8(st, b) == 1 && U8(st, b + 0x4E) != 0) {
-            U8(st, b + 0x4E) -= 1;
+        if (U8(st, b + BLD_STATE) == 1 && U8(st, b + BLD_TAX_COVERAGE) != 0) {
+            U8(st, b + BLD_TAX_COVERAGE) -= 1;
         }
     }
 }
@@ -35,7 +34,7 @@ void day_building_countdown(game_state *st)
 void day_step_0x10(game_state *st)
 {
     /* @bin 0x0045AAA0 */
-    if (U8(st, CITY1_FLAG) != 0) {
+    if (U8(st, CITY_ADDR(1) + CITY_ACTIVE) != 0) {
         day_totals_45aae0(st, 1);
     }
 }
@@ -45,63 +44,63 @@ void day_totals_45aae0(game_state *st, int32_t player)
     /* @bin 0x0045AAE0 two arrays of 36 i32 per city: +0x4860 and +0x48F0 */
     uint32_t c = CITY_ADDR(player);
     for (uint32_t i = 0; i < 0x24; i++) {
-        S32(st, c + 0x4860u + 4 * i) = 0;
-        S32(st, c + 0x48F0u + 4 * i) = 0;
+        S32(st, c + CITY_STORAGE_FREE + 4 * i) = 0;
+        S32(st, c + CITY_STORAGE_STOCK + 4 * i) = 0;
     }
     /* @bin 0x0045AB25 types 0x48 and 0xC1: +0x44 := 1 with road access, 2 with access by size 3 */
-    for (int32_t id = 1; id <= S32(st, BUILDING_HIGHEST); id++) {
+    for (int32_t id = 1; id <= S32(st, G_BUILDING_HIGHEST); id++) {
         uint32_t b = BUILDING_ADDR(id);
-        if (U8(st, b) != 1 || (S16(st, b + 0x10) != 0x48 && S16(st, b + 0x10) != 0xC1)) {
+        if (U8(st, b + BLD_STATE) != 1 || (S16(st, b + BLD_TYPE) != 0x48 && S16(st, b + BLD_TYPE) != 0xC1)) {
             continue;
         }
-        U8(st, b + 0x44) = 0;
-        if (building_road_access(st, S16(st, b + 6), S16(st, b + 8), U8(st, b + 3))) {
-            U8(st, b + 0x44) = 1;
-        } else if (building_road_access(st, S16(st, b + 6), S16(st, b + 8), 3)) {
-            U8(st, b + 0x44) = 2;
+        U8(st, b + BLD_U44) = 0;
+        if (building_road_access(st, S16(st, b + BLD_X), S16(st, b + BLD_Y), U8(st, b + BLD_SIZE))) {
+            U8(st, b + BLD_U44) = 1;
+        } else if (building_road_access(st, S16(st, b + BLD_X), S16(st, b + BLD_Y), 3)) {
+            U8(st, b + BLD_U44) = 2;
         }
     }
     /* @bin 0x0045ABA2 type 0x49 takes +0x44 of its main part; when set, 400 split between the
      * slot +0x12 of the two arrays by +0x3C */
-    for (int32_t id = 1; id <= S32(st, BUILDING_HIGHEST); id++) {
+    for (int32_t id = 1; id <= S32(st, G_BUILDING_HIGHEST); id++) {
         uint32_t b = BUILDING_ADDR(id);
-        if (U8(st, b) != 1 || S16(st, b + 0x10) != 0x49) {
+        if (U8(st, b + BLD_STATE) != 1 || S16(st, b + BLD_TYPE) != 0x49) {
             continue;
         }
-        uint8_t v = U8(st, BUILDING_ADDR(building_main_part(st, id)) + 0x44);
+        uint8_t v = U8(st, BUILDING_ADDR(building_main_part(st, id)) + BLD_U44);
         if (v == 0) {
             continue;
         }
-        U8(st, b + 0x44) = v;
-        int16_t slot = S16(st, b + 0x12);
+        U8(st, b + BLD_U44) = v;
+        int16_t slot = S16(st, b + BLD_SUBTYPE);
         if (slot == 0) {
-            S32(st, c + 0x4860u) += 400;
+            S32(st, c + CITY_STORAGE_FREE) += 400;
         } else {
-            int32_t k = S16(st, b + 0x3C);
+            int32_t k = S16(st, b + BLD_STORED);
             uint32_t i = (uint32_t) (0x1276 * player + slot);
-            S32(st, 0x00EA60D0u + 4 * i) += 400 - k;
-            S32(st, 0x00EA6160u + 4 * i) += k;
+            S32(st, CITY_BASE + CITY_STORAGE_FREE + 4 * i) += 400 - k;
+            S32(st, CITY_BASE + CITY_STORAGE_STOCK + 4 * i) += k;
         }
     }
     /* @bin 0x0045AC2E three one-time messages of the scenario 0x00E38EA8 */
-    if ((int32_t) S8(st, 0x00E38EA8u) == S32(st, 0x005795ACu) && U8(st, 0x007027C1u) == 0 &&
-        S32(st, 0x00E38EBCu) == 0 && S32(st, c + 0x4924u) >= 200) {
-        GAME_CALL(st, 0x00417AE0u, 9);
+    if ((int32_t) S8(st, G_MISSION) == S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 9) && U8(st, G_MISSION_LIST_FLAGS + 9) == 0 &&
+        S32(st, G_CUSTOM) == 0 && S32(st, c + CITY_STORAGE_STOCK + 4 * 13) >= 200) {
+        GAME_CALL(st, FN_TUTORIAL_STEP, 9);
     }
-    if ((int32_t) S8(st, 0x00E38EA8u) == S32(st, 0x005795C8u) && U8(st, 0x007027C2u) == 0 &&
-        S32(st, 0x00E38EBCu) == 0 && S32(st, c + 0x492Cu) >= 300) {
-        GAME_CALL(st, 0x00417AE0u, 10);
+    if ((int32_t) S8(st, G_MISSION) == S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 10) && U8(st, G_MISSION_LIST_FLAGS + 10) == 0 &&
+        S32(st, G_CUSTOM) == 0 && S32(st, c + CITY_STORAGE_STOCK + 4 * 15) >= 300) {
+        GAME_CALL(st, FN_TUTORIAL_STEP, 10);
     }
-    if ((int32_t) S8(st, 0x00E38EA8u) == S32(st, 0x0057961Cu) && U8(st, 0x007027C5u) == 0 &&
-        U8(st, 0x007027C4u) != 0 && S32(st, 0x00E38EBCu) == 0 && S32(st, c + 0x4920u) >= 800) {
-        GAME_CALL(st, 0x00417AE0u, 0xD);
+    if ((int32_t) S8(st, G_MISSION) == S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 13) && U8(st, G_MISSION_LIST_FLAGS + 13) == 0 &&
+        U8(st, G_MISSION_LIST_FLAGS + 12) != 0 && S32(st, G_CUSTOM) == 0 && S32(st, c + CITY_STORAGE_STOCK + 4 * 12) >= 800) {
+        GAME_CALL(st, FN_TUTORIAL_STEP, 0xD);
     }
 }
 
 void day_step_0x12(game_state *st)
 {
     /* @bin 0x0045E6C0 */
-    if (U8(st, CITY1_FLAG) != 0) {
+    if (U8(st, CITY_ADDR(1) + CITY_ACTIVE) != 0) {
         day_totals_45e6e0(st, 1);
     }
 }
@@ -122,15 +121,15 @@ void day_totals_45e6e0(game_state *st, int32_t player)
     /* @bin 0x0045E6E0 two arrays of 27 i32 per city: +0x3C64 and +0x3D04 */
     uint32_t c = CITY_ADDR(player);
     for (uint32_t i = 0; i < 0x1B; i++) {
-        S32(st, c + 0x3C64u + 4 * i) = 0;
-        S32(st, c + 0x3D04u + 4 * i) = 0;
+        S32(st, c + CITY_U3C64 + 4 * i) = 0;
+        S32(st, c + CITY_U3D04 + 4 * i) = 0;
     }
-    for (int32_t id = 1; id <= S32(st, BUILDING_HIGHEST); id++) {
+    for (int32_t id = 1; id <= S32(st, G_BUILDING_HIGHEST); id++) {
         uint32_t b = BUILDING_ADDR(id);
-        if (U8(st, b) != 1) {
+        if (U8(st, b + BLD_STATE) != 1) {
             continue;
         }
-        int16_t type = S16(st, b + 0x10);
+        int16_t type = S16(st, b + BLD_TYPE);
         if (type < 0x6E || type > 0x72) {
             /* @bin 0x0045E742 the types counted */
             switch (type) {
@@ -142,29 +141,29 @@ void day_totals_45e6e0(game_state *st, int32_t player)
                 continue;
             }
         }
-        U8(st, b + 0x44) = 0;
-        if (!building_road_access(st, S16(st, b + 6), S16(st, b + 8), U8(st, b + 3))) {
+        U8(st, b + BLD_U44) = 0;
+        if (!building_road_access(st, S16(st, b + BLD_X), S16(st, b + BLD_Y), U8(st, b + BLD_SIZE))) {
             continue;
         }
-        U8(st, b + 0x44) = 1;
-        int16_t used = S16(st, b + 0x3C);
+        U8(st, b + BLD_U44) = 1;
+        int16_t used = S16(st, b + BLD_STORED);
         int32_t free = capacity_45e6e0(type) - used;
         if (free < 0) {
             free = 0;
         }
-        uint32_t i = (uint32_t) (0x1276 * player + S16(st, b + 0x12));
-        S32(st, 0x00EA5574u + 4 * i) += free;
-        S32(st, 0x00EA54D4u + 4 * i) += used;
-        int16_t slot2 = S16(st, b + 0xCE);
+        uint32_t i = (uint32_t) (0x1276 * player + S16(st, b + BLD_SUBTYPE));
+        S32(st, CITY_BASE + CITY_U3D04 + 4 * i) += free;
+        S32(st, CITY_BASE + CITY_U3C64 + 4 * i) += used;
+        int16_t slot2 = S16(st, b + BLD_INPUT2);
         if (slot2 != 0) {
-            used = S16(st, b + 0xCC);
+            used = S16(st, b + BLD_STOCK2);
             free = capacity_45e6e0(type) - used;
             if (free < 0) {
                 free = 0;
             }
             i = (uint32_t) (0x1276 * player + slot2);
-            S32(st, 0x00EA5574u + 4 * i) += free;
-            S32(st, 0x00EA54D4u + 4 * i) += used;
+            S32(st, CITY_BASE + CITY_U3D04 + 4 * i) += free;
+            S32(st, CITY_BASE + CITY_U3C64 + 4 * i) += used;
         }
     }
 }
@@ -183,18 +182,18 @@ void map_grid_decay_978d9c(game_state *st)
      * 0x00978D9C over the map's rows (first 0x00BC9804, from 0x00BC9F24 to 0x00BC9B94) down by
      * one; the mask is (7 << shift) ^ 0xFFFF as in the original, which also clears the bits above
      * 16 outside the field */
-    S32(st, 0x00BCA344u) += 1;
-    if (S32(st, 0x00BCA344u) < 0x14) {
+    S32(st, G_UBCA344) += 1;
+    if (S32(st, G_UBCA344) < 0x14) {
         return;
     }
-    S32(st, 0x00BCA344u) = 0;
-    for (int32_t row = 0; row < S32(st, 0x00BCA2D4u); row++) {
-        int32_t from = S32(st, 0x00BC9F24u + 4u * (uint32_t) row);
-        int32_t to = S32(st, 0x00BC9B94u + 4u * (uint32_t) row);
+    S32(st, G_UBCA344) = 0;
+    for (int32_t row = 0; row < S32(st, G_MAP_HEIGHT); row++) {
+        int32_t from = S32(st, G_ROW_FIRST + 4u * (uint32_t) row);
+        int32_t to = S32(st, G_ROW_END + 4u * (uint32_t) row);
         if (from >= to) {
             continue;
         }
-        uint32_t p = 0x00978D9Cu + 4u * (uint32_t) S32(st, 0x00BC9804u + 4u * (uint32_t) row);
+        uint32_t p = G_TILE_VISITS + 4u * (uint32_t) S32(st, G_ROW_OFFSET + 4u * (uint32_t) row);
         for (int32_t n = to - from; n > 0; n--, p += 4) {
             uint32_t v = U32(st, p);
             if (v != 0) {
@@ -216,33 +215,33 @@ void figure_tile_list_add(game_state *st, int32_t id)
      * 0x00B350DC, the next one at +0x08; +0x8A its place in the list (at most 20). Every path
      * ends with a call to the empty function 0x0051F780(id). */
     uint32_t f = FIGURE_ADDR(id);
-    int32_t tile = S32(st, f + 0x20);
+    int32_t tile = S32(st, f + FIG_GRID_OFFSET);
     if (tile >= 0) {
-        int32_t head = S16(st, 0x00B350DCu + 2u * (uint32_t) tile);
-        U8(st, f + 0x8A) = 0;
+        int32_t head = S16(st, G_FIGURE_GRID + 2u * (uint32_t) tile);
+        U8(st, f + FIG_TILE_INDEX) = 0;
         if (head == 0) {
-            S16(st, 0x00B350DCu + 2u * (uint32_t) S32(st, f + 0x20)) = (int16_t) id;
+            S16(st, G_FIGURE_GRID + 2u * (uint32_t) S32(st, f + FIG_GRID_OFFSET)) = (int16_t) id;
         } else {
-            U8(st, f + 0x8A) = 1;
+            U8(st, f + FIG_TILE_INDEX) = 1;
             int32_t last = head;
             int found = 0;
-            for (int16_t next = S16(st, FIGURE_ADDR(last) + 8); next != 0; next = S16(st, FIGURE_ADDR(last) + 8)) {
+            for (int16_t next = S16(st, FIGURE_ADDR(last) + FIG_NEXT_ON_TILE); next != 0; next = S16(st, FIGURE_ADDR(last) + FIG_NEXT_ON_TILE)) {
                 last = next;
                 if (last == id) {
                     found = 1;
                     break;
                 }
-                U8(st, f + 0x8A) += 1;
+                U8(st, f + FIG_TILE_INDEX) += 1;
             }
             if (!found) {
-                if (U8(st, f + 0x8A) > 0x14) {
-                    U8(st, f + 0x8A) = 0x14;
+                if (U8(st, f + FIG_TILE_INDEX) > 0x14) {
+                    U8(st, f + FIG_TILE_INDEX) = 0x14;
                 }
-                S16(st, FIGURE_ADDR(last) + 8) = (int16_t) id;
+                S16(st, FIGURE_ADDR(last) + FIG_NEXT_ON_TILE) = (int16_t) id;
             }
         }
     }
-    GAME_CALL(st, 0x0051F780u, id);
+    GAME_CALL(st, FN_NOTHING, id);
 }
 
 void events_tick_44bca0(game_state *st, uint32_t self)
@@ -250,12 +249,12 @@ void events_tick_44bca0(game_state *st, uint32_t self)
     /* @bin 0x0044BCA0 (thiscall on 0x00785D70) unless paused or 0x00784C60 / 0x00784C62 is -1:
      * the first record (count at +0, 0x7C bytes from +4) with byte +2 == 3 for which 0x0044BE30
      * (thiscall on the record) returns non-zero sets +0x48B4 */
-    if (S32(st, 0x00605A3Cu) == 1 || S16(st, 0x00784C60u) == -1 || S16(st, 0x00784C62u) == -1) {
+    if (S32(st, G_EDITOR) == 1 || S16(st, G_U784C60) == -1 || S16(st, G_U784C62) == -1) {
         return;
     }
     for (int32_t i = 0; i < (int32_t) P32(st, self); i++) {
         uint32_t rec = self + 4 + 0x7Cu * (uint32_t) i;
-        if (P8(st, rec + 2) == 3 && (int8_t) GAME_CALLT0(st, rec, 0x0044BE30u) != 0) {
+        if (P8(st, rec + 2) == 3 && (int8_t) GAME_CALLT0(st, rec, FN_EVENT_MOVE_STEP) != 0) {
             P8(st, self + 0x48B4) = 1;
             return;
         }
@@ -269,47 +268,47 @@ void undo_check_485dc0(game_state *st)
      * cleared) when the countdown ends or 0x0078A624 is set; for most actions (0x00BC9690) also
      * when one of the 0x00BC95F0 saved buildings (ids 0x00BA746C, copies 0x00BA7888 of 0x108
      * bytes) changed */
-    if (S32(st, 0x00BC9694u) != 1 || S32(st, 0x00BC968Cu) != 1) {
+    if (S32(st, G_UNDO_POSSIBLE) != 1 || S32(st, G_UNDO_READY) != 1) {
         return;
     }
-    if (S32(st, 0x00BC9688u) <= 0 || U8(st, 0x0078A624u) != 0) {
-        S32(st, 0x00BC9694u) = 0;
-        U8(st, 0x00E38DCAu) = 1;
+    if (S32(st, G_UNDO_COUNTDOWN) <= 0 || U8(st, G_U78A624) != 0) {
+        S32(st, G_UNDO_POSSIBLE) = 0;
+        U8(st, G_REDRAW) = 1;
         for (uint32_t k = 0; k < 0x21D68; k++) {
-            U8(st, 0x00BA7888u + k) = 0;
+            U8(st, G_UNDO_RECORDS + k) = 0;
         }
         for (uint32_t k = 0; k < 0x41A; k++) {
-            U8(st, 0x00BA746Cu + k) = 0;
+            U8(st, G_UNDO_IDS + k) = 0;
         }
         return;
     }
-    S32(st, 0x00BC9688u) -= 1;
-    int32_t action = S32(st, 0x00BC9690u);
+    S32(st, G_UNDO_COUNTDOWN) -= 1;
+    int32_t action = S32(st, G_UNDO_TYPE);
     if (action == 9 || action == 8 || action == 5 || action == 6 || action == 0xA8 || action == 0xA9 ||
         action == 0x52 || action == 0x53 || action == 0x26 || action == 0x27) {
         return;
     }
-    int32_t n = S32(st, 0x00BC95F0u);
+    int32_t n = S32(st, G_UNDO_COUNT);
     int drop = n <= 0;
     if (!drop && action == 0xA) {
         for (int32_t i = 0; i < n && !drop; i++) {
-            int16_t id = S16(st, 0x00BA746Cu + 2u * (uint32_t) i);
-            drop = id != 0 && S16(st, BUILDING_ADDR(id) + 0x1C) != 0;
+            int16_t id = S16(st, G_UNDO_IDS + 2u * (uint32_t) i);
+            drop = id != 0 && S16(st, BUILDING_ADDR(id) + BLD_POPULATION) != 0;
         }
     }
     for (int32_t i = 0; i < n && !drop; i++) {
-        int16_t id = S16(st, 0x00BA746Cu + 2u * (uint32_t) i);
+        int16_t id = S16(st, G_UNDO_IDS + 2u * (uint32_t) i);
         if (id == 0) {
             continue;
         }
-        uint32_t b = BUILDING_ADDR(id), copy = 0x00BA7888u + 0x108u * (uint32_t) i;
-        uint8_t state = U8(st, b);
-        drop = state == 2 || state == 4 || state == 5 || S32(st, b + 0xC) != S32(st, copy + 0xC) ||
-               S16(st, b + 0x10) != S16(st, copy + 0x10);
+        uint32_t b = BUILDING_ADDR(id), copy = G_UNDO_RECORDS + 0x108u * (uint32_t) i;
+        uint8_t state = U8(st, b + BLD_STATE);
+        drop = state == 2 || state == 4 || state == 5 || S32(st, b + BLD_GRID_OFFSET) != S32(st, copy + 0xC) ||
+               S16(st, b + BLD_TYPE) != S16(st, copy + 0x10);
     }
     if (drop) {
-        S32(st, 0x00BC9694u) = 0;
-        U8(st, 0x00E38DCAu) = 1;
+        S32(st, G_UNDO_POSSIBLE) = 0;
+        U8(st, G_REDRAW) = 1;
     }
 }
 
@@ -338,14 +337,14 @@ VOID0(run_undo_check, undo_check_485dc0)
 static int32_t run_events_tick(game_state *st, const int32_t *a)
 {
     (void) a;
-    events_tick_44bca0(st, 0x00785D70u);
+    events_tick_44bca0(st, G_EVENTS);
     return 0;
 }
 VOID1(run_tile_list_add, figure_tile_list_add)
 
 static int32_t run_sound_stop_stream(game_state *st, const int32_t *a)
 {
-    sound_stop_stream(st, 0x00E92BF8u, a[0]);
+    sound_stop_stream(st, G_SOUND, a[0]);
     return 0;
 }
 
@@ -358,8 +357,8 @@ const ported_function day_basic_ports[] = {
     {0x0045E6E0u, "day_totals_45e6e0", 1, 0, 0, run_totals_45e6e0, 0},
     {0x0047E290u, "map_grid_decay_978d9c", 0, 0, 0, run_grid_decay, 0},
     {0x004B52F0u, "figure_tile_list_add", 1, 0, 0, run_tile_list_add, 0},
-    {0x0044BCA0u, "events_tick_44bca0", 0, 0, 0x00785D70u, run_events_tick, 0},
+    {0x0044BCA0u, "events_tick_44bca0", 0, 0, G_EVENTS, run_events_tick, 0},
     {0x00485DC0u, "undo_check_485dc0", 0, 0, 0, run_undo_check, 0},
-    {0x0055F561u, "sound_stop_stream", 1, 0, 0x00E92BF8u, run_sound_stop_stream, 0},
+    {0x0055F561u, "sound_stop_stream", 1, 0, G_SOUND, run_sound_stop_stream, 0},
 };
 const int day_basic_ports_count = sizeof(day_basic_ports) / sizeof(day_basic_ports[0]);

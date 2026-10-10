@@ -103,7 +103,7 @@ void advisor_summary_flags(game_state *st)
 void advisor_houses_count(game_state *st)
 {
     /* @bin 0x004F6AD0 0x00EADB28 := 0x004EA280(0x00784C38) */
-    S32(st, G_UEADB28) = GAME_CALL(st, FN_HOUSES_AT_LEAST, S32(st, G_U784C38));
+    S32(st, G_UEADB28) = GAME_CALL(st, FN_HOUSES_AT_LEAST, S32(st, G_GOAL_HOUSE_LEVEL));
 }
 
 void advisor_ratings(game_state *st)

@@ -45,7 +45,7 @@ int32_t storage_create(game_state *st, int32_t building_id)
     case 0x46:
     case 0xBE:
         for (int32_t i = 0; i < n; i++) {
-            int32_t g = S32(st, G_STORAGE_GOODS + 4u * (uint32_t) i);
+            int32_t g = S32(st, G_GOODS_AVAILABLE + 4u * (uint32_t) i);
             if (g >= 1 && g <= 8 ? 1 : (g == 0xD || g == 0xF || g == 0x11 || g == 0x13)) { /* 0x005013A0 */
                 U8(st, r + STORAGE_ACCEPTED + (uint32_t) g) = 0;
             }
@@ -68,7 +68,7 @@ int32_t storage_create(game_state *st, int32_t building_id)
             S16(st, r + STORAGE_U7C + 2 * k) = 0xC80;
         }
         for (int32_t i = 0; i < n; i++) {
-            int32_t g = S32(st, G_STORAGE_GOODS + 4u * (uint32_t) i);
+            int32_t g = S32(st, G_GOODS_AVAILABLE + 4u * (uint32_t) i);
             if (g < 1 || g > 8) {
                 U8(st, r + STORAGE_ACCEPTED + (uint32_t) g) = 0;
             }

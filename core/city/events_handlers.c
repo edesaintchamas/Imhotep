@@ -10,13 +10,10 @@
 #include "city/month_events.h"
 #include "city/month_message.h"
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define POPUP 0x00E950DCu
-#define YEAR 0x0078D7BCu
-#define MONTH 0x0078D7C0u
-#define START_YEAR 0x007848D8u
 
 static void put16(uint8_t *b, uint32_t off, int32_t v)
 {
@@ -55,9 +52,9 @@ static int request_met(game_state *st, uint32_t e)
     uint32_t c = CURRENT_CITY(st);
     int16_t g = S16(st, e + 4);
     if (g == 0x24) {
-        return S32(st, c + 0xC) >= S16(st, e + 0xC);
+        return S32(st, c + CITY_TREASURY) >= S16(st, e + 0xC);
     }
-    return S32(st, c + 0x48F0 + 4u * (uint32_t) (int32_t) g) >= (int32_t) ((uint32_t) S16(st, e + 0xC) * 100u);
+    return S32(st, c + CITY_STORAGE_STOCK + 4u * (uint32_t) (int32_t) g) >= (int32_t) ((uint32_t) S16(st, e + 0xC) * 100u);
 }
 
 void event_request(game_state *st, uint32_t e)
@@ -69,7 +66,7 @@ void event_request(game_state *st, uint32_t e)
      * stages 2 / 3 at 0: the event +0x24 / +0x52 starts; the first month it is met: message 0x135
      * (money) or 0x13A */
     if (S16(st, e + 4) == 0x25) {
-        GAME_CALLT0(st, e, 0x0044C9E0u);
+        GAME_CALLT0(st, e, FN_EVENT_TROOPS_REQUEST);
         return;
     }
     int16_t stage = S16(st, e + 0x30);
@@ -82,7 +79,7 @@ void event_request(game_state *st, uint32_t e)
     if (!valid) {
         /* subtypes 1, 2 (asked with good 0x25 only, 0x00449440) leave the block's words +0 / +2 as
          * the original's leftover stack bytes */
-        state_unported(st, 0x0044CDC0u);
+        state_unported(st, FN_EVENT_REQUEST);
         return;
     }
     int32_t id = request_message(st, e);
@@ -98,7 +95,7 @@ void event_request(game_state *st, uint32_t e)
         if (S16(st, e + 0x2E) > 0) {
             return;
         }
-        S32(st, POPUP) = 1;
+        S32(st, G_MESSAGE_POPUP) = 1;
         if (S16(st, e + 0x30) == 2) {
             if (event_link_active(st, e, S16(st, e + 0x24))) {
                 int32_t v = event_outcome_message(st, e, 0);
@@ -118,7 +115,7 @@ void event_request(game_state *st, uint32_t e)
         if (U8(st, e + 0x28) & 0x11) {
             return;
         }
-        if (S32(st, YEAR) != S16(st, e + 0x14) + S16(st, START_YEAR) || S32(st, MONTH) != (int32_t) U8(st, e + 3)) {
+        if (S32(st, G_YEAR) != S16(st, e + 0x14) + S16(st, G_START_YEAR) || S32(st, G_MONTH) != (int32_t) U8(st, e + 3)) {
             return;
         }
         U8(st, e + 0x32) = 1;
@@ -126,31 +123,31 @@ void event_request(game_state *st, uint32_t e)
             U8(st, e + 0x33) = 1;
         }
         S16(st, e + 0x2E) = S16(st, e + 0x2C);
-        S32(st, POPUP) = 1;
+        S32(st, G_MESSAGE_POPUP) = 1;
         if (valid) {
             put16(blk, 0, base + 2);
         }
         message_post(st, id, S16(st, e), 0, blk, 0);
         /* @bin 0x0044D302 the tutorial step 8 */
-        if (U8(st, 0x007027C0u) != 0 || (int32_t) S8(st, 0x00E38EA8u) != S32(st, 0x00579590u) || U8(st, e + 2) != 1 ||
-            S16(st, e + 4) != 0xD || S32(st, 0x00E38EBCu) != 0) {
+        if (U8(st, G_MISSION_LIST_FLAGS + 8) != 0 || (int32_t) S8(st, G_MISSION) != S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 8) || U8(st, e + 2) != 1 ||
+            S16(st, e + 4) != 0xD || S32(st, G_CUSTOM) != 0) {
             return;
         }
-        GAME_CALL(st, 0x00417AE0u, 8);
+        GAME_CALL(st, FN_TUTORIAL_STEP, 8);
         return;
     }
     S16(st, e + 0x2E) = (int16_t) (S16(st, e + 0x2E) - 1);
     int16_t left = S16(st, e + 0x2E);
     if (stage == 0) {
         if (left == 6) {
-            S32(st, POPUP) = 1;
+            S32(st, G_MESSAGE_POPUP) = 1;
             put16(blk, 0xC, left);
             if (valid) {
                 put16(blk, 0, base + 4);
             }
             message_post(st, id, S16(st, e), 0, blk, 0);
         } else if (left <= 0) {
-            S32(st, POPUP) = 1;
+            S32(st, G_MESSAGE_POPUP) = 1;
             if (valid) {
                 put16(blk, 0, base + 6);
             }
@@ -158,8 +155,8 @@ void event_request(game_state *st, uint32_t e)
             put16(blk, 0xC, 0x18);
             S16(st, e + 0x30) = 1;
             message_post(st, 0x82, S16(st, e), 0, blk, 0);
-            GAME_CALL(st, 0x004E96C0u, -3);
-            S32(st, CURRENT_CITY(st) + 0x4588) = 3;
+            GAME_CALL(st, FN_CITY_ADD_0X42D8, -3);
+            S32(st, CURRENT_CITY(st) + CITY_U4588) = 3;
         }
     } else if (stage == 1 && left <= 0) {
         if (event_link_active(st, e, S16(st, e + 0x26))) {
@@ -177,11 +174,11 @@ void event_request(game_state *st, uint32_t e)
     uint32_t c = CURRENT_CITY(st);
     int32_t six = U8(st, e + 0x60) == 6;
     if (g == 0x24) {
-        if (S32(st, c + 0xC) < S16(st, e + 0xC)) {
+        if (S32(st, c + CITY_TREASURY) < S16(st, e + 0xC)) {
             return;
         }
         U8(st, e + 0x33) = 1;
-        S32(st, POPUP) = 1;
+        S32(st, G_MESSAGE_POPUP) = 1;
         put16(blk, 0xC, S16(st, e + 0x2E));
         put16(blk, 4, -1);
         put16(blk, 2, -1);
@@ -192,13 +189,13 @@ void event_request(game_state *st, uint32_t e)
         return;
     }
     uint32_t need = (uint32_t) S16(st, e + 0xC) * 100u;
-    if (S32(st, c + 0x48F0 + 4u * (uint32_t) (int32_t) g) < (int32_t) need) {
+    if (S32(st, c + CITY_STORAGE_STOCK + 4u * (uint32_t) (int32_t) g) < (int32_t) need) {
         return;
     }
     U8(st, e + 0x33) = 1;
-    S32(st, POPUP) = 1;
+    S32(st, G_MESSAGE_POPUP) = 1;
     put16(blk, 0xC, S16(st, e + 0x2E));
-    S32(st, 0x006057E4u) = S16(st, e);
+    S32(st, G_REQUEST_EVENT) = S16(st, e);
     put16(blk, 4, -1);
     put16(blk, 2, -1);
     put16(blk, 0, -1);
@@ -209,8 +206,8 @@ void event_request(game_state *st, uint32_t e)
 /* the empire: cities 0x0077DE00 (61 x 0x6A: +0 in use, +2 kind, +5 open, +6+good sells, +0x2A+good
  * buys, +0x56 i16 its object), objects 0x0077F754 (0x62 bytes: +0 i16 image, +0xC kind, +0xD,
  * +0x12 14 goods, +0x28 8 goods) */
-#define EMPIRE_CITY(i) (0x0077DE00u + 0x6Au * (uint32_t) (i))
-#define EMPIRE_OBJ(i) (0x0077F754u + 0x62u * (uint32_t) (i))
+#define EMPIRE_CITY(i) (G_EMPIRE_CITIES + 0x6Au * (uint32_t) (i))
+#define EMPIRE_OBJ(i) (G_EMPIRE_OBJECTS + 0xCu + 0x62u * (uint32_t) (i))
 
 int32_t empire_object_image(game_state *st, int32_t obj)
 {
@@ -218,13 +215,13 @@ int32_t empire_object_image(game_state *st, int32_t obj)
     uint32_t o = EMPIRE_OBJ(obj);
     switch (U8(st, o + 0xC)) {
     case 0:
-        return S16(st, 0x00784B62u) == 10 ? S32(st, 0x00F56954u) : S32(st, 0x00F56444u);
-    case 1: return S32(st, 0x00F56954u);
-    case 2: return S32(st, 0x00F5693Cu);
-    case 3: return (int32_t) (U32(st, 0x00F56444u) + 6u);
-    case 4: return (int32_t) (U32(st, 0x00F56964u) + 7u);
-    case 5: return (int32_t) (U32(st, 0x005D2A38u + 8u * U8(st, o + 0xD)) + U32(st, 0x00F56444u));
-    case 6: return (int32_t) (U32(st, 0x005D2A38u + 8u * U8(st, o + 0xD)) + U32(st, 0x00F56964u));
+        return S16(st, G_SCENARIO_RANK) == 10 ? S32(st, G_UF56954) : S32(st, G_UF56444);
+    case 1: return S32(st, G_UF56954);
+    case 2: return S32(st, G_UF5693C);
+    case 3: return (int32_t) (U32(st, G_UF56444) + 6u);
+    case 4: return (int32_t) (U32(st, G_UF56964) + 7u);
+    case 5: return (int32_t) (U32(st, G_U5D2A38 + 8u * U8(st, o + 0xD)) + U32(st, G_UF56444));
+    case 6: return (int32_t) (U32(st, G_U5D2A38 + 8u * U8(st, o + 0xD)) + U32(st, G_UF56964));
     default: return 0;
     }
 }
@@ -273,7 +270,7 @@ int32_t trade_order_check(game_state *st, int32_t g)
 {
     /* @bin 0x005599C0 the city's trade order of good g (i16 city +0x2826 + 2g): import (1, 3) with no
      * open buyer (0x00443950) or export (2, 4) with no open seller (0x00443B20) is cleared: 1 */
-    uint32_t a = CURRENT_CITY(st) + 0x2826 + 2u * (uint32_t) g;
+    uint32_t a = CURRENT_CITY(st) + CITY_TRADE_STATUS + 2u * (uint32_t) g;
     int16_t v = S16(st, a);
     if (v == 1 || v == 3) {
         if (goods_trade_city_flag5(st, g) == 0) {
@@ -362,7 +359,7 @@ void event_city_status(game_state *st, uint32_t e)
                 }
                 trade_order_check(st, (int32_t) g);
             }
-            S32(st, POPUP) = 1;
+            S32(st, G_MESSAGE_POPUP) = 1;
             message_post(st, id, 0, 0, blk, 0);
         }
     }
@@ -379,7 +376,7 @@ static int32_t have_amount(game_state *st, uint32_t e)
     if (g == 0x24) {
         return S16(st, e + 0xC);
     }
-    return GAME_CALL(st, 0x0045AAC0u, S32(st, CURRENT_PLAYER_ADDR), g) / 100;
+    return GAME_CALL(st, FN_GOODS_AMOUNT_45AAC0, S32(st, CURRENT_PLAYER_ADDR), g) / 100;
 }
 
 void event_festival_request(game_state *st, uint32_t e)
@@ -400,18 +397,18 @@ void event_festival_request(game_state *st, uint32_t e)
     int16_t stage = S16(st, e + 0x30);
     if (stage == 6 || stage == 7 || stage == 8) {
         /* @bin 0x0044EC17 */
-        S32(st, POPUP) = 1;
+        S32(st, G_MESSAGE_POPUP) = 1;
         int slot, link;
         if (stage == 6) {
             int32_t amt = S16(st, e + 0xC);
             if (S16(st, e + 4) == 0x24) {
                 uint32_t c = CURRENT_CITY(st);
                 put16(blk, 0x14, amt);
-                S32(st, c + 0xC) += amt;
-                S32(st, c + 0x4458) += amt;
+                S32(st, c + CITY_TREASURY) += amt;
+                S32(st, c + CITY_GIFTS_THIS_YEAR) += amt;
                 put16(blk, 0, 0x119 - on);
             } else {
-                int32_t r = GAME_CALL(st, 0x0045AFE0u, S16(st, e + 4), (int32_t) ((uint32_t) amt * 100u), 0);
+                int32_t r = GAME_CALL(st, FN_GOODS_TO_STORAGE, S16(st, e + 4), (int32_t) ((uint32_t) amt * 100u), 0);
                 put16(blk, 0, 0x117 - on);
                 put16(blk, 0x14, (int16_t) r / 100);
             }
@@ -460,7 +457,7 @@ void event_festival_request(game_state *st, uint32_t e)
             put16(blk, 0, (s == 2 ? 0x111 : 0x115) - on);
         }
         put16(blk, 0x16, part);
-        S32(st, POPUP) = 1;
+        S32(st, G_MESSAGE_POPUP) = 1;
         message_post(st, 0x84, S16(st, e), 0, blk, 0);
         S16(st, e + 0x30) = (int16_t) (s == 2 ? (part != 0 ? 3 : 4) : (part != 0 ? 5 : 8));
         return;
@@ -469,7 +466,7 @@ void event_festival_request(game_state *st, uint32_t e)
     if (U8(st, e + 0x28) & 0x11) {
         return;
     }
-    if (S32(st, YEAR) != S16(st, e + 0x14) + S16(st, START_YEAR) || S32(st, MONTH) != (int32_t) U8(st, e + 3)) {
+    if (S32(st, G_YEAR) != S16(st, e + 0x14) + S16(st, G_START_YEAR) || S32(st, G_MONTH) != (int32_t) U8(st, e + 3)) {
         return;
     }
     need = S16(st, e + 0xC);
@@ -487,7 +484,7 @@ void event_festival_request(game_state *st, uint32_t e)
         put16(blk, 0, 0x111 - on);
     }
     put16(blk, 0x16, part);
-    S32(st, POPUP) = 1;
+    S32(st, G_MESSAGE_POPUP) = 1;
     message_post(st, 0x84, S16(st, e), 0, blk, 0);
     S16(st, e + 0x30) = (int16_t) (part != 0 ? 1 : 2);
 }

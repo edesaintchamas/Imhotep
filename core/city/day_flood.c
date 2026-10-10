@@ -8,11 +8,10 @@
 
 #include "city/day_x87.h"
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define PERIOD 0x00D05718u /* double: days between two floods */
-#define TICK 0x0078D7CCu
 #define LEVEL 0x32FACu  /* i32: flood level 0..30 */
 #define PHASE 0x32FB4u  /* i32: 1 soon, 2 rising, 3 peak, 4 receding, 5 just over, 6 none */
 #define RISE 0x32FB8u   /* i32 */
@@ -35,7 +34,7 @@ void flood_tick(game_state *st, uint32_t self)
         S32(st, self + 0x32C54) = 0;
         return;
     }
-    if (S32(st, TICK) == 1 && S32(st, self + PHASE) != 2) {
+    if (S32(st, G_TICK) == 1 && S32(st, self + PHASE) != 2) {
         /* @bin 0x004BE796 the quality +0x32C54 moves toward +0x32C5C by 5 a day */
         int32_t target = S32(st, self + 0x32C5C), q = S32(st, self + 0x32C54);
         if (q > target) {
@@ -44,23 +43,23 @@ void flood_tick(game_state *st, uint32_t self)
             S32(st, self + 0x32C54) = q + 5 >= target ? target : q + 5;
         }
     }
-    int32_t years = S32(st, 0x0078D7BCu) - S16(st, 0x007848D8u);
+    int32_t years = S32(st, G_YEAR) - S16(st, G_START_YEAR);
     int32_t base = S32(st, self + 0x32C4C);
     int32_t rise = S32(st, self + RISE);
-    x87_val period = dbl(st, PERIOD);
+    x87_val period = dbl(st, G_DAY_FLOOD_PERIOD);
     /* @bin 0x004BE7DB the flood's start and end in days of 25 ticks... of the whole game */
     int32_t shift = x87_ftol(x87_mul(x87_from_int(years), period));
     int32_t start = base * 105 / 100 + shift + 0xF;
     int32_t end = S32(st, self + 0x32C50) + rise * 2 + start;
     int32_t ramp = x87_ftol(x87_mul(x87_mul(x87_from_int(S32(st, self + 0x32C60)), x87_from_int(rise)),
-                                    dbl(st, 0x0056F598u)));
-    int32_t md = S32(st, 0x0078D7C0u) * 16 + S32(st, 0x0078D7C4u);
-    int32_t total = x87_ftol(x87_mul(x87_from_int(years), dbl(st, 0x0056F680u))) + S32(st, TICK) + md * 51;
+                                    dbl(st, G_K_0_01)));
+    int32_t md = S32(st, G_MONTH) * 16 + S32(st, G_TICK_DAY);
+    int32_t total = x87_ftol(x87_mul(x87_from_int(years), dbl(st, G_DBL_9792))) + S32(st, G_TICK) + md * 51;
     x87_val ftotal = x87_from_int(total);
-    x87_val f25 = dbl(st, 0x0056F678u);
-    int32_t before = x87_ftol(x87_divv(x87_sub(ftotal, dbl(st, 0x0056F520u)), f25));
+    x87_val f25 = dbl(st, G_DBL_25);
+    int32_t before = x87_ftol(x87_divv(x87_sub(ftotal, dbl(st, G_K_ONE)), f25));
     int32_t now = x87_ftol(x87_divv(ftotal, f25));
-    if (x87_cmp(x87_mul(period, dbl(st, 0x0056F690u)), x87_from_int(start - now)) < 0) {
+    if (x87_cmp(x87_mul(period, dbl(st, G_K_HALF)), x87_from_int(start - now)) < 0) {
         int32_t p = x87_ftol(period);
         start -= p;
         end -= p;
@@ -95,18 +94,18 @@ void flood_tick(game_state *st, uint32_t self)
         /* @bin 0x004BE9C6 a new flood day */
         if (now >= start && now < end) {
             if (now < start + ramp || now >= end - ramp) {
-                U8(st, 0x00EAAC2Cu) = 1;
+                U8(st, G_UEAAC2C) = 1;
             } else if (now == start + rise) {
                 for (uint32_t k = 0; k < 0x1E; k++) {
                     S32(st, self + 0x32C68 + 0x1C * k) = 0;
                 }
             }
         } else if (to_start == 0x31) {
-            GAME_CALLT0(st, 0x00BCA350u, 0x00489510u);
+            GAME_CALLT0(st, G_BUILDING_MANAGER, FN_FARM_FLOOD_NOTICE);
         } else if (to_start == 1) {
-            GAME_CALLT0(st, self, 0x004BE490u);
+            GAME_CALLT0(st, self, FN_FLOOD_SEASON_START);
         } else if (after_end == 1) {
-            GAME_CALLT0(st, self, 0x004BE580u);
+            GAME_CALLT0(st, self, FN_FLOOD_SEASON_END);
         }
     }
     if (now >= end - rise) {
@@ -115,43 +114,43 @@ void flood_tick(game_state *st, uint32_t self)
         if (k < 0) {
             k += x87_ftol(period);
         }
-        int32_t sixth = x87_ftol(x87_divv(ftotal, x87_mul(f25, dbl(st, 0x0056F688u)))) % 6;
+        int32_t sixth = x87_ftol(x87_divv(ftotal, x87_mul(f25, dbl(st, G_U56F688)))) % 6;
         int32_t step = sixth + k * 6;
         int32_t limit = rise * 60;
         int32_t first = limit < step ? limit : step;
-        if (step < limit && first != S32(st, 0x005DF760u)) {
-            S32(st, 0x005DF760u) = step;
+        if (step < limit && first != S32(st, G_U5DF760)) {
+            S32(st, G_U5DF760) = step;
             int32_t r = step % rise;
             if (r >= rise - 1) {
                 r = rise - 1;
             }
             int32_t lvl = S32(st, self + LEVEL) - r;
             if (lvl >= 0 && lvl < S32(st, self + LEVEL)) {
-                GAME_CALLT0(st, self + 0x32C64u + 0x1Cu * (uint32_t) lvl, 0x004BE0D0u);
+                GAME_CALLT0(st, self + 0x32C64u + 0x1Cu * (uint32_t) lvl, FN_FLOOD_LEVEL_MORE);
             }
         }
-        S32(st, 0x005DF75Cu) = step;
+        S32(st, G_U5DF75C) = step;
     }
     /* @bin 0x004BEAE5 the progress of the flood day in percent */
     int32_t days = x87_ftol(f25);
     int32_t pct = total % days * 100 / days;
     if (S32(st, self + PHASE) == 2) {
-        GAME_CALLT(st, level_record(st, self), 0x004BD850u, 1, pct, 0);
-        S32(st, 0x00BC9694u) = 0;
+        GAME_CALLT(st, level_record(st, self), FN_FLOOD_LEVEL_STEP, 1, pct, 0);
+        S32(st, G_UNDO_POSSIBLE) = 0;
     } else if (S32(st, self + PHASE) == 4) {
-        GAME_CALLT(st, level_record(st, self), 0x004BD850u, 0, pct, 0);
-        S32(st, 0x00BC9694u) = 0;
+        GAME_CALLT(st, level_record(st, self), FN_FLOOD_LEVEL_STEP, 0, pct, 0);
+        S32(st, G_UNDO_POSSIBLE) = 0;
     }
 }
 
 static int32_t run_flood_tick(game_state *st, const int32_t *a)
 {
     (void) a;
-    flood_tick(st, 0x00D05720u);
+    flood_tick(st, G_UD05720);
     return 0;
 }
 
 const ported_function day_flood_ports[] = {
-    {0x004BE770u, "flood_tick", 0, 0, 0x00D05720u, run_flood_tick, 0},
+    {0x004BE770u, "flood_tick", 0, 0, G_UD05720, run_flood_tick, 0},
 };
 const int day_flood_ports_count = sizeof(day_flood_ports) / sizeof(day_flood_ports[0]);

@@ -139,10 +139,9 @@
 #define G_CARRY_COPY_GROUPS 0x006FDCE4u /* @bin 0x004D3C40 the same in G_CARRY_COPY (the soldiers waiting, map_add.c) */
 /* P3 (g_city.h) */
 #define G_RATING_LOWEST_INDEX 0x00705738u /* @bin 0x00426B00 i32: the index of the lowest rating (core/city/month_ratings.c) */
-#define G_INVASION_COUNTER 0x00775900u /* @bin 0x00446A30 i16: invasion id counter (save.md chunk 126) */
 #define G_FROGS_COUNTDOWN 0x0078D7A8u  /* @bin 0x004023A0 i32: Plague of Frogs countdown, save.md chunk 105 */
 #define G_RAMP_LAST_TILE 0x00EAAE9Cu   /* @bin 0x004ED003 i32: the last tile of the ramp walk 0x004ED360 */
-#define G_UEADB28 0x00EADB28u          /* @bin 0x004F6AD0 i32: := houses_at_least(G_U784C38) */
+#define G_UEADB28 0x00EADB28u          /* @bin 0x004F6AD0 i32: := houses_at_least(G_GOAL_HOUSE_LEVEL) */
 /* P1 (g_figure.h) */
 #define G_STORAGE_SETTINGS 0x007900C0u /* @bin 0x00474B6E records of 0xC4 bytes by building +0xC1 (core/figure/helpers_xb.c) */
 #define G_FORMATION_COUNT 0x00BCB9B4u  /* @bin 0x0047026B i32: the formations in use (forts; core/figure/formation.h) */
@@ -153,7 +152,6 @@
 #define G_UBCA32C 0x00BCA32Cu          /* @bin 0x0043DE6A u8: the water-lift ghost's flag (core/building/day_water.c) */
 #define G_UNDO_COUNTDOWN 0x00BC9688u   /* @bin 0x00485200 i32: := 500, the undo's countdown (core/city/day_basic.c) */
 /* P5 (g_map.h) */
-#define G_RAMP_OFFSETS 0x005F5D08u     /* @bin 0x004ECEA0 i32 per monument kind: the ramp tile's offset */
 #define G_UBCA328 0x00BCA328u          /* @bin 0x0046FEF0 i32: := 1 after a water lift drag (core/map/terrain_roads.c) */
 /* P7 (g_frame.h) */
 #define G_U6FDC50 0x006FDC50u          /* @bin 0x004DE080 i32: Alt+D toggle, widens the editor's camera bounds */

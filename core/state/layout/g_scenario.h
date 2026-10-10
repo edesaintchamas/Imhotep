@@ -233,9 +233,7 @@
 #define G_U784954 0x00784954u /* @bin 0x004DE600 char[]: the text of text box 6 (0x004CC560, up to 0x1F4) */
 #define G_HERD_POINTS_X 0x00784B64u /* @bin 0x004BB3F0 i16[4]: herd points (x > 0 in use) */
 #define G_HERD_POINTS_Y 0x00784B6Cu /* @bin 0x004BB3F0 i16[4] */
-#define G_TIME_LIMIT_ON 0x00784C48u /* @bin 0x004DE9C8 i32: != 0: a time limit (G_TIME_LIMIT_YEARS) */
 #define G_TIME_LIMIT_YEARS 0x00784C4Cu /* @bin 0x004DE9C8 i32: years after the start year */
-#define G_SURVIVE_ON 0x00784C50u /* @bin 0x004DE9C8 i32: != 0: survive until G_SURVIVE_YEARS (core/city/day_goals.c) */
 #define G_SURVIVE_YEARS 0x00784C54u /* @bin 0x004DE9C8 i32: years after the start year */
 #define G_ENTRY_POINT_X 0x00784C64u /* @bin 0x004DE8A9 i16: the entry point (scenario info +0x38C, save.md §5 city +0x2778); -1: none */
 #define G_ENTRY_POINT_Y 0x00784C66u /* @bin 0x004DE8A9 i16 */

@@ -322,7 +322,7 @@ void clear_pyramid_area(game_state *st, int32_t id)
     if ((uint8_t) GAME_CALL(st, FN_PYRAMID_KIND_OK, kind) == 0) {
         return;
     }
-    int32_t rel = (int32_t) (U32(st, G_RAMP_OFFSETS + 4u * (uint32_t) kind) + U32(st, BUILDING_ADDR(main) + BLD_GRID_OFFSET) -
+    int32_t rel = (int32_t) (U32(st, G_PYRAMID_RAMP + 4u * (uint32_t) kind) + U32(st, BUILDING_ADDR(main) + BLD_GRID_OFFSET) -
                              U32(st, G_MAP_START));
     int32_t x = rel % 228, y = rel / 228;
     GAME_CALL(st, FN_RAMP_WALK, x, y, 5, 0);

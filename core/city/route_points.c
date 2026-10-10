@@ -8,12 +8,9 @@
  * x87 arithmetic for the empire map (tools/oracle/excluded.py: the tick never reads it); the port
  * reproduces it exactly (core/city/day_x87.h, core/sim/x87_float.h). */
 #include "sim/x87_float.h"
+#include "state/layout.h"
 #include "state/ported.h"
 
-#define CITIES 0x0077F748u     /* empire cities, records of 0x62 bytes, to 0x007843D8 */
-#define CITIES_END 0x007843D8u
-#define CITY_SIZES 0x010D6A0Cu /* i16 width, i16 height of a city's picture, records of 64 bytes */
-#define CITY_SIZE_COUNT 0x0126517Cu
 
 uint8_t route_find_cities(game_state *st, uint32_t self)
 {
@@ -28,18 +25,18 @@ uint8_t route_find_cities(game_state *st, uint32_t self)
         return 0;
     }
     int32_t k = 0;
-    for (uint32_t c = CITIES; c < CITIES_END; c += 0x62, k++) {
+    for (uint32_t c = G_EMPIRE_OBJECTS; c < G_EMPIRE_OBJECTS_END; c += 0x62, k++) {
         if (U8(st, c + 1) == 0 || U8(st, c) != 1) {
             continue;
         }
-        int32_t count = S32(st, CITY_SIZE_COUNT);
+        int32_t count = S32(st, G_IMAGE_COUNT);
         int32_t e = U16(st, c + 0xC);
         if (e >= count) {
             e = 0;
         }
         int32_t x0 = S16(st, c + 4), y0 = S16(st, c + 6);
-        int32_t x1 = S16(st, CITY_SIZES + (uint32_t) e * 64u) + x0;
-        int32_t y1 = S16(st, CITY_SIZES + 2u + (uint32_t) e * 64u) + y0;
+        int32_t x1 = S16(st, G_U0D6A0C + (uint32_t) e * 64u) + x0;
+        int32_t y1 = S16(st, G_U0D6A0C + 2u + (uint32_t) e * 64u) + y0;
         int32_t px = S16(st, self + 8);
         if (px >= x0 && px <= x1) {
             int32_t py = S16(st, self + 0xA);

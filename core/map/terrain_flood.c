@@ -142,7 +142,7 @@ void floodplain_tile_redraw(game_state *st, int32_t x, int32_t y, int32_t flag)
                 obj = U32(st, G_UD05720 + 4u * (uint32_t) o);
                 if (obj != 0) {
                     uint32_t t = P32(st, obj + FLOODOBJ_TILE);
-                    int32_t lvl = fertility_level(U8(st, G_GRID_FERTILITY + t));
+                    int32_t lvl = fertility_level(U8(st, G_FERTILITY_GRID + t));
                     lvl = (lvl & ~1) | (U8(st, G_RANDOM + t) & 1);
                     img += (int32_t) P32(st, P32(st, obj) + 4) + lvl * 6;
                 }

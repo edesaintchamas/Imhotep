@@ -31,16 +31,12 @@
                        * not BLD_MON_ANNOUNCED_68 (its types: 0xD5, 0xE1, 0xE3, 0xE4) */
 
 /* goods lists (g_building.h / g_command.h) */
-#define G_STORAGE_GOODS 0x00F53E70u /* @bin 0x0046B100 i32 per entry, count G_STORAGE_LIST: the storable
-                                     * goods (built by 0x005596D0, core/city/goods.h) */
 
 /* the scenario info (chunk 75, G_START_YEAR = its +0; g_scenario.h) */
 #define G_SCENARIO_MAP_WIDTH 0x00784904u  /* @bin 0x004D52A0 i32 (+0x2C): copied to G_MAP_WIDTH (map.md §5) */
 #define G_SCENARIO_MAP_HEIGHT 0x00784908u /* i32 (+0x30) */
 #define G_SCENARIO_MAP_START 0x0078490Cu  /* i32 (+0x34): copied to G_MAP_START */
 #define G_SCENARIO_MAP_STRIDE_EXTRA 0x00784910u /* i32 (+0x38): copied to G_MAP_STRIDE_EXTRA */
-#define G_SCENARIO_POINTS_X 0x00784BC0u   /* @bin 0x004D52A0 i16[16]: map points, x (-1 outside the map) */
-#define G_SCENARIO_POINTS_Y 0x00784BE0u   /* i16[16]: their y */
 
 /* the pyramids (g_building.h) */
 #define G_PYRAMID_PART_LISTS 0x005F6CD0u    /* @bin 0x004F3D70 {u32 list, i32 count} per BLD_MONUMENT_KIND: the parts

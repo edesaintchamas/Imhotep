@@ -5,9 +5,11 @@
 
 #include <stdint.h>
 
+#include "state/layout/g_ui.h"
 #include "state/state.h"
 
-#define TEXT_CURSOR 0x00E20768u /* address of the current string */
+/* kept for the ports outside core/city that use it (docs/naming.md); core/city uses G_TEXT_CURSOR */
+#define TEXT_CURSOR G_TEXT_CURSOR /* address of the current string */
 
 /* @bin 0x004CC110 TEXT_CURSOR := string `index` of text group `group` */
 void text_seek(game_state *st, int32_t group, int32_t index);

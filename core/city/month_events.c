@@ -13,18 +13,17 @@
 #include "city/month_message.h"
 #include "random/random.h"
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define EVENTS 0x00785D70u
 #define EVENT_REC 0x7Cu
-#define POPUP 0x00E950DCu
 
 uint32_t event_at(game_state *st, int32_t n)
 {
     /* @bin 0x0044C0D0 (stdcall) the record n, or 0 */
-    if (n >= 0 && n < S32(st, EVENTS)) {
-        return EVENTS + 4 + EVENT_REC * (uint32_t) n;
+    if (n >= 0 && n < S32(st, G_EVENTS)) {
+        return G_EVENTS + 4 + EVENT_REC * (uint32_t) n;
     }
     return 0;
 }
@@ -35,10 +34,10 @@ int32_t event_due(game_state *st, uint32_t e, int8_t force)
     if (force == 0 && (U8(st, e + 0x28) & 5)) {
         return 0;
     }
-    if (S32(st, 0x0078D7BCu) != S16(st, e + 0x14) + S16(st, 0x007848D8u)) {
+    if (S32(st, G_YEAR) != S16(st, e + 0x14) + S16(st, G_START_YEAR)) {
         return 0;
     }
-    return S32(st, 0x0078D7C0u) == (int32_t) U8(st, e + 3);
+    return S32(st, G_MONTH) == (int32_t) U8(st, e + 3);
 }
 
 int32_t event_link_active(game_state *st, uint32_t e, int32_t n)
@@ -54,15 +53,15 @@ int32_t event_link_active(game_state *st, uint32_t e, int32_t n)
 int32_t event_months_left(game_state *st, uint32_t e)
 {
     /* @bin 0x0044D750 (thiscall) (+0x14 + start - year) * 12 + +0x2C + month (+3) - month */
-    int32_t y = S16(st, e + 0x14) + S16(st, 0x007848D8u) - S32(st, 0x0078D7BCu);
-    return (int32_t) ((uint32_t) S16(st, e + 0x2C) + (uint32_t) y * 12u + U8(st, e + 3) - (uint32_t) S32(st, 0x0078D7C0u));
+    int32_t y = S16(st, e + 0x14) + S16(st, G_START_YEAR) - S32(st, G_YEAR);
+    return (int32_t) ((uint32_t) S16(st, e + 0x2C) + (uint32_t) y * 12u + U8(st, e + 3) - (uint32_t) S32(st, G_MONTH));
 }
 
 int32_t empire_city_index(game_state *st, uint32_t v)
 {
     /* @bin 0x004449D0 the first of the 61 records of 0x0077DE00 (0x6A bytes) in use whose +4 is v */
     for (uint32_t k = 0; k < 61; k++) {
-        uint32_t r = 0x0077DE00u + 0x6Au * k;
+        uint32_t r = G_EMPIRE_CITIES + 0x6Au * k;
         if (U8(st, r) != 0 && U8(st, r + 4) == v) {
             return (int32_t) k;
         }
@@ -154,22 +153,16 @@ void event_fill_block(game_state *st, uint32_t e, uint8_t *b)
 }
 
 /* the game RNG (core/random, 0x004D7090) on the state */
-#define R_IV1 0x00D3B384u
-#define R_IV2 0x00D3B380u
-#define R_POOL_INDEX 0x00D3B1C4u
-#define R_POOL 0x00D3B1C8u
-#define R_1_7 0x00D3B374u
-#define R_1_15 0x00D3B370u
 
 static void rng_partial(game_state *st)
 {
     /* @bin 0x00448B1D the step as 0x00448A90 inlines it first: the pool and the two registers,
      * r1_7bit; the other derived values are not stored */
-    int32_t k = S32(st, R_POOL_INDEX);
-    U32(st, R_POOL + 4u * (uint32_t) k) = U32(st, R_1_7);
+    int32_t k = S32(st, G_R_POOL_INDEX);
+    U32(st, G_R_POOL + 4u * (uint32_t) k) = U32(st, G_R_1_7);
     k++;
-    S32(st, R_POOL_INDEX) = k < 100 ? k : 0;
-    uint32_t a = U32(st, R_IV1), b = U32(st, R_IV2);
+    S32(st, G_R_POOL_INDEX) = k < 100 ? k : 0;
+    uint32_t a = U32(st, G_R_IV1), b = U32(st, G_R_IV2);
     for (int i = 0; i < 31; i++) {
         uint32_t x = ((a >> 4) ^ a) & 1, y = ((b >> 4) ^ b) & 1;
         a >>= 1;
@@ -181,9 +174,9 @@ static void rng_partial(game_state *st)
             b |= 0x40000000u;
         }
     }
-    U32(st, R_IV1) = a;
-    U32(st, R_1_7) = a & 0x7F;
-    U32(st, R_IV2) = b;
+    U32(st, G_R_IV1) = a;
+    U32(st, G_R_1_7) = a & 0x7F;
+    U32(st, G_R_IV2) = b;
 }
 
 void event_range_pick(game_state *st, uint32_t p)
@@ -201,7 +194,7 @@ void event_range_pick(game_state *st, uint32_t p)
         return;
     }
     random_next_state(st);
-    int32_t r = (int32_t) (U32(st, R_1_15) & 0xFFFF);
+    int32_t r = (int32_t) (U32(st, G_R_1_15) & 0xFFFF);
     fixed = S16(st, p + 2);
     if (fixed < 0) {
         int16_t lo = S16(st, p + 4);
@@ -239,22 +232,22 @@ void event_reset(game_state *st, uint32_t e)
     U8(st, e + 0x63) = 0;
     if (U8(st, e + 2) == 3) {
         for (uint32_t k = 0; k < 4; k++) {
-            U16(st, e + 0x40 + 4 * k) = U16(st, 0x00784C60u);
-            U16(st, e + 0x42 + 4 * k) = U16(st, 0x00784C62u);
+            U16(st, e + 0x40 + 4 * k) = U16(st, G_U784C60);
+            U16(st, e + 0x42 + 4 * k) = U16(st, G_U784C62);
         }
     }
     rng_partial(st);
-    U8(st, e + 0x61) = (uint8_t) ((int32_t) (U32(st, R_IV1) & 0x7FFF) % 5 + 4);
+    U8(st, e + 0x61) = (uint8_t) ((int32_t) (U32(st, G_R_IV1) & 0x7FFF) % 5 + 4);
     random_next_state(st);
-    U8(st, e + 0x62) = (uint8_t) (U32(st, R_IV1) & 1);
+    U8(st, e + 0x62) = (uint8_t) (U32(st, G_R_IV1) & 1);
 }
 
 static void event_chain(game_state *st, uint32_t e)
 {
     /* the handlers' common end: the next event (+0x24) starts (0x0044FD30, 0x0044C490) */
     if (event_link_active(st, e, S16(st, e + 0x24))) {
-        int32_t v = GAME_CALLT(st, e, 0x0044FD30u, 0);
-        GAME_CALLT(st, e, 0x0044C490u, S16(st, e + 0x24), v);
+        int32_t v = GAME_CALLT(st, e, FN_EVENT_OUTCOME_MESSAGE, 0);
+        GAME_CALLT(st, e, FN_EVENT_START, S16(st, e + 0x24), v);
     }
 }
 
@@ -269,7 +262,7 @@ static int start(game_state *st, uint32_t e)
 
 static void post(game_state *st, int32_t id, int32_t b, const uint8_t *block)
 {
-    S32(st, POPUP) = 1;
+    S32(st, G_MESSAGE_POPUP) = 1;
     message_post(st, id, 0, b, block, 0);
 }
 
@@ -280,9 +273,9 @@ void event_0x44db20(game_state *st, uint32_t e)
         return;
     }
     uint32_t c = CURRENT_CITY(st);
-    if (S16(st, c + 0x447C) > 0) {
-        S16(st, c + 0x4480) = 0x30;
-        S32(st, POPUP) = 1;
+    if (S16(st, c + CITY_U447C) > 0) {
+        S16(st, c + CITY_U4480) = 0x30;
+        S32(st, G_MESSAGE_POPUP) = 1;
         uint8_t b[32] = {0};
         put16(b, 2, 0xDB);
         put16(b, 0, 0xDC);
@@ -299,7 +292,7 @@ void event_0x44df90(game_state *st, uint32_t e)
     if (!start(st, e)) {
         return;
     }
-    int32_t r = GAME_CALL(st, 0x00469F80u, 0x6D);
+    int32_t r = GAME_CALL(st, FN_BUILDING_DESTROY_FIRST_OF_TYPE, 0x6D);
     if (r != 0) {
         post(st, 0x10F, r, NULL);
     }
@@ -325,10 +318,10 @@ void event_0x44d970(game_state *st, uint32_t e)
         return;
     }
     int32_t amt = S16(st, e + 0xC), g = S16(st, e + 4);
-    uint32_t t = 0x005D2C48u + 8u * (uint32_t) g;
+    uint32_t t = G_PRICE_BUY + 8u * (uint32_t) g;
     S32(st, t) += amt;
     S32(st, t + 4) += amt;
-    S32(st, POPUP) = 1;
+    S32(st, G_MESSAGE_POPUP) = 1;
     post_block(st, e, 0xC8, 0xC7, 0x115, amt, g);
     event_chain(st, e);
 }
@@ -341,7 +334,7 @@ void event_0x44da30(game_state *st, uint32_t e)
         return;
     }
     int32_t g = S16(st, e + 4), amt = S16(st, e + 0xC);
-    uint32_t t = 0x005D2C48u + 8u * (uint32_t) g;
+    uint32_t t = G_PRICE_BUY + 8u * (uint32_t) g;
     int32_t v = S32(st, t + 4);
     if (v <= 0) {
         return;
@@ -353,7 +346,7 @@ void event_0x44da30(game_state *st, uint32_t e)
         S32(st, t) = 2;
         S32(st, t + 4) = 0;
     }
-    S32(st, POPUP) = 1;
+    S32(st, G_MESSAGE_POPUP) = 1;
     post_block(st, e, 0xCC, 0xCB, 0x116, amt, g);
     event_chain(st, e);
 }
@@ -365,10 +358,10 @@ void event_0x44dbd0(game_state *st, uint32_t e)
         return;
     }
     uint32_t c = CURRENT_CITY(st);
-    if (S16(st, c + 0x447E) > 0) {
-        S16(st, c + 0x4482) = 0x30;
-        S32(st, POPUP) = 1;
-        if (U8(st, 0x00784CB0u) == 2) {
+    if (S16(st, c + CITY_U447E) > 0) {
+        S16(st, c + CITY_U4482) = 0x30;
+        S32(st, G_MESSAGE_POPUP) = 1;
+        if (U8(st, G_U784CB0) == 2) {
             post_block(st, e, 0xE0, 0xDF, 0x108, 0, 0);
         } else {
             post_block(st, e, 0xF4, 0xF3, 0x108, 0, 0);
@@ -386,10 +379,10 @@ void event_0x44dca0(game_state *st, uint32_t e)
     }
     int32_t r = city_0x4c38f0(st);
     uint32_t c = CURRENT_CITY(st);
-    int32_t v = (int32_t) ((uint32_t) S16(st, e + 0xC) + U32(st, c + 0x2C0C));
+    int32_t v = (int32_t) ((uint32_t) S16(st, e + 0xC) + U32(st, c + CITY_WAGE_KINGDOM));
     if (r + v <= 0x2D) {
-        S32(st, c + 0x2C0C) = v;
-        S32(st, POPUP) = 1;
+        S32(st, c + CITY_WAGE_KINGDOM) = v;
+        S32(st, G_MESSAGE_POPUP) = 1;
         post_block(st, e, 0xE4, 0xE3, 0x10B, 0, 0);
     }
     event_chain(st, e);
@@ -403,10 +396,10 @@ void event_0x44dd60(game_state *st, uint32_t e)
     }
     int32_t r = city_0x4c38f0(st);
     uint32_t c = CURRENT_CITY(st);
-    int32_t v = (int32_t) (U32(st, c + 0x2C0C) - (uint32_t) S16(st, e + 0xC));
+    int32_t v = (int32_t) (U32(st, c + CITY_WAGE_KINGDOM) - (uint32_t) S16(st, e + 0xC));
     if (r + v >= 5) {
-        S32(st, c + 0x2C0C) = v;
-        S32(st, POPUP) = 1;
+        S32(st, c + CITY_WAGE_KINGDOM) = v;
+        S32(st, G_MESSAGE_POPUP) = 1;
         post_block(st, e, 0xE8, 0xE7, 0x10C, 0, 0);
     }
     event_chain(st, e);
@@ -418,9 +411,9 @@ void event_0x44de20(game_state *st, uint32_t e)
     if (!start(st, e)) {
         return;
     }
-    int32_t m = S32(st, CURRENT_CITY(st) + 0x18);
-    GAME_CALL(st, 0x004E85D0u, m > 0x50 ? -0x32 : m > 0x3C ? -0x28 : -0x19);
-    S32(st, POPUP) = 1;
+    int32_t m = S32(st, CURRENT_CITY(st) + CITY_HEALTH);
+    GAME_CALL(st, FN_CITY_MOOD_ADD, m > 0x50 ? -0x32 : m > 0x3C ? -0x28 : -0x19);
+    S32(st, G_MESSAGE_POPUP) = 1;
     post_block(st, e, 0xEC, 0xEB, 0x10D, 0, 0);
     event_chain(st, e);
 }
@@ -431,9 +424,9 @@ void event_0x44dee0(game_state *st, uint32_t e)
     if (!start(st, e)) {
         return;
     }
-    int32_t r = GAME_CALL(st, 0x00469F80u, 0xA1);
+    int32_t r = GAME_CALL(st, FN_BUILDING_DESTROY_FIRST_OF_TYPE, 0xA1);
     if (r != 0) {
-        S32(st, POPUP) = 1;
+        S32(st, G_MESSAGE_POPUP) = 1;
         post_block(st, e, 0xF0, 0xEF, 0x10E, 0, r);
     }
     event_chain(st, e);
@@ -443,7 +436,7 @@ int32_t empire_city_open(game_state *st, uint32_t v)
 {
     /* @bin 0x00444980 the record of 0x0077DE00 in use whose +4 is v: its +5 != 0 (none: 0) */
     for (uint32_t k = 0; k < 61; k++) {
-        uint32_t r = 0x0077DE00u + 0x6Au * k;
+        uint32_t r = G_EMPIRE_CITIES + 0x6Au * k;
         if (U8(st, r) != 0 && U8(st, r + 4) == v) {
             return U8(st, r + 5) != 0;
         }
@@ -454,7 +447,7 @@ int32_t empire_city_open(game_state *st, uint32_t v)
 static uint32_t trade_slot(game_state *st, uint32_t e)
 {
     /* the i32 of 0x0077646C for the good +4 of the city +0x1C (36 per city) */
-    return 0x0077646Cu + 4u * (uint32_t) (S16(st, e + 4) + 36 * S16(st, e + 0x1C));
+    return G_TRADE_ROUTE_LIMITS + 4u * (uint32_t) (S16(st, e + 4) + 36 * S16(st, e + 0x1C));
 }
 
 void event_0x44d780(game_state *st, uint32_t e)
@@ -475,7 +468,7 @@ void event_0x44d780(game_state *st, uint32_t e)
             put16(blk, 0, 0xD0);
             put16(blk, 0x10, event_message_kind(st, e));
             event_fill_block(st, e, blk);
-            S32(st, POPUP) = 1;
+            S32(st, G_MESSAGE_POPUP) = 1;
             message_post(st, 0x111, empire_city_index(st, (uint32_t) k), g, blk, 0);
         }
     }
@@ -494,14 +487,14 @@ void event_0x44d870(game_state *st, uint32_t e)
     int32_t v = S32(st, t);
     if (v > 0) {
         S32(st, t) = v > 0x19 ? 0x19 : v <= 0xF ? 0 : 0xF;
-        GAME_CALL(st, 0x005599C0u, g);
+        GAME_CALL(st, FN_TRADE_ORDER_CHECK, g);
         if (empire_city_open(st, (uint32_t) k)) {
             uint8_t blk[32] = {0};
             put16(blk, 2, 0xD3);
             put16(blk, 0, 0xD4);
             put16(blk, 0x10, event_message_kind(st, e));
             event_fill_block(st, e, blk);
-            S32(st, POPUP) = 1;
+            S32(st, G_MESSAGE_POPUP) = 1;
             message_post(st, 0x112, empire_city_index(st, (uint32_t) k), g, blk, 0);
         }
     }
@@ -525,7 +518,7 @@ void event_0x44c7e0(game_state *st, uint32_t e)
     if (linked != 0) {
         who = S16(st, linked);
     }
-    S32(st, POPUP) = 1;
+    S32(st, G_MESSAGE_POPUP) = 1;
     message_post(st, 0x83, who, 0, blk, 0);
     city_add_0x42d8(st, S16(st, e + 0xC));
     U32(st, e + 0x28) |= 4;
@@ -545,10 +538,10 @@ void event_0x44c8a0(game_state *st, uint32_t e)
     put16(blk, 0, 0xC4);
     put16(blk, 0x10, event_message_kind(st, e));
     event_fill_block(st, e, blk);
-    S32(st, POPUP) = 1;
+    S32(st, G_MESSAGE_POPUP) = 1;
     message_post(st, 0x83, S16(st, e), 0, blk, 0);
     city_add_0x42d8(st, -(int32_t) S16(st, e + 0xC));
-    S32(st, CURRENT_CITY(st) + 0x4588) = S16(st, e + 0xC);
+    S32(st, CURRENT_CITY(st) + CITY_U4588) = S16(st, e + 0xC);
     U32(st, e + 0x28) |= 4;
     U8(st, e + 0x32) = 0;
     event_chain(st, e);
@@ -560,7 +553,7 @@ void event_0x44e5d0(game_state *st, uint32_t e)
     if (!start(st, e)) {
         return;
     }
-    S32(st, POPUP) = 1;
+    S32(st, G_MESSAGE_POPUP) = 1;
     uint8_t blk[32] = {0};
     int32_t id = 0x83;
     switch (U8(st, e + 0x60)) {
@@ -582,25 +575,25 @@ void event_0x44e7b0(game_state *st, uint32_t e, int32_t high)
 {
     /* @bin 0x0044E7B0 types 21 (0) and 22 (100), unless 0x00605A3C == 1: the flood manager
      * 0x00D05720 by 0x004BED00 / 0x004BED40; message 0x158 / 0x15D */
-    if (S32(st, 0x00605A3Cu) == 1 || !start(st, e)) {
+    if (S32(st, G_EDITOR) == 1 || !start(st, e)) {
         return;
     }
     uint8_t blk[32] = {0};
     int32_t id;
     if (high == 0) {
-        GAME_CALLT0(st, 0x00D05720u, 0x004BED00u);
+        GAME_CALLT0(st, G_UD05720, FN_FLOOD_WORSE);
         put16(blk, 2, 0xF7);
         put16(blk, 0, 0xF8);
         id = 0x158;
     } else {
-        GAME_CALLT0(st, 0x00D05720u, 0x004BED40u);
+        GAME_CALLT0(st, G_UD05720, FN_FLOOD_BETTER);
         put16(blk, 2, 0xFB);
         put16(blk, 0, 0xFC);
         id = 0x15D;
     }
     put16(blk, 0x10, event_message_kind(st, e));
     event_fill_block(st, e, blk);
-    S32(st, POPUP) = 1;
+    S32(st, G_MESSAGE_POPUP) = 1;
     message_post(st, id, 0, 0, blk, 0);
     event_chain(st, e);
 }
@@ -629,8 +622,8 @@ void event_month_step(game_state *st, uint32_t e)
 {
     /* @bin 0x0044C660 (thiscall) by the type (+2, table 0x0044C700) */
     switch (U8(st, e + 2)) {
-    case 1: GAME_CALLT0(st, e, 0x0044CDC0u); break;
-    case 4: case 5: GAME_CALL0(st, 0x0051F780u); break;
+    case 1: GAME_CALLT0(st, e, FN_EVENT_REQUEST); break;
+    case 4: case 5: GAME_CALL0(st, FN_NOTHING); break;
     case 6: event_0x44db20(st, e); break;
     case 7: event_0x44dbd0(st, e); break;
     case 8: event_0x44dca0(st, e); break;
@@ -644,17 +637,17 @@ void event_month_step(game_state *st, uint32_t e)
     case 16: event_0x44da30(st, e); break;
     case 17: event_0x44c7e0(st, e); break;
     case 18: event_0x44c8a0(st, e); break;
-    case 19: GAME_CALLT0(st, e, 0x0044E2A0u); break;
+    case 19: GAME_CALLT0(st, e, FN_EVENT_CITY_STATUS); break;
     case 20: event_0x44e5d0(st, e); break;
     case 21: event_0x44e7b0(st, e, 0); break;
     case 22: event_0x44e7b0(st, e, 100); break;
-    case 23: GAME_CALLT0(st, e, 0x0044E890u); break;
-    case 24: simple(st, e, 0x004E6EB0u, 0, 0, 0x1E3); break;
-    case 25: simple(st, e, 0x004E70B0u, 1, 0, 0x1E4); break;
-    case 26: simple(st, e, 0x004E6ED0u, 0, 1, 0x1E5); break;
-    case 27: simple(st, e, 0x004E7200u, 1, 0, 0x1E6); break;
-    case 28: simple(st, e, 0x00469C60u, 1, 0, 0x1EB); break;
-    case 29: simple(st, e, 0x004E7AC0u, 1, 0, 0x1F0); break;
+    case 23: GAME_CALLT0(st, e, FN_EVENT_FESTIVAL_REQUEST); break;
+    case 24: simple(st, e, FN_PLAGUE_FROGS_END, 0, 0, 0x1E3); break;
+    case 25: simple(st, e, FN_PLAGUE_FROGS, 1, 0, 0x1E4); break;
+    case 26: simple(st, e, FN_PLAGUE_HAIL, 0, 1, 0x1E5); break;
+    case 27: simple(st, e, FN_PLAGUE_FLIES, 1, 0, 0x1E6); break;
+    case 28: simple(st, e, FN_PLAGUE_FIRE, 1, 0, 0x1EB); break;
+    case 29: simple(st, e, FN_PLAGUE_TOMB_ROBBERS, 1, 0, 0x1F0); break;
     default: break;
     }
 }

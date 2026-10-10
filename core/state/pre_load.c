@@ -47,7 +47,7 @@ void pre_load_clear(game_state *st)
     /* @bin 0x0046FA40 grids cleared (address, bytes) */
     static const uint32_t grids[][2] = {
         {G_IMAGE, 0x32C40}, {G_EDGE, 0xCB10}, {G_BUILDING_GRID, 0x19620}, {G_GRID_TERRAIN, 0x32C40},
-        {G_GRID_FERTILITY, 0xCB10}, {G_CANAL, 0xCB10}, {G_FIGURE_GRID, 0x19620}, {G_DAY2_DESTROY_BITS, 0xCB10},
+        {G_FERTILITY_GRID, 0xCB10}, {G_CANAL, 0xCB10}, {G_FIGURE_GRID, 0x19620}, {G_DAY2_DESTROY_BITS, 0xCB10},
         {G_SPRITE, 0xCB10}, {G_RANDOM, 0xCB10}, {G_DESIRABILITY_GRID, 0xCB10}, {G_ELEVATION_GRID, 0xCB10},
         {G_GRID_DAMAGE, 0x19620}, {G_GRID_RUBBLE, 0xCB10}, {G_THREAT, 0xCB10}, {G_GRID_ROAD_NETWORK, 0xCB10},
         {G_NETWORK2, 0xCB10}, {G_GRID_MOISTURE, 0xCB10},

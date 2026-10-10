@@ -295,7 +295,7 @@ void land_pyramids_redraw(game_state *st)
         int32_t id = S32(st, G_PYRAMID_REDRAW + 4u * (uint32_t) i);
         uint32_t kind = U8(st, BUILDING(id) + BLD_MONUMENT_KIND);
         if ((uint8_t) GAME_CALL(st, FN_PYRAMID_KIND_OK, (int32_t) kind)) {
-            int32_t r = S32(st, G_RAMP_OFFSETS + 4u * kind) + S32(st, BUILDING(id) + BLD_GRID_OFFSET) - S32(st, G_MAP_START);
+            int32_t r = S32(st, G_PYRAMID_RAMP + 4u * kind) + S32(st, BUILDING(id) + BLD_GRID_OFFSET) - S32(st, G_MAP_START);
             GAME_CALL(st, FN_RAMP_WALK, r % GRID, r / GRID, 4, 0);
         }
     }
@@ -582,7 +582,7 @@ static int32_t run_pyramid_kind_ok(game_state *st, const int32_t *a)
     if (S32(st, G_PYRAMID_KIND) == 5) {
         return 0;
     }
-    return S32(st, G_RAMP_OFFSETS + 4u * (uint32_t) a[0]) != 0;
+    return S32(st, G_PYRAMID_RAMP + 4u * (uint32_t) a[0]) != 0;
 }
 
 static int32_t run_terrain_land(game_state *st, const int32_t *a)

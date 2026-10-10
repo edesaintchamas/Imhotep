@@ -136,12 +136,12 @@ void newgame_points_5f_create(game_state *st)
         return;
     }
     for (uint32_t p = 0; p < 8; p++) {
-        int16_t x = S16(st, G_POINTS8_X + 2u * p);
+        int16_t x = S16(st, G_POINTS_X + 2u * p);
         if (x <= 0) {
             continue;
         }
         random_next_state(st); /* @bin 0x004BBC33 */
-        int32_t f = figure_create(st, 1, 0x5F, x, S16(st, G_POINTS8_Y + 2u * p), 0);
+        int32_t f = figure_create(st, 1, 0x5F, x, S16(st, G_POINTS_Y + 2u * p), 0);
         U8(st, FIGURE_ADDR(f) + FIG_ANIM_FRAME) = (uint8_t) (crt_rand(st) & 0x1F); /* @bin 0x004BBD14 */
     }
 }
@@ -151,12 +151,12 @@ void newgame_points_41_create(game_state *st, int32_t x, int32_t y, int32_t flag
 {
     if (S32(st, G_EDITOR) == 0) {
         for (uint32_t p = 0; p < 8; p++) {
-            int16_t px = S16(st, G_POINTS8_X + 2u * p);
+            int16_t px = S16(st, G_POINTS_X + 2u * p);
             if (px <= 0) {
                 continue;
             }
             random_next_state(st); /* @bin 0x004BBD63 */
-            int32_t f = figure_create(st, 1, 0x41, px, S16(st, G_POINTS8_Y + 2u * p), 0);
+            int32_t f = figure_create(st, 1, 0x41, px, S16(st, G_POINTS_Y + 2u * p), 0);
             uint32_t fa = FIGURE_ADDR(f);
             U8(st, fa + FIG_ANIM_FRAME) = (uint8_t) (crt_rand(st) & 0x1F);    /* @bin 0x004BBE4A */
             U8(st, fa + FIG_PROGRESS_ON_TILE) = (uint8_t) (crt_rand(st) & 7);    /* @bin 0x004BBE57 */

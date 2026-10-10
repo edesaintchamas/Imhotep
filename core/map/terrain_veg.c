@@ -27,7 +27,7 @@
 #define RND(o) U8(st, G_RANDOM + (uint32_t) (o))
 #define AQ(o) U8(st, G_CANAL + (uint32_t) (o))
 #define MOIST(o) U8(st, G_GRID_MOISTURE + (uint32_t) (o))
-#define FERT(o) U8(st, G_GRID_FERTILITY + (uint32_t) (o))
+#define FERT(o) U8(st, G_FERTILITY_GRID + (uint32_t) (o))
 
 enum {
     G_0X40000 = 508,       /* @bin 0x0047AB10 [0x00F56B94] */

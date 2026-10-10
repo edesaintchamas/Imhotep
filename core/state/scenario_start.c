@@ -333,11 +333,11 @@ void scenario_start(game_state *st)
      * outside the map (0x0046F930) becomes (-1, -1); the test runs twice */
     for (uint32_t i = 0; i < 16; i++) {
         for (int k = 0; k < 2; k++) {
-            int32_t x = S32(st, G_VIEW_DX) + S16(st, G_SCENARIO_POINTS_X + 2 * i);
-            int32_t y = S32(st, G_VIEW_DY) + S16(st, G_SCENARIO_POINTS_Y + 2 * i);
+            int32_t x = S32(st, G_VIEW_DX) + S16(st, G_MAP_POINTS_X + 2 * i);
+            int32_t y = S32(st, G_VIEW_DY) + S16(st, G_MAP_POINTS_Y + 2 * i);
             if (!map_tile_inside(st, x, y)) {
-                S16(st, G_SCENARIO_POINTS_X + 2 * i) = -1;
-                S16(st, G_SCENARIO_POINTS_Y + 2 * i) = -1;
+                S16(st, G_MAP_POINTS_X + 2 * i) = -1;
+                S16(st, G_MAP_POINTS_Y + 2 * i) = -1;
             }
         }
     }

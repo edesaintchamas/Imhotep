@@ -10,14 +10,14 @@
 #include "city/day_anim.h"
 
 #include "random/crt_rand.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define SETS 0x005BE9B8u
 
 static uint32_t set_addr(int32_t set)
 {
-    return SETS + 0x28u * (uint32_t) set;
+    return G_PART_DESC_SETS + 0x28u * (uint32_t) set;
 }
 
 static int32_t last_frame(game_state *st, uint32_t t, int32_t anim)
@@ -75,7 +75,7 @@ void anim_step(game_state *st, uint32_t obj)
 {
     /* @bin 0x0041FDB0 */
     int16_t fig = P16(st, obj + 0x12);
-    if (fig != 0 && U8(st, FIGURE_ADDR(fig) + 0x38) != P8(st, obj + 0x14)) {
+    if (fig != 0 && U8(st, FIGURE_ADDR(fig) + FIG_ACTION) != P8(st, obj + 0x14)) {
         P16(st, obj + 0x12) = 0;
         P8(st, obj + 0x14) = 0;
         P16(st, obj + 0x10) = 3;
@@ -128,26 +128,26 @@ static void step_list(game_state *st, uint32_t from, uint32_t to)
     }
 }
 
-static void list_41ff20(game_state *st) { step_list(st, 0x005C2750u, 0x005C28B0u); }
-static void list_41ff40(game_state *st) { step_list(st, 0x00596088u, 0x00596158u); }
-static void list_420d40(game_state *st) { step_list(st, 0x005AD218u, 0x005AD3C8u); }
-static void list_4206d0(game_state *st) { step_list(st, 0x0059EDF0u, 0x0059EFA0u); }
-static void list_420a10(game_state *st) { step_list(st, 0x005A8148u, 0x005A84C8u); }
-static void list_421040(game_state *st) { step_list(st, 0x005B0060u, 0x005B0150u); }
+static void list_41ff20(game_state *st) { step_list(st, G_U5C2750, G_U5C28B0); }
+static void list_41ff40(game_state *st) { step_list(st, G_U596088, G_U596158); }
+static void list_420d40(game_state *st) { step_list(st, G_U5AD218, G_U5AD3C8); }
+static void list_4206d0(game_state *st) { step_list(st, G_U59EDF0, G_U59EFA0); }
+static void list_420a10(game_state *st) { step_list(st, G_U5A8148, G_U5A84C8); }
+static void list_421040(game_state *st) { step_list(st, G_U5B0060, G_U5B0150); }
 
 static void list_4216d0(game_state *st)
 {
     /* @bin 0x004216D0 */
     static const uint32_t ranges[][2] = {
-        {0x005BE510u, 0x005BE540u}, {0x005BE540u, 0x005BE570u}, {0x005BE570u, 0x005BE5A0u},
-        {0x005BE750u, 0x005BE780u}, {0x005BE780u, 0x005BE7B0u}, {0x005BE5A0u, 0x005BE5D0u},
-        {0x005BE5D0u, 0x005BE600u}, {0x005BE600u, 0x005BE630u}, {0x005BE630u, 0x005BE660u},
-        {0x005BE7B0u, 0x005BE7E0u}, {0x005BE7E0u, 0x005BE810u}, {0x005BE660u, 0x005BE690u},
-        {0x005BE690u, 0x005BE6C0u}, {0x005BE8A0u, 0x005BE8D0u}, {0x005BE810u, 0x005BE840u},
-        {0x005BE8D0u, 0x005BE900u}, {0x005BE900u, 0x005BE930u}, {0x005BE6C0u, 0x005BE6F0u},
-        {0x005BE6F0u, 0x005BE720u}, {0x005BE720u, 0x005BE750u}, {0x005BE840u, 0x005BE870u},
-        {0x005BE870u, 0x005BE8A0u}, {0x005BE930u, 0x005BE960u}, {0x005BE960u, 0x005BE990u},
-        {0x005BE990u, 0x005BE9C0u},
+        {G_ANIM_LISTS, G_ANIM_LISTS + 0x30 * 1}, {G_ANIM_LISTS + 0x30 * 1, G_ANIM_LISTS + 0x30 * 2}, {G_ANIM_LISTS + 0x30 * 2, G_ANIM_LISTS + 0x30 * 3},
+        {G_ANIM_LISTS + 0x30 * 12, G_ANIM_LISTS + 0x30 * 13}, {G_ANIM_LISTS + 0x30 * 13, G_ANIM_LISTS + 0x30 * 14}, {G_ANIM_LISTS + 0x30 * 3, G_ANIM_LISTS + 0x30 * 4},
+        {G_ANIM_LISTS + 0x30 * 4, G_ANIM_LISTS + 0x30 * 5}, {G_ANIM_LISTS + 0x30 * 5, G_ANIM_LISTS + 0x30 * 6}, {G_ANIM_LISTS + 0x30 * 6, G_ANIM_LISTS + 0x30 * 7},
+        {G_ANIM_LISTS + 0x30 * 14, G_ANIM_LISTS + 0x30 * 15}, {G_ANIM_LISTS + 0x30 * 15, G_ANIM_LISTS + 0x30 * 16}, {G_ANIM_LISTS + 0x30 * 7, G_ANIM_LISTS + 0x30 * 8},
+        {G_ANIM_LISTS + 0x30 * 8, G_ANIM_LISTS + 0x30 * 9}, {G_ANIM_LISTS + 0x30 * 19, G_ANIM_LISTS + 0x30 * 20}, {G_ANIM_LISTS + 0x30 * 16, G_ANIM_LISTS + 0x30 * 17},
+        {G_ANIM_LISTS + 0x30 * 20, G_ANIM_LISTS + 0x30 * 21}, {G_ANIM_LISTS + 0x30 * 21, G_ANIM_LISTS + 0x30 * 22}, {G_ANIM_LISTS + 0x30 * 9, G_ANIM_LISTS + 0x30 * 10},
+        {G_ANIM_LISTS + 0x30 * 10, G_ANIM_LISTS + 0x30 * 11}, {G_ANIM_LISTS + 0x30 * 11, G_ANIM_LISTS + 0x30 * 12}, {G_ANIM_LISTS + 0x30 * 17, G_ANIM_LISTS + 0x30 * 18},
+        {G_ANIM_LISTS + 0x30 * 18, G_ANIM_LISTS + 0x30 * 19}, {G_ANIM_LISTS + 0x30 * 22, G_ANIM_LISTS + 0x30 * 23}, {G_ANIM_LISTS + 0x30 * 23, G_ANIM_LISTS + 0x30 * 24},
+        {G_ANIM_LISTS + 0x30 * 24, G_ANIM_LISTS + 0x30 * 25},
     };
     for (unsigned i = 0; i < sizeof(ranges) / sizeof(ranges[0]); i++) {
         step_list(st, ranges[i][0], ranges[i][1]);
@@ -160,13 +160,13 @@ static int32_t monument_4e59c0(game_state *st)
      * of type 0xCF or 0xD0, with +0x55 != 100 */
     uint32_t c = CURRENT_CITY(st);
     for (uint32_t i = 0; i < 3; i++) {
-        int32_t id = S32(st, c + 0x473Cu + 4 * i);
+        int32_t id = S32(st, c + CITY_MONUMENTS + 4 * i);
         if (id == 0) {
             continue;
         }
         uint32_t b = BUILDING_ADDR(id);
-        int16_t type = S16(st, b + 0x10);
-        if (U8(st, b) == 1 && (type == 0xCF || type == 0xD0) && U8(st, b + 0x55) != 100) {
+        int16_t type = S16(st, b + BLD_TYPE);
+        if (U8(st, b + BLD_STATE) == 1 && (type == 0xCF || type == 0xD0) && U8(st, b + BLD_U55) != 100) {
             return id;
         }
     }
@@ -181,9 +181,9 @@ static void monument_anims_4e5a80(game_state *st)
     if (id == 0) {
         return;
     }
-    int16_t type = S16(st, BUILDING_ADDR(id) + 0x10);
+    int16_t type = S16(st, BUILDING_ADDR(id) + BLD_TYPE);
     int32_t n = type == 0xCF ? 10 : 18;
-    uint32_t list = type == 0xCF ? 0x00586B08u : 0x0058FE48u;
+    uint32_t list = type == 0xCF ? G_MONUMENT_LIST_CF : G_MONUMENT_LIST_D0;
     for (int32_t i = 0; i < n; i++) {
         anim_step(st, U32(st, list + 0x10u * (uint32_t) i + 8));
     }

@@ -3,16 +3,10 @@
  * Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0. */
 #include "city/rest_misc.h"
 
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define TERRAIN 0x00AF598Cu
-#define FIGURE_GRID 0x00B350DCu /* i16 per tile: the first figure on it */
-#define MAP_W 0x00BCA2D0u
-#define MAP_H 0x00BCA2D4u
-#define MAP_START 0x00BCA2D8u
-#define CUR_X 0x00D3B4E4u
-#define CUR_Y 0x00D3B4E0u
 
 static int32_t absdiff(int32_t a, int32_t b)
 {
@@ -27,7 +21,7 @@ int32_t nearest_point_480c60(game_state *st, int32_t f)
      * 0x00D3B4FC / 0x00D3B4F8 keep the last distances computed */
     int32_t n = 0;
     for (uint32_t i = 0; i < 8; i++) {
-        if (S16(st, 0x00784B74u + 2u * i) > 0) {
+        if (S16(st, G_POINTS_X + 2u * i) > 0) {
             n++;
         }
     }
@@ -37,15 +31,15 @@ int32_t nearest_point_480c60(game_state *st, int32_t f)
     uint32_t fr = FIGURE_ADDR(f);
     int32_t best = 10000, sel = 0;
     for (int32_t i = 0; i < 8; i++) {
-        int32_t x = S16(st, 0x00784B74u + 2u * (uint32_t) i);
+        int32_t x = S16(st, G_POINTS_X + 2u * (uint32_t) i);
         if (x <= 0) {
             continue;
         }
-        int32_t y = S16(st, 0x00784B84u + 2u * (uint32_t) i);
-        int32_t dx = absdiff(S16(st, fr + 0x14), x);
-        S32(st, 0x00D3B4FCu) = dx;
-        int32_t dy = absdiff(S16(st, fr + 0x16), y);
-        S32(st, 0x00D3B4F8u) = dy;
+        int32_t y = S16(st, G_POINTS_Y + 2u * (uint32_t) i);
+        int32_t dx = absdiff(S16(st, fr + FIG_X), x);
+        S32(st, G_DIST_X) = dx;
+        int32_t dy = absdiff(S16(st, fr + FIG_Y), y);
+        S32(st, G_DIST_Y) = dy;
         int32_t d = dx < dy ? dy : dx;
         if (d < best) {
             best = d;
@@ -55,8 +49,8 @@ int32_t nearest_point_480c60(game_state *st, int32_t f)
     if (best >= 10000) {
         return 0;
     }
-    S32(st, CUR_X) = U8(st, 0x00784B74u + 2u * (uint32_t) sel);
-    S32(st, CUR_Y) = U8(st, 0x00784B84u + 2u * (uint32_t) sel);
+    S32(st, G_ROAD_ACCESS_X) = U8(st, G_POINTS_X + 2u * (uint32_t) sel);
+    S32(st, G_ROAD_ACCESS_Y) = U8(st, G_POINTS_Y + 2u * (uint32_t) sel);
     return 1;
 }
 
@@ -66,10 +60,10 @@ int32_t figure_area_free_480d60(game_state *st, int32_t f)
      * bit 4 and no figure lies within 5 tiles of it (rings 1..5, clipped to the map; cursor
      * 0x00D3B4E4 / 0x00D3B4E0 left where the scan stopped); else 0 */
     uint32_t fr = FIGURE_ADDR(f);
-    if (S16(st, FIGURE_GRID + 2u * U32(st, fr + 0x20)) == f) {
+    if (S16(st, G_FIGURE_GRID + 2u * U32(st, fr + FIG_GRID_OFFSET)) == f) {
         return 1;
     }
-    int32_t fx = S16(st, fr + 0x14), fy = S16(st, fr + 0x16);
+    int32_t fx = S16(st, fr + FIG_X), fy = S16(st, fr + FIG_Y);
     for (int32_t r = 1; r <= 5; r++) {
         int32_t x1 = fx + r, y1 = fy + r, x0 = fx - r, y0 = fy - r;
         if (x0 < 0) {
@@ -78,29 +72,29 @@ int32_t figure_area_free_480d60(game_state *st, int32_t f)
         if (y0 < 0) {
             y0 = 0;
         }
-        if (x1 >= S32(st, MAP_W)) {
-            x1 = S32(st, MAP_W) - 1;
+        if (x1 >= S32(st, G_MAP_WIDTH)) {
+            x1 = S32(st, G_MAP_WIDTH) - 1;
         }
-        if (y1 >= S32(st, MAP_H)) {
-            y1 = S32(st, MAP_H) - 1;
+        if (y1 >= S32(st, G_MAP_HEIGHT)) {
+            y1 = S32(st, G_MAP_HEIGHT) - 1;
         }
-        S32(st, CUR_Y) = y0;
+        S32(st, G_ROAD_ACCESS_Y) = y0;
         int32_t step = x0 - x1 + 0xE3;
-        int32_t off = S32(st, MAP_START) + y0 * 228 + x0;
+        int32_t off = S32(st, G_MAP_START) + y0 * 228 + x0;
         for (int32_t y = y0; y <= y1;) {
-            S32(st, CUR_X) = x0;
+            S32(st, G_ROAD_ACCESS_X) = x0;
             for (int32_t x = x0; x <= x1;) {
-                if ((U8(st, TERRAIN + 4u * (uint32_t) off) & 4) != 0 &&
-                    S16(st, FIGURE_GRID + 2u * (uint32_t) off) == 0) {
+                if ((U8(st, G_GRID_TERRAIN + 4u * (uint32_t) off) & 4) != 0 &&
+                    S16(st, G_FIGURE_GRID + 2u * (uint32_t) off) == 0) {
                     return 0;
                 }
                 x++;
                 off++;
-                S32(st, CUR_X) = x;
+                S32(st, G_ROAD_ACCESS_X) = x;
             }
             y++;
             off += step;
-            S32(st, CUR_Y) = y;
+            S32(st, G_ROAD_ACCESS_Y) = y;
         }
     }
     return 1;

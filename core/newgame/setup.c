@@ -186,7 +186,7 @@ void scenario_map_load(game_state *st)
     GAME_CALL0(st, FN_MAP_ROW_RANGES);
     /* @bin 0x004DE6D5 the 16 map points (x 0x00784BC0, y 0x00784BE0): off the map -> -1, -1
      * (checked twice) */
-    for (uint32_t p = G_SCENARIO_POINTS_Y; p < G_SCENARIO_POINTS_Y + 0x20u; p += 2) {
+    for (uint32_t p = G_MAP_POINTS_Y; p < G_MAP_POINTS_Y + 0x20u; p += 2) {
         for (int k = 0; k < 2; k++) {
             int32_t x = S32(st, G_VIEW_DX) + S16(st, p - 0x20), y = S32(st, G_VIEW_DY) + S16(st, p);
             if ((GAME_CALL(st, FN_MAP_TILE_INSIDE, x, y) & 0xFF) == 0) {
@@ -266,9 +266,9 @@ void scenario_setup(game_state *st)
      * 0x00784C50, else +1000000 */
     int32_t year = S16(st, G_START_YEAR);
     S32(st, G_YEAR) = year;
-    if (U32(st, G_TIME_LIMIT_ON) != 0) {
+    if (U32(st, G_GOAL_TIME) != 0) {
         year += S32(st, G_TIME_LIMIT_YEARS);
-    } else if (U32(st, G_SURVIVE_ON) != 0) {
+    } else if (U32(st, G_GOAL_DEADLINE) != 0) {
         year += S32(st, G_SURVIVE_YEARS);
     } else {
         year += 1000000;
