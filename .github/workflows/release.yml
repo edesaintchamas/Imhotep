@@ -1,0 +1,206 @@
+name: Release
+
+# Roadmap 9.4: the packages a player downloads, built by tools/release/ (docs/release.md).
+#   - macOS: Imhotep.app (arm64) with SDL2 and FFmpeg inside, zipped;
+#   - Windows: a zip with imhotep.exe and the MSYS2 UCRT64 DLLs it needs;
+#   - Linux: a tar.gz and an AppImage (built on Ubuntu 22.04 for an old glibc) with their libraries.
+# Each holds README.md and LICENSE, and nothing from the game (tools/release/check_package.py). Each is
+# then unpacked on a fresh machine without SDL2 or FFmpeg (Linux: several distributions in containers)
+# and smoke-tested (tools/release/smoke.sh), so a missing library fails the run.
+# On a tag v*: a draft GitHub Release with the packages, for the maintainer to check and publish.
+# Run by hand (workflow_dispatch): the packages as workflow artifacts only, no release.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: No game content in the repository
+        run: python3 tools/check_no_game_files.py
+      - id: v
+        name: Version (the tag without its v; else dev and the commit)
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then v=${GITHUB_REF_NAME#v}; else v=dev-${GITHUB_SHA::7}; fi
+          case "$v" in *[!A-Za-z0-9.+-]*|"") echo "bad version: $v"; exit 1;; esac
+          echo "version=$v" | tee -a "$GITHUB_OUTPUT"
+
+  macos:
+    needs: version
+    runs-on: macos-latest
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Dependencies
+        run: brew install sdl2 ffmpeg pkgconf
+      - name: Build
+        run: make -j4 game IMHOTEP_VERSION="$VERSION"
+      - name: Package
+        run: tools/release/package_macos.sh "$VERSION" build/imhotep dist
+      - name: Smoke test (build machine; no library loaded from Homebrew)
+        run: |
+          DYLD_PRINT_LIBRARIES=1 dist/Imhotep.app/Contents/MacOS/imhotep --version 2> libs.txt
+          if grep -E '/opt/homebrew|/usr/local' libs.txt; then echo "libraries loaded from outside the app"; exit 1; fi
+          tools/release/smoke.sh dist/Imhotep.app/Contents/MacOS/imhotep "$VERSION"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: imhotep-macos
+          path: dist/*.zip
+          if-no-files-found: error
+
+  windows:
+    needs: version
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - name: Keep line endings
+        shell: pwsh
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v5
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: make zip
+          pacboy: gcc:p pkgconf:p SDL2:p ffmpeg:p python:p
+      - name: Build
+        run: make -j4 game IMHOTEP_VERSION="$VERSION"
+      - name: Package
+        run: tools/release/package_windows.sh "$VERSION" build/imhotep.exe dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: imhotep-windows
+          path: dist/*.zip
+          if-no-files-found: error
+
+  linux:
+    needs: version
+    runs-on: ubuntu-22.04
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      LINUXDEPLOY_URL: https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-x86_64.AppImage
+    steps:
+      - uses: actions/checkout@v5
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends make pkg-config \
+            libsdl2-dev libavformat-dev libavcodec-dev libswresample-dev libswscale-dev libavutil-dev
+          curl -fsSL -o "$RUNNER_TEMP/linuxdeploy" "$LINUXDEPLOY_URL"
+          chmod +x "$RUNNER_TEMP/linuxdeploy"
+      - name: Build
+        run: make -j4 game IMHOTEP_VERSION="$VERSION"
+      - name: Package
+        run: LINUXDEPLOY="$RUNNER_TEMP/linuxdeploy" tools/release/package_linux.sh "$VERSION" build/imhotep dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: imhotep-linux
+          path: |
+            dist/*.tar.gz
+            dist/*.AppImage
+          if-no-files-found: error
+
+  # ---- the packages on fresh machines: nothing installed but the system ----
+
+  test-macos:
+    needs: [version, macos]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: tools/release
+      - uses: actions/download-artifact@v4
+        with:
+          name: imhotep-macos
+          path: pkg
+      - name: Unpack and smoke test
+        run: |
+          mkdir app && ditto -x -k pkg/*.zip app
+          codesign --verify --deep --strict app/Imhotep.app
+          DYLD_PRINT_LIBRARIES=1 app/Imhotep.app/Contents/MacOS/imhotep --version 2> libs.txt
+          if grep -E '/opt/homebrew|/usr/local' libs.txt; then echo "libraries loaded from outside the app"; exit 1; fi
+          tools/release/smoke.sh app/Imhotep.app/Contents/MacOS/imhotep "${{ needs.version.outputs.version }}"
+
+  test-windows:
+    needs: [version, windows]
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: tools/release
+      - uses: actions/download-artifact@v4
+        with:
+          name: imhotep-windows
+          path: pkg
+      - name: Unpack
+        shell: pwsh
+        run: Expand-Archive -Path (Get-ChildItem pkg/*.zip).FullName -DestinationPath app
+      - name: Smoke test (PATH limited to Windows' own directories)
+        run: |
+          SMOKE_PATH=/c/Windows/System32:/c/Windows tools/release/smoke.sh app/*/imhotep.exe "${{ needs.version.outputs.version }}"
+
+  test-linux:
+    needs: [version, linux]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ["ubuntu:22.04", "ubuntu:24.04", "debian:12", "fedora:42"]
+    container: ${{ matrix.image }}
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: tools/release
+      - uses: actions/download-artifact@v4
+        with:
+          name: imhotep-linux
+          path: pkg
+      - name: tar and gzip (minimal images)
+        run: if command -v dnf > /dev/null; then dnf install -y tar gzip; fi
+      - name: Archive, unpacked
+        run: |
+          mkdir app && tar -C app -xzf pkg/*.tar.gz
+          tools/release/smoke.sh app/*/imhotep "$VERSION"
+      - name: AppImage (extracted and run, no FUSE in a container)
+        run: |
+          chmod +x pkg/*.AppImage
+          APPIMAGE_EXTRACT_AND_RUN=1 tools/release/smoke.sh "$(ls pkg/*.AppImage)" "$VERSION"
+
+  release:
+    if: github.ref_type == 'tag'
+    needs: [version, test-macos, test-windows, test-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: pkg
+          merge-multiple: true
+      - name: Draft release (the maintainer checks and publishes it)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -l pkg
+          (cd pkg && sha256sum * > SHA256SUMS.txt)
+          gh release create "$GITHUB_REF_NAME" pkg/* --repo "$GITHUB_REPOSITORY" --draft --verify-tag \
+            --title "Imhotep ${{ needs.version.outputs.version }}" --generate-notes
