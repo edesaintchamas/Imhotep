@@ -5,10 +5,10 @@
 #include "figure/last_figure.h"
 
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define PLAYER 0x00EAAC28u
 #define FIG(id, off) (FIGURE_ADDR(id) + (off))
 
 int32_t figure_unload_to_works(game_state *st, int32_t building, int32_t good, int32_t route, int32_t figure)
@@ -22,24 +22,24 @@ int32_t figure_unload_to_works(game_state *st, int32_t building, int32_t good, i
      * 150 % through 0x004CDE40 when the city's +0x45CC > 0) added to the city's +0x0C and
      * +0x2C64; stops at 12 loads, else the route count 0x0077592C [route byte (0x0077DE04 +
      * 106 route) * 36 + good] + 1 and 0x00444BD0(figure, good). Returns 1 when n != 0, else 0. */
-    if (S16(st, BUILDING_ADDR(building) + 0x10) != 0x48) {
+    if (S16(st, BUILDING_ADDR(building) + BLD_TYPE) != 0x48) {
         return 0;
     }
-    int32_t stock = GAME_CALL(st, 0x0045D510u, building, good);
-    uint32_t count = FIG(figure, 0x6F);
+    int32_t stock = GAME_CALL(st, FN_BUILDING_PARTS_STOCK, building, good);
+    uint32_t count = FIG(figure, FIG_U6F);
     if (U8(st, count) >= 0xC || stock < 100) {
         return 0;
     }
     int32_t n = stock < 400 ? stock / 100 : 4;
-    uint32_t p = U32(st, PLAYER);
-    int32_t amount = S32(st, 0x00EA6160u + 4u * (p * 0x1276u + (uint32_t) good));
-    if (S16(st, 0x00EA4096u + 2u * (p * 0x24ECu + (uint32_t) good)) == 2) {
-        int32_t keep = (int32_t) S16(st, 0x00EA40DEu + 2u * (p * 0x24ECu + (uint32_t) good)) * 100;
+    uint32_t p = U32(st, G_PLAYER);
+    int32_t amount = S32(st, CITY_BASE + CITY_GOOD_STOCK + 4u * (p * 0x1276u + (uint32_t) good));
+    if (S16(st, CITY_BASE + CITY_GOOD_SETTING + 2u * (p * 0x24ECu + (uint32_t) good)) == 2) {
+        int32_t keep = (int32_t) S16(st, CITY_BASE + CITY_U286E + 2u * (p * 0x24ECu + (uint32_t) good)) * 100;
         if (amount - n * 100 < keep) {
             n = (amount - keep) / 100;
         }
     } else {
-        int32_t keep = S32(st, 0x00775810u + 4u * (uint32_t) good);
+        int32_t keep = S32(st, G_DEFAULT_LIMIT + 4u * (uint32_t) good);
         if (amount - n * 100 < keep) {
             n = (amount - keep) / 100;
         }
@@ -49,25 +49,25 @@ int32_t figure_unload_to_works(game_state *st, int32_t building, int32_t good, i
     }
     for (int32_t i = 0; i < n; i++) {
         U8(st, count) += 1;
-        GAME_CALL(st, 0x0045B570u, S32(st, PLAYER), building, good, 100);
-        uint32_t city = CITY_ADDR(U32(st, PLAYER));
-        if (S32(st, city + 0x45CC) > 0) {
-            int32_t v = GAME_CALL(st, 0x004CDE40u, S32(st, 0x005D2C4Cu + 8u * (uint32_t) good), 0x96);
-            S32(st, city + 0x0C) += v;
-            city = CITY_ADDR(U32(st, PLAYER));
-            v = GAME_CALL(st, 0x004CDE40u, S32(st, 0x005D2C4Cu + 8u * (uint32_t) good), 0x96);
-            S32(st, city + 0x2C64) += v;
+        GAME_CALL(st, FN_STORAGE_TAKE, S32(st, G_PLAYER), building, good, 100);
+        uint32_t city = CITY_ADDR(U32(st, G_PLAYER));
+        if (S32(st, city + CITY_U45CC) > 0) {
+            int32_t v = GAME_CALL(st, FN_CALC_PERCENTAGE, S32(st, G_PRICE_SELL + 8u * (uint32_t) good), 0x96);
+            S32(st, city + CITY_TREASURY) += v;
+            city = CITY_ADDR(U32(st, G_PLAYER));
+            v = GAME_CALL(st, FN_CALC_PERCENTAGE, S32(st, G_PRICE_SELL + 8u * (uint32_t) good), 0x96);
+            S32(st, city + CITY_U2C64) += v;
         } else {
-            int32_t v = S32(st, 0x005D2C4Cu + 8u * (uint32_t) good);
-            S32(st, city + 0x0C) += v;
-            S32(st, city + 0x2C64) += v;
+            int32_t v = S32(st, G_PRICE_SELL + 8u * (uint32_t) good);
+            S32(st, city + CITY_TREASURY) += v;
+            S32(st, city + CITY_U2C64) += v;
         }
         if (U8(st, count) >= 0xC) {
             break;
         }
-        uint32_t r = U8(st, 0x0077DE04u + 106u * (uint32_t) route);
-        S32(st, 0x0077592Cu + 4u * ((uint32_t) good + 36u * r)) += 1;
-        GAME_CALL(st, 0x00444BD0u, figure, good);
+        uint32_t r = U8(st, G_EMPIRE_CITIES + EMPCITY_ROUTE + 106u * (uint32_t) route);
+        S32(st, G_TRADE_DONE + 4u * ((uint32_t) good + 36u * r)) += 1;
+        GAME_CALL(st, FN_FIGURE_SLOT_COUNT_GOOD_B, figure, good);
     }
     return 1;
 }
@@ -79,17 +79,17 @@ int32_t building_nearest_0x458c30(game_state *st, int32_t x, int32_t y)
      * distance from (x, y) (its words +6, +8; |dx| -> 0x00D3B4FC, |dy| -> 0x00D3B4F8): the first
      * such, else 0 */
     int32_t best = 1000, found = 0;
-    for (int32_t id = 1; id <= S32(st, 0x0078D790u); id++) {
+    for (int32_t id = 1; id <= S32(st, G_BUILDING_HIGHEST); id++) {
         uint32_t b = BUILDING_ADDR(id);
-        if (U8(st, b) != 1 || U8(st, b + 5) == 0 || S16(st, b + 0x20) <= 0 || S16(st, b + 0x1E) <= 0 ||
-            S16(st, b + 0x2E) != 0) {
+        if (U8(st, b + BLD_STATE) != 1 || U8(st, b + BLD_HOUSE_SIZE) == 0 || S16(st, b + BLD_DISTANCE) <= 0 || S16(st, b + BLD_ROOM_LEFT) <= 0 ||
+            S16(st, b + BLD_IMMIGRANT) != 0) {
             continue;
         }
-        int32_t bx = S16(st, b + 6), by = S16(st, b + 8);
+        int32_t bx = S16(st, b + BLD_X), by = S16(st, b + BLD_Y);
         int32_t dx = x > bx ? x - bx : (x < bx ? bx - x : 0);
-        S32(st, 0x00D3B4FCu) = dx;
+        S32(st, G_DIST_X) = dx;
         int32_t dy = y > by ? y - by : (y < by ? by - y : 0);
-        S32(st, 0x00D3B4F8u) = dy;
+        S32(st, G_DIST_Y) = dy;
         int32_t d = dx >= dy ? dx : dy;
         if (d < best) {
             best = d;
@@ -109,18 +109,18 @@ void figure_hit_target(game_state *st, int32_t attacker, int32_t target)
      * the current player raises its formation's (word +0x60) word 0x00BCBA42 + 0x90 f by 1, at
      * most 100; byte +0x38 := 4, word +0x36 := 0, 0x004B5050(target), 0x004B7AB0(target's
      * formation) */
-    int32_t fa = S16(st, FIG(attacker, 0x60));
-    int32_t ft = S16(st, FIG(target, 0x60));
+    int32_t fa = S16(st, FIG(attacker, FIG_FORMATION));
+    int32_t ft = S16(st, FIG(target, FIG_FORMATION));
     if (attacker == target) {
         return;
     }
-    if ((uint32_t) U8(st, FIG(target, 0x0F)) == U32(st, PLAYER)) {
+    if ((uint32_t) U8(st, FIG(target, FIG_OWNER)) == U32(st, G_PLAYER)) {
         return;
     }
-    uint32_t ta = U8(st, FIG(attacker, 0x0A));
-    int32_t attack = S32(st, 0x007090D4u + 56u * ta);
-    int32_t defence = S32(st, 0x007090D8u + 56u * ta);
-    int32_t k = S32(st, FIG(attacker, 0x134));
+    uint32_t ta = U8(st, FIG(attacker, FIG_TYPE));
+    int32_t attack = S32(st, G_PROPS + FIGTYPE_ATTACK + 56u * ta);
+    int32_t defence = S32(st, G_PROPS + FIGTYPE_DEFENCE + 56u * ta);
+    int32_t k = S32(st, FIG(attacker, FIG_U134));
     if (k > 5 && k < 0x14) {
         attack = (int32_t) ((uint32_t) attack << 2);
     }
@@ -131,36 +131,36 @@ void figure_hit_target(game_state *st, int32_t attacker, int32_t target)
             dmg = 0;
         }
     }
-    uint8_t hp = (uint8_t) (U8(st, FIG(target, 0x1D)) + (uint8_t) dmg);
-    U8(st, FIG(target, 0x1D)) = hp;
-    if ((int32_t) hp <= S32(st, 0x007090D0u + 56u * (uint32_t) U8(st, FIG(target, 0x0A)))) {
-        GAME_CALL(st, 0x004B5210u, attacker);
+    uint8_t hp = (uint8_t) (U8(st, FIG(target, FIG_DAMAGE)) + (uint8_t) dmg);
+    U8(st, FIG(target, FIG_DAMAGE)) = hp;
+    if ((int32_t) hp <= S32(st, G_PROPS + FIGTYPE_MAX_DAMAGE + 56u * (uint32_t) U8(st, FIG(target, FIG_TYPE)))) {
+        GAME_CALL(st, FN_FIGURE_ATTACK_SOUND, attacker);
         return;
     }
-    if ((uint8_t) GAME_CALL(st, 0x004EA9C0u, (int32_t) U8(st, FIG(target, 0x0A))) == 0 &&
-        (uint8_t) GAME_CALL(st, 0x004EA9A0u, (int32_t) U8(st, FIG(target, 0x0A))) == 0 &&
-        U8(st, FIG(target, 0x0A)) != 0x17 && (uint32_t) U8(st, FIG(attacker, 0x0F)) == U32(st, PLAYER)) {
-        uint32_t f = 0x00BCBA42u + 0x90u * (uint32_t) fa;
+    if ((uint8_t) GAME_CALL(st, FN_FIGURE_TYPE_IS_ENEMY_0X52, (int32_t) U8(st, FIG(target, FIG_TYPE))) == 0 &&
+        (uint8_t) GAME_CALL(st, FN_FIGURE_TYPE_IS_0X44_0X46, (int32_t) U8(st, FIG(target, FIG_TYPE))) == 0 &&
+        U8(st, FIG(target, FIG_TYPE)) != 0x17 && (uint32_t) U8(st, FIG(attacker, FIG_OWNER)) == U32(st, G_PLAYER)) {
+        uint32_t f = G_FORMATION_BASE + FM_EXPERIENCE + 0x90u * (uint32_t) fa;
         int32_t v = S16(st, f) + 1;
         if (v >= 100) {
             v = 100;
         }
         S16(st, f) = (int16_t) v;
     }
-    U8(st, FIG(target, 0x38)) = 4;
-    S16(st, FIG(target, 0x36)) = 0;
-    GAME_CALL(st, 0x004B5050u, target);
-    GAME_CALL(st, 0x004B7AB0u, ft);
+    U8(st, FIG(target, FIG_ACTION)) = 4;
+    S16(st, FIG(target, FIG_WAIT_TICKS)) = 0;
+    GAME_CALL(st, FN_FIGURE_HIT_SOUND, target);
+    GAME_CALL(st, FN_FORMATION_MORALE_HIT, ft);
 }
 
 int32_t city_list_index_0x480860(game_state *st, int32_t value)
 {
     /* @bin 0x00480860 (value) when 0x00705C1C > 0: the index of `value` among the 10 words at
      * the current city's +0x4460, else -1 */
-    if (S32(st, 0x00705C1Cu) <= 0) {
+    if (S32(st, G_DOCK_COUNT) <= 0) {
         return -1;
     }
-    uint32_t base = CITY_ADDR(U32(st, PLAYER)) + 0x4460u;
+    uint32_t base = CITY_ADDR(U32(st, G_PLAYER)) + CITY_U4460;
     for (int32_t i = 0; i < 10; i++) {
         if (value == S16(st, base + 2u * (uint32_t) i)) {
             return i;

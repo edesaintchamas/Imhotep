@@ -6,18 +6,13 @@
 
 #include <stdint.h>
 
+#include "state/layout.h"
 #include "state/state.h"
 #include "state/records.h"
 
-#define FIGB_CURRENT 0x00D056F8u /* the figure being updated */
-#define FIGB_CUR(st) S32(st, FIGB_CURRENT)
+#define FIGB_CUR(st) S32(st, G_CURRENT_FIGURE)
 #define FIGB_F(st) FIGURE_ADDR(FIGB_CUR(st))
-#define FIGB_DIR_REL 0x00E94E00u   /* direction relative to the view, set by the image code */
-#define FIGB_VIEW_DIR 0x00BCA2E0u  /* view orientation */
-#define FIGB_SPRITES 0x00F55BB4u   /* sprite group base ids, 8 bytes per group */
-#define FIGB_SPRITE(g) (FIGB_SPRITES + 8u * (uint32_t) (g))
-#define FIGB_DIE_FRAMES 0x005D048Cu /* dying animation frame by wait ticks / 2 */
-#define FIGB_PROPS 0x007090CCu      /* figure property table, 0x38 bytes per type */
+#define FIGB_SPRITE(g) (G_DAY2_REDRAW_GROUPS + 8u * (uint32_t) (g))
 
 /* shared pieces (actions_b.c) */
 void figb_walker_image(game_state *st, uint32_t walk_base, uint32_t die_base);

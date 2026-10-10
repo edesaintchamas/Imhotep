@@ -2,6 +2,7 @@
  * Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0. */
 #include "figure/actions_b.h"
 
+#include "state/layout.h"
 #include "state/ported.h"
 
 #define ACTION(name, fn) \
@@ -204,9 +205,9 @@ const ported_function figb_ports[] = {
     /* output pointers: called with addresses in the state (e.g. by the harness) */
     {0x004E0CC0u, "figb_tile_4e0cc0", 3, 0, 0, run_tile_4e0cc0, 0},
     {0x004F6420u, "figb_tile_4f6420", 3, 0, 0, run_tile_4f6420, 0},
-    {0x00545A30u, "figb_tile_545a30", 3, 8, 0x006F9320u, run_tile_545a30, 0},
-    {0x00558F00u, "figb_tile_558f00", 3, 8, 0x006F5648u, run_tile_558f00, 0},
-    {0x00556230u, "figb_tile_556230", 3, 8, 0x006DE9E0u, run_tile_556230, 0},
-    {0x0054F8A0u, "figb_tile_54f8a0", 3, 8, 0x006E9188u, run_tile_54f8a0, 0},
+    {0x00545A30u, "figb_tile_545a30", 3, 8, G_MONUMENT_E5, run_tile_545a30, 0},
+    {0x00558F00u, "figb_tile_558f00", 3, 8, G_MONUMENT_EA, run_tile_558f00, 0},
+    {0x00556230u, "figb_tile_556230", 3, 8, G_MONUMENT_EB, run_tile_556230, 0},
+    {0x0054F8A0u, "figb_tile_54f8a0", 3, 8, G_MONUMENT_EC, run_tile_54f8a0, 0},
 };
 const int figb_ports_count = sizeof(figb_ports) / sizeof(figb_ports[0]);

@@ -5,13 +5,10 @@
 #include "figure/actions_a.h"
 
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define SCAN_Y 0x00D3B4E0u    /* the scans keep their row, column and grid offset in globals */
-#define SCAN_X 0x00D3B4E4u
-#define SCAN_TILE 0x00BC9768u
-#define BUILDING_GRID 0x00B4E6FCu /* i16 per tile: the building there */
 
 typedef struct {
     int32_t count;
@@ -33,50 +30,50 @@ static void area_scan(game_state *st, int32_t x, int32_t y, int32_t r, int row_g
     if (ymin < 0) {
         ymin = 0;
     }
-    if (xmax >= S32(st, 0x00BCA2D0u)) {
-        xmax = S32(st, 0x00BCA2D0u) - 1;
+    if (xmax >= S32(st, G_MAP_WIDTH)) {
+        xmax = S32(st, G_MAP_WIDTH) - 1;
     }
-    if (ymax >= S32(st, 0x00BCA2D4u)) {
-        ymax = S32(st, 0x00BCA2D4u) - 1;
+    if (ymax >= S32(st, G_MAP_HEIGHT)) {
+        ymax = S32(st, G_MAP_HEIGHT) - 1;
     }
-    S32(st, SCAN_Y) = ymin;
-    int32_t cursor = (int32_t) (U32(st, 0x00BCA2D8u) + 228u * (uint32_t) ymin + (uint32_t) xmin);
+    S32(st, G_ROAD_ACCESS_Y) = ymin;
+    int32_t cursor = (int32_t) (U32(st, G_MAP_START) + 228u * (uint32_t) ymin + (uint32_t) xmin);
     int32_t advance = xmin - xmax + 0xE3;
-    S32(st, SCAN_TILE) = cursor;
+    S32(st, G_TILE_CURSOR) = cursor;
     if (ymin > ymax) {
         return;
     }
     if (row_globals) {
         int32_t rows = ymax - ymin + 1;
-        S32(st, SCAN_Y) = ymin + rows;
+        S32(st, G_ROAD_ACCESS_Y) = ymin + rows;
         for (; rows > 0; rows--) {
-            S32(st, SCAN_X) = xmin;
+            S32(st, G_ROAD_ACCESS_X) = xmin;
             if (xmin <= xmax) {
                 int32_t cols = xmax - xmin + 1;
                 int32_t tile = cursor;
                 cursor += cols;
-                S32(st, SCAN_X) = xmin + cols;
+                S32(st, G_ROAD_ACCESS_X) = xmin + cols;
                 for (int32_t i = 0; i < cols; i++) {
                     fn(st, tile + i, c);
                 }
             }
             cursor += advance;
-            S32(st, SCAN_TILE) = cursor;
+            S32(st, G_TILE_CURSOR) = cursor;
         }
         return;
     }
     for (;;) {
-        S32(st, SCAN_X) = xmin;
+        S32(st, G_ROAD_ACCESS_X) = xmin;
         if (xmin <= xmax) {
             do {
-                fn(st, S32(st, SCAN_TILE), c);
-                S32(st, SCAN_X) += 1;
-                S32(st, SCAN_TILE) += 1;
-            } while (S32(st, SCAN_X) <= xmax);
+                fn(st, S32(st, G_TILE_CURSOR), c);
+                S32(st, G_ROAD_ACCESS_X) += 1;
+                S32(st, G_TILE_CURSOR) += 1;
+            } while (S32(st, G_ROAD_ACCESS_X) <= xmax);
         }
-        S32(st, SCAN_Y) += 1;
-        S32(st, SCAN_TILE) += advance;
-        if (S32(st, SCAN_Y) > ymax) {
+        S32(st, G_ROAD_ACCESS_Y) += 1;
+        S32(st, G_TILE_CURSOR) += advance;
+        if (S32(st, G_ROAD_ACCESS_Y) > ymax) {
             return;
         }
     }
@@ -84,21 +81,21 @@ static void area_scan(game_state *st, int32_t x, int32_t y, int32_t r, int row_g
 
 static int16_t building_at(game_state *st, int32_t tile)
 {
-    return S16(st, BUILDING_GRID + 2u * (uint32_t) tile);
+    return S16(st, G_BUILDING_GRID + 2u * (uint32_t) tile);
 }
 
 /* a house (+0x05) with people (+0x1C) */
 static int inhabited(game_state *st, int32_t b)
 {
     uint32_t a = BUILDING_ADDR(b);
-    return b > 0 && U8(st, a + 0x05) != 0 && S16(st, a + 0x1C) > 0;
+    return b > 0 && U8(st, a + BLD_HOUSE_SIZE) != 0 && S16(st, a + BLD_POPULATION) > 0;
 }
 
 /* a building of types 0x0A .. 0x1D in use */
 static int housing_block(game_state *st, int32_t b)
 {
     uint32_t a = BUILDING_ADDR(b);
-    return b != 0 && S16(st, a + 0x10) >= 0x0A && S16(st, a + 0x10) <= 0x1D && U8(st, a) != 0;
+    return b != 0 && S16(st, a + BLD_TYPE) >= 0x0A && S16(st, a + BLD_TYPE) <= 0x1D && U8(st, a + BLD_STATE) != 0;
 }
 
 static void serve_house(game_state *st, int32_t tile, scan_ctx *c)
@@ -142,7 +139,7 @@ static void serve_temple(game_state *st, int32_t tile, scan_ctx *c)
     if (inhabited(st, b)) {
         c->count++;
         if (c->value >= 0 && c->value <= 4) {
-            U8(st, BUILDING_ADDR(b) + 0x79u + (uint32_t) c->value) = 0x60;
+            U8(st, BUILDING_ADDR(b) + BLD_ACCESS_PRIEST + (uint32_t) c->value) = 0x60;
         }
     }
 }
@@ -163,11 +160,11 @@ static void serve_bazaar(game_state *st, int32_t tile, scan_ctx *c)
         return;
     }
     uint32_t a = BUILDING_ADDR(b);
-    int32_t v = S32(st, 0x0070CE18u + 0x58u * (uint32_t) S16(st, a + 0x12));
-    if (v > S32(st, 0x009AB9E8u)) {
-        S32(st, 0x009AB9E8u) = v;
+    int32_t v = S32(st, G_HOUSE_TAX_VALUE + 0x58u * (uint32_t) S16(st, a + BLD_SUBTYPE));
+    if (v > S32(st, G_SERVICE_TOP_HOUSES)) {
+        S32(st, G_SERVICE_TOP_HOUSES) = v;
     }
-    U8(st, a + 0x4E) = 0x32;
+    U8(st, a + BLD_TAX_COVERAGE) = 0x32;
     c->count++;
 }
 
@@ -175,7 +172,7 @@ int32_t serve_houses_4e(game_state *st, int32_t x, int32_t y)
 {
     /* @bin 0x00484A90 the houses within 2 tiles: +0x4E 0x32; 0x009AB9E8 the largest of their
      * level's value (table 0x0070CE18, 0x58 bytes per house level +0x12) */
-    S32(st, 0x009AB9E8u) = 0;
+    S32(st, G_SERVICE_TOP_HOUSES) = 0;
     scan_ctx c = {0, 0, 0};
     area_scan(st, x, y, 2, 1, serve_bazaar, &c);
     return c.count;
@@ -186,9 +183,9 @@ static void clear_ferry(game_state *st, int32_t tile, scan_ctx *c)
     (void) c;
     int16_t b = building_at(st, tile);
     if (b > 0) {
-        int16_t t = S16(st, BUILDING_ADDR(b) + 0x10);
+        int16_t t = S16(st, BUILDING_ADDR(b) + BLD_TYPE);
         if (t == 0x58 || t == 0x59) {
-            U8(st, BUILDING_ADDR(b) + 0xC2) = 0;
+            U8(st, BUILDING_ADDR(b) + BLD_SENTIMENT) = 0;
         }
     }
 }
@@ -227,7 +224,7 @@ static void clear_87(game_state *st, int32_t tile, scan_ctx *c)
     (void) c;
     int16_t b = building_at(st, tile);
     if (housing_block(st, b)) {
-        U8(st, BUILDING_ADDR(b) + 0x87) = 0;
+        U8(st, BUILDING_ADDR(b) + BLD_NO_ROOM) = 0;
     }
 }
 
@@ -246,18 +243,18 @@ static void lower_e4(game_state *st, int32_t tile, scan_ctx *c)
         return;
     }
     uint32_t a = BUILDING_ADDR(b);
-    int32_t v = S32(st, a + 0xE4);
-    if (v > S32(st, 0x009AB9DCu)) {
-        S32(st, 0x009AB9DCu) = v;
+    int32_t v = S32(st, a + BLD_CRIME_RISK);
+    if (v > S32(st, G_SERVICE_TOP)) {
+        S32(st, G_SERVICE_TOP) = v;
     }
     v -= c->value;
-    S32(st, a + 0xE4) = v;
-    int32_t floor = S32(st, 0x0070CE0Cu + 0x58u * (uint32_t) S16(st, a + 0x12));
+    S32(st, a + BLD_CRIME_RISK) = v;
+    int32_t floor = S32(st, G_HOUSE_LEVEL_U14 + 0x58u * (uint32_t) S16(st, a + BLD_SUBTYPE));
     if (v < floor) {
-        S32(st, a + 0xE4) = floor;
+        S32(st, a + BLD_CRIME_RISK) = floor;
     }
-    if (S32(st, a + 0xE4) > 1000) {
-        S32(st, a + 0xE4) = 1000;
+    if (S32(st, a + BLD_CRIME_RISK) > 1000) {
+        S32(st, a + BLD_CRIME_RISK) = 1000;
     }
 }
 
@@ -265,7 +262,7 @@ void lower_buildings_e4(game_state *st, int32_t x, int32_t y, int32_t amount)
 {
     /* @bin 0x00483260 the buildings within 2 tiles: +0xE4 lowered by `amount`, kept within the
      * floor of their level (table 0x0070CE0C) and 1000; 0x009AB9DC the highest before */
-    S32(st, 0x009AB9DCu) = 0;
+    S32(st, G_SERVICE_TOP) = 0;
     scan_ctx c = {0, 0, amount};
     area_scan(st, x, y, 2, 1, lower_e4, &c);
 }
@@ -276,10 +273,10 @@ static void lower_main_part(game_state *st, int32_t tile, scan_ctx *c)
     if (c->field == 0x48 ? b == 0 : b <= 0) {
         return;
     }
-    int32_t m = GAME_CALL(st, 0x00475B50u, b);
+    int32_t m = GAME_CALL(st, FN_BUILDING_MAIN_PART, b);
     uint32_t a = BUILDING_ADDR(m) + c->field;
     int16_t v = S16(st, a);
-    uint32_t top = c->field == 0x48 ? 0x009AB9E4u : 0x009AB9E0u;
+    uint32_t top = c->field == 0x48 ? G_SERVICE_TOP_48 : G_SERVICE_TOP_46;
     if (v > S32(st, top)) {
         S32(st, top) = v;
     }
@@ -290,7 +287,7 @@ static void lower_main_part(game_state *st, int32_t tile, scan_ctx *c)
     }
     /* 0x00483000 checks the main part's id; 0x00482C10 reads the record either way */
     uint32_t ma = BUILDING_ADDR(m);
-    if ((c->field == 0x48 ? m > 0 : 1) && U8(st, ma + 0x05) != 0 && S16(st, ma + 0x1C) > 0) {
+    if ((c->field == 0x48 ? m > 0 : 1) && U8(st, ma + BLD_HOUSE_SIZE) != 0 && S16(st, ma + BLD_POPULATION) > 0) {
         c->count++;
     }
 }
@@ -301,8 +298,8 @@ int32_t lower_main_parts(game_state *st, int32_t x, int32_t y, uint32_t field)
      * 0x009AB9E4) the buildings within 2 tiles (their main part 0x00475B50): the word `field`
      * lowered, not below 0, the global the highest before (from 1000); returns the inhabited
      * houses */
-    int32_t amount = S32(st, field == 0x48 ? 0x007078E0u : 0x00706B70u);
-    S32(st, field == 0x48 ? 0x009AB9E4u : 0x009AB9E0u) = 1000;
+    int32_t amount = S32(st, field == 0x48 ? G_U7078E0 : G_U706B70);
+    S32(st, field == 0x48 ? G_SERVICE_TOP_48 : G_SERVICE_TOP_46) = 1000;
     scan_ctx c = {0, field, amount};
     area_scan(st, x, y, 2, 0, lower_main_part, &c);
     return c.count;
@@ -316,9 +313,9 @@ static void inspect(game_state *st, int32_t tile, scan_ctx *c)
         return;
     }
     uint32_t a = BUILDING_ADDR(b);
-    if (U8(st, a) != 0 && S16(st, a + 0x10) >= 0x0A && S16(st, a + 0x10) <= 0x1D && S16(st, a + 0x1C) != 0 &&
-        U8(st, a + 0x87) == 0) {
-        GAME_CALL(st, 0x0042FB30u, b);
+    if (U8(st, a + BLD_STATE) != 0 && S16(st, a + BLD_TYPE) >= 0x0A && S16(st, a + BLD_TYPE) <= 0x1D && S16(st, a + BLD_POPULATION) != 0 &&
+        U8(st, a + BLD_NO_ROOM) == 0) {
+        GAME_CALL(st, FN_HOUSE_EMPTY, b);
     }
 }
 
@@ -332,7 +329,7 @@ void inspect_houses(game_state *st, int32_t x, int32_t y)
 int32_t serve_houses_e90(game_state *st, int32_t x, int32_t y)
 {
     /* @bin 0x00483E90 as 0x004833C0 on +0x77, nothing while 0x0078D7B0 is positive */
-    if (S32(st, 0x0078D7B0u) > 0) {
+    if (S32(st, G_BLOOD_LEFT) > 0) {
         return 0;
     }
     return serve_houses(st, x, y, 0x77);
@@ -513,7 +510,7 @@ static void bazaar_extra(game_state *st, uint32_t baz, uint32_t h, uint32_t amou
                          uint32_t to)
 {
     int32_t amount = S32(st, amount_at);
-    if (U8(st, h + 0x03) > 1) {
+    if (U8(st, h + BLD_SIZE) > 1) {
         amount <<= 2;
     }
     if (amount == 0) {
@@ -546,30 +543,30 @@ static void bazaar_house(game_state *st, int32_t tile, scan_ctx *c)
     }
     uint32_t h = BUILDING_ADDR(hid);
     uint32_t baz = BUILDING_ADDR(c->value);
-    int32_t level = S16(st, h + 0x12);
+    int32_t level = S16(st, h + BLD_SUBTYPE);
     c->count++;
     if (level < 0x13) {
         level++;
     }
     uint32_t t = 0x58u * (uint32_t) level;
-    int16_t pop = S16(st, h + 0x1C);
+    int16_t pop = S16(st, h + BLD_POPULATION);
     int32_t limit2 = 2 * pop, limit6 = 6 * pop;
-    int32_t slots = S32(st, 0x0070CDF4u + t);
+    int32_t slots = S32(st, G_HOUSE_LEVEL_U28 + t);
     if (slots > 0 && slots < 4) {
         slots++;
     }
-    for (int32_t i = 0, n = S32(st, 0x00F53DD8u); i < n; i++) {
-        int32_t g = S32(st, 0x00F53DDCu + 4u * (uint32_t) i);
+    for (int32_t i = 0, n = S32(st, G_GOODS_COUNT); i < n; i++) {
+        int32_t g = S32(st, G_GOODS_LIST + 4u * (uint32_t) i);
         if (g == 0) {
             continue;
         }
         int32_t idx = goods_index(g);
-        uint32_t bs = baz + 0x56u + 2u * (uint32_t) idx;
+        uint32_t bs = baz + BLD_INVENTORY + 2u * (uint32_t) idx;
         int16_t stock = S16(st, bs);
         if (stock <= 0 || slots == 0) {
             continue;
         }
-        uint32_t hs = h + 0x54u + 2u * (uint32_t) idx;
+        uint32_t hs = h + BLD_HOUSE_INVENTORY + 2u * (uint32_t) idx;
         int16_t have = S16(st, hs);
         int32_t want = limit6 - have;
         if (limit2 < want) {
@@ -601,10 +598,10 @@ static void bazaar_house(game_state *st, int32_t tile, scan_ctx *c)
         }
         slots--;
     }
-    bazaar_extra(st, baz, h, 0x0070CE04u + t, 0xA4, 0x66, 0x64);
-    bazaar_extra(st, baz, h, 0x0070CDF8u + t, 0x9E, 0x68, 0x66);
-    bazaar_extra(st, baz, h, 0x0070CDFCu + t, 0xA2, 0x6A, 0x68);
-    bazaar_extra(st, baz, h, 0x0070CE00u + t, 0xA0, 0x6C, 0x6A);
+    bazaar_extra(st, baz, h, G_HOUSE_GOODS_D + t, 0xA4, 0x66, 0x64);
+    bazaar_extra(st, baz, h, G_HOUSE_GOODS_A + t, 0x9E, 0x68, 0x66);
+    bazaar_extra(st, baz, h, G_HOUSE_GOODS_B + t, 0xA2, 0x6A, 0x68);
+    bazaar_extra(st, baz, h, G_HOUSE_GOODS_C + t, 0xA0, 0x6C, 0x6A);
 }
 
 int32_t bazaar_sell(game_state *st, int32_t bazaar, int32_t x, int32_t y)
