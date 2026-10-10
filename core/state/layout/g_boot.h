@@ -40,7 +40,6 @@
 #define G_CTOR_TABLE_END 0x0057607Cu /* @bin 0x005646C0 its end (exclusive) */
 #define G_U6FDB38 0x006FDB38u /* @bin 0x00413F09 0x44 dwords WinMain clears first (the QuickTime movie fields 0x006FDC38.. among them, docs/provenance/frontier.md) */
 #define G_U605A38 0x00605A38u /* @bin 0x00414180 i32: := 0 by WinMain; > 0: the map editor's button panel (present/ui/dispatch.c, present/sidebar/tooltip.c) */
-#define G_U605A34 0x00605A34u /* @bin 0x00414180 i32: := 2 by WinMain; := the menu item - 1 by the construction UI's sub-command 0xE (core/command/construction_ui.c) */
 #define G_NAME_PICK 0x006059FCu /* @bin 0x0040C830 i32: the name picked in window 0x51's list (present/ui/buttons.c, present/ui/frontend/highscore.c); -1 by WinMain */
 #define G_U605760 0x00605760u /* @bin 0x00401010 i32: __ftol(G_DBL_10_56F340) * 200 by its static constructor */
 /* the settings (0x004147F0, 0x00414A90) */
@@ -49,7 +48,6 @@
 #define G_UE38ED4 0x00E38ED4u /* @bin 0x00414802 i32: default 2 */
 #define G_RAM 0x00E38ED8u /* @bin 0x00414AF9 i32: the "RAM" key of Pharaoh.ini (default 0xF; at most 0x17: game speed, scroll speed 100, resolution 1) */
 #define G_UE38EE0 0x00E38EE0u /* @bin 0x00414802 i32: default 0 */
-#define G_UE39084 0x00E39084u /* @bin 0x00414802 i32: default 1; 0: no god event in the month (core/city/day_city.c) */
 #define G_CHECK_CD 0x00E39089u /* @bin 0x00414B34 u8: the "CheckCD" key of Pharaoh.ini (default 1, := 1 after Pharaoh.inf) */
 #define G_UE36C6C 0x00E36C6Cu /* @bin 0x00414930 i32: := 1 after the settings files */
 #define G_STR_ERR_SIERRA_INI 0x00579290u /* @bin 0x00414AB8 "Err:Could not read sierra.ini" */
@@ -63,7 +61,7 @@
 #define G_MM_TEXT_HEAD 0x00E209A0u /* @bin 0x004CEC40 the first 0x13898 bytes of Pharaoh_MM.eng: header and entries (docs/formats/text.md) */
 /* the display set-up (0x004CF960) */
 #define G_GAME_DIR 0x00E36B94u /* @bin 0x004CF97C char[100]: _getcwd, the game's directory (_chdir by 0x004CE2D0, core/newgame/map_load.c) */
-#define G_UD3B37C 0x00D3B37Cu /* @bin 0x004CF960 i32: := 0x34518632 with the frame-tick shift registers G_R_IV1 / G_R_IV2 (docs/presentation.md 2.1) */
+#define G_UD3B37C 0x00D3B37Cu /* @bin 0x004CF960 i32: := 0x34518632 with the frame-tick shift registers G_RANDOM_IV1 / G_RANDOM_IV2 (docs/presentation.md 2.1) */
 #define G_UD3B494 0x00D3B494u /* @bin 0x004CF960 four bytes := 0 */
 #define G_UD3B508 0x00D3B508u /* @bin 0x004CF960 i32: := 0 with the text styles G_TEXT_SHADOW_V, G_TEXT_OUTLINE */
 #define G_UE38E4C 0x00E38E4Cu /* @bin 0x004CF960 u8: := 0 */
@@ -134,8 +132,6 @@
 #define G_INTERFACE_SOUNDS 0x00F543B8u /* @bin 0x0053AF90 i32[100]: the interface sounds' samples (-1: none) */
 #define G_FIGURE_SOUNDS 0x00F54120u /* @bin 0x0053B130 i32[0xA5]: the figure sounds' samples, 5 per sound (-1: none) */
 /* the steps' tables (0x00541310, 0x0044EFA0, 0x00541D50, 0x004DEE10) */
-#define G_TRADE_RECOMMENDS 0x007758A0u /* @bin 0x00541310 i32[4][6] from trade_recommends.txt (by population: core/city/day_city.c) */
-#define G_SUN_TEMPLE_PARTS 0x00601DD8u /* @bin 0x00541D50 100 parts of 0x34 bytes (x, y, size: core/building/map_add_monument.c) */
 #define G_PART_OFFSETS 0x005E2AE8u /* @bin 0x004DEE10 116 records of 0x34 bytes: part k's place in the four orientations, as offsets */
 #define G_TIMING_CALLS 0x00E390FCu /* @bin 0x004CF8E0 i32: the time (ms) of three calls of 0x0051F780 */
 #define G_TIMING_PRESENTS 0x00E390F4u /* @bin 0x004CF8E0 i32: the time (ms) of three presents */
@@ -170,11 +166,17 @@
 #define G_CPU 0x00E38EDCu /* @bin 0x00414B76 i32: the "CPU" key of the settings file (default 0x42); the period videos take Binks\high\ from 0xE9 on (0x0041BBC8) */
 #define G_UE38DD6 0x00E38DD6u /* @bin 0x00413F09 u8: WinMain clears it, sets 1 after 0x004CF8E0; 2 when a city starts (0x00418301) (docs/formats/state.md) */
 
-
-/* --- harvested: names the ports gave these addresses in local #defines (tools/naming/harvest.py).
- * @bin evidence: the defining port (file) and its comment. A package agent checks each name it
- * uses, and moves it above this block once checked. --- */
-#define G_UE38D9C 0x00E38D9Cu /* present/ui/empire/empire.c: i32 the screen width (set-up copy) [unresolved] */
-/* --- end harvested --- */
+/* ---- names merged from the packages' pending fragments (phase 10.4): each group keeps its
+ * package's heading (the package and its file in brackets) ---- */
+/* ---- globals of other areas (core or another present package uses them) ---- [p8a_ui_main] */
+#define G_FLT_4 0x0056F550u /* @bin 0x00434C81 float 4.0 (house levels of the overlay level images; core/city/monument_rating.c) */
+#define G_TEST_VALUE3A 0x00D3B470u /* @bin 0x00534610 i32 "test_value3a" */
+#define G_TEST_VALUE2A 0x00D3B480u /* @bin 0x00534610 i32 "test_value2a" */
+#define G_TEST_VALUE1A 0x00D3B490u /* @bin 0x00534610 i32 "test_value1a" */
+#define G_LC_CTYPE 0x0126648Cu /* @bin 0x0056B240 u32 the CRT's LC_CTYPE handle, 0: the "C" locale (core/graphics/last_graphics.c) */
+/* the C runtime (_dosmaperr 0x005672C8) [g_boot.h] [p8d_ui_frontend] */
+#define G_CRT_ERRNO_TABLE 0x00604F30u /* @bin 0x005672C8 0x2D pairs (Win32 error, errno) */
+#define G_CRT_ERRNO 0x01266430u       /* @bin 0x005672C8 u32: errno */
+#define G_CRT_DOSERRNO 0x01266434u    /* @bin 0x005672C8 u32: _doserrno */
 
 #endif

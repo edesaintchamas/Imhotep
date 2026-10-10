@@ -26,7 +26,7 @@ void city_slot_clear_0x004f4a80(game_state *st, int32_t b, int32_t i)
 {
     /* @bin 0x004F4A80 the current player's dword 0x00EA5FAC + 4 * i cleared (b unused) */
     (void) b;
-    U32(st, CITY_BASE + CITY_U473C + 4u * (U32(st, CURRENT_PLAYER_ADDR) * 0x1276u + (uint32_t) i)) = 0;
+    U32(st, CITY_BASE + CITY_MONUMENTS + 4u * (U32(st, CURRENT_PLAYER_ADDR) * 0x1276u + (uint32_t) i)) = 0;
 }
 
 int32_t monument_slot_type_4f52b0(game_state *st, int32_t i)
@@ -78,17 +78,17 @@ void storage_take_45b700(game_state *st, int32_t b, int32_t amount)
             continue;
         }
         int32_t g = S16(st, r + BLD_STORED_GOOD);
-        uint32_t c = CITY_BASE + CITY_U4860 + 4u * (U32(st, CURRENT_PLAYER_ADDR) * 0x1276u + (uint32_t) g);
+        uint32_t c = CITY_BASE + CITY_STORAGE_FREE + 4u * (U32(st, CURRENT_PLAYER_ADDR) * 0x1276u + (uint32_t) g);
         if (qty <= amount) {
             amount -= qty;
             S32(st, c) += qty;
-            S32(st, c - CITY_U4860 + CITY_U48F0) -= qty;
+            S32(st, c - CITY_STORAGE_FREE + CITY_STORAGE_STOCK) -= qty;
             S16(st, r + BLD_STORED) = 0;
             S16(st, r + BLD_STORED_GOOD) = 0;
         } else {
             S16(st, r + BLD_STORED) = (int16_t) (qty - amount);
             S32(st, c) += amount;
-            S32(st, c - CITY_U4860 + CITY_U48F0) -= amount;
+            S32(st, c - CITY_STORAGE_FREE + CITY_STORAGE_STOCK) -= amount;
             amount = 0;
         }
         int32_t t = S32(st, r + BLD_GRID_OFFSET);
@@ -116,14 +116,14 @@ void building_0x004f4ae0(game_state *st, int32_t b)
     uint32_t c = U32(st, CURRENT_PLAYER_ADDR);
     int32_t i;
     for (i = 0; i < 3; i++) {
-        if (S32(st, CITY_BASE + CITY_U473C + c * 0x49D8u + 4u * (uint32_t) i) == b) {
+        if (S32(st, CITY_BASE + CITY_MONUMENTS + c * 0x49D8u + 4u * (uint32_t) i) == b) {
             break;
         }
     }
     if (i >= 3) {
         return;
     }
-    U32(st, CITY_BASE + CITY_U4730 + 4u * (c * 0x1276u + (uint32_t) i)) = 0;
+    U32(st, CITY_BASE + CITY_MONUMENT_TYPES + 4u * (c * 0x1276u + (uint32_t) i)) = 0;
     int16_t type = S16(st, r + BLD_TYPE);
     if (type == 0xCF || type == 0xD0) {
         monument_slot_images_4e5950(st, i);
@@ -139,10 +139,10 @@ void formation_clear_0x004b82e0(game_state *st, int32_t f)
         return;
     }
     uint32_t r = G_FORMATION_BASE + 0x90u * (uint32_t) f;
-    if (U8(st, r + FORM_IN_USE) == 0) {
+    if (U8(st, r + FM_IN_USE) == 0) {
         return;
     }
-    int32_t fig = S16(st, r + FORM_FIGURE);
+    int32_t fig = S16(st, r + FM_STANDARD_BEARER);
     if (fig != 0) {
         GAME_CALL(st, FN_FIGURE_DELETE, fig);
     }
@@ -276,7 +276,7 @@ void building_area_clear_0x004c0920(game_state *st, int32_t b)
                     S16(st, G_GRID_DAMAGE + 2u * (uint32_t) t) = 0;
                     U8(st, G_GRID_EDGE + (uint32_t) t) = (uint8_t) ((U8(st, G_GRID_EDGE + (uint32_t) t) & 0xC0) | 0x40);
                     uint32_t ter = U32(st, ta) & 0xFFFFFFF7u;
-                    U8(st, G_SPRITE + (uint32_t) t) = 0;
+                    U8(st, G_GRID_SPRITE + (uint32_t) t) = 0;
                     U32(st, ta) = ter;
                     U8(st, G_CANAL + (uint32_t) t) = 0;
                     if ((ter & 4) != 0 && (ter & 0x10000) == 0) {

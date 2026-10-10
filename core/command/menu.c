@@ -25,8 +25,8 @@ static int allowed(game_state *st, uint32_t a)
 uint8_t menu_cheat_gate(game_state *st)
 {
     /* @bin 0x00403EF0 the mission 0x0057961C is gated by the flag 0x007027C5; others are open */
-    if ((int8_t) U8(st, G_MISSION) == S32(st, G_CHEAT_MISSION)) {
-        return U8(st, G_CHEAT_FLAG) != 0;
+    if ((int8_t) U8(st, G_MISSION) == S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 13 + MISSIONLIST_MISSION)) {
+        return U8(st, G_TUTORIAL_FLAGS + 13) != 0;
     }
     return 1;
 }
@@ -36,7 +36,7 @@ int32_t monuments_placed(game_state *st)
     /* @bin 0x004F5020 the placed monuments among the scenario's three */
     int32_t n = 0;
     for (uint32_t i = 0; i < 3; i++) {
-        if (S32(st, CURRENT_CITY(st) + CITY_MONUMENT_CODE + 4u * i) != 0) {
+        if (S32(st, CURRENT_CITY(st) + CITY_MONUMENT_TYPES + 4u * i) != 0) {
             n++;
         }
     }
@@ -55,7 +55,7 @@ uint8_t monument_kind_open(game_state *st, int32_t kind, uint8_t any)
      * (or `any`) */
     uint32_t city = CURRENT_CITY(st);
     for (uint32_t i = 0; i < 3; i++) {
-        int32_t code = S32(st, city + CITY_MONUMENT_CODE + 4u * i);
+        int32_t code = S32(st, city + CITY_MONUMENT_TYPES + 4u * i);
         if (code == 0) {
             uint32_t model = G_MONUMENT_MODELS + 16u * (uint32_t) (int32_t) S16(st, G_MONUMENT_SLOTS + 2u * i);
             if (model_has_kind(st, model, kind)) {
@@ -63,7 +63,7 @@ uint8_t monument_kind_open(game_state *st, int32_t kind, uint8_t any)
             }
             continue;
         }
-        int32_t id = S32(st, city + CITY_MONUMENT_ID + 4u * i);
+        int32_t id = S32(st, city + CITY_MONUMENTS + 4u * i);
         if (id == 0) {
             continue;
         }
@@ -146,7 +146,7 @@ int32_t build_menu_count(game_state *st)
             }
             type = S32(st, G_MENU_TYPES_1 + 4u * (uint32_t) (S32(st, G_SUBMENU) * 30 + i)) - 1;
             ok = S16(st, G_MONUMENT_SLOTS + 2u * (uint32_t) type) != 0 &&
-                 S32(st, city + CITY_MONUMENT_CODE + 4u * (uint32_t) type) == 0;
+                 S32(st, city + CITY_MONUMENT_TYPES + 4u * (uint32_t) type) == 0;
             break;
         case 0x16: /* @bin 0x004041B2 */
             ok = menu_cheat_gate(st) &&
@@ -162,15 +162,15 @@ int32_t build_menu_count(game_state *st)
         case 0x06: /* @bin 0x00404232 */
             if (type == 0x30) {
                 ok = menu_cheat_gate(st) && monuments_placed(st) < monuments_planned(st);
-            } else if (type == 0x61 && S16(st, city + CITY_U4478) != 0) {
-                ok = !building_0xa9_is(st, S32(st, city + CITY_U472C), 1) ||
-                     !building_0xa9_is(st, S32(st, CURRENT_CITY(st) + CITY_U472C), 2);
+            } else if (type == 0x61 && S16(st, city + CITY_TEMPLE_COMPLEX) != 0) {
+                ok = !building_0xa9_is(st, S32(st, city + CITY_TEMPLE_COMPLEX_ID), 1) ||
+                     !building_0xa9_is(st, S32(st, CURRENT_CITY(st) + CITY_TEMPLE_COMPLEX_ID), 2);
             } else {
                 ok = S32(st, G_MENU_AVAIL + 4u * k) != 0;
             }
             break;
         case 0x24: /* @bin 0x004042AF the complex's add-on i + 1 not built */
-            ok = !building_0xa9_is(st, S32(st, city + CITY_U472C), (uint32_t) (i + 1));
+            ok = !building_0xa9_is(st, S32(st, city + CITY_TEMPLE_COMPLEX_ID), (uint32_t) (i + 1));
             break;
         default:
             ok = S32(st, G_MENU_AVAIL + 4u * k) != 0;
@@ -234,7 +234,7 @@ static int avail_first(game_state *st, int32_t t)
         if (!allowed(st, G_ALLOWED_BUILDINGS + 2u * 25u)) {
             return 0;
         }
-        int32_t r = S32(st, CURRENT_CITY(st) + CITY_RANK);
+        int32_t r = S32(st, CURRENT_CITY(st) + CITY_PLAYER_RANK);
         return r >= 0 && r < 6;
     }
     default: return 0;
@@ -281,7 +281,7 @@ static int avail_second(game_state *st, int32_t t)
 
 static int rank_in(game_state *st, int32_t lo, int32_t hi)
 {
-    int32_t r = S32(st, CURRENT_CITY(st) + CITY_RANK);
+    int32_t r = S32(st, CURRENT_CITY(st) + CITY_PLAYER_RANK);
     return r >= lo && r < hi;
 }
 
@@ -382,7 +382,7 @@ static void mission_lists(game_state *st, uint32_t slot, int32_t type, int32_t m
         uint32_t list = U32(st, e + 8);
         for (int32_t j = 0; j < n; j++) {
             if (type == (int32_t) P32(st, list + 4u * (uint32_t) j)) {
-                S32(st, G_MENU_AVAIL + slot) = U8(st, G_MISSION_LIST_FLAGS + (uint32_t) rec) != 0;
+                S32(st, G_MENU_AVAIL + slot) = U8(st, G_TUTORIAL_FLAGS + (uint32_t) rec) != 0;
             }
         }
     }

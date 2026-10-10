@@ -14,7 +14,7 @@
 
 #define GRID(i) U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (i))
 #define STRENGTH(i) U8(st, G_GRID_MOISTURE + (uint32_t) (i))
-#define OBJECT(i) U32(st, G_UD05720 + 4u * (uint32_t) (i))
+#define OBJECT(i) U32(st, G_FLOODPLAIN_MANAGER + 4u * (uint32_t) (i))
 
 /* ---- 0x00478420 and the 0x10000 flag passes ---- */
 

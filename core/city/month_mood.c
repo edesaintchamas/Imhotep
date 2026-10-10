@@ -24,7 +24,7 @@ static int search_tile(game_state *st, const int32_t *x, const int32_t *y, int32
         return 0;
     }
     for (int32_t k = 0; k < ntypes; k++) {
-        int32_t f = S16(st, G_FIGURE_GRID + 2u * U32(st, G_TILE_CURSOR));
+        int32_t f = S16(st, G_GRID_FIGURE + 2u * U32(st, G_TILE_CURSOR));
         uint32_t want = U32(st, types + 4u * (uint32_t) k);
         while (f != 0) {
             if ((uint32_t) U8(st, FIGURE_ADDR(f) + FIG_TYPE) == want && except != f) {
@@ -172,9 +172,9 @@ void people_remove(game_state *st, int32_t player, int32_t n)
     uint32_t c = CITY_ADDR(player);
     int32_t misses = 0;
     if (n != 0) {
-        int32_t k = S32(st, G_R_POOL_INDEX);
+        int32_t k = S32(st, G_RANDOM_POOL_INDEX);
         do {
-            uint32_t a = c + CITY_AGES + 2u * (U32(st, G_R_POOL + 4u * (uint32_t) k) & 0x3F);
+            uint32_t a = c + CITY_AGES + 2u * (U32(st, G_RANDOM_POOL + 4u * (uint32_t) k) & 0x3F);
             if (S16(st, a) <= 0) {
                 misses++;
             } else {
@@ -214,11 +214,11 @@ void people_add(game_state *st, int32_t player, int32_t n)
     if (n == 0) {
         return;
     }
-    int32_t k = S32(st, G_R_POOL_INDEX);
+    int32_t k = S32(st, G_RANDOM_POOL_INDEX);
     int odd = 0;
     uint32_t left = (uint32_t) n;
     do {
-        int32_t age = (int32_t) (U32(st, G_R_POOL + 4u * (uint32_t) k) & 0x3F);
+        int32_t age = (int32_t) (U32(st, G_RANDOM_POOL + 4u * (uint32_t) k) & 0x3F);
         if (age > 0x32) {
             age -= 0x1E;
         } else if (age < 0xA && odd) {
@@ -263,7 +263,7 @@ void house_empty(game_state *st, int32_t id)
     S32(st, b + BLD_UF0) = 2;
     S32(st, b + BLD_DISEASE_RISK) = 0;
     S32(st, b + BLD_MALARIA_RISK) = 0;
-    if (S32(st, G_CUSTOM) == 0 && S8(st, G_MISSION) == S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 6) && U8(st, G_MISSION_LIST_FLAGS + 6) == 0) {
+    if (S32(st, G_CUSTOM) == 0 && S8(st, G_MISSION) == S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 6) && U8(st, G_TUTORIAL_FLAGS + 6) == 0) {
         GAME_CALL(st, FN_TUTORIAL_STEP, 6);
     }
 }
@@ -366,7 +366,7 @@ int32_t city_riot_roll(game_state *st)
 {
     /* @bin 0x0042FBB0 one game RNG step: r1_15bit % 100 < 40 - mood (+0x18) */
     random_next_state(st);
-    return (int32_t) U32(st, G_R_1_15) % 100 < 0x28 - S32(st, CITY(st) + CITY_HEALTH);
+    return (int32_t) U32(st, G_RANDOM_R1_15BIT) % 100 < 0x28 - S32(st, CITY(st) + CITY_HEALTH);
 }
 
 int32_t house_most_0xfc(game_state *st)
@@ -421,7 +421,7 @@ int32_t city_riot(game_state *st, int32_t any)
             }
             rank++;
             random_next_state(st);
-            if ((int32_t) U32(st, G_R_1_15) % rank == 0) {
+            if ((int32_t) U32(st, G_RANDOM_R1_15BIT) % rank == 0) {
                 id = k;
             }
         }
@@ -509,8 +509,8 @@ void city_mood_month(game_state *st)
             }
         }
         S32(st, c + CITY_HEALTH_TARGET) = share + bonus;
-        if (S16(st, c + CITY_U4478) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_U472C)) == 4 &&
-            (int8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CITY(st) + CITY_U472C), 1) != 0) {
+        if (S16(st, c + CITY_TEMPLE_COMPLEX) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_TEMPLE_COMPLEX_ID)) == 4 &&
+            (int8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CITY(st) + CITY_TEMPLE_COMPLEX_ID), 1) != 0) {
             c = CITY(st);
             S32(st, c + CITY_HEALTH_TARGET) = calc_percentage(S32(st, c + CITY_HEALTH_TARGET), 0x69);
         }

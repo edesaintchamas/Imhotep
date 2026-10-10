@@ -37,7 +37,7 @@ void fade_step_4d0650(game_state *st, uint32_t self, int32_t surface)
     if (U8(st, self + 0x18) != 0) {
         /* @bin 0x004D0682 jitter: one random step; delta += (15-bit value % 16) - 8 */
         random_next_state(st);
-        delta += (S32(st, G_R_1_15) % 16) - 8;
+        delta += (S32(st, G_RANDOM_R1_15BIT) % 16) - 8;
     }
     int32_t h = S32(st, self + 0x0C);
     uint32_t p = U32(st, self + 0x24 + 4u * (uint32_t) surface);
@@ -72,7 +72,7 @@ void fade_step_4d0650(game_state *st, uint32_t self, int32_t surface)
      * 0x8000; 565: per channel) */
     for (int32_t y = 0; y < h; y++) {
         random_next_state(st);
-        int32_t r = S32(st, G_R_1_15);
+        int32_t r = S32(st, G_RANDOM_R1_15BIT);
         for (int32_t x = 0; x < w; x++, p += 2) {
             if (x >= limit || y < 0x1E || !draw) {
                 continue;

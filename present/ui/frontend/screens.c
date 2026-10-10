@@ -24,7 +24,7 @@ void title_screen_draw(game_state *st)
     GAME_CALL0(st, FN_SCREEN_BUFFER_CLEAR);
     GAME_CALLT(st, G_GRAPHICS_GFX, FN_IMAGE_DRAW, S32(st, G_TITLE_IMAGE), S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
     int32_t dx = S32(st, G_LAYOUT_DX), dy = S32(st, G_LAYOUT_DY);
-    GAME_CALL(st, FN_LAYOUT_GROUP_CENTRED, 0x0D, 7, (S32(st, G_UE38D9C) - 0x140) / 2, dy + 0x1CE, 0x140, S32(st, G_FONT_SMALL),
+    GAME_CALL(st, FN_LAYOUT_GROUP_CENTRED, 0x0D, 7, (S32(st, G_DRAW_W) - 0x140) / 2, dy + 0x1CE, 0x140, S32(st, G_FONT_SMALL),
               0xFFFF, dx, dy);
 }
 

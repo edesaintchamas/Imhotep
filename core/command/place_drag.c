@@ -20,10 +20,10 @@
 #define BITS(o) U8(st, G_GRID_BITFIELDS + (uint32_t) (o))
 #define EDGE(o) U8(st, G_GRID_EDGE + (uint32_t) (o))
 #define BGRID(o) S16(st, G_GRID_BUILDING + 2u * (uint32_t) (o))
-#define FGRID(o) S16(st, G_FIGURE_GRID + 2u * (uint32_t) (o))
+#define FGRID(o) S16(st, G_GRID_FIGURE + 2u * (uint32_t) (o))
 #define ROUTE(o) S8(st, G_GRID_ROUTING + (uint32_t) (o))
 #define DIST(o) S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) (o))
-#define OBJECT(o) U32(st, G_UD05720 + 4u * (uint32_t) (o))
+#define OBJECT(o) U32(st, G_FLOODPLAIN_MANAGER + 4u * (uint32_t) (o))
 
 static int32_t offset_of(game_state *st, int32_t x, int32_t y)
 {
@@ -198,7 +198,7 @@ void place_notice_4e2fb0(game_state *st, int32_t quiet)
         if (k != 1) {
             return;
         }
-        if (S32(st, c + CITY_U2728) == 0 && S32(st, c + CITY_HOUSE_ROOM_LEFT) > 0) {
+        if (S32(st, c + CITY_U2728) == 0 && S32(st, c + CITY_HOUSE_ROOM) > 0) {
             int32_t id = S32(st, c + CITY_U4410) + 0x83;
             if (id != 0) {
                 notice(st, id);
@@ -214,14 +214,14 @@ void place_notice_4e2fb0(game_state *st, int32_t quiet)
         notice(st, 0xD8);
         return;
     }
-    if (S32(st, c + CITY_IMMIGRANTS_MONTH) < 5) {
-        if (S32(st, c + CITY_U2728) != 0 || S32(st, c + CITY_HOUSE_ROOM_LEFT) <= 0) {
+    if (S32(st, c + CITY_IMMIGRANTS_THIS_MONTH) < 5) {
+        if (S32(st, c + CITY_U2728) != 0 || S32(st, c + CITY_HOUSE_ROOM) <= 0) {
             if (quiet == 0) {
                 notice(st, 0x7B);
             }
             return;
         }
-        if (S32(st, c + CITY_MIGRATION_PERCENT) < 0x50) {
+        if (S32(st, c + CITY_MIGRATION_PCT) < 0x50) {
             int32_t id = S32(st, c + CITY_U4410) + 0x7C;
             if (id != 0) {
                 notice(st, id);

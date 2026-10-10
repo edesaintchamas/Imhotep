@@ -105,7 +105,7 @@ void building_clear_tiles(game_state *st, int32_t b, int32_t x, int32_t y)
             U8(st, G_CANAL + (uint32_t) t) = 0;
             U8(st, G_GRID_EDGE + (uint32_t) t) = (uint8_t) ((U8(st, G_GRID_EDGE + (uint32_t) t) & 0xC0) | 0x40);
             uint32_t v = U32(st, ter(t));
-            U8(st, G_SPRITE + (uint32_t) t) = 0;
+            U8(st, G_GRID_SPRITE + (uint32_t) t) = 0;
             if ((v & 4) && !(v & 0x10000)) {
                 U32(st, ter(t)) = 4;
                 GAME_CALL(st, FN_WATER_TILE_REDRAW, col + x, row + y, 1);
@@ -147,7 +147,7 @@ void building_rubble_tiles(game_state *st, int32_t b, int32_t x, int32_t y, int3
             uint32_t v = U32(st, ter(t));
             S16(st, G_GRID_BUILDING + 2u * (uint32_t) t) = 0;
             S16(st, G_GRID_DAMAGE + 2u * (uint32_t) t) = 0;
-            U8(st, G_SPRITE + (uint32_t) t) = 0;
+            U8(st, G_GRID_SPRITE + (uint32_t) t) = 0;
             U8(st, G_GRID_EDGE + (uint32_t) t) = 0x40;
             if (v & 4) {
                 U32(st, ter(t)) = 4;
@@ -302,39 +302,39 @@ void building_release(game_state *st, int32_t b)
     uint32_t c = CURRENT_CITY(st);
     switch (type) {
     case 0xD1:
-        S32(st, c + CITY_U47A0) = -1;
-        S32(st, c + CITY_U47A4) = -1;
+        S32(st, c + CITY_FESTIVAL_SQUARE_X) = -1;
+        S32(st, c + CITY_FESTIVAL_SQUARE_Y) = -1;
         S16(st, c + CITY_U4814) = 0;
         S32(st, G_FESTIVAL_TENTH) = 0;
         return;
     case 0xBB: case 0xBC: case 0xBD:
-        if (S32(st, r + BLD_GRID_OFFSET) == S32(st, c + CITY_U278C)) {
-            S32(st, c + CITY_U278C) = 0;
-            S16(st, c + CITY_U2788) = 0;
-            S16(st, c + CITY_U278A) = 0;
+        if (S32(st, r + BLD_GRID_OFFSET) == S32(st, c + CITY_PALACE_OFFSET)) {
+            S32(st, c + CITY_PALACE_OFFSET) = 0;
+            S16(st, c + CITY_PALACE_X) = 0;
+            S16(st, c + CITY_PALACE_Y) = 0;
             S16(st, c + CITY_U4486) = 0;
         }
         return;
     case 0x4D: case 0x4E: case 0x4F:
-        S32(st, c + CITY_U499C) = 0;
+        S32(st, c + CITY_MANSION_BUILT) = 0;
         return;
     case 0x5F:
-        if (S32(st, r + BLD_GRID_OFFSET) == S32(st, c + CITY_U44A8)) {
-            S32(st, c + CITY_U44A8) = 0;
-            S16(st, c + CITY_U44A4) = 0;
-            S16(st, c + CITY_U44A6) = 0;
+        if (S32(st, r + BLD_GRID_OFFSET) == S32(st, c + CITY_RECRUITER_OFFSET)) {
+            S32(st, c + CITY_RECRUITER_OFFSET) = 0;
+            S16(st, c + CITY_RECRUITER_X) = 0;
+            S16(st, c + CITY_RECRUITER_Y) = 0;
             S32(st, c + CITY_U44B0) = 0;
         }
         return;
     case 0x5E:
-        S32(st, c + CITY_U49D0) = 0;
+        S32(st, c + CITY_ACADEMY_EXISTS) = 0;
         return;
     case 0x32:
-        if (S32(st, r + BLD_GRID_OFFSET) == S32(st, c + CITY_U45F8)) {
-            S32(st, c + CITY_U45F8) = 0;
-            S16(st, c + CITY_U45F4) = 0;
-            S16(st, c + CITY_U45F6) = 0;
-            S32(st, c + CITY_U4600) = 0;
+        if (S32(st, r + BLD_GRID_OFFSET) == S32(st, c + CITY_TYPE32_OFFSET)) {
+            S32(st, c + CITY_TYPE32_OFFSET) = 0;
+            S16(st, c + CITY_TYPE32_X) = 0;
+            S16(st, c + CITY_TYPE32_Y) = 0;
+            S32(st, c + CITY_TYPE32_BUILT) = 0;
         }
         return;
     case 0x88: {
@@ -389,11 +389,11 @@ void building_release(game_state *st, int32_t b)
         return;
     }
     if (type >= 0x41 && type <= 0x45) {
-        S16(st, c + CITY_U4478) = 0;
+        S16(st, c + CITY_TEMPLE_COMPLEX) = 0;
         S16(st, c + CITY_U448A) = 0;
         int32_t m = GAME_CALL(st, FN_BUILDING_MAIN_PART, b);
         GAME_CALL(st, FN_BUILDING_AREA_CLEAR_0X004C0920, m);
-        S32(st, CURRENT_CITY(st) + CITY_U472C) = 0;
+        S32(st, CURRENT_CITY(st) + CITY_TEMPLE_COMPLEX_ID) = 0;
     }
 }
 
@@ -411,7 +411,7 @@ void building_clear_area(game_state *st, int32_t b, int32_t type)
     int32_t x0 = (t - S32(st, G_MAP_START)) % 0xE4, y0 = (t - S32(st, G_MAP_START)) / 0xE4;
     for (int32_t row = 0; row < n; row++) {
         for (int32_t col = 0; col < n; col++, t++) {
-            U8(st, G_SPRITE + (uint32_t) t) = 0;
+            U8(st, G_GRID_SPRITE + (uint32_t) t) = 0;
             U8(st, G_CANAL + (uint32_t) t) = 0;
             U8(st, G_GRID_BITFIELDS + (uint32_t) t) &= 0xE0;
             S16(st, G_GRID_BUILDING + 2u * (uint32_t) t) = 0;

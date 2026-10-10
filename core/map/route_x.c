@@ -352,7 +352,7 @@ int32_t route_path_ties(game_state *st, int32_t slot, int32_t x0, int32_t y0, in
                         int32_t mode)
 {
     /* @bin 0x0051DC10 */
-    uint32_t tick = U32(st, G_R_1_7) & 3u;
+    uint32_t tick = U32(st, G_RANDOM_R1_7BIT) & 3u;
     int32_t cur = (int32_t) (U32(st, G_MAP_START) + 228u * (uint32_t) y + (uint32_t) x);
     S32(st, G_ROUTE_START) = cur;
     int32_t best = dist(st, cur);

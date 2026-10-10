@@ -15,10 +15,10 @@ static void population_total(game_state *st, uint32_t c)
     /* @bin 0x004E919A city +0x24 := the sum of the 100 i16 at +0x25C4; its maximum at +0x469C */
     S32(st, c + CITY_POPULATION) = 0;
     for (uint32_t i = 0; i < 100; i++) {
-        S32(st, c + CITY_POPULATION) += S16(st, c + CITY_U25C4 + 2 * i);
+        S32(st, c + CITY_POPULATION) += S16(st, c + CITY_AGES + 2 * i);
     }
-    if (S32(st, c + CITY_POPULATION) > S32(st, c + CITY_U469C)) {
-        S32(st, c + CITY_U469C) = S32(st, c + CITY_POPULATION);
+    if (S32(st, c + CITY_POPULATION) > S32(st, c + CITY_POPULATION_HIGHEST)) {
+        S32(st, c + CITY_POPULATION_HIGHEST) = S32(st, c + CITY_POPULATION);
     }
 }
 
@@ -241,7 +241,7 @@ void day_fires_469730(game_state *st)
             continue;
         }
         random_next_state(st);
-        if (((U8(st, b + BLD_RANDOM) & 3) ^ (U32(st, G_R_1_15) & 3)) != 0) {
+        if (((U8(st, b + BLD_RANDOM) & 3) ^ (U32(st, G_RANDOM_R1_15BIT) & 3)) != 0) {
             continue;
         }
         int32_t dir = S32(st, G_WIND_DIRECTION);
@@ -283,7 +283,7 @@ void day_risks_468b70(game_state *st)
         return;
     }
     random_next_state(st);
-    uint32_t day_key = U32(st, G_R_1_15) & 7;
+    uint32_t day_key = U32(st, G_RANDOM_R1_15BIT) & 7;
     for (int32_t id = 1; id <= S32(st, G_BUILDING_HIGHEST); id++) {
         uint32_t b = BUILDING_ADDR(id);
         int16_t type = S16(st, b + BLD_TYPE);
@@ -320,7 +320,7 @@ void day_risks_468b70(game_state *st)
             } else {
                 S32(st, G_UE950E0) = 0;
             }
-            if (U8(st, G_MISSION_LIST_FLAGS + 3) == 0) {
+            if (U8(st, G_TUTORIAL_FLAGS + 3) == 0) {
                 GAME_CALL(st, FN_TUTORIAL_STEP, 3);
             } else {
                 if (S32(st, G_MESSAGE_DELAYS + 4 * 2) <= 0) {
@@ -343,7 +343,7 @@ void day_risks_468b70(game_state *st)
             continue;
         }
         random_next_state(st);
-        int16_t factor = (int16_t) ((U32(st, G_R_1_15) % 5) + 1);
+        int16_t factor = (int16_t) ((U32(st, G_RANDOM_R1_15BIT) % 5) + 1);
         if (key != day_key) {
             continue;
         }
@@ -376,7 +376,7 @@ void day_risks_468b70(game_state *st)
         } else {
             S32(st, G_UE950E0) = 0;
         }
-        if (U8(st, G_MISSION_LIST_FLAGS) == 0) {
+        if (U8(st, G_TUTORIAL_FLAGS) == 0) {
             GAME_CALL(st, FN_TUTORIAL_STEP, 0);
         } else {
             if (now - last > 15000) {

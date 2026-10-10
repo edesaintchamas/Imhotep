@@ -19,7 +19,7 @@
 #define G_TYPE_FIRE_STEP 0x00705EBCu       /* @bin 0x00468B70 i16 (+4 of the per-type table): BLD_FIRE_RISK step (save.md §5) */
 #define G_TYPE_DAMAGE_STEP 0x00705EC0u     /* @bin 0x00468B70 i16 (+8): BLD_COLLAPSE_RISK step */
 #define G_TYPE_WALKER_COST 0x00705EC4u     /* @bin 0x004623D1 i32 (+0xC): the stock a walker costs (types 0x43, 0x44: a percentage, 0x004659FB) */
-#define G_TYPE_COUNT 0x0070573Cu           /* @bin 0x00461950 i32 per type: the number of such buildings */
+#define G_TYPE_COUNT_ACTIVE 0x0070573Cu           /* @bin 0x004677C0 i32 per type: the buildings of the type at work (workers, water, occupants: core/city/day_buildings.c; 0x00461950); all of them: G_TYPE_COUNT_TOTAL */
 #define G_U705C10 0x00705C10u              /* @bin 0x004C4F05 i32: tested with G_U705DF4 by a small wrath of god 2 */
 #define G_U705DF4 0x00705DF4u
 
@@ -157,7 +157,7 @@
 #define G_MASTABA_LAYOUT 0x005E2AD8u
 #define G_MASTABA_PART_KIND 0x005E2AE4u /* @bin 0x004E05F0 u32: low byte the kind, 0xF00 the corner, 0xF000 the stone corner */
 /* the sun temple (type 0xD5): 100 parts of 0x34 bytes (@bin 0x005417B0: x, y, size) */
-#define G_SUN_TEMPLE_PARTS 0x00601DD8u
+#define G_SUN_TEMPLE_PARTS 0x00601DD8u /* ; also: @bin 0x00541D50 100 parts of 0x34 bytes (x, y, size: core/building/map_add_monument.c) */
 #define G_SUN_TEMPLE_PART_KIND 0x00601DE4u /* @bin 0x00541DE0 u32: the part's kind, 0..0xC */
 #define G_SUN_TEMPLE_FILES 0x00603228u     /* @bin 0x005414B0 i32[3]: the main part's files by stage */
 
@@ -226,7 +226,7 @@
 
 /* the gatehouse's four parts (exe data; part records G_GATE_PARTS, 16 bytes: +0 u8 flag, +4 size, +8,
  * +0xC offsets by rotation; @bin 0x004BFB30, 0x004BFA50) */
-#define G_GATE_GROUPS 0x005DF768u     /* @bin 0x004BFB30 i32[4]: the parts' image groups (0x1AE: by god) */
+#define G_GATE_GROUPS 0x005DF768u /* @bin 0x004BFB30 i32[4]: the parts' image groups (0x1AE: by god); also: @bin 0x004BFCD0 i32 per part (4): the gatehouse's image groups (0x1AE: the god's) */
 #define G_GATE_GOD_GROUPS 0x005DF778u /* @bin 0x004BFB30 i32: the group replacing 0x1AE, by god (0x004C53D0) */
 #define G_GATE_PART_IDS 0x005DF78Cu   /* @bin 0x004BFA50 i32[4] part records by rotation, 16 bytes */
 /* the wall patterns (exe data; @bin 0x0047AFD0) */
@@ -284,17 +284,10 @@
 #define G_GOODS_SUM 0x0078D590u /* core/building/day_houses.c: i32[12]: goods of merged houses */
 #define G_MERGE_Y 0x0078D76Cu /* core/building/day_houses.c */
 #define G_MERGE_X 0x0078D770u /* core/building/day_houses.c */
-#define G_TICK_DAY 0x0078D7C4u /* core/sim/tick.c: day within the month, 0..15 (chunk 35) [generic] */
 #define G_HOUSE_RESULT 0x0078D7E4u /* core/building/day_houses.c: i32: the evolution check's result (-1, 0, 1) */
 #define G_HOUSE_ID 0x0078D838u /* core/building/day_houses.c: the house being evolved (global loop counter) */
 #define G_STORAGE_ORDERS 0x007900C2u /* core/figure/helpers_xa.c: u8 per good of the record selected by building +0xC1 */
 #define G_COUNTS 0x0096E644u /* core/figure/helpers_xa.c: 27 i32: candidates per good index */
-#define G_GRID_DESIRABILITY 0x00AC2D4Cu /* i8 per tile (save.md chunk 16, desirability.md) */
-#define G_GRID_RANDOM 0x00ACF85Cu       /* u8 per tile (chunk 15); 0x0046A400 BLD_RANDOM */
-#define G_GRID_BITFIELDS 0x00B285CCu    /* u8 per tile: the bitfields grid (chunk 13) */
-#define G_GRID_BUILDING 0x00B4E6FCu     /* i16 per tile: the building id (chunk 9) */
-#define G_GRID_EDGE 0x00B67D1Cu         /* u8 per tile: the edge grid (chunk 8) */
-#define G_GRID_IMAGE 0x00B7482Cu        /* i32 per tile: the image grid (chunk 7) */
 #define G_UNDO_TYPE 0x00BC9690u /* core/command/undo.c */
 #define G_OUT_OF_MAP 0x00BC9734u /* core/building/day2_destroy.c */
 #define G_FOOTPRINT_ROWS 0x00BC9738u /* core/command/construction_checks.c */
@@ -303,15 +296,68 @@
 #define G_PLACE_COUNT 0x00EAAF58u /* i32: their count */
 #define G_GOODS_COUNT 0x00F53DD8u /* core/command/orders_storage.c: i32 count, then i32 resources (granaries, bazaars) */
 #define G_GOODS_LIST 0x00F53DDCu /* core/building/market.c: i32 per entry: a good (1..0x13), 0: none */
-#define G_GRAPHICS_GFX 0x00F55BB0u /* the graphics object: `this` of 0x0053DD90, which loads a file into an image slot (core/city/day2_farm.c) */
-#define G_IMAGE_GROUPS 0x00F55BB4u /* i32 per sprite group, 8 bytes a group: its first image (core/map/terrain.c writes them; core/figure/actions_a.c) */
 #define G_FORT_IMAGE 0x00F5662Cu /* present/city/ghost_big.c: i32 the fort's first image */
 #define G_PLAIN 0x00F56B54u /* core/building/rest_monument.c: the plain ground image */
 #define G_IMAGE_FLAT_TOP 0x00F572ECu /* present/city/overlay.c: group base: images + 0x30 .. + 0x47 are drawn 0x96 higher */
 
-/* --- harvested: names the ports gave these addresses in local #defines (tools/naming/harvest.py).
- * @bin evidence: the defining port (file) and its comment. A package agent checks each name it
- * uses, and moves it above this block once checked. --- */
-/* --- end harvested --- */
+/* ---- names merged from the packages' pending fragments (phase 10.4): each group keeps its
+ * package's heading (the package and its file in brackets) ---- */
+/* @bin globals of other areas used by core/figure; the function or chunk on each line [p1_figure] */
+#define G_HOUSE_GOODS_B 0x0070CDFCu /* i32: the next good's amount */
+#define G_HOUSE_GOODS_C 0x0070CE00u /* i32: the next good's amount */
+#define G_HOUSE_GOODS_D 0x0070CE04u /* i32: the next good's amount */
+#define G_HOUSE_LEVEL_U1C 0x0070CE14u /* i32 per building +0x12 (0x58 bytes): amount (0x00489F70, 0x0045849B) */
+#define G_U77567C 0x0077567Cu /* i32 set: redraw by 0x0047A120 (core/building/day2_destroy.c) */
+/* @bin fields of other records and tables, read by core/figure [p1_figure] */
+#define MONOBJ_ROUND_ROBIN 0x08u  /* i32: the monument object's round-robin counter, its limit at +4 (0x004AB0AD) */
+#define MONOBJ_U4C 0x4Cu          /* u8 := 0 when a figure delivers to or leaves the monument (actions_d2.c) */
+/* named in present/layout/g_city_view.h (P9), used by core: the same definition, to move to a core header [p2_building] */
+#define G_GATE_PARTS 0x005DF810u /* @bin 0x004BFA50 the gatehouse's part records, 16 bytes: +0 u8 flag, +4 size, +8, +0xC offsets */
+/* fields of tables other packages own [p3_city] */
+#define MONMODEL_U0C 0x0Cu /* @bin 0x004F78A0 i16: a monument's weight (G_MONUMENT_MODELS entries; g_building.h) */
+/* globals used most by other packages (the area of each: [header]) [p3_city] */
+#define G_HOUSE_LEVEL_U44 0x0070CE10u /* @bin the house level table, i32 (save.md §5: 0x0070CDCC + level * 0x58) */
+#define G_HOUSE_LEVEL_U50 0x0070CE1Cu /* @bin the house level table, i32 (save.md §5: 0x0070CDCC + level * 0x58) */
+#define G_HOUSE_LEVEL_U54 0x0070CE20u /* @bin the house level table, i32 (save.md §5: 0x0070CDCC + level * 0x58) */
+#define G_UF5736C 0x00F5736Cu /* @bin 0x004ED360 u32: a construction image (core/building/monument_obj.c) [g_building.h] */
+/* P2 (g_building.h) [p4_command] */
+#define G_GATEHOUSE_PARTS 0x005DF814u  /* @bin 0x004BFA50 16-byte records: +0 size, +4 / +8 offsets by rotation */
+#define G_UNDO_COUNTDOWN 0x00BC9688u   /* @bin 0x00485200 i32: := 500, the undo's countdown (core/city/day_basic.c) */
+/* -- named with the rewrite of core/boot, core/newgame/graphics.c -- [p6_scenario] */
+#define G_MASTABA_VARIANT 0x00E94E18u /* @bin 0x0053D970 i32: the mastaba variant (0x0053D930; core/building/rest_redraw.c) [g_building.h] */
+/* formations (save.md §3 chunks 25-27) [p6_scenario] */
+#define G_SHIPWRIGHT_QUEUES 0x009783C0u /* @bin 0x004D0A40 the 10 shipwright queues (building +0xCB), G_SHIPWRIGHT_QUEUE_STRIDE bytes each: +0 u8 in use, +0x18 building id (0x0046A260) [g_building.h] */
+#define G_SHIPWRIGHT_QUEUE_STRIDE 0x1Cu /* [g_building.h] */
+/* -- named with the rewrite of core/newgame/map_load.c, start.c, start2.c -- [p6_scenario] */
+#define G_IMAGE_58_59 0x00F569D4u /* @bin 0x00470990 i32: first image of types 0x58 (+0, +1) and 0x59 (+2) [g_building.h] */
+#define G_IMAGE_5D 0x00F565DCu /* @bin 0x00470990 i32: first image of type 0x5D (+ BLD_U54, 0x0047C260) [g_building.h] */
+/* ---- globals of other areas (core or another present package uses them) ---- [p8a_ui_main] */
+#define G_HOUSE_NEED_ENTERTAINMENT 0x0070CDD4u /* @bin 0x00453B40 i32 +0 of house level 0's needs (stride 0x58, G_HOUSE_LEVELS + 8): entertainment (core/building/day_houses.c) */
+#define G_HOUSE_NEED_EDUCATION 0x0070CDDCu /* @bin 0x00453B40 i32 +8 of the needs: education */
+#define G_HOUSE_NEED_RELIGION 0x0070CDE0u /* @bin 0x00453B40 i32 +0x0C of the needs: religion */
+#define G_HOUSE_NEED_SERVICES 0x0070CDF0u /* @bin 0x00453B40 i32 +0x1C of the needs: services */
+#define G_MONUMENT_SLOT_2 0x00784DE2u /* @bin 0x00520632 i16 G_MONUMENT_SLOTS[1] */
+#define G_TOTAL_CONNECTIONS 0x0078D794u /* @bin 0x00534DF0 i32 the evolve panel's "total connections" */
+#define G_CONNECTIONS 0x0078D7E8u /* @bin 0x00534DF0 i32 the evolve panel's "no of connects" (shown - 1) */
+/* [g_building.h] the monuments' work lists: 16-byte entries (+0 stage or key, +4 resource / figure type, +8 the
+ * work object: +0x0C amount, +0x12 done), END the bound (core/building/monument.c) [p8b_ui_info] */
+#define G_WORKS_E1_END 0x0059EF98u
+#define G_WORKS_E6_END 0x005A84C0u
+#define G_WORKS_E3_END 0x005AD3C0u
+#define G_WORKS_E4_END 0x005B0148u
+/* used by core/ too (moved from present/layout at the merge) [core header] [p9_city_view] */
+#define G_PARTS_D5 0x00596088u /* @bin 0x00420050 the parts of type 0xD5 (as G_PARTS_D2) */
+#define G_PARTS_D5_END 0x00596158u /* @bin 0x00420050 */
+#define G_PARTS_E1 0x0059EDF0u /* @bin 0x004206F0 the parts of type 0xE1 */
+#define G_PARTS_E1_END 0x0059EFA0u /* @bin 0x004206F0 */
+#define G_PARTS_E6 0x005A8148u /* @bin 0x00420A30 the parts of type 0xE6 */
+#define G_PARTS_E6_END 0x005A84C8u /* @bin 0x00420A30 */
+#define G_PARTS_E3 0x005AD218u /* @bin 0x00420D60 the parts of type 0xE3 */
+#define G_PARTS_E3_END 0x005AD3C8u /* @bin 0x00420D60 */
+#define G_PARTS_E4 0x005B0060u /* @bin 0x00421060 the parts of type 0xE4 */
+#define G_PARTS_E4_END 0x005B0150u /* @bin 0x00421060 */
+#define G_PARTS_E5 0x005BE510u /* @bin 0x00421920 the parts of types 0xE5, 0xEA..0xEC: 3 entries (0x30 bytes) per building +0x68 */
+#define G_PARTS_D2 0x005C2750u /* @bin 0x0041FFF0 16-byte entries (+0 the part object): the parts drawn for type 0xD2 */
+#define G_PARTS_D2_END 0x005C28B0u /* @bin 0x0041FFF0 the end of G_PARTS_D2 */
 
 #endif

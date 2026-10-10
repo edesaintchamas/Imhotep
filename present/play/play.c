@@ -113,7 +113,7 @@ void play_screen_messages(game_state *st)
         GAME_CALL0(st, FN_VIEW_ROWS_RESET);
         w = U8(st, G_WINDOW);
     }
-    int32_t yoff = U8(st, G_GATE) != 0 ? 0x46 : 0;
+    int32_t yoff = U8(st, G_PAUSED) != 0 ? 0x46 : 0;
     if ((w == 1 || w == 0x12 || w == 6) && (uint8_t) GAME_CALL0(st, FN_MISSION_GOAL_HINT) != 0) {
         /* @bin 0x004E2773 the mission goal hint (text set by 0x004E2530): small button 9 of 0x1D pieces
          * left of the first slot's centre, two marks, the text centred on 0x1CC pixels; the timed

@@ -86,7 +86,7 @@ static void corner_tile(game_state *st, int32_t b, int32_t *tx, int32_t *ty)
     /* the tile of b whose screen position anchors it: +1 in y (orientation 0), x (4), both (6) */
     int32_t x = S16(st, BUILDING_ADDR(b) + BLD_X);
     int32_t y = S16(st, BUILDING_ADDR(b) + BLD_Y);
-    int32_t o = S32(st, G_UE94E04);
+    int32_t o = S32(st, G_CITY_ORIENTATION);
     if (o == 0) {
         y++;
     } else if (o == 4) {
@@ -160,20 +160,20 @@ int32_t figure_in_overlay(game_state *st, int32_t f)
         }
         /* @bin 0x004388D4 a tax collector of the palace kind of the city's palace (0x004C5120) */
         int32_t b = S16(st, fr + FIG_HOME);
-        if (S16(st, city + CITY_U4478) == 0) {
+        if (S16(st, city + CITY_TEMPLE_COMPLEX) == 0) {
             return 0;
         }
-        int32_t palace = S32(st, city + CITY_U472C);
+        int32_t palace = S32(st, city + CITY_TEMPLE_COMPLEX_ID);
         int32_t level = GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, palace);
         if (GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, b) != level) {
             return 0;
         }
         int32_t k = GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, palace);
         if (k == 1) {
-            return (uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, city + CITY_U472C), 1) != 0;
+            return (uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, city + CITY_TEMPLE_COMPLEX_ID), 1) != 0;
         }
         if (k == 3) {
-            return (uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, city + CITY_U472C), 2) != 0;
+            return (uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, city + CITY_TEMPLE_COMPLEX_ID), 2) != 0;
         }
         return 0;
     }
@@ -249,10 +249,10 @@ int32_t figure_in_overlay(game_state *st, int32_t f)
             if (bt != 0x3F && bt != 0x44) {
                 return 0;
             }
-            if (S16(st, city + CITY_U4478) == 0) {
+            if (S16(st, city + CITY_TEMPLE_COMPLEX) == 0) {
                 return 0;
             }
-            return (uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, city + CITY_U472C), 2) != 0;
+            return (uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, city + CITY_TEMPLE_COMPLEX_ID), 2) != 0;
         }
         default:
             return 0;

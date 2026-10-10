@@ -242,7 +242,7 @@ void sphinx_stage_up(game_state *st)
 {
     /* @bin 0x0053D820 the city's sphinx stage (word +2 of the city record 0x00EA5BA8 + 0x49D8 *
      * [0x00EAAC28]) from 1 to 15 goes up, then 0x0053D850 loads its images */
-    uint32_t p = CITY_BASE + CITY_U433A + 0x49D8u * (uint32_t) S32(st, G_PLAYER);
+    uint32_t p = CITY_BASE + CITY_U433A + 0x49D8u * (uint32_t) S32(st, CURRENT_PLAYER_ADDR);
     int16_t v = S16(st, p);
     if (v == 0 || v >= 0x10) {
         return;

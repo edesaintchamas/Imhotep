@@ -39,7 +39,7 @@ int32_t trade_good_open_24(game_state *st, int32_t player, int32_t city, int32_t
      * (+0x48F0 + 4 good) above the threshold (status 2: i16 +0x286E * 100, else 0x00775810[good])
      * and, for city != 0, the empire city's byte +2 + good set */
     uint32_t c = CITY_ADDR(player);
-    int16_t status = S16(st, c + CITY_GOOD_SETTING + 2u * (uint32_t) good);
+    int16_t status = S16(st, c + CITY_TRADE_STATUS + 2u * (uint32_t) good);
     if (status != 2 && status != 4) {
         return 0;
     }
@@ -50,9 +50,9 @@ int32_t trade_good_open_24(game_state *st, int32_t player, int32_t city, int32_t
     if (city != 0 && S32(st, ROUTE_DONE(U8(st, ECITY(city)), good)) >= limit) {
         return 0;
     }
-    int32_t stock = S32(st, c + CITY_GOOD_STOCK + 4u * (uint32_t) good);
-    if (S16(st, c + CITY_GOOD_SETTING + 2u * (uint32_t) good) == 2) {
-        if (!(stock > S16(st, c + CITY_U286E + 2u * (uint32_t) good) * 100)) {
+    int32_t stock = S32(st, c + CITY_STORAGE_STOCK + 4u * (uint32_t) good);
+    if (S16(st, c + CITY_TRADE_STATUS + 2u * (uint32_t) good) == 2) {
+        if (!(stock > S16(st, c + CITY_TRADE_LIMIT + 2u * (uint32_t) good) * 100)) {
             return 0;
         }
     } else if (!(stock > S32(st, G_DEFAULT_LIMIT + 4u * (uint32_t) good))) {
@@ -74,7 +74,7 @@ int32_t trade_good_open_13(game_state *st, int32_t player, int32_t city, int32_t
         return 0;
     }
     uint32_t c = CITY_ADDR(player);
-    int16_t status = S16(st, c + CITY_GOOD_SETTING + 2u * (uint32_t) good);
+    int16_t status = S16(st, c + CITY_TRADE_STATUS + 2u * (uint32_t) good);
     if (status != 1 && status != 3) {
         return 0;
     }
@@ -88,12 +88,12 @@ int32_t trade_good_open_13(game_state *st, int32_t player, int32_t city, int32_t
     if (S32(st, ROUTE_DONE(U8(st, ECITY(city)), good)) >= limit) {
         return 0;
     }
-    int32_t stock = S32(st, c + CITY_GOOD_STOCK + 4u * (uint32_t) good);
+    int32_t stock = S32(st, c + CITY_STORAGE_STOCK + 4u * (uint32_t) good);
     if (good < 1) {
         return 0;
     }
-    if (S16(st, c + CITY_GOOD_SETTING + 2u * (uint32_t) good) == 1) {
-        return stock < S16(st, c + CITY_U286E + 2u * (uint32_t) good) * 100;
+    if (S16(st, c + CITY_TRADE_STATUS + 2u * (uint32_t) good) == 1) {
+        return stock < S16(st, c + CITY_TRADE_LIMIT + 2u * (uint32_t) good) * 100;
     }
     return stock < S32(st, G_DEFAULT_LIMIT + 4u * (uint32_t) good);
 }
@@ -159,8 +159,8 @@ int32_t storage_add(game_state *st, int32_t player, int32_t bid, int32_t good, i
         }
         at = part;
         uint32_t idx = 4u * ((uint32_t) player * 0x1276u + (uint32_t) good);
-        S32(st, CITY_BASE + CITY_U4860 + idx) -= 1;
-        S32(st, CITY_BASE + CITY_GOOD_STOCK + idx) += 1;
+        S32(st, CITY_BASE + CITY_STORAGE_FREE + idx) -= 1;
+        S32(st, CITY_BASE + CITY_STORAGE_STOCK + idx) += 1;
         uint32_t p = B(part);
         S16(st, p + BLD_SUBTYPE) = (int16_t) good;
         S16(st, p + BLD_STORED) = (int16_t) (S16(st, p + BLD_STORED) + 1);
@@ -208,12 +208,12 @@ int32_t storage_room_loads(game_state *st, int32_t bid, int32_t good, int32_t am
     }
     uint32_t c = CURRENT_CITY(st);
     int32_t lim;
-    if (S16(st, c + CITY_GOOD_SETTING + 2u * (uint32_t) good) == 1) {
-        lim = S16(st, c + CITY_U286E + 2u * (uint32_t) good) * 100;
+    if (S16(st, c + CITY_TRADE_STATUS + 2u * (uint32_t) good) == 1) {
+        lim = S16(st, c + CITY_TRADE_LIMIT + 2u * (uint32_t) good) * 100;
     } else {
         lim = S32(st, G_DEFAULT_LIMIT + 4u * (uint32_t) good);
     }
-    int32_t stock = S32(st, c + CITY_GOOD_STOCK + 4u * (uint32_t) good);
+    int32_t stock = S32(st, c + CITY_STORAGE_STOCK + 4u * (uint32_t) good);
     if (stock + q * 100 < lim) {
         return q;
     }
@@ -334,7 +334,7 @@ void city_good_value_move(game_state *st, int32_t player, int32_t unused, int32_
     uint32_t c = CITY_ADDR(player);
     int32_t v = S32(st, G_PRICE_BUY + 8u * (uint32_t) good);
     S32(st, c + CITY_TREASURY) -= v;
-    S32(st, c + CITY_U2C6C) += v;
+    S32(st, c + CITY_IMPORTS_THIS_YEAR) += v;
 }
 
 int32_t storage_next_good_13(game_state *st, int32_t player, int32_t bid, int32_t city)
@@ -699,11 +699,11 @@ int32_t storage_sell_next(game_state *st, int32_t player, int32_t bid, int32_t c
     uint32_t c = CITY_ADDR(player);
     if (S32(st, CURRENT_CITY(st) + CITY_U45CC) > 0) {
         S32(st, c + CITY_TREASURY) += calc_percentage(S32(st, G_PRICE_SELL + 8u * (uint32_t) good), 150);
-        S32(st, c + CITY_U2C64) += calc_percentage(S32(st, G_PRICE_SELL + 8u * (uint32_t) good), 150);
+        S32(st, c + CITY_EXPORTS_THIS_YEAR) += calc_percentage(S32(st, G_PRICE_SELL + 8u * (uint32_t) good), 150);
     } else {
         int32_t v = S32(st, G_PRICE_SELL + 8u * (uint32_t) good);
         S32(st, c + CITY_TREASURY) += v;
-        S32(st, c + CITY_U2C64) += v;
+        S32(st, c + CITY_EXPORTS_THIS_YEAR) += v;
     }
     return good;
 }
@@ -755,7 +755,7 @@ int32_t storage_take_from_trader(game_state *st, int32_t bid, int32_t good, int3
         uint32_t c = CURRENT_CITY(st);
         int32_t value = S32(st, G_PRICE_BUY + 8u * (uint32_t) good);
         S32(st, c + CITY_TREASURY) -= value;
-        S32(st, c + CITY_U2C6C) += value;
+        S32(st, c + CITY_IMPORTS_THIS_YEAR) += value;
         S32(st, ROUTE_DONE(U8(st, ec), good)) += 1;
         figure_slot_count_good(st, fid, good);
     }
@@ -873,7 +873,7 @@ int32_t building_add_good(game_state *st, int32_t bid, int32_t amount, int32_t g
         uint32_t c = CURRENT_CITY(st);
         S32(st, c + CITY_TREASURY) += amount;
         S32(st, c + CITY_U42E0) += amount;
-        S32(st, c + CITY_U47B0) += amount;
+        S32(st, c + CITY_GOLD_THIS_YEAR) += amount;
         /* @bin 0x0045FECD tutorial: 0x00E38EBC 0, 0x00579520 the scenario byte 0x00E38EA8,
          * 0x007027BC 0, +0x42E0 at least 500 */
         if (S32(st, G_CUSTOM) == 0 && S32(st, G_U579520) == (int32_t) S8(st, G_MISSION) &&
@@ -914,12 +914,12 @@ int32_t cart_city_building(game_state *st, int32_t x, int32_t y, int32_t good, i
     (void) x;
     (void) y;
     uint32_t c = CURRENT_CITY(st);
-    int32_t bid = S32(st, c + CITY_U44AC);
+    int32_t bid = S32(st, c + CITY_RECRUITER);
     int32_t raw = raw_good(good);
     if (good != 0x0A && good != 0x1C) {
         return 0;
     }
-    if (S32(st, c + CITY_U2A88 + 4u * (uint32_t) good) != 0) {
+    if (S32(st, c + CITY_STOCKPILE + 4u * (uint32_t) good) != 0) {
         return 0;
     }
     if (S32(st, G_U7058B8) <= 0) {

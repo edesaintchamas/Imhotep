@@ -1,6 +1,7 @@
 /* Imhotep - the text helpers of the game's model-file loaders.
  * Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0. */
 #include "model/model_text.h"
+#include "state/layout.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -69,7 +70,7 @@ int32_t model_parse_number(const uint8_t *p)
 const char *model_file_name(const game_state *st, uint32_t table)
 {
     game_state *s = (game_state *) st;
-    int32_t d = S32(s, 0x00E39080u);
+    int32_t d = S32(s, G_DIFFICULTY);
     if (d < 0 || d > 4) {
         return NULL;
     }
@@ -101,13 +102,13 @@ int model_load_figures(game_state *st, const uint8_t *text, size_t len)
     }
     /* @bin 0x00540ED0 figures: 14 fields per record into 0x007090CC.. while the target is <= 0x0070A8DB */
     const uint8_t *p = buf + at;
-    for (uint32_t dst = 0x007090CCu; dst <= 0x0070A8DBu; dst += 0x38) {
+    for (uint32_t dst = G_PROPS; dst <= G_PROPS + 0x180Fu; dst += 0x38) {
         p = read_record(st, p, len, dst, 14);
     }
     /* @bin 0x00540ED0 enemies: records 0..59 into 0x007083AC + i * 0x38 */
     p = buf + model_find_str(buf, "ALL ENEMIES", len);
     for (uint32_t i = 0; i < 60; i++) {
-        p = read_record(st, p, len, 0x007083ACu + 0x38u * i, 14);
+        p = read_record(st, p, len, G_ENEMY_MODELS + 0x38u * i, 14);
     }
     free(buf);
     return 0;
@@ -122,7 +123,7 @@ int model_load_tax_sentiment(game_state *st, const uint8_t *text, size_t len)
     /* @bin 0x00541160 from the start of the file: 11 fields per record into 0x00EA1384.. while the
      * target is <= 0x00EA17FB */
     const uint8_t *p = buf;
-    for (uint32_t dst = 0x00EA1384u; dst <= 0x00EA17FBu; dst += 44) {
+    for (uint32_t dst = G_SENTIMENT_TABLE; dst <= G_SENTIMENT_TABLE + 0x477u; dst += 44) {
         p = read_record(st, p, len, dst, 11);
     }
     free(buf);

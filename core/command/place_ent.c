@@ -16,7 +16,7 @@
 #define G5(i) S32(st, G_GRID5 + 4u * (uint32_t) (i))
 #define TER(o) U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (o))
 #define BGRID(o) S16(st, G_GRID_BUILDING + 2u * (uint32_t) (o))
-#define OBJECT(o) U32(st, G_UD05720 + 4u * (uint32_t) (o))
+#define OBJECT(o) U32(st, G_FLOODPLAIN_MANAGER + 4u * (uint32_t) (o))
 #define B(id) BUILDING_ADDR(id)
 
 static int32_t venue_size(int32_t type, int32_t other)

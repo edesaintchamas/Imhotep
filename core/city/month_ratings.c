@@ -202,7 +202,7 @@ void rating_0x46e970(game_state *st, int32_t month_end)
     }
     S32(st, c + CITY_U455C) += 1;
     if (S32(st, c + CITY_U455C) >= 0xC) {
-        S32(st, c + CITY_U4560) = 0;
+        S32(st, c + CITY_GIFTS) = 0;
     }
     if (month_end != 0) {
         S32(st, c + CITY_U4580) = 0;
@@ -564,7 +564,7 @@ int32_t flood_0x4bd590(game_state *st, uint32_t self)
      * is of level 0; at most 100 */
     int32_t v = S32(st, self + 0x14);
     uint32_t c = CITY(st);
-    if (S16(st, c + CITY_U4478) != 0 && building_type_level(st, S32(st, c + CITY_U472C)) == 0) {
+    if (S16(st, c + CITY_TEMPLE_COMPLEX) != 0 && building_type_level(st, S32(st, c + CITY_TEMPLE_COMPLEX_ID)) == 0) {
         v += 0xA;
     }
     return v > 100 ? 100 : v;
@@ -602,7 +602,7 @@ static int32_t run_46e970(game_state *st, const int32_t *a)
 static int32_t run_4bd590(game_state *st, const int32_t *a)
 {
     (void) a;
-    return flood_0x4bd590(st, G_UD05720 + 0x32C40u);
+    return flood_0x4bd590(st, G_FLOODPLAIN_MANAGER + 0x32C40u);
 }
 
 const ported_function month_ratings_ports[] = {
@@ -619,6 +619,6 @@ const ported_function month_ratings_ports[] = {
     {0x0046E410u, "rating_0x46e410", 0, 0, 0, run_46e410, 0},
     {0x0046E1E0u, "rating_0x46e1e0", 0, 0, 0, run_46e1e0, 0},
     /* thiscall on the flood record 0x00D05720 + 0x32C40 (as 0x004BE640 calls it) */
-    {0x004BD590u, "flood_0x4bd590", 0, 32, G_FLOODPLAIN, run_4bd590, 0},
+    {0x004BD590u, "flood_0x4bd590", 0, 32, G_FLOODPLAIN_SETTINGS, run_4bd590, 0},
 };
 const int month_ratings_ports_count = sizeof(month_ratings_ports) / sizeof(month_ratings_ports[0]);

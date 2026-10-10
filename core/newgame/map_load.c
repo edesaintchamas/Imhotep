@@ -321,7 +321,7 @@ void upgrade_figures_0x7f(game_state *st)
 void upgrade_events_0x90(game_state *st)
 {
     /* @bin 0x004D3D80 events 0..149: four bytes at +0x6A of each (0x00785D70 + 4 + 0x7C k) := 6 */
-    for (uint32_t a = G_KINGDOM_EVENTS + 0x6Bu; a < G_KINGDOM_EVENTS + 150u * 0x7Cu + 0x6Bu; a += 0x7Cu) {
+    for (uint32_t a = G_EVENT_RECORDS + 0x6Bu; a < G_EVENT_RECORDS + 150u * 0x7Cu + 0x6Bu; a += 0x7Cu) {
         U8(st, a - 1) = 6;
         U8(st, a) = 6;
         U8(st, a + 1) = 6;
@@ -336,7 +336,7 @@ void upgrade_events_0x98(game_state *st)
      * that the non-negative ones come first */
     int32_t n = S16(st, G_EVENTS);
     for (int32_t k = 0; k < n; k++) {
-        uint32_t e = G_KINGDOM_EVENTS + 0x7Cu * (uint32_t) k, p = e + 8;
+        uint32_t e = G_EVENT_RECORDS + 0x7Cu * (uint32_t) k, p = e + 8;
         if ((GAME_CALLT0(st, e, FN_EVENT_TYPE_HAS_GOOD) & 0xFF) == 0) {
             continue;
         }
@@ -515,7 +515,7 @@ void map_read_chunks(game_state *st, map_stream *f)
         v = S32(st, G_VERSION);
     }
     if (v < 0x7D) {
-        GAME_CALLT0(st, G_FLOODPLAIN, FN_FLOODPLAIN_SETTINGS_RESET); /* floodplain settings */
+        GAME_CALLT0(st, G_FLOODPLAIN_SETTINGS, FN_FLOODPLAIN_SETTINGS_RESET); /* floodplain settings */
         v = S32(st, G_VERSION);
     }
     if (v < 0x7F) {
@@ -563,7 +563,7 @@ void map_read_chunks(game_state *st, map_stream *f)
 int32_t map_file_load(game_state *st, const char *path, int32_t preview)
 {
     GAME_CALL0(st, FN_WORKING_DIRECTORY);               /* @bin 0x004D5820 the working directory */
-    GAME_CALLT0(st, G_FLOODPLAIN, FN_FLOODPLAIN_SETTINGS_RESET); /* floodplain settings */
+    GAME_CALLT0(st, G_FLOODPLAIN_SETTINGS, FN_FLOODPLAIN_SETTINGS_RESET); /* floodplain settings */
     /* @bin 0x004D5820 _open(path, _O_BINARY): -1 -> return 1 */
     map_stream f = {NULL, platform_file_read(st, path, 0, NULL, 0), 0};
     if (f.size < 0) {
@@ -607,7 +607,7 @@ void map_setup_grids(game_state *st)
 {
     GAME_CALL(st, FN_FILL_BYTES, G_GRID_IMAGE, 0x32C40, 0); /* the image grid := 0 */
     GAME_CALL0(st, FN_TERRAIN_FLAG10_TO_1);
-    GAME_CALLT0(st, G_FLOODPLAIN, FN_FLOODPLAIN_SETTINGS_COPY);
+    GAME_CALLT0(st, G_FLOODPLAIN_SETTINGS, FN_FLOODPLAIN_SETTINGS_COPY);
     if (S32(st, G_VERSION) < 0x91) {
         U8(st, G_MAP_REFRESH_PENDING) = 1;
         GAME_CALL0(st, FN_MAP_REFRESH_486E70);
@@ -618,20 +618,20 @@ void map_setup_grids(game_state *st)
     }
     GAME_CALL(st, FN_NOTHING, 0, 0, (int32_t) U32(st, G_MAP_WIDTH), (int32_t) U32(st, G_CAMERA_Y));
     GAME_CALL0(st, FN_DAY_FERTILITY_4860D0);
-    GAME_CALLT(st, G_UD05720, FN_FLOODPLAIN_BUILD, 0, 0, S32(st, G_MAP_WIDTH) - 1, S32(st, G_MAP_HEIGHT) - 1);
+    GAME_CALLT(st, G_FLOODPLAIN_MANAGER, FN_FLOODPLAIN_BUILD, 0, 0, S32(st, G_MAP_WIDTH) - 1, S32(st, G_MAP_HEIGHT) - 1);
     /* @bin 0x004D5A07 every event (count: i32 0x00785D70, re-read) */
     for (int32_t k = 0; k < S32(st, G_EVENTS); k++) {
-        event_reset(st, G_KINGDOM_EVENTS + 0x7Cu * (uint32_t) k); /* 0x00448A90, thiscall */
+        event_reset(st, G_EVENT_RECORDS + 0x7Cu * (uint32_t) k); /* 0x00448A90, thiscall */
     }
     /* @bin 0x004D5A39 the 150 events' +0 := their index */
     for (uint32_t k = 0; k < 0x96; k++) {
-        U16(st, G_KINGDOM_EVENTS + 0x7Cu * k) = (uint16_t) k;
+        U16(st, G_EVENT_RECORDS + 0x7Cu * k) = (uint16_t) k;
     }
     GAME_CALL0(st, FN_MONUMENT_SLOTS_IMAGES);
     uint32_t c = CURRENT_CITY(st);
     U16(st, c + CITY_U4814) = 0;
-    U32(st, c + CITY_U47A0) = 0xFFFFFFFFu;
-    U32(st, c + CITY_U47A4) = 0xFFFFFFFFu;
+    U32(st, c + CITY_FESTIVAL_SQUARE_X) = 0xFFFFFFFFu;
+    U32(st, c + CITY_FESTIVAL_SQUARE_Y) = 0xFFFFFFFFu;
     GAME_CALL0(st, FN_EMPIRE_OBJECTS_IMAGES);
     GAME_CALL0(st, FN_EMPIRE_OBJECTS_SIZES);
     /* @bin 0x004D5A7A empire objects in use of kind 1: +0x1B := 0 */
@@ -693,7 +693,7 @@ void map_flagged_buildings(game_state *st)
                 U16(st, grid + 2) = (uint16_t) id;
                 U16(st, grid + 0x1C8) = (uint16_t) id;
                 U16(st, grid + 0x1CA) = (uint16_t) id;
-                U8(st, b + BLD_SENTIMENT) = 0x64;
+                U8(st, b + BLD_UC2) = 0x64;
                 if (U32(st, G_EDITOR) == 0) {
                     GAME_CALL(st, FN_TERRAIN_0X00482A90, S16(st, b + BLD_X), S16(st, b + BLD_Y), 2, 6);
                 } else {
@@ -705,8 +705,8 @@ void map_flagged_buildings(game_state *st)
                     S32(st, c + CITY_U45A4) = S16(st, b + BLD_Y);
                 }
             } else {
-                U8(st, b + BLD_SENTIMENT) = 0x64;
-                U8(st, b + BLD_SPAWN_DELAY) = (uint8_t) bl;
+                U8(st, b + BLD_UC2) = 0x64;
+                U8(st, b + BLD_U32) = (uint8_t) bl;
                 if (U32(st, G_EDITOR) == 0) {
                     GAME_CALL(st, FN_TERRAIN_0X00482A90, S16(st, b + BLD_X), S16(st, b + BLD_Y), 1, 3);
                 } else {
@@ -790,9 +790,9 @@ void file_name_add_extension(game_state *st, uint32_t name)
         a++;
     }
     P8(st, a) = '.';
-    P8(st, a + 1) = U8(st, G_START_EXT);
-    P8(st, a + 2) = U8(st, G_START_EXT + 1u);
-    P8(st, a + 3) = U8(st, G_START_EXT + 2u);
+    P8(st, a + 1) = U8(st, G_FILE_EXT);
+    P8(st, a + 2) = U8(st, G_FILE_EXT + 1u);
+    P8(st, a + 3) = U8(st, G_FILE_EXT + 2u);
     P8(st, a + 4) = 0;
 }
 

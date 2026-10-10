@@ -75,7 +75,7 @@ void god_act(game_state *st, int32_t god, int32_t kind, int32_t force)
                 S32(st, CURRENT_CITY(st) + CITY_U4994) = 1; /* 0x00EA6204 */
             } else {
                 post(st, 0x154);
-                GAME_CALLT(st, G_FLOODPLAIN, FN_FLOOD_QUALITY_ADD, ((crt_rand(st) % 3) * 5 + 10) * 2);
+                GAME_CALLT(st, G_FLOODPLAIN_SETTINGS, FN_FLOOD_QUALITY_ADD, ((crt_rand(st) % 3) * 5 + 10) * 2);
             }
             return;
         case 1:
@@ -116,7 +116,7 @@ void god_act(game_state *st, int32_t god, int32_t kind, int32_t force)
         case 0: {
             post(st, 0x141);
             int32_t r = crt_rand(st) % 4;
-            GAME_CALLT(st, G_FLOODPLAIN, FN_FLOOD_QUALITY_ADD, r * 5 + 5);
+            GAME_CALLT(st, G_FLOODPLAIN_SETTINGS, FN_FLOOD_QUALITY_ADD, r * 5 + 5);
             return;
         }
         case 1:
@@ -164,7 +164,7 @@ void god_act(game_state *st, int32_t god, int32_t kind, int32_t force)
         case 0:
             if (even(st)) {
                 post(st, 0x8C);
-                GAME_CALLT(st, G_FLOODPLAIN, FN_FLOOD_QUALITY_ADD, (-2 - crt_rand(st) % 3) * 10);
+                GAME_CALLT(st, G_FLOODPLAIN_SETTINGS, FN_FLOOD_QUALITY_ADD, (-2 - crt_rand(st) % 3) * 10);
             } else {
                 post(st, 0x93);
                 GAME_CALL0(st, FN_PLAGUE_FROGS_END);
@@ -220,7 +220,7 @@ void god_act(game_state *st, int32_t god, int32_t kind, int32_t force)
             } else {
                 post(st, 0x155);
                 int32_t r = crt_rand(st) % 4;
-                GAME_CALLT(st, G_FLOODPLAIN, FN_FLOOD_QUALITY_ADD, (-1 - r) * 5);
+                GAME_CALLT(st, G_FLOODPLAIN_SETTINGS, FN_FLOOD_QUALITY_ADD, (-1 - r) * 5);
             }
             return;
         case 1:

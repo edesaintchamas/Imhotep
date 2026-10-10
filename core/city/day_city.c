@@ -326,15 +326,15 @@ void day_city_ratings_4550e0(game_state *st)
         S32(st, c + CITY_U4380) = 5;
     }
     int32_t pop = S32(st, c + CITY_POPULATION);
-    S32(st, c + CITY_FESTIVAL_COST_1) = pop / 20 + 10;
-    S32(st, c + CITY_FESTIVAL_COST_2) = pop / 10 + 20;
-    S32(st, c + CITY_FESTIVAL_COST_3) = pop / 5 + 40;
-    S32(st, c + CITY_U4510) = (pop / 500 + 1) * 100;
+    S32(st, c + CITY_FESTIVAL_COST) = pop / 20 + 10;
+    S32(st, c + CITY_FESTIVAL_COST + 4u) = pop / 10 + 20;
+    S32(st, c + CITY_FESTIVAL_COST + 8u) = pop / 5 + 40;
+    S32(st, c + CITY_FESTIVAL_BEER) = (pop / 500 + 1) * 100;
     S32(st, c + CITY_U4514) = 0;
-    if (S32(st, c + CITY_STORAGE_STOCK + 4 * 15) < S32(st, c + CITY_U4510)) {
+    if (S32(st, c + CITY_STORAGE_STOCK + 4 * 15) < S32(st, c + CITY_FESTIVAL_BEER)) {
         S32(st, c + CITY_U4514) = 1;
-        if (S32(st, c + CITY_U44F4) == 3) {
-            S32(st, c + CITY_U44F4) = 2;
+        if (S32(st, c + CITY_FESTIVAL_SIZE_CHOSEN) == 3) {
+            S32(st, c + CITY_FESTIVAL_SIZE_CHOSEN) = 2;
         }
     }
 }
@@ -403,9 +403,9 @@ void day_coverage_468170(game_state *st)
         uint32_t out = G_GOD_COVERAGE + 4u * (uint32_t) god;
         if (mode == 2 || mode == 1) {
             /* @bin 0x004682EE weights 8000 / 375 / 150 (mode 2) or 8000 / 750 / 300 (mode 1) */
-            int32_t t1 = S32(st, G_TYPE_COUNT + 4u * (uint32_t) god_building_type(god, 1));
-            int32_t t0 = S32(st, G_TYPE_COUNT + 4u * (uint32_t) god_building_type(god, 0));
-            int32_t t2 = S32(st, G_TYPE_COUNT + 4u * (uint32_t) god_building_type(god, 2));
+            int32_t t1 = S32(st, G_TYPE_COUNT_ACTIVE + 4u * (uint32_t) god_building_type(god, 1));
+            int32_t t0 = S32(st, G_TYPE_COUNT_ACTIVE + 4u * (uint32_t) god_building_type(god, 0));
+            int32_t t2 = S32(st, G_TYPE_COUNT_ACTIVE + 4u * (uint32_t) god_building_type(god, 2));
             uint32_t v = (uint32_t) t1 * 8000u + (uint32_t) t0 * (mode == 2 ? 375u : 750u) +
                          (uint32_t) t2 * (mode == 2 ? 150u : 300u);
             S32(st, out) = coverage(st, (int32_t) v);
@@ -478,11 +478,11 @@ void day_trade_444c20(game_state *st)
     uint32_t c = CITY_ADDR(player);
     S16(st, c + CITY_U447C) = 0;
     S16(st, c + CITY_U447E) = 0;
-    S32(st, c + CITY_U46A4) = 0;
+    S32(st, c + CITY_WINE_SOURCES) = 0;
     if (S32(st, G_U78D6DC + 4 * 19) > 0) {
         kinds[0] = 1;
     }
-    S32(st, c + CITY_U46A4) += trade_open_routes_559fc0(st, kinds);
+    S32(st, c + CITY_WINE_SOURCES) += trade_open_routes_559fc0(st, kinds);
     S16(st, c + CITY_U4480) = S16(st, c + CITY_U4480) > 0 ? (int16_t) (S16(st, c + CITY_U4480) - 1) : 0;
     S16(st, c + CITY_U4482) = S16(st, c + CITY_U4482) > 0 ? (int16_t) (S16(st, c + CITY_U4482) - 1) : 0;
     for (int32_t i = 1; i <= 60; i++) {
@@ -659,7 +659,7 @@ void gods_update_4e9890(game_state *st, int32_t moods)
      * its target, one random god gains blessing or wrath by its mood (tables 0x0056F720.. by
      * difficulty 0x00E39080); on day 0 the targets are scaled by the kingdom's temple complex
      * (+0x4478, +0x472C) and 0x004C47A0 runs the gods' actions */
-    if (S32(st, G_CUSTOM) == 0 && U8(st, G_MISSION_LIST_FLAGS + 4) == 0) {
+    if (S32(st, G_CUSTOM) == 0 && U8(st, G_TUTORIAL_FLAGS + 4) == 0) {
         uint32_t c = CURRENT_CITY(st);
         for (uint32_t g = 0; g < GODS; g++) {
             U8(st, c + CITY_GOD_TARGET_MOOD + g) = 0x1E;
@@ -716,7 +716,7 @@ void gods_update_4e9890(game_state *st, int32_t moods)
     if (moods == 0) {
         return;
     }
-    uint8_t campaign = U8(st, G_FLOW2_PERIOD);
+    uint8_t campaign = U8(st, G_PERIOD);
     int32_t editor = S32(st, G_CUSTOM);
     for (uint32_t g = 0; g < GODS; g++) {
         if (S16(st, GOD_MODE(g)) == 0) {
@@ -767,8 +767,8 @@ void gods_update_4e9890(game_state *st, int32_t moods)
             U8(st, c2 + CITY_GOD_WRATH + g) = 0;
         }
     }
-    if (S32(st, G_CUSTOM) == 0 && (int32_t) S8(st, G_MISSION) == S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 5) && U8(st, G_MISSION_LIST_FLAGS + 5) == 0 &&
-        U8(st, G_MISSION_LIST_FLAGS + 4) != 0 && S8(st, c2 + CITY_GOD_MOOD + 4) >= 0x28) {
+    if (S32(st, G_CUSTOM) == 0 && (int32_t) S8(st, G_MISSION) == S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 5) && U8(st, G_TUTORIAL_FLAGS + 5) == 0 &&
+        U8(st, G_TUTORIAL_FLAGS + 4) != 0 && S8(st, c2 + CITY_GOD_MOOD + 4) >= 0x28) {
         GAME_CALL(st, FN_TUTORIAL_STEP, 5);
     }
     if (S32(st, G_TICK_DAY) != 0) {
@@ -777,7 +777,7 @@ void gods_update_4e9890(game_state *st, int32_t moods)
     /* @bin 0x004E9C79 the first day of the month */
     city_month_timers_4c51d0(st);
     uint32_t c3 = CURRENT_CITY(st);
-    if (S16(st, c3 + CITY_U4478) == 0) {
+    if (S16(st, c3 + CITY_TEMPLE_COMPLEX) == 0) {
         for (uint32_t g = 0; g < GODS; g++) {
             if (S16(st, GOD_MODE(g)) == 2) {
                 S8(st, c3 + CITY_GOD_TARGET_MOOD + g) = (int8_t) ((S8(st, c3 + CITY_GOD_TARGET_MOOD + g) * 98 + 50) / 100);
@@ -792,7 +792,7 @@ void gods_update_4e9890(game_state *st, int32_t moods)
             uint32_t c4 = CURRENT_CITY(st);
             int32_t shrine = god_building_type((int32_t) g, 1);
             int32_t t = S8(st, c4 + CITY_GOD_TARGET_MOOD + g), v;
-            if (S16(st, BUILDING_ADDR(S32(st, c4 + CITY_U472C)) + BLD_TYPE) == shrine) {
+            if (S16(st, BUILDING_ADDR(S32(st, c4 + CITY_TEMPLE_COMPLEX_ID)) + BLD_TYPE) == shrine) {
                 v = (t * 115 + 50) / 100;
             } else if (mode == 2) {
                 v = (t * 90 + 50) / 100;

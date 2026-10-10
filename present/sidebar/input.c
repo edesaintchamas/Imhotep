@@ -683,7 +683,7 @@ void sidebar_empire_click(game_state *st)
         return;
     }
     if (U8(st, G_WINDOW) == 1) {
-        GAME_CALL0(st, 0x00409FA0u);
+        GAME_CALL0(st, FN_EMPIRE_WINDOW_OPEN);
         return;
     }
     GAME_CALL0(st, FN_EMPIRE_CLOSE_40A090);

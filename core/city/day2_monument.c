@@ -322,7 +322,7 @@ int32_t monument_goods_needed(game_state *st, int32_t good)
      * building in use asks that monument what is left; an empty slot counts the whole plan */
     uint32_t need = 0;
     for (int32_t slot = 0; slot < 3; slot++) {
-        uint32_t i = (uint32_t) S32(st, G_PLAYER) * 0x1276u + (uint32_t) slot;
+        uint32_t i = (uint32_t) S32(st, CURRENT_PLAYER_ADDR) * 0x1276u + (uint32_t) slot;
         int32_t b = S32(st, CITY_BASE + CITY_MONUMENTS + 4u * i);
         if (b == 0 || U8(st, BUILDING_ADDR(b) + BLD_STATE) != 1) {
             need += (uint32_t) slot_plan_need(S16(st, G_MONUMENT_SLOTS + 2u * (uint32_t) slot), good);

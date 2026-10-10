@@ -140,7 +140,7 @@ static int32_t run_replace_ext(game_state *st, const int32_t *a)
             for (uint32_t k = 0; k < 3; k++) {
                 uint8_t *d = state_ptr(st, p + 1 + k, 1);
                 if (d) {
-                    *d = U8(st, G_START_EXT + k);
+                    *d = U8(st, G_FILE_EXT + k);
                 }
             }
             uint8_t *z = state_ptr(st, p + 4, 1);

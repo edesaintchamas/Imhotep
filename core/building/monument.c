@@ -773,8 +773,8 @@ void pyramids_update(game_state *st)
                     int32_t t = S32(st, G_RAMP_WALK_TILE);
                     if (t != 0) {
                         int32_t tx = (t - S32(st, G_MAP_START)) % 228, ty = (t - S32(st, G_MAP_START)) / 228;
-                        int32_t b = GAME_CALL(st, FN_BUILDING_CREATE, S32(st, G_PLAYER), S32(st, G_RAMP_WALK_TYPE), tx, ty, 0, 0);
-                        GAME_CALL(st, FN_BUILDING_MAP_ADD, S32(st, G_PLAYER), S32(st, G_RAMP_WALK_TYPE), b, tx, ty, 2, 1, 0);
+                        int32_t b = GAME_CALL(st, FN_BUILDING_CREATE, S32(st, CURRENT_PLAYER_ADDR), S32(st, G_RAMP_WALK_TYPE), tx, ty, 0, 0);
+                        GAME_CALL(st, FN_BUILDING_MAP_ADD, S32(st, CURRENT_PLAYER_ADDR), S32(st, G_RAMP_WALK_TYPE), b, tx, ty, 2, 1, 0);
                         GAME_CALL(st, FN_CANALS_RECT, 0, 0, S32(st, G_MAP_WIDTH) - 1, S32(st, G_MAP_HEIGHT) - 1, 0);
                         GAME_CALL0(st, FN_ROUTING_REBUILD_EE0C50);
                         GAME_CALL0(st, FN_ROUTING_REBUILD_EC7630);
@@ -2022,15 +2022,15 @@ void pyramid_ramp_build(game_state *st, int32_t id, int32_t f, int32_t action)
         return;
     }
     int32_t d = t - S32(st, G_MAP_START), x = d % 228, y = d / 228;
-    int32_t b = GAME_CALL(st, FN_BUILDING_CREATE, S32(st, G_PLAYER), S32(st, G_RAMP_WALK_TYPE), x, y, 0, 0);
-    GAME_CALL(st, FN_BUILDING_MAP_ADD, S32(st, G_PLAYER), S32(st, G_RAMP_WALK_TYPE), b, x, y, 2, 1, 0);
+    int32_t b = GAME_CALL(st, FN_BUILDING_CREATE, S32(st, CURRENT_PLAYER_ADDR), S32(st, G_RAMP_WALK_TYPE), x, y, 0, 0);
+    GAME_CALL(st, FN_BUILDING_MAP_ADD, S32(st, CURRENT_PLAYER_ADDR), S32(st, G_RAMP_WALK_TYPE), b, x, y, 2, 1, 0);
     GAME_CALL(st, FN_CANALS_RECT, 0, 0, S32(st, G_MAP_WIDTH) - 1, S32(st, G_MAP_HEIGHT) - 1, 0);
     int32_t bx = S16(st, B(b) + BLD_X), by = S16(st, B(b) + BLD_Y), sz = U8(st, B(b) + BLD_SIZE);
     GAME_CALL(st, FN_ROUTING_FILL_EE0C50, bx - sz, by - sz, bx + sz, by + sz, 1);
     bx = S16(st, B(b) + BLD_X), by = S16(st, B(b) + BLD_Y), sz = U8(st, B(b) + BLD_SIZE);
     GAME_CALL(st, FN_ROUTING_FILL_EC7630, bx - sz, by - sz, bx + sz, by + sz);
     U8(st, fa + FIG_ACTION) = (uint8_t) action;
-    GAME_CALL(st, FN_BUILDING_MAP_ADD, S32(st, G_PLAYER), S32(st, G_RAMP_WALK_TYPE), b, x, y, 2, 0, 0);
+    GAME_CALL(st, FN_BUILDING_MAP_ADD, S32(st, CURRENT_PLAYER_ADDR), S32(st, G_RAMP_WALK_TYPE), b, x, y, 2, 0, 0);
 }
 
 static int32_t dist2(game_state *st, int32_t tx, int32_t ty, int32_t b)

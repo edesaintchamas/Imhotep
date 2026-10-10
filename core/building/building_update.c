@@ -328,8 +328,8 @@ static void upd_paid(upd *u, uint8_t type, int32_t cost_addr, int32_t mode, int3
     }
     int32_t cost = S32(st, (uint32_t) cost_addr);
     uint32_t c = CURRENT_CITY(st);
-    if (S16(st, c + CITY_U4478) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_U472C)) == mode &&
-        (uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_U472C), mode_arg) != 0) {
+    if (S16(st, c + CITY_TEMPLE_COMPLEX) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_TEMPLE_COMPLEX_ID)) == mode &&
+        (uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_TEMPLE_COMPLEX_ID), mode_arg) != 0) {
         cost = calc_percentage(cost, S32(st, pct_addr)); /* 0x004CDE40 */
     }
     int16_t s = S16(st, u->b + BLD_STORED);
@@ -339,7 +339,7 @@ static void upd_paid(upd *u, uint8_t type, int32_t cost_addr, int32_t mode, int3
     S16(st, u->b + BLD_STORED) = (int16_t) (s - cost);
     U8(st, u->b + BLD_SPAWN_DELAY) = 0;
     if (type == 0x1D && S32(st, G_CUSTOM) == 0 && S8(st, G_MISSION) == S32(st, G_MISSION_LISTS + 0x150) &&
-        U8(st, G_MISSION_LIST_FLAGS + 0xC) == 0 && U8(st, G_MISSION_LIST_FLAGS + 0xB) != 0) {
+        U8(st, G_TUTORIAL_FLAGS + 0xC) == 0 && U8(st, G_TUTORIAL_FLAGS + 0xB) != 0) {
         /* @bin 0x00465B86 */
         S32(st, G_U78D828) = 0;
         GAME_CALL(st, FN_TUTORIAL_STEP, 0xC);
@@ -831,8 +831,8 @@ static void upd_0x4c(upd *u)
     uint32_t c = CURRENT_CITY(st);
     U8(st, a + FIG_ACTION) = 8;
     S16(st, a + FIG_AMOUNT) = 100;
-    if (S16(st, c + CITY_U4478) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_U472C)) == 0 &&
-        (uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_U472C), 2) != 0) {
+    if (S16(st, c + CITY_TEMPLE_COMPLEX) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_TEMPLE_COMPLEX_ID)) == 0 &&
+        (uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_TEMPLE_COMPLEX_ID), 2) != 0) {
         S16(st, a + FIG_AMOUNT) = (int16_t) (S16(st, a + FIG_AMOUNT) << 1);
     }
     U8(st, a + FIG_RESOURCE) = 7;
@@ -848,7 +848,7 @@ static void upd_0x50(upd *u)
     if (fig_kept(u, u->b + BLD_WALKER, 0x40) || !road(u) || S32(st, CURRENT_CITY(st) + CITY_POPULATION) <= 0) {
         return;
     }
-    S32(st, CURRENT_CITY(st) + CITY_U459C) = 1;
+    S32(st, CURRENT_CITY(st) + CITY_MISSION_IN_PLACE) = 1;
     uint8_t c = (uint8_t) (U8(st, u->b + BLD_SPAWN_DELAY) + 1);
     U8(st, u->b + BLD_SPAWN_DELAY) = c;
     if (c <= 1) {
@@ -872,7 +872,7 @@ static void upd_0x54(upd *u)
     if (delay == SKIP) {
         return;
     }
-    int32_t other = worker_ratio_of(st, BUILDING_ADDR(S32(st, CURRENT_CITY(st) + CITY_U2790)));
+    int32_t other = worker_ratio_of(st, BUILDING_ADDR(S32(st, CURRENT_CITY(st) + CITY_PALACE_ID)));
     if (!counter_due(u, delay)) {
         return;
     }
@@ -911,7 +911,7 @@ static void upd_0x59(upd *u)
     game_state *st = u->st;
     uint32_t b = u->b;
     GAME_CALL(st, FN_MAP_BUILDING_TILES, u->id, S16(st, b + BLD_X), S16(st, b + BLD_Y), 2, 2, S32(st, G_IMAGE_GROUPS + 8 * 452) + 2, 8);
-    if (S32(st, CURRENT_CITY(st) + CITY_U459C) <= 0 || fig_kept(u, b + BLD_WALKER, 0x3A)) {
+    if (S32(st, CURRENT_CITY(st) + CITY_MISSION_IN_PLACE) <= 0 || fig_kept(u, b + BLD_WALKER, 0x3A)) {
         return;
     }
     if (!GAME_CALL(st, FN_BUILDING_FIND_OPEN_TILE, S16(st, b + BLD_X), S16(st, b + BLD_Y), U8(st, b + BLD_SIZE))) {
@@ -999,7 +999,7 @@ static void upd_0x64(upd *u)
 static uint32_t random_step(game_state *st)
 {
     random_next_state(st);
-    return U32(st, G_R_1_15);
+    return U32(st, G_RANDOM_R1_15BIT);
 }
 
 /* @bin 0x00462932 type 0x6C (good 0x14, workers 0x4B), @bin 0x00462C67 type 0xC3 (good 0x16,
@@ -1040,8 +1040,8 @@ static void upd_gatherers(upd *u, int which)
                 S16(st, a + FIG_HOME) = (int16_t) u->id;
                 S16(st, a + FIG_WAIT_TICKS) = 0x1E;
                 S16(st, a + FIG_AMOUNT) = 100;
-                if (S16(st, c + CITY_U4478) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_U472C)) == 0 &&
-                    (uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_U472C), 2) != 0) {
+                if (S16(st, c + CITY_TEMPLE_COMPLEX) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_TEMPLE_COMPLEX_ID)) == 0 &&
+                    (uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_TEMPLE_COMPLEX_ID), 2) != 0) {
                     S16(st, a + FIG_AMOUNT) = (int16_t) (S16(st, a + FIG_AMOUNT) << 1);
                 }
                 S16(st, b + BLD_STORED) = (int16_t) (S16(st, b + BLD_STORED) - 100);
@@ -1351,7 +1351,7 @@ static void update_one(upd *u)
         upd_gatherers(u, 0xC3);
         break;
     case 0xC7: /* @bin 0x00462FBF */
-        GAME_CALLT(st, G_UD05720, FN_BUILDING_UPDATE_0XC7, id);
+        GAME_CALLT(st, G_FLOODPLAIN_MANAGER, FN_BUILDING_UPDATE_0XC7, id);
         break;
     case 0xCE: /* @bin 0x004655C2 */
         service(u, 0x20, 0x32, D_3_44, 0x20, TAIL_1);
@@ -1484,7 +1484,7 @@ void building_lowest_goods(game_state *st, int32_t id, int32_t *good1, int32_t *
     for (int32_t i = 0; i < n; i++) {
         int32_t good = S32(st, list + 4u * (uint32_t) i);
         int32_t dest = GAME_CALL(st, FN_BUILDING_FIND_SUPPLIER, id, good, 0);
-        if (S32(st, CITY_BASE + CITY_U2A88 + 4u * (U32(st, CURRENT_PLAYER_ADDR) * 0x1276u + (uint32_t) good)) != 0 || dest == 0) {
+        if (S32(st, CITY_BASE + CITY_STOCKPILE + 4u * (U32(st, CURRENT_PLAYER_ADDR) * 0x1276u + (uint32_t) good)) != 0 || dest == 0) {
             continue;
         }
         int32_t v = ratio[good];

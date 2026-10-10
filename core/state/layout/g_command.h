@@ -55,7 +55,7 @@
 #define G_MENU_TEXT_TIPS 0x005C9022u     /* @bin 0x00403410 u16: the mouse help item's text (2, 3, 4) */
 #define G_MENU_TEXT_WARNINGS 0x005C9032u /* @bin 0x00403490 u16: the warnings item's text (5 / 6) */
 #define G_MENU_TEXT_TIPS2 0x005C9062u    /* @bin 0x00403410 u16: the mouse help item's second text word */
-#define G_UE38EC3 0x00E38EC3u            /* @bin 0x00403540 u8: Options 9 on / off */
+#define G_UE38EC3 0x00E38EC3u /* @bin 0x00403540 u8: Options 9 on / off; also: @bin 0x004F5340 u8: an option (Options 9, core/command/menu_items.c) */
 #define G_UE38EEC 0x00E38EECu            /* @bin 0x00403500 i32: Options 8 on / off */
 #define G_UF53F18 0x00F53F18u            /* @bin 0x00402BC0 i32: := 0 when the display options open (options.c: := 50) */
 #define G_UF53F1C 0x00F53F1Cu            /* @bin 0x00402EE0 i32: := 0 when the sound options open */
@@ -97,7 +97,7 @@
 #define G_U605A24 0x00605A24u            /* @bin 0x00405483 i32: items 1..8 of menu 0x1A */
 #define G_U605A28 0x00605A28u            /* @bin 0x00405200 i32: the item of menu 0x11 */
 #define G_U605A2C 0x00605A2Cu            /* @bin 0x00405200 i32: the item of menu 0xF */
-#define G_U605A34 0x00605A34u            /* @bin 0x00405200 i32: the item of menu 0xE, less 1 */
+#define G_U605A34 0x00605A34u /* @bin 0x00405200 i32: the item of menu 0xE, less 1; also: @bin 0x00414180 i32: := 2 by WinMain; := the menu item - 1 by the construction UI's sub-command 0xE (core/command/construction_ui.c) */
 /* the view and the camera */
 #define G_U70E40C 0x0070E40Cu            /* @bin 0x00430530 i32: := 0xE4 by the view table build */
 #define G_U70E410 0x0070E410u            /* @bin 0x00430530 i32: := 0xE4 */
@@ -183,7 +183,6 @@
 #define G_MENU_AVAIL 0x0070A8DCu /* core/command/menu.c: @bin 0x00404398 i32[menu * 30 + i] */
 #define G_VIEW_TABLE 0x0070E494u /* core/frame/view.c: i32 [rows][0xE7] */
 #define G_GRID5 0x00775614u /* core/command/place_ent.c: @bin 0x004413E9 5 x 5 dwords */
-#define G_ARMIES 0x007770F0u /* core/command/kingdom.c: u8 kind per army record of 0x144 bytes */
 #define G_EMPIRE_CITY_END 0x0077F742u /* core/command/trade.c: @bin 0x00443A67 the scan stops before this record (61 cities) */
 #define G_GOODS_NEEDED 0x00784DE8u /* core/command/kingdom.c: i32 per resource: grave goods asked by the scenario */
 #define G_GOAL_COUNTERS 0x00784E78u /* core/command/kingdom.c: i32 per resource: grave goods sent, the goal counters (GOAL_COUNTERS in core/city/text_lookup.c; 0x004EA930) */
@@ -195,7 +194,6 @@
 #define G_CANAL_BACKUP 0x009D1B1Cu /* core/command/undo.c */
 #define G_TERRAIN_BACKUP 0x009DE62Cu /* core/command/undo.c */
 #define G_IMAGE_BACKUP 0x00A1126Cu /* core/command/undo.c */
-#define G_SPRITE 0x00ADC36Cu /* core/command/clear.c: u8 */
 #define G_CANAL 0x00AE8E7Cu /* core/command/clear.c: u8 */
 #define G_UNDO_IDS 0x00BA746Cu /* core/command/undo.c */
 #define G_UNDO_RECORDS 0x00BA7888u /* core/command/undo.c */
@@ -270,13 +268,13 @@
 #define G_TEXT_PTR2 0x00E20764u /* present/ui/frontend/family.c: u32 the string 0x004CC160 found */
 #define G_LAYOUT_DY 0x00E38DA4u /* present/sidebar/sidebar.h: i32 (height - 480) / 2 */
 #define G_LAYOUT_DX 0x00E38DA8u /* present/sidebar/sidebar.h: i32 (width - 640) / 2 */
-#define G_GATE 0x00E38E60u /* core/command/construction_ui.c: u8 */
+#define G_PAUSED 0x00E38E60u /* u8: the pause flag, toggled by P in the WndProc; many commands return while set (docs/presentation.md 1.2, docs/commands.md) */
 #define G_MUSIC_ON 0x00E38E64u /* core/frame/sound.c: u8 option: music */
-#define G_TIPS_ON 0x00E38EACu /* present/sidebar/tooltip.c: i32 0 off, 2 on (options) */
+#define G_MOUSE_HELP 0x00E38EACu /* @bin 0x00403410 i32: the mouse help level, 2 -> 0 -> 1 -> 2 (Help menu; present/sidebar/tooltip.c: 0 off) */
 #define G_SPEECH_VOLUME 0x00E38ECCu /* present/ui/frontend/options.c: i32 */
 #define G_EMPIRE_LANGUAGE 0x00E39088u /* present/ui/empire/empire.c: u8: the city names' group, 0x15 (set) or 0xC3 */
 #define G_CURSOR 0x00E390DCu /* core/command/military.c */
-#define G_UE94E04 0x00E94E04u /* core/map/routing.c: 0, 2, 4, 6 */
+#define G_CITY_ORIENTATION 0x00E94E04u /* @bin 0x00430B20 i32: the city view orientation, 0, 2, 4, 6 (save.md chunk 33) */
 #define G_ORDERS 0x00EADCC0u /* present/ui/info/info.h: i32 1: the storage orders sub-panel is shown */
 #define G_INFO_TRANSPORT 0x00EADCC8u /* present/ui/info/info.h: i32 the transport ship figure (kind 6) */
 #define G_INFO_FORMATION 0x00EADCCCu /* present/ui/info/info.h: i32 the formation (kinds 4..6: the panel's argument) */
@@ -290,9 +288,17 @@
 #define G_MOOD 0x00F55BA4u /* present/ui/info/phrase.c: u8[8] the city's mood per category (0x0053D3A0) */
 #define G_VIEW_EMPTY_BASE 0x00F56B44u /* core/command/rotate.c: i32: + 0xFFF0000 marks a view position with no tile */
 
-/* --- harvested: names the ports gave these addresses in local #defines (tools/naming/harvest.py).
- * @bin evidence: the defining port (file) and its comment. A package agent checks each name it
- * uses, and moves it above this block once checked. --- */
-/* --- end harvested --- */
+/* ---- names merged from the packages' pending fragments (phase 10.4): each group keeps its
+ * package's heading (the package and its file in brackets) ---- */
+/* @bin globals of other areas used by core/figure; the function or chunk on each line [p1_figure] */
+#define G_DIRECTIONS_DY 0x005CD97Cu /* i32: dy of the (dx, dy) pairs of G_DIRECTIONS (0x004EAB10 callers) */
+/* globals of the construction (g_command.h, P4) [p2_building] */
+#define G_UBC972C 0x00BC972Cu /* @bin 0x00477A40 i32: := 1 when a tile's terrain bits change */
+#define G_UBC9730 0x00BC9730u /* @bin 0x00477A40 i32: := 1 when they already were the mask */
+/* the construction (g_command.h, P4) [p2_building] */
+#define G_BUILD_TURN 0x00BC96D8u      /* @bin 0x0047D060 i32: a dock's turn */
+#define G_BUILD_TURN_VIEW 0x00BC96DCu /* @bin 0x0047D060 i32: the turn against the view; 0x004555D0 sets it */
+/* ---- globals of other areas (core or another present package uses them) ---- [p8a_ui_main] */
+#define G_WAS_IN_INT 0x00F55BA0u /* @bin 0x00534610 i32 "was_in_int" */
 
 #endif

@@ -536,7 +536,7 @@ static void figures_on(game_state *st, uint32_t r, int32_t x, int32_t y, int whi
         if (last_tile) {
             *last_tile = tile;
         }
-        for (int32_t f = S16(st, G_FIGURE_GRID + 2u * (uint32_t) tile); f > 0; f = S16(st, FIGURE_ADDR(f) + FIG_NEXT_ON_TILE)) {
+        for (int32_t f = S16(st, G_GRID_FIGURE + 2u * (uint32_t) tile); f > 0; f = S16(st, FIGURE_ADDR(f) + FIG_NEXT_ON_TILE)) {
             int16_t v = S16(st, FIGURE_ADDR(f) + FIG_FOLLOW);
             if ((which == 0 && v == 3) || (which == 1 && v != 0) || (which == 2 && v > 0 && v != 3)) {
                 GAME_CALL(st, FN_FIGURE_DRAW, f, x, y, 0);

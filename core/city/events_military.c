@@ -101,7 +101,7 @@ int32_t event_troops_sent(game_state *st, int32_t ev)
     /* @bin 0x00446260 (cdecl) the companies sent for event ev (0x004B8360) against its +0xC: too few
      * and city +0x498C clear: 0x004B8890(100) and 0; else (+0x498C cleared: 0) a loss percent by how
      * many more were sent (0x004CDE60): 70, 50, 25, 15, 10, 5 or 0; 1 */
-    uint32_t rec = ev >= 0 && ev < S32(st, G_EVENTS) ? G_KINGDOM_EVENTS + 0x7Cu * (uint32_t) ev : 0;
+    uint32_t rec = ev >= 0 && ev < S32(st, G_EVENTS) ? G_EVENT_RECORDS + 0x7Cu * (uint32_t) ev : 0;
     int32_t sent = company_strength(st, ev, NULL, NULL);
     int32_t need = rec != 0 ? S16(st, rec + 0xC) : 1;
     uint32_t flag = CURRENT_CITY(st) + CITY_U498C;

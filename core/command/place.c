@@ -402,7 +402,7 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
                     notice(st, 0x42);
                     return;
                 }
-                if (U8(st, G_SPRITE + (uint32_t) off) != 0) { /* @bin 0x00473735 sprite grid */
+                if (U8(st, G_GRID_SPRITE + (uint32_t) off) != 0) { /* @bin 0x00473735 sprite grid */
                     notice(st, 2);
                     return;
                 }
@@ -492,7 +492,7 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
                 }
             } else {
                 if (type >= 0x41 && type <= 0x45) { /* @bin 0x00473C32 temple complexes */
-                    if (S16(st, c + CITY_U4478) != 0) {
+                    if (S16(st, c + CITY_TEMPLE_COMPLEX) != 0) {
                         fail(st, 4);
                         return;
                     }
@@ -509,7 +509,7 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
                 if (type == 0xD3 || type == 0xD4) { /* @bin 0x00473C80 complex add-ons */
                     int32_t b = GAME_CALL(st, FN_BUILDING_MAIN_PART, (int32_t) S16(st, G_GRID_BUILDING + 2u * U32(st, G_HOVER_TILE)));
                     c = (uint32_t) city(st);
-                    if (S16(st, c + CITY_U4478) == 0) {
+                    if (S16(st, c + CITY_TEMPLE_COMPLEX) == 0) {
                         fail(st, 0x49);
                         return;
                     }
@@ -522,7 +522,7 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
                         fail(st, 0x4E);
                         return;
                     }
-                    if ((uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, c + CITY_U472C), type == 0xD3 ? 1 : 2) != 0) {
+                    if ((uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, c + CITY_TEMPLE_COMPLEX_ID), type == 0xD3 ? 1 : 2) != 0) {
                         fail(st, 0x4A);
                         return;
                     }
@@ -542,11 +542,11 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
                             return;
                         }
                     } else if (type == 0x5F) {
-                        if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0x5Fu) > 0) {
+                        if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0x5Fu) > 0) {
                             fail(st, 4);
                             return;
                         }
-                        S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0x5Fu) = 1;
+                        S32(st, G_TYPE_COUNT_TOTAL + 4u * 0x5Fu) = 1;
                     } else if (type == 0x5E) {
                         if (S32(st, c + CITY_ACADEMY_EXISTS) != 0) {
                             fail(st, 4);
@@ -755,8 +755,8 @@ void place_monument_slots(game_state *st)
      * slot of 0x00784DE0[3] (i16) with that kind and an empty building; the loop skips the parts */
     uint32_t c = CURRENT_CITY(st);
     for (uint32_t i = 0; i < 3; i++) {
-        S32(st, c + CITY_MONUMENT_CODE + 4 * i) = 0;
-        S32(st, c + CITY_MONUMENT_ID + 4 * i) = 0;
+        S32(st, c + CITY_MONUMENT_TYPES + 4 * i) = 0;
+        S32(st, c + CITY_MONUMENTS + 4 * i) = 0;
     }
     for (int32_t i = 1; i <= S32(st, G_BUILDING_HIGHEST); i++) {
         uint32_t b = BUILDING_ADDR(i);
@@ -807,9 +807,9 @@ void place_monument_slots(game_state *st)
         uint32_t p = U32(st, CURRENT_PLAYER_ADDR);
         for (uint32_t k = 0; k < 3; k++) {
             uint32_t cc = CITY_ADDR(p);
-            if (kind == S16(st, G_MONUMENT_SLOTS + 2 * k) && S32(st, cc + CITY_MONUMENT_ID + 4 * k) == 0) {
-                S32(st, cc + CITY_MONUMENT_CODE + 4 * k) = kind;
-                S32(st, cc + CITY_MONUMENT_ID + 4 * k) = id;
+            if (kind == S16(st, G_MONUMENT_SLOTS + 2 * k) && S32(st, cc + CITY_MONUMENTS + 4 * k) == 0) {
+                S32(st, cc + CITY_MONUMENT_TYPES + 4 * k) = kind;
+                S32(st, cc + CITY_MONUMENTS + 4 * k) = id;
                 break;
             }
         }

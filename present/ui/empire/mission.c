@@ -144,7 +144,7 @@ void mission_picture_input(game_state *st)
 static uint32_t step_rec(game_state *st)
 {
     int32_t i = S8(st, G_STEP);
-    if (i < 0 || i >= S32(st, G_U6FF608)) {
+    if (i < 0 || i >= S32(st, G_CAMPAIGN_TABLE + CAMPAIGN_STEP_COUNT)) {
         return 0;
     }
     return G_CAMPAIGN_TABLE + 0x40u * (uint32_t) i;
@@ -258,37 +258,37 @@ int32_t mission_goal_hint(game_state *st)
     int8_t m = S8(st, G_MISSION);
     int32_t index = 0;
     if (m == 0) {
-        if (U8(st, G_MISSION_LIST_FLAGS) != 0 && S32(st, G_TYPE_COUNT + 4u * 0xA7u) <= 0) {
+        if (U8(st, G_TUTORIAL_FLAGS) != 0 && S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xA7u) <= 0) {
             index = 0x11;
-        } else if (U8(st, G_MISSION_LIST_FLAGS + 3u) != 0 && S32(st, G_TYPE_COUNT + 4u * 0x51u) <= 0) {
+        } else if (U8(st, G_TUTORIAL_FLAGS + 3u) != 0 && S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x51u) <= 0) {
             index = 0x12;
-        } else if (U8(st, G_MISSION_LIST_FLAGS + 2u) != 0) {
+        } else if (U8(st, G_TUTORIAL_FLAGS + 2u) != 0) {
             index = 0x14;
-        } else if (U8(st, G_MISSION_LIST_FLAGS + 1u) != 0) {
+        } else if (U8(st, G_TUTORIAL_FLAGS + 1u) != 0) {
             index = 0x13;
         } else {
             index = 0x15;
         }
     } else if (m == 1) {
-        if (U8(st, G_MISSION_LIST_FLAGS + 5u) != 0) {
+        if (U8(st, G_TUTORIAL_FLAGS + 5u) != 0) {
             index = 0x16;
-        } else if (U8(st, G_MISSION_LIST_FLAGS + 4u) != 0) {
+        } else if (U8(st, G_TUTORIAL_FLAGS + 4u) != 0) {
             index = 0x17;
         } else {
             index = 0x18;
         }
     } else if (m == 2) {
-        if (U8(st, G_MISSION_LIST_FLAGS + 6u) != 0 && S32(st, G_TYPE_COUNT + 4u * 0xCEu) <= 0 && S32(st, G_TYPE_COUNT + 4u * 0x2Eu) <= 0) {
+        if (U8(st, G_TUTORIAL_FLAGS + 6u) != 0 && S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xCEu) <= 0 && S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x2Eu) <= 0) {
             index = 0x19;
-        } else if (U8(st, G_MISSION_LIST_FLAGS + 9u) != 0) {
+        } else if (U8(st, G_TUTORIAL_FLAGS + 9u) != 0) {
             index = 0x1A;
-        } else if (U8(st, G_MISSION_LIST_FLAGS + 7u) != 0) {
+        } else if (U8(st, G_TUTORIAL_FLAGS + 7u) != 0) {
             index = 0x1B;
         } else {
             index = 0x1C;
         }
     } else if (m == 3) {
-        if (U8(st, G_MISSION_LIST_FLAGS + 0x0Au) != 0) {
+        if (U8(st, G_TUTORIAL_FLAGS + 0x0Au) != 0) {
             return 0;
         }
         index = 0x21;
@@ -297,11 +297,11 @@ int32_t mission_goal_hint(game_state *st)
         if (S32(st, CURRENT_CITY(st) + CITY_RATING_MONUMENT) == S32(st, G_GOAL_MONUMENT)) {
             return 0;
         }
-        if (U8(st, G_CHEAT_FLAG) != 0) {
+        if (U8(st, G_TUTORIAL_FLAGS + 13) != 0) {
             index = 0x20;
-        } else if (U8(st, G_MISSION_LIST_FLAGS + 0x0Cu) != 0) {
+        } else if (U8(st, G_TUTORIAL_FLAGS + 0x0Cu) != 0) {
             index = 0x1D;
-        } else if (U8(st, G_MISSION_LIST_FLAGS + 0x0Bu) != 0) {
+        } else if (U8(st, G_TUTORIAL_FLAGS + 0x0Bu) != 0) {
             index = 0x1E;
         } else {
             index = 0x1F;

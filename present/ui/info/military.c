@@ -326,10 +326,10 @@ void info_warship(game_state *st)
     int32_t fig = S32(st, G_INFO_WARSHIP);
     panel_and_title(st, 0x16D, 0xB8, 1);
     text(st, 0xB8, 2, 0x64, 0x3C, G_FONT_LARGE);
-    int32_t t = GAME_CALL(st, 0x0050FC10u, fig);
+    int32_t t = GAME_CALL(st, FN_SHIP_HEALTH_TEXT, fig);
     text(st, 0xB8, t, 0x12C, 0x3C, G_FONT_LARGE);
     text(st, 0xB8, 0x1B, 0x64, 0x50, G_FONT_LARGE);
-    t = GAME_CALL(st, 0x0050FC70u, fig);
+    t = GAME_CALL(st, FN_SHIP_STATE_TEXT, fig);
     text(st, 0xB8, t, 0x12C, 0x50, G_FONT_LARGE);
     for (int32_t i = 0; i < 5; i++) {
         S32(st, G_BLIT_Y) = py(st) + 0x8D;
@@ -434,7 +434,7 @@ void info_legion(game_state *st, int32_t formation)
             group = 0x59;
             index = 1;
         } else {
-            index = S32(st, G_TYPE_COUNT + 4u * 0x5Fu) != 0 ? 0xA : 0xB;
+            index = S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x5Fu) != 0 ? 0xA : 0xB;
         }
         GAME_CALL(st, TEXT_LINES, group, index, x + 0x20, y + 0xAC, (S32(st, G_INFO_W) - 4) << 4,
                   S32(st, G_FONT_LARGE), 0, x, y);

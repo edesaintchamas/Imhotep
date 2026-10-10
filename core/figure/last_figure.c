@@ -31,10 +31,10 @@ int32_t figure_unload_to_works(game_state *st, int32_t building, int32_t good, i
         return 0;
     }
     int32_t n = stock < 400 ? stock / 100 : 4;
-    uint32_t p = U32(st, G_PLAYER);
-    int32_t amount = S32(st, CITY_BASE + CITY_GOOD_STOCK + 4u * (p * 0x1276u + (uint32_t) good));
-    if (S16(st, CITY_BASE + CITY_GOOD_SETTING + 2u * (p * 0x24ECu + (uint32_t) good)) == 2) {
-        int32_t keep = (int32_t) S16(st, CITY_BASE + CITY_U286E + 2u * (p * 0x24ECu + (uint32_t) good)) * 100;
+    uint32_t p = U32(st, CURRENT_PLAYER_ADDR);
+    int32_t amount = S32(st, CITY_BASE + CITY_STORAGE_STOCK + 4u * (p * 0x1276u + (uint32_t) good));
+    if (S16(st, CITY_BASE + CITY_TRADE_STATUS + 2u * (p * 0x24ECu + (uint32_t) good)) == 2) {
+        int32_t keep = (int32_t) S16(st, CITY_BASE + CITY_TRADE_LIMIT + 2u * (p * 0x24ECu + (uint32_t) good)) * 100;
         if (amount - n * 100 < keep) {
             n = (amount - keep) / 100;
         }
@@ -49,18 +49,18 @@ int32_t figure_unload_to_works(game_state *st, int32_t building, int32_t good, i
     }
     for (int32_t i = 0; i < n; i++) {
         U8(st, count) += 1;
-        GAME_CALL(st, FN_STORAGE_TAKE, S32(st, G_PLAYER), building, good, 100);
-        uint32_t city = CITY_ADDR(U32(st, G_PLAYER));
+        GAME_CALL(st, FN_STORAGE_TAKE, S32(st, CURRENT_PLAYER_ADDR), building, good, 100);
+        uint32_t city = CITY_ADDR(U32(st, CURRENT_PLAYER_ADDR));
         if (S32(st, city + CITY_U45CC) > 0) {
             int32_t v = GAME_CALL(st, FN_CALC_PERCENTAGE, S32(st, G_PRICE_SELL + 8u * (uint32_t) good), 0x96);
             S32(st, city + CITY_TREASURY) += v;
-            city = CITY_ADDR(U32(st, G_PLAYER));
+            city = CITY_ADDR(U32(st, CURRENT_PLAYER_ADDR));
             v = GAME_CALL(st, FN_CALC_PERCENTAGE, S32(st, G_PRICE_SELL + 8u * (uint32_t) good), 0x96);
-            S32(st, city + CITY_U2C64) += v;
+            S32(st, city + CITY_EXPORTS_THIS_YEAR) += v;
         } else {
             int32_t v = S32(st, G_PRICE_SELL + 8u * (uint32_t) good);
             S32(st, city + CITY_TREASURY) += v;
-            S32(st, city + CITY_U2C64) += v;
+            S32(st, city + CITY_EXPORTS_THIS_YEAR) += v;
         }
         if (U8(st, count) >= 0xC) {
             break;
@@ -114,7 +114,7 @@ void figure_hit_target(game_state *st, int32_t attacker, int32_t target)
     if (attacker == target) {
         return;
     }
-    if ((uint32_t) U8(st, FIG(target, FIG_OWNER)) == U32(st, G_PLAYER)) {
+    if ((uint32_t) U8(st, FIG(target, FIG_OWNER)) == U32(st, CURRENT_PLAYER_ADDR)) {
         return;
     }
     uint32_t ta = U8(st, FIG(attacker, FIG_TYPE));
@@ -139,7 +139,7 @@ void figure_hit_target(game_state *st, int32_t attacker, int32_t target)
     }
     if ((uint8_t) GAME_CALL(st, FN_FIGURE_TYPE_IS_ENEMY_0X52, (int32_t) U8(st, FIG(target, FIG_TYPE))) == 0 &&
         (uint8_t) GAME_CALL(st, FN_FIGURE_TYPE_IS_0X44_0X46, (int32_t) U8(st, FIG(target, FIG_TYPE))) == 0 &&
-        U8(st, FIG(target, FIG_TYPE)) != 0x17 && (uint32_t) U8(st, FIG(attacker, FIG_OWNER)) == U32(st, G_PLAYER)) {
+        U8(st, FIG(target, FIG_TYPE)) != 0x17 && (uint32_t) U8(st, FIG(attacker, FIG_OWNER)) == U32(st, CURRENT_PLAYER_ADDR)) {
         uint32_t f = G_FORMATION_BASE + FM_EXPERIENCE + 0x90u * (uint32_t) fa;
         int32_t v = S16(st, f) + 1;
         if (v >= 100) {
@@ -160,7 +160,7 @@ int32_t city_list_index_0x480860(game_state *st, int32_t value)
     if (S32(st, G_DOCK_COUNT) <= 0) {
         return -1;
     }
-    uint32_t base = CITY_ADDR(U32(st, G_PLAYER)) + CITY_U4460;
+    uint32_t base = CITY_ADDR(U32(st, CURRENT_PLAYER_ADDR)) + CITY_DOCKS;
     for (int32_t i = 0; i < 10; i++) {
         if (value == S16(st, base + 2u * (uint32_t) i)) {
             return i;

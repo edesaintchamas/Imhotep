@@ -25,13 +25,13 @@ void figure_init_military(game_state *st, int32_t f)
     U8(st, r + FIG_U130) = 0;
     S32(st, r + FIG_U138) = 0;
     S32(st, r + FIG_U134) = 0;
-    S32(st, r + FIG_U13C) = S32(st, G_FIGURE_TYPES + FIGTYPE_U1C + 0x38u * U8(st, r + FIG_TYPE));
-    S32(st, r + FIG_U140) = S32(st, G_FIGURE_TYPES + FIGTYPE_U24 + 0x38u * U8(st, r + FIG_TYPE));
-    S32(st, r + FIG_FRAME_PERIOD) = S32(st, G_FIGURE_TYPES + FIGTYPE_U2C + 0x38u * U8(st, r + FIG_TYPE));
-    S32(st, r + FIG_FRAME_TICKS) = S32(st, G_FIGURE_TYPES + FIGTYPE_U30 + 0x38u * U8(st, r + FIG_TYPE));
-    S32(st, r + FIG_U150) = S32(st, G_FIGURE_TYPES + FIGTYPE_U04 + 0x38u * U8(st, r + FIG_TYPE));
+    S32(st, r + FIG_U13C) = S32(st, G_PROPS + FIGTYPE_SPEED + 0x38u * U8(st, r + FIG_TYPE));
+    S32(st, r + FIG_U140) = S32(st, G_PROPS + FIGTYPE_U28 + 0x38u * U8(st, r + FIG_TYPE));
+    S32(st, r + FIG_FRAME_PERIOD) = S32(st, G_PROPS + FIGTYPE_U30 + 0x38u * U8(st, r + FIG_TYPE));
+    S32(st, r + FIG_FRAME_TICKS) = S32(st, G_PROPS + FIGTYPE_U34 + 0x38u * U8(st, r + FIG_TYPE));
+    S32(st, r + FIG_U150) = S32(st, G_PROPS + FIGTYPE_ATTACK + 0x38u * U8(st, r + FIG_TYPE));
     U8(st, r + FIG_U154) = 0;
-    S32(st, r + FIG_U158) = calc_percentage(S32(st, G_FIGURE_TYPES + FIGTYPE_U04 + 0x38u * U8(st, r + FIG_TYPE)), 0x14);
+    S32(st, r + FIG_U158) = calc_percentage(S32(st, G_PROPS + FIGTYPE_ATTACK + 0x38u * U8(st, r + FIG_TYPE)), 0x14);
     S32(st, CURRENT_CITY(st) + CITY_U49A0) += 1;
 }
 
@@ -83,7 +83,7 @@ int32_t event_troops(game_state *st, int32_t kind, int32_t amount, int32_t where
     int32_t a = amount;
     uint32_t rec = 0;
     if (ev >= 0 && ev < S32(st, G_EVENTS)) {
-        rec = G_KINGDOM_EVENTS + 0x7Cu * (uint32_t) ev;
+        rec = G_EVENT_RECORDS + 0x7Cu * (uint32_t) ev;
         U8(st, rec + 0x32) = 1;
     }
     if (where >= 9 && where <= 0x10 && kind != 0xD) {
@@ -147,7 +147,7 @@ int32_t event_troops(game_state *st, int32_t kind, int32_t amount, int32_t where
         int32_t pick = 0;
         if (n > 0) {
             random_next_state(st);
-            pick = (int32_t) (U32(st, G_R_1_15) & 0x7FFF) % n;
+            pick = (int32_t) (U32(st, G_RANDOM_R1_15BIT) & 0x7FFF) % n;
         }
         if (a != 0 && n == 0) {
             state_unported(st, FN_EVENT_TROOPS); /* the landing point comes from uninitialized locals */
@@ -194,17 +194,17 @@ int32_t event_troops(game_state *st, int32_t kind, int32_t amount, int32_t where
     S16(st, G_INVASION_SEQUENCE) = seq > 0x7D00 ? 1 : seq;
     int32_t p0, p1, p2;
     if (kind == 0xC) {
-        p0 = S32(st, G_FIGURE_TYPES + FIGTYPE_U20 + G_FIGURE_TYPE_STRIDE * 54);
-        p1 = S32(st, G_FIGURE_TYPES + FIGTYPE_U20 + G_FIGURE_TYPE_STRIDE * 55);
-        p2 = S32(st, G_FIGURE_TYPES + FIGTYPE_U20 + G_FIGURE_TYPE_STRIDE * 56);
+        p0 = S32(st, G_PROPS + FIGTYPE_U24 + G_FIGURE_TYPE_STRIDE * 54);
+        p1 = S32(st, G_PROPS + FIGTYPE_U24 + G_FIGURE_TYPE_STRIDE * 55);
+        p2 = S32(st, G_PROPS + FIGTYPE_U24 + G_FIGURE_TYPE_STRIDE * 56);
     } else if (kind == 0xD) {
-        p0 = S32(st, G_FIGURE_TYPES + FIGTYPE_U20 + G_FIGURE_TYPE_STRIDE * 99);
+        p0 = S32(st, G_PROPS + FIGTYPE_U24 + G_FIGURE_TYPE_STRIDE * 99);
         p1 = 0;
         p2 = 0;
     } else {
-        p0 = S32(st, G_FIGURE_TYPES + FIGTYPE_U20 + G_FIGURE_TYPE_STRIDE * 44);
-        p1 = S32(st, G_FIGURE_TYPES + FIGTYPE_U20 + G_FIGURE_TYPE_STRIDE * 43);
-        p2 = S32(st, G_FIGURE_TYPES + FIGTYPE_U20 + G_FIGURE_TYPE_STRIDE * 45);
+        p0 = S32(st, G_PROPS + FIGTYPE_U24 + G_FIGURE_TYPE_STRIDE * 44);
+        p1 = S32(st, G_PROPS + FIGTYPE_U24 + G_FIGURE_TYPE_STRIDE * 43);
+        p2 = S32(st, G_PROPS + FIGTYPE_U24 + G_FIGURE_TYPE_STRIDE * 45);
     }
     (void) p0; /* @bin 0x00446F83 its percent is computed and not used */
     int32_t second = calc_percentage(n0, p1);
@@ -227,7 +227,7 @@ int32_t event_troops(game_state *st, int32_t kind, int32_t amount, int32_t where
         }
         int32_t idx;
         if (where == 8) {
-            uint32_t r7 = U32(st, G_R_1_7);
+            uint32_t r7 = U32(st, G_RANDOM_R1_7BIT);
             idx = (int32_t) (cnt <= 2 ? r7 & 1 : cnt <= 4 ? r7 & 3 : r7 & 7);
         } else {
             idx = where - 1;

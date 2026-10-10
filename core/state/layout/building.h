@@ -38,9 +38,10 @@
 #define BLD_ROAD_ACCESS_Y 0x28u    /* i16 */
 #define BLD_WALKER 0x2Au           /* i16: main walker figure ('agent') */
 #define BLD_WALKER2 0x2Cu          /* i16: second walker ('SUB agent') */
-#define BLD_IMMIGRANT 0x2Eu        /* i16: immigrant figure (0x00458D00) */
+#define BLD_IMMIGRANT 0x2Eu        /* i16: immigrant figure (0x00458D00); also the frog sent to the building (0x004E7410) */
 #define BLD_TOWER_WALKER 0x30u     /* i16 (0x00462180) */
 #define BLD_SPAWN_DELAY 0x32u      /* u8 (0x00462180) */
+#define BLD_U32 0x32u              /* u8: type 0x58 (placed from the map's images): := the random grid's bit 0 at the map load (@bin 0x0046D480, core/newgame/map_load.c) */
 #define BLD_ROAM_DIRECTION 0x34u   /* u8: random & 6 at creation */
 #define BLD_WATER_SUPPLY 0x35u     /* u8: 'water sup' */
 #define BLD_WATER_DEP 0x36u        /* u8: 'water dep' */
@@ -143,6 +144,7 @@
 #define BLD_DESIRABILITY 0xBEu     /* i8 (0x00454190) */
 #define BLD_NEAR_WATER 0xC0u       /* u8: a ring tile has water (0x00481000) */
 #define BLD_STORAGE_ID 0xC1u       /* u8: storage settings index (0x00462180) */
+#define BLD_UC2 0xC2u              /* u8: types 0x58, 0x59: := 100 at the map load (@bin 0x0046D480); := 0 by 0x00484890 within 4 tiles */
 #define BLD_SENTIMENT 0xC2u        /* i8: houses: averaged into CITY_SENTIMENT (0x004E8840); 50 at creation */
 #define BLD_PROBLEM_OVERLAY 0xC3u  /* u8: 1 problem, 2 no coverage (0x00432920) */
 #define BLD_FERRY_PARTNER 0xC4u    /* i32: Ferry Landing (0x88) partner building */
@@ -205,5 +207,23 @@
 #define BLD_UE0                0xE0u
 #define BLD_UEC                0xECu
 #define BLD_UF0                0xF0u
+
+/* ---- names merged from the packages' pending fragments (phase 10.4): each group keeps its
+ * package's heading (the package and its file in brackets) ---- */
+/* @bin fields of other records and tables, read by core/figure [p1_figure] */
+#define BLD_DOCK_FIGURE 0x54u /* i16: docks: the boat figure using it (0x004950F6, the dock actions) */
+#define BLD_MON_U56 0x56u     /* u8: monument sites: with BLD_U57 x 6, a joining worker's FIG_CC_DEST_Y (0x004F2410) */
+#define BLD_U9E 0x9Eu         /* i16[4]: := 0 when a figure of type 0x0F is deleted (0x004B4980); delays counting down (0x00456DEB) */
+/* record fields other packages own (building.h) [p3_city] */
+#define BLD_MONUMENT_STAGES 0x54u /* @bin 0x00401540 i32: the monuments of 0x00401540: the stages done, 56 at the end (BLD_MONUMENT_KIND's offset) */
+#define BLD_MONUMENT_WORK 0x60u /* @bin 0x00546790 u32: a part's work, summed over the parts of a part-built monument (BLD_MON_ANNOUNCED_60's offset) */
+/* building record fields (layout/building.h, package P2) [p5_map] */
+#define BLD_U68 0x68u /* @bin 0x00475FD0 i32: monument types 0xE5, 0xEA..0xEC: compared with 0x12 (the cliff neighbours);
+                       * not BLD_MON_ANNOUNCED_68 (its types: 0xD5, 0xE1, 0xE3, 0xE4) */
+/* ---- building record fields (owner: building.h, P2) ---- [p8a_ui_main] */
+#define BLD_AQUA_LINKS 0x9Eu           /* @bin 0x00535080 i16[4]: type 0x5A: the debug panel's "aqua links" */
+/* [building.h] fields [p8b_ui_info] */
+#define BLD_TOMB_PART_ROLE 0x60u  /* @bin 0x00513D40 i32 the parts of a tomb (types 0xE5, 0xEA..0xEC), records after the main one: role 1, 2 or 3 */
+#define BLD_SHIPYARD_PROGRESS 0x2Cu /* @bin 0x0050318C i16 the shipyard's ship under construction, in percent of 0xA0 */
 
 #endif

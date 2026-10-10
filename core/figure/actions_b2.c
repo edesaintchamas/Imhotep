@@ -108,7 +108,7 @@ static void wait_random(game_state *st, uint32_t f)
 {
     U8(st, f + FIG_ACTION) = 8;
     random_next_state(st);
-    S16(st, f + FIG_WAIT_TICKS) = (int16_t) (S32(st, G_R_1_15) % 10);
+    S16(st, f + FIG_WAIT_TICKS) = (int16_t) (S32(st, G_RANDOM_R1_15BIT) % 10);
 }
 
 /* the walker image without storing the relative direction (0x00E94E00) */
@@ -189,10 +189,10 @@ void figb_action_17(game_state *st)
                     return;
                 }
                 uint32_t c = CURRENT_CITY(st);
-                int32_t amount = calc_percentage(S32(st, c + CITY_U4450), pct[U32(st, G_DIFFICULTY)]);
+                int32_t amount = calc_percentage(S32(st, c + CITY_SAVINGS), pct[U32(st, G_DIFFICULTY)]);
                 if (amount != 0) {
                     S32(st, c + CITY_U4760) += 1;
-                    S32(st, c + CITY_U4450) -= amount;
+                    S32(st, c + CITY_SAVINGS) -= amount;
                     S32(st, c + CITY_U4784) += amount;
                     GAME_CALL(st, FN_NOTICE_ADD_4E2970, 0x67, 0, 0);
                     S32(st, CURRENT_CITY(st) + CITY_U4418) += 1;
@@ -208,7 +208,7 @@ void figb_action_17(game_state *st)
                     uint32_t c = CURRENT_CITY(st);
                     S16(st, c + CITY_U448C) += 1;
                     S32(st, c + CITY_U4760) += 1;
-                    S32(st, c + CITY_U2C84) += amount;
+                    S32(st, c + CITY_THEFT_THIS_YEAR) += amount;
                     S32(st, c + CITY_U4764) += amount;
                     S32(st, c + CITY_TREASURY) -= amount;
                     int16_t bt = S16(st, ba + BLD_TYPE);
@@ -239,7 +239,7 @@ void figb_action_17(game_state *st)
         S16(st, c + CITY_U448C) += 1;
         S32(st, c + CITY_U4760) += 1;
         S32(st, G_MESSAGE_POPUP) = 1;
-        S32(st, c + CITY_U2C84) += 100;
+        S32(st, c + CITY_THEFT_THIS_YEAR) += 100;
         S32(st, c + CITY_U4764) += 100;
         GAME_CALL(st, FN_NOTICE_ADD_4E2970, 0xCB, 0, 0);
         U8(st, FIGB_F(st) + FIG_STATE) = 2;

@@ -232,7 +232,7 @@ int32_t map_flood_object_near(game_state *st, int32_t x, int32_t y)
     int32_t tile = S32(st, G_MAP_START) + y * GRID_SIZE + x;
     static const int32_t around[4] = {0, 1, GRID_SIZE, GRID_SIZE + 1};
     for (int k = 0; k < 4; k++) {
-        uint32_t obj = U32(st, G_UD05720 + 4u * (uint32_t) (tile + around[k]));
+        uint32_t obj = U32(st, G_FLOODPLAIN_MANAGER + 4u * (uint32_t) (tile + around[k]));
         if (obj != 0 && P8(st, obj + 0x18) == 0) {
             return 1;
         }
@@ -264,7 +264,7 @@ void map_place_2x2(game_state *st, int32_t id, int32_t x, int32_t y, int32_t img
      * bit 8 (other bits but the mask 0x03052E80 cleared off roads), the building grid, grid
      * 0x00B285CC (& 0xE1 | 1), the image grid 0x00B7482C and the part grid 0x00B67D1C (bit 0x40
      * on the part chosen by the view mode 0x00E94E04); outside the map 0x00BC9734 := 1 */
-    int32_t mode = S32(st, G_UE94E04);
+    int32_t mode = S32(st, G_CITY_ORIENTATION);
     int32_t pj = mode == 0 || mode == 2 ? 0 : 1;
     int32_t pi = mode == 2 || mode == 4 ? 0 : 1;
     if (x < 0 || y < 0 || x + 1 >= S32(st, G_MAP_WIDTH) || y + 1 >= S32(st, G_MAP_HEIGHT)) {
@@ -342,7 +342,7 @@ void day_water_4555d0(game_state *st)
             water_lift_redraw(st, id);
         }
     }
-    flood_groundwater(st, G_UD05720);
+    flood_groundwater(st, G_FLOODPLAIN_MANAGER);
     int32_t count = S32(st, G_HOUSE_LIST_COUNT);
     int changed;
     do {
@@ -422,7 +422,7 @@ static void fertility_grow(game_state *st, int32_t tile, int32_t pct, uint32_t a
     /* @bin 0x004861BA one RNG step (inline in the original); + (rand15 % 10 + two globals) *
      * pct %, in 8 bits (it wraps: the original's clamp at 255 compares the wrapped byte) */
     random_next_state(st);
-    int32_t v = S32(st, G_R_1_15) % 10 + S32(st, a) + S32(st, b);
+    int32_t v = S32(st, G_RANDOM_R1_15BIT) % 10 + S32(st, a) + S32(st, b);
     U8(st, G_GRID_VEGETATION + (uint32_t) tile) += (uint8_t) calc_percentage(v, pct);
     GAME_CALL(st, FN_TREE_IMAGE_UPDATE, tile);
 }
@@ -439,8 +439,8 @@ void day_fertility_4860d0(game_state *st)
     U8(st, G_LIST_DONE_C3) = 0;
     U8(st, G_FLOODPLAIN_SEEN) = 0;
     int32_t pct = 100, low = 0, high = 0xF9F;
-    if (S16(st, c + CITY_U4478) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_U472C)) == 0 &&
-        (int8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_U472C), 2) != 0) {
+    if (S16(st, c + CITY_TEMPLE_COMPLEX) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_TEMPLE_COMPLEX_ID)) == 0 &&
+        (int8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_TEMPLE_COMPLEX_ID), 2) != 0) {
         pct = 125;
     }
     for (int32_t row = 0; row < S32(st, G_MAP_HEIGHT); row++) {
@@ -528,7 +528,7 @@ static int32_t run_groundwater(game_state *st, const int32_t *a)
 static int32_t run_flood_groundwater(game_state *st, const int32_t *a)
 {
     (void) a;
-    flood_groundwater(st, G_UD05720);
+    flood_groundwater(st, G_FLOODPLAIN_MANAGER);
     return 0;
 }
 
@@ -566,7 +566,7 @@ static int32_t run_lift_redraw(game_state *st, const int32_t *a)
 }
 
 const ported_function day_water_ports[] = {
-    {0x004BEB90u, "flood_groundwater", 0, 0, G_UD05720, run_flood_groundwater, 0},
+    {0x004BEB90u, "flood_groundwater", 0, 0, G_FLOODPLAIN_MANAGER, run_flood_groundwater, 0},
     {0x004BECC0u, "groundwater_from_object", 0, 0, 0, run_from_object, 0},
     {0x00487DC0u, "map_flood_object_near", 2, 32, 0, run_object_near, 0},
     {0x00487E30u, "building_flood_object_near", 1, 32, 0, run_building_object_near, 0},

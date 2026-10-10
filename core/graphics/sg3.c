@@ -25,13 +25,13 @@
 
 #include "sim/call.h"
 #include "sim/platform.h"
+#include "state/layout.h"
 #include "state/ported.h"
 
 #define SG3_FRAME 0xD8928u  /* @bin 0x0053DFFE the file buffer: frame 0xD8A48 bytes, the file at +0x120 */
 #define SG3_GROUPS 80u      /* group table: 300 int16 (frame +0x170) */
 #define SG3_BITMAPS 680u    /* bitmap records, 200 bytes each (frame +0x3C8) */
 #define SG3_ENTRIES 40680u  /* 64-byte entries (frame +0x9FE8 + 64) */
-#define PIXEL_FORMAT 0x00E92DFCu /* screen pixel format (0x00426FF0): 2 = 565 */
 
 static int str_bytes(game_state *st, uint32_t address, uint32_t *len)
 {
@@ -58,20 +58,20 @@ uint8_t sg3_load(game_state *st, uint32_t rec, uint32_t name, int32_t slot, uint
                  uint32_t groups, int32_t first_group)
 {
     /* @bin 0x0053E015 the slot's image count before the load; the old pixel buffer is deleted */
-    int32_t old_count = (int32_t) P32(st, rec + 0xCC2C);
-    uint32_t pixels = P32(st, rec + 0xCC24);
+    int32_t old_count = (int32_t) P32(st, rec + GFXSLOT_IMAGES);
+    uint32_t pixels = P32(st, rec + GFXSLOT_PIXELS);
     if (pixels != 0) {
         state_dealloc(st, pixels); /* graphics heap: nothing of the state (ignored by state_dealloc) */
-        P32(st, rec + 0xCC24) = 0;
+        P32(st, rec + GFXSLOT_PIXELS) = 0;
     }
     /* @bin 0x0053E048 file name := name; size, images, groups := 0 */
     P8(st, rec) = 0;
-    P32(st, rec + 0xCC28) = 0;
-    P32(st, rec + 0xCC2C) = 0;
-    P32(st, rec + 0xCC30) = 0;
+    P32(st, rec + GFXSLOT_PIXEL_BYTES) = 0;
+    P32(st, rec + GFXSLOT_IMAGES) = 0;
+    P32(st, rec + GFXSLOT_GROUPS) = 0;
     uint32_t n;
     if (str_bytes(st, name, &n) != 0) {
-        state_unported(st, 0x0053DFF0u);
+        state_unported(st, FN_SG3_LOAD);
         return 0;
     }
     for (uint32_t k = 0; k < n; k++) {
@@ -80,11 +80,11 @@ uint8_t sg3_load(game_state *st, uint32_t rec, uint32_t name, int32_t slot, uint
     /* @bin 0x0053E078 path := "data\" (0x006018F8) + name + ".sg3" (0x006018F0), on the stack */
     char path[0x104];
     uint32_t len = 0;
-    const uint32_t parts[3] = {0x006018F8u, name, 0x006018F0u};
+    const uint32_t parts[3] = {G_STR_DATA_DIR, name, G_STR_SG3_EXT};
     for (int i = 0; i < 3; i++) {
         uint32_t m;
         if (str_bytes(st, parts[i], &m) != 0 || len + m > sizeof(path)) {
-            state_unported(st, 0x0053DFF0u);
+            state_unported(st, FN_SG3_LOAD);
             return 0;
         }
         for (uint32_t k = 0; k < m; k++) {
@@ -93,12 +93,12 @@ uint8_t sg3_load(game_state *st, uint32_t rec, uint32_t name, int32_t slot, uint
         len += m - 1;
     }
     /* @bin 0x0053E10B first image / group */
-    P32(st, rec + 0xCC34) = (uint32_t) first_image;
-    P32(st, rec + 0xCC38) = (uint32_t) first_group;
+    P32(st, rec + GFXSLOT_FIRST_IMAGE) = (uint32_t) first_image;
+    P32(st, rec + GFXSLOT_FIRST_GROUP) = (uint32_t) first_group;
     /* @bin 0x0053E132 0x004CEB60(path, frame + 0x120, 0): the whole file into the frame */
     uint8_t *buf = calloc(1, SG3_FRAME);
     if (!buf) {
-        state_unported(st, 0x0053DFF0u);
+        state_unported(st, FN_SG3_LOAD);
         return 0;
     }
     int32_t size = platform_file_read(st, path, 0, buf, SG3_FRAME);
@@ -106,7 +106,7 @@ uint8_t sg3_load(game_state *st, uint32_t rec, uint32_t name, int32_t slot, uint
         /* no such file: the original retries on the CD drive and asks for the CD (0x004CE9E0), then
          * reads its bitmap count from the uninitialised frame; a file larger than the frame
          * overflows the stack. Neither is reproducible */
-        sg3_fail(st, 0x004CEB60u, buf);
+        sg3_fail(st, FN_FILE_READ_AT, buf);
         return 0;
     }
     int32_t skip = 0;
@@ -115,13 +115,13 @@ uint8_t sg3_load(game_state *st, uint32_t rec, uint32_t name, int32_t slot, uint
         /* @bin 0x0053E152 first bitmap name == "system.bmp" (0x006018E4, case-sensitive): the
          * first 200 images and 0x992E bytes of the .555 are skipped */
         uint32_t m;
-        if (str_bytes(st, 0x006018E4u, &m) != 0) {
-            sg3_fail(st, 0x0053DFF0u, buf);
+        if (str_bytes(st, G_STR_SYSTEM_BMP, &m) != 0) {
+            sg3_fail(st, FN_SG3_LOAD, buf);
             return 0;
         }
         int same = 1;
         for (uint32_t k = 0; k < m; k++) {
-            if (buf[SG3_BITMAPS + k] != P8(st, 0x006018E4u + k)) {
+            if (buf[SG3_BITMAPS + k] != P8(st, G_STR_SYSTEM_BMP + k)) {
                 same = 0;
                 break;
             }
@@ -135,11 +135,11 @@ uint8_t sg3_load(game_state *st, uint32_t rec, uint32_t name, int32_t slot, uint
     int32_t last_index;
     memcpy(&last_index, buf + 16, 4);
     int32_t count = (int32_t) ((uint32_t) last_index - (uint32_t) skip);
-    P32(st, rec + 0xCC2C) = (uint32_t) count;
+    P32(st, rec + GFXSLOT_IMAGES) = (uint32_t) count;
     uint32_t bytes = (uint32_t) count << 6;
     uint32_t from = SG3_ENTRIES + 64u * (uint32_t) (1 + skip);
     if (bytes > SG3_FRAME - from || (bytes && !state_ptr(st, entries, bytes))) {
-        sg3_fail(st, 0x0053DFF0u, buf);
+        sg3_fail(st, FN_SG3_LOAD, buf);
         return 0;
     }
     memcpy(state_ptr(st, entries, bytes ? bytes : 1), buf + from, bytes);
@@ -199,7 +199,7 @@ uint8_t sg3_load(game_state *st, uint32_t rec, uint32_t name, int32_t slot, uint
             node[node[pos].prev].next = b;
             node[pos].prev = b;
         }
-        P32(st, rec + 0xCC30) += 1;
+        P32(st, rec + GFXSLOT_GROUPS) += 1;
     }
     /* @bin 0x0053E2B4 in list order: group record {slot, first image id + image - 1}; the group's
      * first entry +28 := its group number (first group + k); the node is unlinked and deleted */
@@ -241,7 +241,7 @@ uint8_t sg3_load(game_state *st, uint32_t rec, uint32_t name, int32_t slot, uint
         uint32_t src = SG3_BITMAPS + 200u * (uint32_t) i, k = 0;
         for (;; k++) {
             if (src + k >= SG3_FRAME) {
-                sg3_fail(st, 0x0053DFF0u, buf);
+                sg3_fail(st, FN_SG3_LOAD, buf);
                 return 0;
             }
             P8(st, rec + 0x104u * (uint32_t) (i + 1) + k) = buf[src + k];
@@ -253,42 +253,42 @@ uint8_t sg3_load(game_state *st, uint32_t rec, uint32_t name, int32_t slot, uint
     free(buf);
     /* @bin 0x0053E402 0x0053F660(name, &pixels, 0, 0, 0, 0, skipped bytes): the .555 into the
      * graphics heap; its size */
-    int32_t size555 = GAME_CALL(st, 0x0053F660u, (int32_t) name, (int32_t) (rec + 0xCC24), 0, 0, 0, 0,
+    int32_t size555 = GAME_CALL(st, FN_PLATFORM_PIXELS_LOAD, (int32_t) name, (int32_t) (rec + GFXSLOT_PIXELS), 0, 0, 0, 0,
                                 (int32_t) skip_bytes);
-    P32(st, rec + 0xCC28) = (uint32_t) size555;
+    P32(st, rec + GFXSLOT_PIXEL_BYTES) = (uint32_t) size555;
     uint8_t ok = size555 != 0;
     if (ok) {
         /* @bin 0x0053E41E each entry: +12 := slot; external (+52): offset 1 when 0; internal: offset
          * := running pointer into the pixels (0x00D3B5F4, from the buffer + 4), which advances by
          * the length; pixels converted when the length is > 0: type 30 (+50) footprint plain and
          * top (+53) RLE, other types plain or RLE by +51 with +53 := 0 */
-        P32(st, 0x00D3B5F4u) = P32(st, rec + 0xCC24) + 4;
-        for (int32_t i = 0; i < (int32_t) P32(st, rec + 0xCC2C); i++) {
+        P32(st, G_SG3_PIXEL_CURSOR) = P32(st, rec + GFXSLOT_PIXELS) + 4;
+        for (int32_t i = 0; i < (int32_t) P32(st, rec + GFXSLOT_IMAGES); i++) {
             uint32_t e = entries + 64u * (uint32_t) i;
-            P32(st, e + 12) = (uint32_t) slot;
-            if (P8(st, e + 52) != 0) {
+            P32(st, e + IMGENTRY_SLOT) = (uint32_t) slot;
+            if (P8(st, e + IMGENTRY_EXTERNAL) != 0) {
                 if (P32(st, e) == 0) {
                     P32(st, e) = 1;
                 }
                 continue;
             }
-            P32(st, e) = U32(st, 0x00D3B5F4u);
-            U32(st, 0x00D3B5F4u) = U32(st, 0x00D3B5F4u) + P32(st, e + 4);
-            int32_t length = (int32_t) P32(st, e + 4);
+            P32(st, e) = U32(st, G_SG3_PIXEL_CURSOR);
+            U32(st, G_SG3_PIXEL_CURSOR) = U32(st, G_SG3_PIXEL_CURSOR) + P32(st, e + IMGENTRY_LENGTH);
+            int32_t length = (int32_t) P32(st, e + IMGENTRY_LENGTH);
             if (length <= 0) {
                 continue;
             }
-            if (P8(st, e + 50) == 0x1E) {
-                if (P8(st, e + 53) != 0) {
-                    sg3_pixels_555_to_565(st, P32(st, e), (int32_t) P32(st, e + 8));
-                    uint32_t top = P32(st, e + 8);
-                    sg3_rle_555_to_565(st, P32(st, e) + top, (int32_t) (P32(st, e + 4) - top));
+            if (P8(st, e + IMGENTRY_TYPE) == 0x1E) {
+                if (P8(st, e + IMGENTRY_HAS_TOP) != 0) {
+                    sg3_pixels_555_to_565(st, P32(st, e), (int32_t) P32(st, e + IMGENTRY_FULL_LENGTH));
+                    uint32_t top = P32(st, e + IMGENTRY_FULL_LENGTH);
+                    sg3_rle_555_to_565(st, P32(st, e) + top, (int32_t) (P32(st, e + IMGENTRY_LENGTH) - top));
                 } else {
                     sg3_pixels_555_to_565(st, P32(st, e), length);
                 }
             } else {
-                P8(st, e + 53) = 0;
-                if (P8(st, e + 51) != 0) {
+                P8(st, e + IMGENTRY_HAS_TOP) = 0;
+                if (P8(st, e + IMGENTRY_COMPRESSED) != 0) {
                     sg3_rle_555_to_565(st, P32(st, e), length);
                 } else {
                     sg3_pixels_555_to_565(st, P32(st, e), length);
@@ -297,8 +297,8 @@ uint8_t sg3_load(game_state *st, uint32_t rec, uint32_t name, int32_t slot, uint
         }
     }
     /* @bin 0x0053E4F4 images := max(new, old) */
-    if ((int32_t) P32(st, rec + 0xCC2C) <= old_count) {
-        P32(st, rec + 0xCC2C) = (uint32_t) old_count;
+    if ((int32_t) P32(st, rec + GFXSLOT_IMAGES) <= old_count) {
+        P32(st, rec + GFXSLOT_IMAGES) = (uint32_t) old_count;
     }
     return ok;
 }
@@ -309,7 +309,7 @@ void sg3_pixels_555_to_565(game_state *st, uint32_t pixels, int32_t length)
      * 0xF81F becomes (p & 0xFFE0) << 1 | (p & 0x1F), for `length` bytes. The buffers are the
      * graphics heap's (outside the state): converting them is the platform's, nothing of the
      * state changes; a buffer inside the state is converted as the original does */
-    if (S32(st, PIXEL_FORMAT) != 2) {
+    if (S32(st, G_PIXEL_FORMAT) != 2) {
         return;
     }
     for (int32_t n = length; n > 0; n -= 2, pixels += 2) {
@@ -332,7 +332,7 @@ void sg3_rle_555_to_565(game_state *st, uint32_t data, int32_t length)
      * byte 0xFF is followed by a skip byte; a byte c in 1..127 by c pixels, each becoming
      * (p & 0x7FE0) << 1 | (p & 0x1F); bytes 0 and 128..254 (signed <= 0) are passed over. Ends
      * when the byte count reaches 0 or goes below. Same scope as sg3_pixels_555_to_565 */
-    if (S32(st, PIXEL_FORMAT) != 2) {
+    if (S32(st, G_PIXEL_FORMAT) != 2) {
         return;
     }
     int32_t n = length;
@@ -371,7 +371,7 @@ static int32_t run_file_read_at(game_state *st, const int32_t *a)
      * stack frame) needs the caller ported: it calls platform_file_read itself */
     uint32_t n;
     if (str_bytes(st, (uint32_t) a[0], &n) != 0 || n > 0x400) {
-        state_unported(st, 0x004CEB60u);
+        state_unported(st, FN_FILE_READ_AT);
         return 0;
     }
     char path[0x400];
@@ -386,7 +386,7 @@ static int32_t run_file_read_at(game_state *st, const int32_t *a)
     uint32_t rest = (uint32_t) size > offset ? (uint32_t) size - offset : 0;
     uint8_t *dst = rest ? state_ptr(st, (uint32_t) a[1], rest) : NULL;
     if (rest && !dst) {
-        state_unported(st, 0x004CEB60u);
+        state_unported(st, FN_FILE_READ_AT);
         return 0;
     }
     if (rest) {

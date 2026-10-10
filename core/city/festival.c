@@ -77,7 +77,7 @@ void festival_performers(game_state *st, int32_t amount)
         want[i] = i == 0 ? part : want[i] + part;
         have[i] = 0;
         for (uint32_t p = G_FESTIVAL_VENUES + G_FESTIVAL_VENUES_STRIDE * (uint32_t) i; S32(st, p) != 0; p += 4) {
-            have[i] += S32(st, G_TYPE_COUNT + 4u * (uint32_t) S32(st, p));
+            have[i] += S32(st, G_TYPE_COUNT_ACTIVE + 4u * (uint32_t) S32(st, p));
         }
         if (i != 3) {
             want[i + 1] = 0;

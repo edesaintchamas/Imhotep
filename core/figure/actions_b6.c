@@ -444,7 +444,7 @@ void figb_action_29(game_state *st)
         if (S16(st, f + FIG_WAIT_TICKS) > (int32_t) ((uint32_t) id & 3u) + 10) {
             int32_t b2 = S16(st, ba + BLD_SUBTYPE);
             S16(st, f + FIG_WAIT_TICKS) = 0;
-            if (S32(st, CURRENT_CITY(st) + CITY_U4594) != 0) { /* 0x00EA5E04 */
+            if (S32(st, CURRENT_CITY(st) + CITY_NATIVES_RESTLESS) != 0) { /* 0x00EA5E04 */
                 U8(st, f + FIG_ACTION) = 0x0B;
                 U16(st, f + FIG_DEST_X) = U16(st, G_FORMATION_BASE + FM_DEST_X);
                 U16(st, f + FIG_DEST_Y) = U16(st, G_FORMATION_BASE + FM_DEST_Y);

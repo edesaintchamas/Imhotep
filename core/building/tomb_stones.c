@@ -26,36 +26,36 @@ typedef struct {
  * sets): the stone set (building +0x68, 0..0x1D) -> the template instance and its slot table (the
  * instance's `mov eax, T + 8`, loops over T .. T + 0x30); sets 17, 18, 27, 28 have none */
 static const stone_set stone_sets[30] = {
-    {0x00423CB0u, G_STONE_SLOTS + 0x30 * 5}, /* 0 */
-    {0x004233F0u, G_STONE_SLOTS + 0x30 * 0}, /* 1 */
-    {0x00423530u, G_STONE_SLOTS + 0x30 * 1}, /* 2 */
-    {0x00423670u, G_STONE_SLOTS + 0x30 * 2}, /* 3 */
-    {0x004237B0u, G_STONE_SLOTS + 0x30 * 12},/* 4 */
-    {0x004238F0u, G_STONE_SLOTS + 0x30 * 13},/* 5 */
-    {0x00423DF0u, G_STONE_SLOTS + 0x30 * 6}, /* 6 */
-    {0x00423F30u, G_STONE_SLOTS + 0x30 * 14},/* 7 */
-    {0x00424070u, G_STONE_SLOTS + 0x30 * 15},/* 8 */
-    {0x004241B0u, G_STONE_SLOTS + 0x30 * 7}, /* 9 */
-    {0x004242F0u, G_STONE_SLOTS + 0x30 * 8}, /* 10 */
-    {0x00424430u, G_STONE_SLOTS + 0x30 * 19},/* 11 */
-    {0x00424570u, G_STONE_SLOTS + 0x30 * 16},/* 12 */
-    {0x004246B0u, G_STONE_SLOTS + 0x30 * 20},/* 13 */
-    {0x004247F0u, G_STONE_SLOTS + 0x30 * 21},/* 14 */
-    {0x00423A30u, G_STONE_SLOTS + 0x30 * 3}, /* 15 */
-    {0x00423B70u, G_STONE_SLOTS + 0x30 * 4}, /* 16 */
+    {FN_TOMB_LAY_STONE_SET_0, G_STONE_SLOTS + 0x30 * 5}, /* 0 */
+    {FN_TOMB_LAY_STONE_SET_1, G_STONE_SLOTS + 0x30 * 0}, /* 1 */
+    {FN_TOMB_LAY_STONE_SET_2, G_STONE_SLOTS + 0x30 * 1}, /* 2 */
+    {FN_TOMB_LAY_STONE_SET_3, G_STONE_SLOTS + 0x30 * 2}, /* 3 */
+    {FN_TOMB_LAY_STONE_SET_4, G_STONE_SLOTS + 0x30 * 12},/* 4 */
+    {FN_TOMB_LAY_STONE_SET_5, G_STONE_SLOTS + 0x30 * 13},/* 5 */
+    {FN_TOMB_LAY_STONE_SET_6, G_STONE_SLOTS + 0x30 * 6}, /* 6 */
+    {FN_TOMB_LAY_STONE_SET_7, G_STONE_SLOTS + 0x30 * 14},/* 7 */
+    {FN_TOMB_LAY_STONE_SET_8, G_STONE_SLOTS + 0x30 * 15},/* 8 */
+    {FN_TOMB_LAY_STONE_SET_9, G_STONE_SLOTS + 0x30 * 7}, /* 9 */
+    {FN_TOMB_LAY_STONE_SET_10, G_STONE_SLOTS + 0x30 * 8}, /* 10 */
+    {FN_TOMB_LAY_STONE_SET_11, G_STONE_SLOTS + 0x30 * 19},/* 11 */
+    {FN_TOMB_LAY_STONE_SET_12, G_STONE_SLOTS + 0x30 * 16},/* 12 */
+    {FN_TOMB_LAY_STONE_SET_13, G_STONE_SLOTS + 0x30 * 20},/* 13 */
+    {FN_TOMB_LAY_STONE_SET_14, G_STONE_SLOTS + 0x30 * 21},/* 14 */
+    {FN_TOMB_LAY_STONE_SET_15, G_STONE_SLOTS + 0x30 * 3}, /* 15 */
+    {FN_TOMB_LAY_STONE_SET_16, G_STONE_SLOTS + 0x30 * 4}, /* 16 */
     {0, 0},                                  /* 17 */
     {0, 0},                                  /* 18 */
-    {0x00424930u, G_STONE_SLOTS + 0x30 * 9}, /* 19 */
-    {0x00424A70u, G_STONE_SLOTS + 0x30 * 10},/* 20 */
-    {0x00424BB0u, G_STONE_SLOTS + 0x30 * 11},/* 21 */
-    {0x00424CF0u, G_STONE_SLOTS + 0x30 * 17},/* 22 */
-    {0x00424E30u, G_STONE_SLOTS + 0x30 * 18},/* 23 */
-    {0x00424F70u, G_STONE_SLOTS + 0x30 * 22},/* 24 */
-    {0x004250B0u, G_STONE_SLOTS + 0x30 * 23},/* 25 */
-    {0x004251F0u, G_STONE_SLOTS + 0x30 * 24},/* 26 */
+    {FN_TOMB_LAY_STONE_SET_19, G_STONE_SLOTS + 0x30 * 9}, /* 19 */
+    {FN_TOMB_LAY_STONE_SET_20, G_STONE_SLOTS + 0x30 * 10},/* 20 */
+    {FN_TOMB_LAY_STONE_SET_21, G_STONE_SLOTS + 0x30 * 11},/* 21 */
+    {FN_TOMB_LAY_STONE_SET_22, G_STONE_SLOTS + 0x30 * 17},/* 22 */
+    {FN_TOMB_LAY_STONE_SET_23, G_STONE_SLOTS + 0x30 * 18},/* 23 */
+    {FN_TOMB_LAY_STONE_SET_24, G_STONE_SLOTS + 0x30 * 22},/* 24 */
+    {FN_TOMB_LAY_STONE_SET_25, G_STONE_SLOTS + 0x30 * 23},/* 25 */
+    {FN_TOMB_LAY_STONE_SET_26, G_STONE_SLOTS + 0x30 * 24},/* 26 */
     {0, 0},                                  /* 27 */
     {0, 0},                                  /* 28 */
-    {0x004233F0u, G_STONE_SLOTS + 0x30 * 0}, /* 29 */
+    {FN_TOMB_LAY_STONE_SET_1, G_STONE_SLOTS + 0x30 * 0}, /* 29 */
 };
 
 #define STONE_SLOTS 3 /* @bin 0x004233F0 loops end at T + 0x38 (by +8) and T + 0x30: 3 slots */

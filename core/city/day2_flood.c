@@ -32,7 +32,7 @@ static void call5(game_state *st, uint32_t f, int32_t x, int32_t y, int32_t r)
 static void figures_on_tile_flooded(game_state *st, int32_t t)
 {
     /* @bin 0x004BDC20 every figure on the tile but types 0x0E and 0x1C: 0x004BD250 */
-    int32_t f = S16(st, G_FIGURE_GRID + 2u * (uint32_t) t);
+    int32_t f = S16(st, G_GRID_FIGURE + 2u * (uint32_t) t);
     if (f == 0) {
         return;
     }
@@ -52,7 +52,7 @@ static void figures_on_tile_drained(game_state *st, int32_t t)
 {
     /* @bin 0x004BDD89 boats and the like (types 0x14, 0x19, 0x4D, 0x4E, 0x64, 0x65) move one tile
      * toward the middle of the longest run of water neighbours (0x0047DB00, flags 0x00BC97C0) */
-    int32_t f = S16(st, G_FIGURE_GRID + 2u * (uint32_t) t);
+    int32_t f = S16(st, G_GRID_FIGURE + 2u * (uint32_t) t);
     if (S16(st, FIGURE_ADDR(f) + FIG_NEXT_ON_TILE) == f) {
         return;
     }
@@ -123,7 +123,7 @@ void flood_tile_step(game_state *st, uint32_t self, int32_t flood)
     int32_t t = (int32_t) P32(st, self + 8);
     if ((uint8_t) flood != 0) {
         uint32_t ter = U32(st, terrain_at(t));
-        U8(st, G_SPRITE + (uint32_t) t) = 0;
+        U8(st, G_GRID_SPRITE + (uint32_t) t) = 0;
         ter = (ter & 0xFFFFEFFFu) | 4;
         U32(st, terrain_at(t)) = ter;
         uint8_t depth = 0;
@@ -135,7 +135,7 @@ void flood_tile_step(game_state *st, uint32_t self, int32_t flood)
             depth = (uint8_t) x87_ftol(v);
         }
         int32_t b = S16(st, G_GRID_BUILDING + 2u * (uint32_t) t);
-        U8(st, G_FERTILITY_GRID + (uint32_t) t) = depth;
+        U8(st, G_GRID_FERTILITY + (uint32_t) t) = depth;
         uint32_t kept = ter & 0xEEFED77Fu;
         if (kept & 0x40) {
             ter = (ter & ~0x40u) | 0x8000000u;
@@ -297,7 +297,7 @@ void flood_quality_roll(game_state *st, uint32_t self)
     static const int32_t table[11][2] = {{2, 100}, {3, 80}, {5, 60}, {10, 40}, {15, 20}, {30, 0},
                                          {15, -20}, {10, -40}, {5, -60}, {3, -80}, {2, -100}};
     random_next_state(st);
-    int32_t r = S32(st, G_R_1_15) % 99 + 1;
+    int32_t r = S32(st, G_RANDOM_R1_15BIT) % 99 + 1;
     int32_t v = 9999, acc = 0;
     for (uint32_t i = 0; v == 9999 && i < 11; i++) {
         acc += table[i][0];

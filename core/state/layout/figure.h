@@ -46,7 +46,7 @@
 #define FIG_CC_DEST_Y 0x50u        /* i16 */
 #define FIG_CC_DIRECTION 0x58u     /* u8 (0x004B3FF0) */
 #define FIG_HOME 0x5Au             /* i16: home building (0x00462180) */
-#define FIG_TARGET_HOUSE 0x5Cu     /* i16: immigrant's house (0x00458D00) */
+#define FIG_TARGET_HOUSE 0x5Cu     /* i16: immigrant's house (0x00458D00); the frog (type 0x6A) and the other figures created for a building keep it here too (0x004E7410, core/building/monument_take.c) */
 #define FIG_DEST_BUILDING 0x5Eu    /* i16 (0x004BC7A0) */
 #define FIG_MIGRANT_PEOPLE 0x64u   /* u8 (0x00458D00) */
 #define FIG_INVISIBLE 0x65u        /* u8 (0x004B23C0) */
@@ -155,6 +155,7 @@
 #define FM_LEGION 0x02u        /* u8: legion index 0..7, the first free one (save.md) */
 #define FM_U03 0x03u           /* u8 */
 #define FM_TYPE 0x04u          /* i16: the figure type of its soldiers (0x0B .. 0x0D tested; save.md: the fort's +0x12) */
+#define FM_FORT 0x06u         /* @bin 0x004B70C0 i16: its fort building */
 #define FM_FIGURES 0x08u       /* i16[16]: figure ids */
 #define FM_COUNT 0x28u         /* u8: figures */
 #define FM_MAX_COUNT 0x29u     /* u8: figures wanted, compared with FM_COUNT (invaders.c; 0x004B8080 := 0x10) */
@@ -171,6 +172,7 @@
 #define FM_DEST_BUILDING 0x3Eu /* i16: copied to the soldiers' FIG_DEST_BUILDING (0x00497010) */
 #define FM_STANDARD_BEARER 0x40u /* i16: standard-bearer figure (type 0x0E; save.md) */
 #define FM_PLAYER 0x42u        /* u8: player legion (save.md) */
+#define FM_WANT 0x46u         /* @bin 0x004B70C0 i16: how much it wants a recruit (3, 2: the stock needed) */
 #define FM_U44 0x44u           /* i16 := the invasion's +0x178 (0x004AD556) */
 #define FM_U48 0x48u           /* i16 */
 #define FM_U4A 0x4Au           /* i16 */
@@ -201,6 +203,7 @@
 #define FM_U74 0x74u           /* u8 := 0x11 or 0 (invaders.c) */
 #define FM_U75 0x75u           /* u8: counter (invaders.c) */
 #define FM_U76 0x76u           /* u8 (invaders.c) */
+#define FM_U77 0x77u          /* @bin 0x004B6E10 u8: := 0 */
 #define FM_EVENT 0x78u         /* i16: the scenario event (below the G_EVENTS count; 0x004AD556, formations_rebuild) */
 #define FM_EXPERIENCE 0x7Au    /* i16: (+ 10) / 20 is the defence bonus of the player's soldiers (0x0049A5FD) */
 #define FM_U7E 0x7Eu           /* i16: non-zero: FM_U80 counts up (0x0048E9E0) */
@@ -209,5 +212,14 @@
 #define FM_U84 0x84u           /* u32: cleared when its figure +0x92 is deleted (0x004B49FE; save.md: a transport) */
 #define FM_INVASION 0x88u      /* i16: invasion id, from G_INVASION_SEQUENCE (save.md chunk 126) */
 #define FM_TARGET 0x8Cu        /* i32: its target; only that one is taken (0x00499BD4) */
+
+/* ---- names merged from the packages' pending fragments (phase 10.4): each group keeps its
+ * package's heading (the package and its file in brackets) ---- */
+/* record fields other packages own (figure.h) [p3_city] */
+#define FIG_WORKSITE 0x68u /* @bin 0x004F26A0 i16: a figure of type 0x55 at work: the building worked on (FIG_LEADER's offset) */
+#define FIG_BUILDINGS_5C 0x5Cu /* @bin 0x00452200 i16[2]: a figure of type 0x55 at work (actions 0xF, 0x10, 0x24): two buildings (FIG_TARGET_HOUSE's offset) */
+/* [figure.h] fields [p8b_ui_info] */
+#define FIG_LOADS 0x9Cu            /* @bin 0x004FBF30 i32[4] the resources a figure carries (-1: none) */
+#define FIG_LOAD_AMOUNTS 0xBCu     /* @bin 0x004FC040 i32[4] their amounts */
 
 #endif

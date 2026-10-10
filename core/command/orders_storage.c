@@ -165,10 +165,10 @@ void cmd_storage_toggle_dc(game_state *st)
 {
     /* @bin 0x0040C630 building +0xDC: 1 <-> 0x10 (other values unchanged) */
     uint32_t f = BUILDING_ADDR(S32(st, G_INFO_BUILDING)) + BLD_UDC;
-    if (S32(st, f + BLD_STATE) == 1) {
-        S32(st, f + BLD_STATE) = 0x10;
-    } else if (S32(st, f + BLD_STATE) == 0x10) {
-        S32(st, f + BLD_STATE) = 1;
+    if (S32(st, f) == 1) {
+        S32(st, f) = 0x10;
+    } else if (S32(st, f) == 0x10) {
+        S32(st, f) = 1;
     }
     U8(st, G_REDRAW) = 1;
 }

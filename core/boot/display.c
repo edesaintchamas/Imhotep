@@ -100,8 +100,8 @@ static int32_t dd_open(game_state *st, const boot_host *host, const boot_display
      * GetSystemMetrics gives the mode (the client rectangle of WM_SIZE / WM_MOVE). With a screen
      * already in the mode (tools/oracle/game.py: GetSystemMetrics gives the display's size) nothing is
      * sent */
-    if (S32(st, G_UE38D9C) != d->width || S32(st, G_DRAW_H) != d->height) {
-        display_changed(st, S32(st, G_UE38D9C), S32(st, G_DRAW_H));
+    if (S32(st, G_DRAW_W) != d->width || S32(st, G_DRAW_H) != d->height) {
+        display_changed(st, S32(st, G_DRAW_W), S32(st, G_DRAW_H));
     }
     platform_log(st, G_STR_DD_SET_RESOLUTION, 0, 0);
     U32(st, G_DDRAW) = dd;
@@ -131,8 +131,8 @@ static int32_t surfaces_create(game_state *st, const boot_host *host, const boot
     platform_log(st, G_STR_DD_CAN_LOCK_PRIMARY, 0, 0); /* the primary surface locks */
     S32(st, G_UE92E04) = 0;
     uint32_t back_pixels = host && host->surface
-                               ? host->surface(host->ctx, st, S32(st, G_UE38D9C), S32(st, G_DRAW_H), 0)
-                               : boot_alloc(st, host, (uint32_t) S32(st, G_UE38D9C) * 2u * (uint32_t) S32(st, G_DRAW_H),
+                               ? host->surface(host->ctx, st, S32(st, G_DRAW_W), S32(st, G_DRAW_H), 0)
+                               : boot_alloc(st, host, (uint32_t) S32(st, G_DRAW_W) * 2u * (uint32_t) S32(st, G_DRAW_H),
                                             0x53000000u);
     uint32_t back = back_pixels ? handle(st, host, BOOT_SURFACE, 0) : 0;
     U32(st, G_DD_BACK) = back;
@@ -185,7 +185,7 @@ static void surfaces_keep(game_state *st, uint32_t self, uint32_t primary, uint3
     U32(st, self + 0x24) = primary_pixels;
     U32(st, self + 0x28) = U32(st, G_BACK_BUFFER);
     S32(st, self + 0xC) = S32(st, G_DRAW_H);
-    S32(st, self + 8) = S32(st, G_UE38D9C);
+    S32(st, self + 8) = S32(st, G_DRAW_W);
     S32(st, self + 0x10) = d->format == 565 ? 1 : 0;
 }
 
@@ -233,8 +233,8 @@ static int32_t display_create(game_state *st, const boot_host *host, const boot_
     if (n + 1 <= 100) {
         memcpy(st->mem + (G_GAME_DIR - STATE_BASE), cwd, n + 1);
     }
-    S32(st, G_R_IV1) = 0x54657687;
-    S32(st, G_R_IV2) = 0x72641663;
+    S32(st, G_RANDOM_IV1) = 0x54657687;
+    S32(st, G_RANDOM_IV2) = 0x72641663;
     S32(st, G_UD3B37C) = 0x34518632;
     U8(st, G_UD3B494) = 0;
     U8(st, G_UD3B494 + 1u) = 0;
@@ -260,7 +260,7 @@ static int32_t display_create(game_state *st, const boot_host *host, const boot_
     S32(st, G_SCREEN_H) = h;
     S32(st, G_LAYOUT_DY) = (h - 480) / 2;
     S32(st, G_SCREEN_PITCH) = 2 * w;
-    S32(st, G_UE38D9C) = w;
+    S32(st, G_DRAW_W) = w;
     S32(st, G_DRAW_H) = h;
     S32(st, G_UE38D90) = h;
     S32(st, G_SCREEN_BYTES) = 2 * w * h;

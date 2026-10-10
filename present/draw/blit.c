@@ -60,7 +60,7 @@ out:
 done:
     S32(st, G_VIS_W) = vis;
     S32(st, G_SRC_SKIP) = (int32_t) ((uint32_t) (w - vis) << 1);
-    S32(st, G_DST_SKIP) = (int32_t) ((uint32_t) (S32(st, G_UE38D9C) - vis) << 1);
+    S32(st, G_DST_SKIP) = (int32_t) ((uint32_t) (S32(st, G_DRAW_W) - vis) << 1);
 }
 
 void clip_vertical(game_state *st)
@@ -167,7 +167,7 @@ void pixel_put_checked(game_state *st, int32_t x, int32_t y)
 {
     /* @bin 0x0040FB10 the colour [0x00D3B4F0] at (x, y) when 0 <= x < width 0x00E38D9C and
      * 0 <= y < height 0x00E38D98 - 32 */
-    if (x < 0 || x >= S32(st, G_UE38D9C) || y < 0 || y >= S32(st, G_DRAW_H) - 0x20) {
+    if (x < 0 || x >= S32(st, G_DRAW_W) || y < 0 || y >= S32(st, G_DRAW_H) - 0x20) {
         return;
     }
     mem_wr16(st, screen_at(st, x, y), U16(st, G_MARCH_COLOUR));

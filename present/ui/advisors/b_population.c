@@ -13,7 +13,7 @@
 
 static uint32_t city(game_state *st, uint32_t field)
 {
-    return field + (uint32_t) (S32(st, G_PLAYER) * (int32_t) CITY_REC_SIZE);
+    return field + (uint32_t) (S32(st, CURRENT_PLAYER_ADDR) * (int32_t) CITY_REC_SIZE);
 }
 
 static int32_t cs32(game_state *st, uint32_t field)
@@ -26,8 +26,8 @@ int32_t population_history_at(game_state *st, int32_t months, int32_t i)
     /* @bin 0x004E9760 the population i months into the last `months` (ring of 2400 months at
      * city +0x18AC, newest index +0x3E2C, count +0x3E30) */
     int32_t start;
-    if (cs32(st, CITY_BASE + CITY_U25C0) > months) {
-        start = cs32(st, CITY_BASE + CITY_U25BC) - months;
+    if (cs32(st, CITY_BASE + CITY_POPULATION_HISTORY_MONTHS) > months) {
+        start = cs32(st, CITY_BASE + CITY_POPULATION_HISTORY_INDEX) - months;
         if (start < 0) {
             start += 0x960;
         }
@@ -46,7 +46,7 @@ int32_t population_history_dates(game_state *st, int32_t months)
     /* @bin 0x004E97C0 the first and last month / year of the graph (0x00EA180C, 0x00EA1808 and
      * 0x00EA1804, 0x00EA1800): from the start year 0x007848D8 when the history is short, else back
      * from the current month 0x0078D7C0 - 1 / year 0x0078D7BC. Returns what eax holds */
-    if (cs32(st, CITY_BASE + CITY_U25C0) <= months) {
+    if (cs32(st, CITY_BASE + CITY_POPULATION_HISTORY_MONTHS) <= months) {
         int32_t year0 = S16(st, G_START_YEAR);
         S32(st, G_GRAPH_FIRST_MONTH) = 0;
         S32(st, G_GRAPH_FIRST_YEAR) = year0;
@@ -110,7 +110,7 @@ void population_graph_history(game_state *st, int32_t big, int32_t x, int32_t y)
 {
     /* @bin 0x00527360 the population history: 20, 40, 100, 200 or 400 months as the history is long
      * (small: 20 or 100), scaled to its maximum */
-    int32_t len = cs32(st, CITY_BASE + CITY_U25C0);
+    int32_t len = cs32(st, CITY_BASE + CITY_POPULATION_HISTORY_MONTHS);
     int32_t n;
     if (len <= 0x14) {
         n = 0x14;
@@ -186,7 +186,7 @@ void population_graph_history(game_state *st, int32_t big, int32_t x, int32_t y)
 void population_graph_census(game_state *st, int32_t big, int32_t x, int32_t y)
 {
     /* @bin 0x00527710 the people by age: 100 i16 at city +0x3E34 */
-    uint32_t ages = city(st, CITY_BASE + CITY_POPULATION_AGES);
+    uint32_t ages = city(st, CITY_BASE + CITY_AGES);
     int32_t max = 0;
     for (uint32_t i = 0; i < 0x64; i++) {
         int32_t v = S16(st, ages + 2 * i);
@@ -198,7 +198,7 @@ void population_graph_census(game_state *st, int32_t big, int32_t x, int32_t y)
     if (big == 0) {
         S32(st, G_SCALE_SHIFT) = S32(st, G_SCALE_SHIFT) + 2;
         for (int32_t i = 0; i < 0x64; i++) {
-            int32_t v = S16(st, city(st, CITY_BASE + CITY_POPULATION_AGES) + 2u * (uint32_t) i) >> (U8(st, G_SCALE_SHIFT) & 0x1F);
+            int32_t v = S16(st, city(st, CITY_BASE + CITY_AGES) + 2u * (uint32_t) i) >> (U8(st, G_SCALE_SHIFT) & 0x1F);
             if (v > 0) {
                 line_draw(st, i + x, y - v + 0x32, i + x, y + 0x32, RED);
             }
@@ -211,7 +211,7 @@ void population_graph_census(game_state *st, int32_t big, int32_t x, int32_t y)
     }
     S32(st, G_CLIP_BOTTOM) = y + 0xC8;
     for (int32_t i = 0; i < 0x64; i++) {
-        int32_t v = scaled(S16(st, city(st, CITY_BASE + CITY_POPULATION_AGES) + 2u * (uint32_t) i), S32(st, G_SCALE_SHIFT));
+        int32_t v = scaled(S16(st, city(st, CITY_BASE + CITY_AGES) + 2u * (uint32_t) i), S32(st, G_SCALE_SHIFT));
         if (v > 0) {
             image_draw(st, S32(st, G_GRAPH_BAR_IMAGES) + 2, x + i * 4, y - v + 0xC8);
         }
@@ -288,7 +288,7 @@ static void food_line(game_state *st)
         font = S32(st, G_FONT_RED);
         s = 0x24;
     }
-    int32_t trend = cs32(st, CITY_BASE + CITY_MIGRATION_PERCENT);
+    int32_t trend = cs32(st, CITY_BASE + CITY_MIGRATION_PCT);
     if (trend < 0) {
         s += 1;
     } else if (trend > 0) {
@@ -429,7 +429,7 @@ void advisor_population_draw(game_state *st)
     }
     /* @bin 0x00526903 the housing line: capacity +0x18A8 */
     {
-        int32_t room = cs32(st, CITY_BASE + CITY_HOUSE_ROOM_LEFT);
+        int32_t room = cs32(st, CITY_BASE + CITY_HOUSE_ROOM);
         S32(st, G_TEXT_X) = 0;
         group_at(st, 0x37, 0x10, 0x168);
         number_at(st, room, S32(st, G_TEXT_X) + S32(st, G_ADVISOR_X) + 0x4B, 0x168);
@@ -445,24 +445,24 @@ void advisor_population_draw(game_state *st)
             group_at(st, 0x3D, 0x2B, 0x18C);
             return;
         }
-        if (cs32(st, CITY_BASE + CITY_IMMIGRANTS_MONTH) >= 5) {
+        if (cs32(st, CITY_BASE + CITY_IMMIGRANTS_THIS_MONTH) >= 5) {
             group_at(st, 0x37, 0x19, 0x17A);
             S32(st, G_TEXT_X) = 0;
-            number_at(st, cs32(st, CITY_BASE + CITY_IMMIGRANTS_MONTH), S32(st, G_ADVISOR_X) + 0x4B, 0x18C);
+            number_at(st, cs32(st, CITY_BASE + CITY_IMMIGRANTS_THIS_MONTH), S32(st, G_ADVISOR_X) + 0x4B, 0x18C);
             group_after(st, 0x12, 0x18C);
             return;
         }
-        if (cs32(st, CITY_BASE + CITY_U2728) != 0 || cs32(st, CITY_BASE + CITY_HOUSE_ROOM_LEFT) <= 0) {
+        if (cs32(st, CITY_BASE + CITY_U2728) != 0 || cs32(st, CITY_BASE + CITY_HOUSE_ROOM) <= 0) {
             group_at(st, 0x37, 0x19, 0x17A);
             S32(st, G_TEXT_X) = 0;
             group_at(st, 0x37, 0x14, 0x18C);
             return;
         }
-        if (cs32(st, CITY_BASE + CITY_MIGRATION_PERCENT) >= 0x50) {
+        if (cs32(st, CITY_BASE + CITY_MIGRATION_PCT) >= 0x50) {
             group_at(st, 0x37, 0x19, 0x17A);
             S32(st, G_TEXT_X) = 0;
-            number_at(st, cs32(st, CITY_BASE + CITY_IMMIGRANTS_MONTH), S32(st, G_ADVISOR_X) + 0x4B, 0x18C);
-            group_after(st, cs32(st, CITY_BASE + CITY_IMMIGRANTS_MONTH) == 1 ? 0x13 : 0x12, 0x18C);
+            number_at(st, cs32(st, CITY_BASE + CITY_IMMIGRANTS_THIS_MONTH), S32(st, G_ADVISOR_X) + 0x4B, 0x18C);
+            group_after(st, cs32(st, CITY_BASE + CITY_IMMIGRANTS_THIS_MONTH) == 1 ? 0x13 : 0x12, 0x18C);
             return;
         }
         group_at(st, 0x37, 0x1A, 0x17A);

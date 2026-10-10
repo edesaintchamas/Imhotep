@@ -414,7 +414,7 @@ void family_continue_click(game_state *st)
     }
     S32(st, G_CAMPAIGN_PERIOD) = 0;
     S32(st, G_PERIOD_REACHED) = 0;
-    S32(st, G_CAMPAIGN_CAMPAIGN_KIND) = 0;
+    S32(st, G_CAMPAIGN_SELECTED) = 0;
     U8(st, G_WINDOW) = 0x17;
     U8(st, G_REDRAW) = 1;
 }
@@ -436,7 +436,7 @@ void family_cleopatra_click(game_state *st)
     }
     if (U8(st, G_MENU_PERIOD_DONE) != 0) {
         U8(st, G_WINDOW) = 0x17;
-        S32(st, G_CAMPAIGN_CAMPAIGN_KIND) = 1;
+        S32(st, G_CAMPAIGN_SELECTED) = 1;
         U8(st, G_REDRAW) = 1;
         return;
     }

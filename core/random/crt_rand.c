@@ -2,19 +2,20 @@
  * Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0. */
 #include "random/crt_rand.h"
 
+#include "state/layout.h"
 #include "state/ported.h"
 
 int32_t crt_rand(game_state *st)
 {
     /* @bin 0x00562348 */
-    uint32_t s = U32(st, CRT_RAND_STATE) * 0x343FDu + 0x269EC3u;
-    U32(st, CRT_RAND_STATE) = s;
+    uint32_t s = U32(st, G_CRT_RAND_STATE) * 0x343FDu + 0x269EC3u;
+    U32(st, G_CRT_RAND_STATE) = s;
     return (int32_t) ((s >> 16) & 0x7FFF);
 }
 
 void crt_srand(game_state *st, uint32_t seed)
 {
-    U32(st, CRT_RAND_STATE) = seed; /* @bin 0x0056233E */
+    U32(st, G_CRT_RAND_STATE) = seed; /* @bin 0x0056233E */
 }
 
 static int32_t run_rand(game_state *st, const int32_t *a)

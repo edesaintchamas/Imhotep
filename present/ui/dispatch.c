@@ -170,23 +170,23 @@ void ui_redraw(game_state *st, int32_t force)
     case 0x15: GAME_CALL0(st, FN_EDITOR_EMPIRE_DRAW); break;
     case 0x17: GAME_CALL0(st, FN_PERIOD_SCREEN_DRAW); break;
     case 0x23: GAME_CALL0(st, FN_TOOLTIP_DRAW_OVERLAY); break;
-    case 0x26: GAME_CALL0(st, 0x00525B90u); break;
+    case 0x26: GAME_CALL0(st, FN_ADVISOR_OPEN_ROUTE_DRAW); break;
     case 0x28:
         GAME_CALL0(st, FN_ADVISORS_DRAW_HALL);
-        GAME_CALL0(st, 0x00559E10u);
-        GAME_CALL0(st, 0x0055A0E0u);
-        GAME_CALL(st, 0x0055AD30u, 1);
+        GAME_CALL0(st, FN_TRADE_ADVISOR_DRAW);
+        GAME_CALL0(st, FN_TRADE_ADVISOR_DRAW_LIST);
+        GAME_CALL(st, FN_TRADE_DIALOG_DRAW, 1);
         break;
     case 0x2A:
         GAME_CALL0(st, FN_ADVISORS_DRAW_HALL);
-        GAME_CALL0(st, 0x00521080u);
-        GAME_CALL0(st, 0x005215D0u);
-        GAME_CALL0(st, 0x00521800u);
+        GAME_CALL0(st, FN_ADVISOR_LABOUR_DRAW);
+        GAME_CALL0(st, FN_ADVISOR_LABOUR_ROWS_DRAW);
+        GAME_CALL0(st, FN_ADVISOR_LABOUR_PRIORITY_DRAW);
         break;
-    case 0x2B: GAME_CALL0(st, FN_ADVISORS_DRAW_HALL); GAME_CALL0(st, 0x00529320u); break;
-    case 0x2C: GAME_CALL0(st, FN_ADVISORS_DRAW_HALL); GAME_CALL0(st, 0x00524E20u); break;
-    case 0x2D: GAME_CALL0(st, FN_ADVISORS_DRAW_HALL); GAME_CALL0(st, 0x005250F0u); break;
-    case 0x2E: GAME_CALL0(st, FN_ADVISORS_DRAW_HALL); GAME_CALL0(st, 0x005255A0u); break;
+    case 0x2B: GAME_CALL0(st, FN_ADVISORS_DRAW_HALL); GAME_CALL0(st, FN_FESTIVAL_DIALOG_DRAW); break;
+    case 0x2C: GAME_CALL0(st, FN_ADVISORS_DRAW_HALL); GAME_CALL0(st, FN_ADVISOR_SALARY_DRAW); break;
+    case 0x2D: GAME_CALL0(st, FN_ADVISORS_DRAW_HALL); GAME_CALL0(st, FN_ADVISOR_DONATION_DRAW); break;
+    case 0x2E: GAME_CALL0(st, FN_ADVISORS_DRAW_HALL); GAME_CALL0(st, FN_ADVISOR_GIFT_DRAW); break;
     case 0x2F: GAME_CALL0(st, FN_FAMILY_LIST_DRAW); break;
     case 0x30: GAME_CALL0(st, FN_FAMILY_MENU_DRAW); break;
     case 0x33: GAME_CALL0(st, FN_MISSION_END_DRAW); break;
@@ -203,11 +203,11 @@ void ui_redraw(game_state *st, int32_t force)
     case 0x3F: GAME_CALL0(st, FN_POPUP_DRAW); break;
     case 0x43: GAME_CALL0(st, FN_WINDOW43_DRAW); break;
     case 0x4C: GAME_CALL0(st, FN_ADVISORS_DRAW_HALL); GAME_CALL0(st, FN_ADVISORS_DRAW_GRAVE_GOODS); break;
-    case 0x4D: GAME_CALL0(st, 0x00524E20u); break; /* @bin 0x004D735A into case 0x2C, past 0x00520F40 */
-    case 0x4F: GAME_CALL0(st, 0x00538050u); break;
+    case 0x4D: GAME_CALL0(st, FN_ADVISOR_SALARY_DRAW); break; /* @bin 0x004D735A into case 0x2C, past 0x00520F40 */
+    case 0x4F: GAME_CALL0(st, FN_ADVISOR_EXPLAIN_DRAW); break;
     case 0x50: GAME_CALL0(st, FN_ADVISORS_DRAW_RATING_INFO); break;
     case 0x51: GAME_CALL0(st, FN_CHOICE_WINDOW_DRAW); break;
-    case 0x52: GAME_CALL0(st, 0x00516080u); break;
+    case 0x52: GAME_CALL0(st, FN_FESTIVAL_DIALOG_DRAW_BUILDING); break;
     case 0x53: GAME_CALL0(st, FN_HIGHSCORE_DRAW); break;
     case 0x57: GAME_CALL0(st, FN_LOADING_LAST); break;
     default: break;
@@ -226,15 +226,15 @@ static void advisor_page_frame(game_state *st)
     switch (S32(st, G_PAGE)) {
     case 1:
         editor_buttons_draw(st, AX(), AY(), G_TAX_ARROWS, 2);
-        GAME_CALL0(st, 0x005215D0u);
+        GAME_CALL0(st, FN_ADVISOR_LABOUR_ROWS_DRAW);
         break;
     case 2: GAME_CALL0(st, FN_ADVISOR2_FRAME); break;
     case 3: GAME_CALL0(st, FN_ADVISOR3_FRAME); break;
     case 4: GAME_CALL0(st, FN_ADVISOR4_FRAME); break;
     case 5: GAME_CALL0(st, FN_ADVISOR5_FRAME); break;
-    case 6: GAME_CALL0(st, 0x0055A0E0u); break;
+    case 6: GAME_CALL0(st, FN_TRADE_ADVISOR_DRAW_LIST); break;
     case 7: GAME_CALL0(st, FN_ADVISOR7_FRAME); break;
-    case 0x0B: GAME_CALL0(st, 0x005292B0u); break;
+    case 0x0B: GAME_CALL0(st, FN_ADVISOR_DRAW_FESTIVAL_BUTTON); break;
     case 0x0C: editor_buttons_draw(st, AX(), AY(), G_TAX_BUTTONS, 2); break;
     case 0x0E: GAME_CALL0(st, FN_ADVISOR14_FRAME); break;
     default: break;
@@ -423,19 +423,19 @@ void ui_draw_frame(game_state *st)
     case 0x07: advisor_page_frame(st); break;
     case 0x28:
         U8(st, G_REDRAW_SIDEBAR) = 1;
-        GAME_CALL(st, 0x0055AD30u, 0);
+        GAME_CALL(st, FN_TRADE_DIALOG_DRAW, 0);
         buttons_draw_at(st, AX(), AY(), G_TRADE_BUTTONS, 2);
-        if (S16(st, CITY_BASE + CITY_TRADE_STATUS + (U32(st, G_PLAYER) * 0x24ECu + U32(st, G_TRADE_RESOURCE)) * 2u) == 2) {
+        if (S16(st, CITY_BASE + CITY_TRADE_STATUS + (U32(st, CURRENT_PLAYER_ADDR) * 0x24ECu + U32(st, G_TRADE_RESOURCE)) * 2u) == 2) {
             editor_buttons_draw(st, AX(), AY(), G_TRADE_LIMIT_ARROWS, 2);
         }
-        if (S16(st, CITY_BASE + CITY_TRADE_STATUS + (U32(st, G_PLAYER) * 0x24ECu + U32(st, G_TRADE_RESOURCE)) * 2u) == 1) {
+        if (S16(st, CITY_BASE + CITY_TRADE_STATUS + (U32(st, CURRENT_PLAYER_ADDR) * 0x24ECu + U32(st, G_TRADE_RESOURCE)) * 2u) == 1) {
             editor_buttons_draw(st, AX(), AY(), G_TRADE_LIMIT_ARROWS_B, 2);
         }
         break;
     case 0x2A: GAME_CALL0(st, FN_DIALOG2A_FRAME); break;
     case 0x2B:
         U8(st, G_REDRAW_SIDEBAR) = 1;
-        GAME_CALL0(st, 0x00529530u);
+        GAME_CALL0(st, FN_FESTIVAL_DIALOG_DRAW_SIZES);
         buttons_draw_at(st, AX(), AY(), G_FESTIVAL_BUTTONS, 4);
         break;
     case 0x52:
@@ -445,7 +445,7 @@ void ui_draw_frame(game_state *st)
         break;
     case 0x2C: case 0x4D:
         U8(st, G_REDRAW_SIDEBAR) = 1;
-        GAME_CALL0(st, 0x00524E20u);
+        GAME_CALL0(st, FN_ADVISOR_SALARY_DRAW);
         break;
     case 0x2D:
         U8(st, G_REDRAW_SIDEBAR) = 1;
@@ -743,7 +743,7 @@ static void empire_input(game_state *st)
     }
     if (U8(st, G_LEFT_PRESSED) != 0) {
         int32_t mx = S32(st, G_MOUSE_X), left = S32(st, G_MAP_X);
-        if (mx >= left && mx < S32(st, G_UE38D9C) - 2 * left) {
+        if (mx >= left && mx < S32(st, G_DRAW_W) - 2 * left) {
             int32_t my = S32(st, G_MOUSE_Y), top = S32(st, G_MAP_Y);
             if (my >= top && my < S32(st, G_DRAW_H) - S32(st, G_MAP_BOTTOM) - top) {
                 GAME_CALL(st, FN_EMPIRE_PICK, G_SELECTED, G_ARMY_SEL);
@@ -789,7 +789,7 @@ static void advisors_input(game_state *st)
         return;
     }
     if (U8(st, G_RIGHT_RELEASED) != 0) {
-        uint32_t p = U32(st, G_PLAYER) * 0x49D8u;
+        uint32_t p = U32(st, CURRENT_PLAYER_ADDR) * 0x49D8u;
         close_to(st, 1);
         U8(st, CITY_BASE + CITY_U49CC + p) = 0;
         return;
@@ -814,7 +814,7 @@ static void advisors_input(game_state *st)
         if (rect_input(st, AX(), AY(), G_ADVISOR6_RECTS, n + 3, G_HOVER) != 0) {
             return;
         }
-        GAME_CALL0(st, 0x0055BB90u);
+        GAME_CALL0(st, FN_TRADE_ADVISOR_SCROLL_INPUT);
         return;
     }
     case 7: rect_input(st, AX(), AY(), G_ADVISOR7_RECTS, 2, G_HOVER); return;
@@ -847,7 +847,7 @@ static void family_input(game_state *st)
     if (hover_click(st, AX(), AY(), G_TRADE_BUTTONS, 2, 0x0A) != 0) {
         return;
     }
-    int16_t mode = S16(st, CITY_BASE + CITY_TRADE_STATUS + (U32(st, G_PLAYER) * 0x24ECu + U32(st, G_TRADE_RESOURCE)) * 2u);
+    int16_t mode = S16(st, CITY_BASE + CITY_TRADE_STATUS + (U32(st, CURRENT_PLAYER_ADDR) * 0x24ECu + U32(st, G_TRADE_RESOURCE)) * 2u);
     if (mode == 2) {
         editor_hover(st, AX(), AY(), G_TRADE_LIMIT_ARROWS, 2, 0x0A);
         if (editor_buttons(st, AX(), AY(), G_TRADE_LIMIT_ARROWS, 2) != 0) {
@@ -1016,7 +1016,7 @@ void ui_input(game_state *st)
         if (rect_input(st, DX(), DY(), G_PERIOD_BUTTONS, 0x0B, G_HOVER) != 0 || U8(st, G_RIGHT_RELEASED) == 0) {
             return;
         }
-        if (S32(st, G_CAMPAIGN_CAMPAIGN_KIND) == 1 || S32(st, G_PERIOD_REACHED) == 0) {
+        if (S32(st, G_CAMPAIGN_SELECTED) == 1 || S32(st, G_PERIOD_REACHED) == 0) {
             GAME_CALL0(st, FN_MAIN_MENU_OPEN);
         }
         return;
@@ -1033,7 +1033,7 @@ void ui_input(game_state *st)
         return;
     case 0x43: {
         int32_t n = 1;
-        if (S8(st, G_MISSION) >= 2 || S32(st, G_CUSTOM) != 0 || U8(st, G_FLOW2_PERIOD) != 0) {
+        if (S8(st, G_MISSION) >= 2 || S32(st, G_CUSTOM) != 0 || U8(st, G_PERIOD) != 0) {
             n = 3;
         }
         rect_input(st, S32(st, G_PANEL_X), S32(st, G_PANEL_Y), G_W43_RECTS, n, G_HOVER);
@@ -1097,11 +1097,11 @@ void ui_input(game_state *st)
         return;
     case 0x45:
         if (U8(st, G_RIGHT_RELEASED) != 0) {
-            uint32_t p = U32(st, G_PLAYER) * 0x49D8u;
+            uint32_t p = U32(st, CURRENT_PLAYER_ADDR) * 0x49D8u;
             int32_t limit = S32(st, G_DIFFICULTY);
             close_to(st, 1);
-            if (S32(st, CITY_BASE + CITY_DIFFICULTY_COPY + p) > limit) {
-                S32(st, CITY_BASE + CITY_DIFFICULTY_COPY + p) = limit;
+            if (S32(st, CITY_BASE + CITY_DIFFICULTY + p) > limit) {
+                S32(st, CITY_BASE + CITY_DIFFICULTY + p) = limit;
             }
             return;
         }
@@ -1384,12 +1384,12 @@ void ui_input(game_state *st)
         if (right_release_closes(st, 7)) {
             return;
         }
-        int32_t k = S32(st, CITY_BASE + CITY_EXPLAIN_PAGE + U32(st, G_PLAYER) * 0x49D8u);
+        int32_t k = S32(st, CITY_BASE + CITY_EXPLAIN_PAGE + U32(st, CURRENT_PLAYER_ADDR) * 0x49D8u);
         if (U8(st, G_ADVISOR_AVAILABLE + (uint32_t) k) == 0) {
             return;
         }
         hover(st, AX() + 0x20, AY() + 0x110, U32(st, G_ADVISOR_BUTTONS + (uint32_t) k * 4u), 1, k + 0x28);
-        k = S32(st, CITY_BASE + CITY_EXPLAIN_PAGE + U32(st, G_PLAYER) * 0x49D8u);
+        k = S32(st, CITY_BASE + CITY_EXPLAIN_PAGE + U32(st, CURRENT_PLAYER_ADDR) * 0x49D8u);
         click(st, AX() + 0x20, AY() + 0x110, U32(st, G_ADVISOR_BUTTONS + (uint32_t) k * 4u), 1);
         return;
     }

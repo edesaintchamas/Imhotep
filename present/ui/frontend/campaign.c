@@ -45,7 +45,7 @@ int32_t period_buttons_count(game_state *st)
 {
     /* @bin 0x0041BB30 how many of the start / back buttons (0x0057BE30) are shown: Pharaoh 1 when the
      * chosen period is the one reached, else 0; Cleopatra 2 (0 when 0x0041BAD0 says so) */
-    if (S32(st, G_CAMPAIGN_CAMPAIGN_KIND) == 0) {
+    if (S32(st, G_CAMPAIGN_SELECTED) == 0) {
         return S32(st, G_CAMPAIGN_PERIOD) == S32(st, G_PERIOD_REACHED);
     }
     uint8_t f = (uint8_t) period_flag(st, S32(st, G_CAMPAIGN_PERIOD));
@@ -71,7 +71,7 @@ void period_screen_frame(game_state *st)
     S32(st, G_PIC_Y) = (0x300 - h) / 2;
     S32(st, G_PIC_H) = h;
     U8(st, G_REDRAW_SIDEBAR) = 1;
-    int32_t kind = S32(st, G_CAMPAIGN_CAMPAIGN_KIND);
+    int32_t kind = S32(st, G_CAMPAIGN_SELECTED);
     int32_t y = S32(st, G_LAYOUT_DY) + (kind == 0 ? 0x3C : 0x38);
     int32_t period = S32(st, G_CAMPAIGN_PERIOD);
     int32_t pic;
@@ -89,7 +89,7 @@ void period_screen_frame(game_state *st)
     }
     image(st, pic, S32(st, G_LAYOUT_DX) + 0x4E, y);
     /* the title: string 5 (Pharaoh) or 6 of group 0x125, expanded */
-    GAME_CALL(st, FN_TEXT_SEEK, 0x125, S32(st, G_CAMPAIGN_CAMPAIGN_KIND) == 0 ? 5 : 6);
+    GAME_CALL(st, FN_TEXT_SEEK, 0x125, S32(st, G_CAMPAIGN_SELECTED) == 0 ? 5 : 6);
     uint32_t text = U32(st, G_TEXT_CURSOR);
     uint32_t saved = U32(st, G_U784F0C);
     U32(st, G_U784F0C) = 0;
@@ -104,7 +104,7 @@ void period_screen_frame(game_state *st)
         GAME_CALL(st, FN_TEXT_GROUP_DRAW_CENTRED, 0x126, S32(st, G_CAMPAIGN_PERIOD) * 4, S32(st, G_LAYOUT_DX) + 0x153, S32(st, G_LAYOUT_DY) + 0x3C, 0x11B,
                   S32(st, G_FONT_LARGE2), 0);
         int32_t d;
-        if (S32(st, G_CAMPAIGN_CAMPAIGN_KIND) == 0) {
+        if (S32(st, G_CAMPAIGN_SELECTED) == 0) {
             int32_t p = S32(st, G_CAMPAIGN_PERIOD), r = S32(st, G_PERIOD_REACHED);
             d = p < r ? 1 : (p != r) + 2;
         } else {
@@ -125,7 +125,7 @@ void period_screen_frame(game_state *st)
         int32_t lit = S32(st, G_HOVER) == i + 1;
         int32_t param = S32(st, e + 0x14);
         int32_t closed;
-        if (S32(st, G_CAMPAIGN_CAMPAIGN_KIND) == 0) {
+        if (S32(st, G_CAMPAIGN_SELECTED) == 0) {
             closed = i != S32(st, G_PERIOD_REACHED);
         } else {
             closed = (uint8_t) period_valid(st, param) && (uint8_t) period_flag(st, param);
@@ -142,11 +142,11 @@ void period_screen_frame(game_state *st)
         GAME_CALL(st, FN_LAYOUT_TEXT_GROUP_CENTRED, 0x1B, i, (int32_t) e, font, 0, 0, 6);
         i++;
     }
-    int32_t k = S32(st, G_CAMPAIGN_CAMPAIGN_KIND);
+    int32_t k = S32(st, G_CAMPAIGN_SELECTED);
     if (k == 1 || k == 0) {
         GAME_CALL(st, FN_TEXT_GROUP_DRAW_LINES, 0x126, 0x29, S32(st, G_LAYOUT_DX) + 0x1E, S32(st, G_LAYOUT_DY) + 0x10A, 0x90, S32(st, G_FONT_LARGE), 0);
         GAME_CALL(st, FN_TEXT_GROUP_DRAW_LINES, 0x126, 0x2A, S32(st, G_LAYOUT_DX) + 0x1E, S32(st, G_LAYOUT_DY) + 0x16E, 0x90, S32(st, G_FONT_LARGE), 0);
-        k = S32(st, G_CAMPAIGN_CAMPAIGN_KIND);
+        k = S32(st, G_CAMPAIGN_SELECTED);
     }
     if (k == 1) {
         /* the tabs (entries 9, 10: the mission list, the periods; the second always lit) */
@@ -160,7 +160,7 @@ void period_screen_frame(game_state *st)
             GAME_CALL(st, FN_LAYOUT_PANEL, 0, (int32_t) rect, lit, 0, 0);
             GAME_CALL(st, FN_LAYOUT_TEXT_GROUP_CENTRED, 0x126, labels[t], (int32_t) rect, S32(st, G_FONT_LARGE), 0, 4, 7);
         }
-        k = S32(st, G_CAMPAIGN_CAMPAIGN_KIND);
+        k = S32(st, G_CAMPAIGN_SELECTED);
     }
     if (start) {
         /* the start button's labels */
@@ -187,7 +187,7 @@ void period_missions_tab(game_state *st)
 {
     /* @bin 0x0041C310 the Cleopatra campaign's mission list tab: in window 0x17 of the Cleopatra
      * campaign, the list (0x0041F870, mode 1, kind 2) */
-    if (U8(st, G_WINDOW) != 0x17 || S32(st, G_CAMPAIGN_CAMPAIGN_KIND) != 1) {
+    if (U8(st, G_WINDOW) != 0x17 || S32(st, G_CAMPAIGN_SELECTED) != 1) {
         return;
     }
     S32(st, G_SCENARIO_LIST_MODE) = 1;
@@ -205,7 +205,7 @@ void period_periods_tab(game_state *st)
         return;
     }
     U8(st, G_WINDOW) = 0x17;
-    S32(st, G_CAMPAIGN_CAMPAIGN_KIND) = 1;
+    S32(st, G_CAMPAIGN_SELECTED) = 1;
     U8(st, G_REDRAW) = 1;
 }
 

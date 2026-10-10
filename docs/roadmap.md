@@ -428,11 +428,23 @@ are checked by the oracle suites as before. Names come from the evidence already
 
       Done (2026-10-11): all sections and relocations of the 299 objects (llvm-objdump -s -r);
       checked to report a constant renamed as identical and a changed comparison as different.
-- [ ] 10.2 The state's layout, named: `core/state/layout.h` (or generated from a description in
+- [x] 10.2 The state's layout, named: `core/state/layout.h` (or generated from a description in
       docs/formats): records (building 0x108 bytes, figure, city 0x49D8, message 0x30, ...) as
       named field offsets and accessors with the original's widths and signedness; named globals.
-- [ ] 10.3 core/ and present/ rewritten with them, directory by directory (each step identical
+- [x] 10.3 core/ and present/ rewritten with them, directory by directory (each step identical
       code); calls by address become calls by name (named constants for `GAME_CALL` targets).
-- [ ] 10.4 Done when: no raw state address or record offset is left in core/ and present/ outside
+- [x] 10.4 Done when: no raw state address or record offset is left in core/ and present/ outside
       the layout, and the object code is identical to before phase 10 (or, where it is not, the full
       oracle suite and the play check pass).
+
+      Result (2026-10-12): core/ and present/ are written with names: 2,849 globals, 676 record fields
+      and 3,097 functions (`FN_`), in core/state/layout/ and present/layout/ (docs/naming.md); 304
+      globals and about 390 fields keep neutral names (meaning not established). No raw state address
+      is left in hand-written code; what stays raw: calls to the 44 unported functions, a few
+      `state_unported` and `boot_alloc` call-site tags, callbacks stored in the state, the port
+      tables' address column, and the generated tables (they transcribe the exe's own). The object
+      code of all 299 objects is identical to before phase 10 (`check_same_code.py fbad672`), and the
+      play check is still 1,042 / 1,042 frames. Done by eleven packages in parallel worktrees, merged
+      with tools/naming/resolve.py (one name per address; aliases.txt; --from; core/present header
+      rule), then a cleanup pass (pending fragments merged, duplicates removed, rename.py's
+      record-variable rule fixed).

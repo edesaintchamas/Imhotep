@@ -56,8 +56,8 @@ void wages_estimate(game_state *st)
     uint32_t c = CURRENT_CITY(st);
     int32_t v = (int32_t) (U32(st, c + CITY_WAGE_RATE) * U32(st, c + CITY_EMPLOYED));
     v = v / 10 / 12;
-    U32(st, c + CITY_WAGES_THIS_YEAR) = U32(st, c + CITY_WAGES_SUM);
-    U32(st, c + CITY_WAGES_ESTIMATE) = (uint32_t) (12 - S32(st, G_MONTH)) * (uint32_t) v + U32(st, c + CITY_WAGES_SUM);
+    U32(st, c + CITY_WAGES_THIS_YEAR) = U32(st, c + CITY_WAGES_ACCUMULATOR);
+    U32(st, c + CITY_WAGES_ESTIMATE) = (uint32_t) (12 - S32(st, G_MONTH)) * (uint32_t) v + U32(st, c + CITY_WAGES_ACCUMULATOR);
 }
 
 void salary_estimate(game_state *st)
@@ -396,13 +396,13 @@ void cmd_difficulty_lower(game_state *st)
 {
     /* @bin 0x004EA840 difficulty := city +0x47A8 - 1, at most 1; +0x47A8 := it */
     uint32_t c = CURRENT_CITY(st);
-    int32_t d = S32(st, c + CITY_DIFFICULTY_COPY) - 1;
+    int32_t d = S32(st, c + CITY_DIFFICULTY) - 1;
     S32(st, G_DIFFICULTY) = d;
     if (d > 1) {
         d = 1;
         S32(st, G_DIFFICULTY) = d;
     }
-    S32(st, c + CITY_DIFFICULTY_COPY) = d;
+    S32(st, c + CITY_DIFFICULTY) = d;
     U8(st, G_WINDOW) = 1;
     U8(st, G_REDRAW) = 1;
 }
@@ -479,16 +479,16 @@ void cmd_rotate_map(game_state *st)
         if (o == 2) {
             S32(st, G_ROTATE_LAST) = 1;
             GAME_CALL0(st, FN_ROTATE_VIEW_CCW);
-            S32(st, G_VIEW_ORIENTATION) = S32(st, G_UE94E04);
+            S32(st, G_VIEW_ORIENTATION) = S32(st, G_CITY_ORIENTATION);
         } else {
             S32(st, G_ROTATE_LAST) = 0;
             if (o == 6) {
                 GAME_CALL0(st, FN_ROTATE_VIEW_CW);
-                S32(st, G_VIEW_ORIENTATION) = S32(st, G_UE94E04);
+                S32(st, G_VIEW_ORIENTATION) = S32(st, G_CITY_ORIENTATION);
             } else {
                 GAME_CALL0(st, FN_ROTATE_VIEW_CW);
                 GAME_CALL0(st, FN_ROTATE_VIEW_CW);
-                S32(st, G_VIEW_ORIENTATION) = S32(st, G_UE94E04);
+                S32(st, G_VIEW_ORIENTATION) = S32(st, G_CITY_ORIENTATION);
                 GAME_CALL0(st, FN_MAP_ROTATED);
             }
         }
@@ -501,7 +501,7 @@ void cmd_rotate_map(game_state *st)
         GAME_CALL0(st, FN_ROTATE_VIEW_CCW);
     }
     S32(st, G_ROTATE_LAST) = S32(st, G_PARAM1);
-    S32(st, G_VIEW_ORIENTATION) = S32(st, G_UE94E04);
+    S32(st, G_VIEW_ORIENTATION) = S32(st, G_CITY_ORIENTATION);
     rotate_finish(st);
 }
 

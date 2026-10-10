@@ -13,7 +13,7 @@ void floodplain_settings_reset(game_state *st)
     /* @bin 0x004BD330 (this = 0x00D38360, set at 0x004D5100) eight dwords */
     static const int32_t v[8] = {0xB4, 0x46, 100, 0xB4, 0x46, 100, 0, 100};
     for (uint32_t i = 0; i < 8; i++) {
-        S32(st, G_FLOODPLAIN + 4 * i) = v[i];
+        S32(st, G_FLOODPLAIN_SETTINGS + 4 * i) = v[i];
     }
 }
 
@@ -47,8 +47,8 @@ void pre_load_clear(game_state *st)
     /* @bin 0x0046FA40 grids cleared (address, bytes) */
     static const uint32_t grids[][2] = {
         {G_GRID_IMAGE, 0x32C40}, {G_GRID_EDGE, 0xCB10}, {G_GRID_BUILDING, 0x19620}, {G_GRID_TERRAIN, 0x32C40},
-        {G_FERTILITY_GRID, 0xCB10}, {G_CANAL, 0xCB10}, {G_FIGURE_GRID, 0x19620}, {G_GRID_BITFIELDS, 0xCB10},
-        {G_SPRITE, 0xCB10}, {G_GRID_RANDOM, 0xCB10}, {G_GRID_DESIRABILITY, 0xCB10}, {G_ELEVATION_GRID, 0xCB10},
+        {G_GRID_FERTILITY, 0xCB10}, {G_CANAL, 0xCB10}, {G_GRID_FIGURE, 0x19620}, {G_GRID_BITFIELDS, 0xCB10},
+        {G_GRID_SPRITE, 0xCB10}, {G_GRID_RANDOM, 0xCB10}, {G_GRID_DESIRABILITY, 0xCB10}, {G_GRID_ELEVATION, 0xCB10},
         {G_GRID_DAMAGE, 0x19620}, {G_GRID_RUBBLE, 0xCB10}, {G_THREAT, 0xCB10}, {G_GRID_ROAD_NETWORK, 0xCB10},
         {G_NETWORK2, 0xCB10}, {G_GRID_MOISTURE, 0xCB10},
     };
@@ -78,7 +78,7 @@ void pre_load_clear(game_state *st)
     /* @bin 0x0046FC80 random grid (chunk 15): one RNG step per tile, low byte of the 15-bit value */
     for (uint32_t o = 0; o < 0xE4u * 0xE4u; o++) {
         random_next_state(st);
-        U8(st, G_GRID_RANDOM + o) = (uint8_t) U32(st, G_R_1_15);
+        U8(st, G_GRID_RANDOM + o) = (uint8_t) U32(st, G_RANDOM_R1_15BIT);
     }
     /* @bin 0x00475B80 image grid := random & 7 + base image 0x00F56B54 on the map's rows, and
      * bitfields |= 0x20 where the random value is odd */

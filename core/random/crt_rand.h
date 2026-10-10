@@ -8,8 +8,6 @@
 
 #include "state/state.h"
 
-#define CRT_RAND_STATE 0x00604950u /* @bin 0x00562348 */
-
 /* @bin 0x00562348 rand(): s = s * 214013 + 2531011; returns (s >> 16) & 0x7FFF */
 int32_t crt_rand(game_state *st);
 /* @bin 0x0056233E srand(seed): s = seed (the figure actions reseed it with timeGetTime()) */

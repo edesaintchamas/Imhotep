@@ -18,8 +18,8 @@ int32_t city_0x4c38f0(game_state *st)
 {
     /* @bin 0x004C38F0 */
     uint32_t c = CITY(st);
-    if (S16(st, c + CITY_U4478) != 0 && building_type_level(st, S32(st, c + CITY_U472C)) == 1 &&
-        building_0xa9_is(st, S32(st, CITY(st) + CITY_U472C), 2)) {
+    if (S16(st, c + CITY_TEMPLE_COMPLEX) != 0 && building_type_level(st, S32(st, c + CITY_TEMPLE_COMPLEX_ID)) == 1 &&
+        building_0xa9_is(st, S32(st, CITY(st) + CITY_TEMPLE_COMPLEX_ID), 2)) {
         return -2;
     }
     return 0;
@@ -168,8 +168,8 @@ void city_health_update(game_state *st)
         S32(st, c + CITY_SENTIMENT) = 0x3C;
     } else {
         S32(st, c + CITY_SENTIMENT) = sum / n;
-        if (S16(st, c + CITY_U4478) != 0 && building_type_level(st, S32(st, c + CITY_U472C)) == 4 &&
-            building_0xa9_is(st, S32(st, CITY(st) + CITY_U472C), 2)) {
+        if (S16(st, c + CITY_TEMPLE_COMPLEX) != 0 && building_type_level(st, S32(st, c + CITY_TEMPLE_COMPLEX_ID)) == 4 &&
+            building_0xa9_is(st, S32(st, CITY(st) + CITY_TEMPLE_COMPLEX_ID), 2)) {
             uint32_t c2 = CITY(st);
             int32_t v = S32(st, c2 + CITY_SENTIMENT) + 10;
             S32(st, c2 + CITY_SENTIMENT) = v >= 100 ? 100 : v;

@@ -81,7 +81,7 @@ int32_t ferry_reach(game_state *st, int32_t x, int32_t y)
         uint8_t t = (uint8_t) terrain(st, off + 2 * step);
         off += step;
         n++;
-        if ((t & 1) || U8(st, G_SPRITE + (uint32_t) (off + step)) != 0) {
+        if ((t & 1) || U8(st, G_GRID_SPRITE + (uint32_t) (off + step)) != 0) {
             break;
         }
         if (!(t & 4)) {

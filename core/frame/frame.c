@@ -44,7 +44,7 @@ int32_t frame_pacing(game_state *st)
     }
     /* @bin 0x004DDCCA i = (100 - speed 0x00E38E6C) / 10, truncated (idiv by the 0x66666667 trick) */
     int32_t i = (100 - S32(st, G_GAME_SPEED)) / 10;
-    if (i >= 10 || U8(st, G_GATE) != 0) { /* @bin 0x00E38E60 the pause flag */
+    if (i >= 10 || U8(st, G_PAUSED) != 0) { /* @bin 0x00E38E60 the pause flag */
         return 0;
     }
     uint8_t w = U8(st, G_WINDOW);
@@ -117,7 +117,7 @@ void frame_mouse(game_state *st)
     U8(st, G_LEFT_HELD_PREV) = U8(st, G_LEFT_HELD);
     S32(st, G_MOUSE_MOVED) = 0;
     /* @bin 0x004CF2DE the scale: 0x004CDE60(screen size, client size), 0x004CDE40(position, scale) */
-    int32_t kx = GAME_CALL(st, FN_CALC_RATIO_PERCENT, S32(st, G_UE38D9C), S32(st, G_CLIENT_RECT + 8) - S32(st, G_CLIENT_RECT));
+    int32_t kx = GAME_CALL(st, FN_CALC_RATIO_PERCENT, S32(st, G_DRAW_W), S32(st, G_CLIENT_RECT + 8) - S32(st, G_CLIENT_RECT));
     int32_t ky = GAME_CALL(st, FN_CALC_RATIO_PERCENT, S32(st, G_DRAW_H), S32(st, G_CLIENT_RECT + 12) - S32(st, G_CLIENT_RECT + 4));
     S32(st, G_MOUSE_X) = GAME_CALL(st, FN_CALC_PERCENTAGE, (int16_t) S16(st, G_MSG_MOUSE_X), kx);
     int32_t y = GAME_CALL(st, FN_CALC_PERCENTAGE, (int16_t) S16(st, G_MSG_MOUSE_Y), ky);

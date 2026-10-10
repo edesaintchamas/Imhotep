@@ -124,7 +124,7 @@ int32_t farm_harvest(game_state *st, int32_t id)
         uint32_t a = FIGURE_ADDR(f);
         uint8_t act = U8(st, a + FIG_ACTION);
         if (U8(st, a + FIG_STATE) != 2 && U8(st, a + FIG_TYPE) == 0x55 && act != 6 && act != 7) {
-            GAME_CALLT(st, G_UD05720, FN_LABOR_ASSIGN, f);
+            GAME_CALLT(st, G_FLOODPLAIN_MANAGER, FN_LABOR_ASSIGN, f);
         }
         S16(st, b + BLD_SECOND_WALKER) = 0;
     }
@@ -147,7 +147,7 @@ int32_t recruit_bonus(game_state *st, int32_t target)
      * 0x004C5120 == 3) */
     int32_t v = target != 0 ? 0x19 : 0;
     uint32_t c = CURRENT_CITY(st);
-    if (S16(st, c + CITY_U4478) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_U472C)) == 3) {
+    if (S16(st, c + CITY_TEMPLE_COMPLEX) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_TEMPLE_COMPLEX_ID)) == 3) {
         return v + 10;
     }
     return v;
@@ -157,7 +157,7 @@ int32_t formation_nearest_trainer(game_state *st, int32_t formation)
 {
     /* @bin 0x004B75C0 the building of type 0x5E, 0xB9 or 0xBA with all its workers nearest to the
      * formation's fort (+0x06) */
-    int32_t fort = S16(st, FORMATION_ADDR(formation) + FORM_FORT);
+    int32_t fort = S16(st, FORMATION_ADDR(formation) + FM_FORT);
     int32_t best = 0, lowest = 10000;
     for (int32_t i = 1; i < BUILDING_COUNT; i++) {
         uint32_t b = BUILDING_ADDR(i);
@@ -194,14 +194,14 @@ int32_t building_recruit(game_state *st, int32_t id)
     int32_t best = 0, best_want = 0, lowest = 10000;
     for (int32_t i = 1; i < 50; i++) {
         uint32_t f = FORMATION_ADDR(i);
-        if (U8(st, f + FORM_IN_USE) != 1 || U8(st, f + FORM_PLAYER) == 0 || S16(st, f + FORM_U82) >= 0) {
+        if (U8(st, f + FM_IN_USE) != 1 || U8(st, f + FM_PLAYER) == 0 || S16(st, f + FM_U82) >= 0) {
             continue;
         }
-        int16_t want = S16(st, f + FORM_WANT);
-        if (want <= 0 || S32(st, f + FORM_U84) != 0 || (want == 3 && lowcc) || (want == 2 && low3c)) {
+        int16_t want = S16(st, f + FM_WANT);
+        if (want <= 0 || S32(st, f + FM_U84) != 0 || (want == 3 && lowcc) || (want == 2 && low3c)) {
             continue;
         }
-        uint32_t fort = BUILDING_ADDR(S16(st, f + FORM_FORT));
+        uint32_t fort = BUILDING_ADDR(S16(st, f + FM_FORT));
         int32_t bx = S16(st, b + BLD_X), by = S16(st, b + BLD_Y), fx = S16(st, fort + BLD_X), fy = S16(st, fort + BLD_Y);
         int32_t dx = bx > fx ? bx - fx : bx < fx ? fx - bx : 0;
         S32(st, G_DIST_X) = dx;
@@ -217,7 +217,7 @@ int32_t building_recruit(game_state *st, int32_t id)
     int32_t target = 0;
     if (best > 0) {
         uint32_t fm = FORMATION_ADDR(best);
-        int16_t type = S16(st, fm + FORM_FIGURE_TYPE);
+        int16_t type = S16(st, fm + FM_TYPE);
         int32_t n = figure_create(st, U8(st, b + BLD_OWNER), type, S32(st, G_ROAD_ACCESS_X), S32(st, G_ROAD_ACCESS_Y), 0);
         uint32_t a = FIGURE_ADDR(n);
         S16(st, a + FIG_FORMATION) = (int16_t) best;
@@ -255,14 +255,14 @@ int32_t building_recruit(game_state *st, int32_t id)
     }
     /* @bin 0x004B7353 the formation's training (+0x7A) averaged with the recruit's */
     uint32_t fm = FORMATION_ADDR(best);
-    int32_t m = S16(st, fm + FORM_TRAINING);
-    int32_t n1 = (int32_t) U8(st, fm + FORM_COUNT) - 1;
+    int32_t m = S16(st, fm + FM_EXPERIENCE);
+    int32_t n1 = (int32_t) U8(st, fm + FM_COUNT) - 1;
     if (m < 0x19 && bonus == 0x19) {
-        S16(st, fm + FORM_TRAINING) = (int16_t) div_round_up(n1 * m + 0x19, n1 + 1);
+        S16(st, fm + FM_EXPERIENCE) = (int16_t) div_round_up(n1 * m + 0x19, n1 + 1);
         return 1;
     }
     int32_t num = (2 * n1 + 1) * m + bonus, den = 2 * n1 + 2;
-    S16(st, fm + FORM_TRAINING) = (int16_t) (div_round_up(num, den) < 100 ? div_round_up(num, den) : 100);
+    S16(st, fm + FM_EXPERIENCE) = (int16_t) (div_round_up(num, den) < 100 ? div_round_up(num, den) : 100);
     return 1;
 }
 
@@ -305,7 +305,7 @@ static int32_t run_harvest(game_state *st, const int32_t *a)
 
 const ported_function bigb_extra_ports[] = {
     {0x004B7400u, "building_send_0x2a", 1, 32, 0, run_send_0x2a, 0},
-    {0x004BED70u, "building_update_0xc7", 1, 0, G_UD05720, run_0xc7, 0},
+    {0x004BED70u, "building_update_0xc7", 1, 0, G_FLOODPLAIN_MANAGER, run_0xc7, 0},
     {0x00488400u, "farm_harvest", 1, 32, G_BUILDING_MANAGER, run_harvest, 0},
     {0x004CDE80u, "div_round_up", 2, 32, 0, run_div_round_up, 0},
     {0x004C4160u, "recruit_bonus", 1, 32, 0, run_recruit_bonus, 0},

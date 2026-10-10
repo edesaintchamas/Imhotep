@@ -7,7 +7,6 @@
 /* ---- button panels, the on-screen notices, the network info (present/play/play.c) ---- */
 #define G_BUTTON_STYLE 0x00F53F10u      /* @bin 0x00536DC0 i32[]: the panels' style by kind */
 #define G_BUTTON_PICTURES 0x005F81E4u   /* @bin 0x00536DC0 3 dwords per style 5..14: image offset, dx, dy */
-#define G_UF53F28 0x00F53F28u           /* @bin 0x00536FD0 i32 := 100 (0x00520B20 too) */
 #define G_SCROLL_IMAGES 0x00F56494u     /* @bin 0x00536DC0 i32: first image of the panels' pieces (scroll bar group) */
 #define G_SIDE_IMAGES 0x00F5684Cu       /* @bin 0x004E2773 i32: first image of the panels' icons (+0xF, +0x10 the marks) */
 #define G_NOTICES_SHOWN 0x00E950D8u     /* @bin 0x004E2720 i32: the notices shown this frame */
@@ -32,9 +31,16 @@
 #define G_LOADING_IMAGES 0x00F55C3Cu    /* @bin 0x00520B20 i32: the first loading picture's image */
 #define G_LOADING_LAST_IMAGE 0x00F5732Cu /* @bin 0x00520AF0 i32: the last loading picture's image */
 
-/* --- harvested: names the ports gave these addresses in local #defines (tools/naming/harvest.py).
- * @bin evidence: the defining port (file) and its comment. A package agent checks each name it
- * uses, and moves it above this block once checked. --- */
-/* --- end harvested --- */
+/* ---- names merged from the packages' pending fragments (phase 10.4): each group keeps its
+ * package's heading (the package and its file in brackets) ---- */
+/* ---- globals of other areas (core or another present package uses them) ---- [p8a_ui_main] */
+#define G_BUILD_MENU_RECTS 0x005C28A8u /* @bin 0x00403E00 the build menu's rows (window 6, 0x1C-byte entries; docs/commands.md) */
+#define G_GROUP_WIDTH_2 0x00E945D4u /* @bin 0x004D5EF0 i32 group 2's */
+#define G_GROUP_WIDTH_3 0x00E945D8u /* @bin 0x004D5EF0 i32 group 3's */
+#define G_GROUP_WIDTH_4 0x00E945DCu /* @bin 0x004D5EF0 i32 group 4's */
+#define G_GROUP_WIDTH_7 0x00E945E0u /* @bin 0x004D5EF0 i32 group 7's */
+#define G_GROUP_WIDTH_10 0x00E945E4u /* @bin 0x004D5EF0 i32 group 10's */
+#define G_LAYOUT_HIT_ENTRY 0x00E94DA0u /* @bin 0x004D6740 u32 the hit rectangle's entry */
+#define G_LAYOUT_HIT_INDEX 0x00E94DA4u /* @bin 0x004D6740 i32 the hit rectangle's index */
 
 #endif

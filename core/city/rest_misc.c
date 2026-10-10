@@ -60,7 +60,7 @@ int32_t figure_area_free_480d60(game_state *st, int32_t f)
      * bit 4 and no figure lies within 5 tiles of it (rings 1..5, clipped to the map; cursor
      * 0x00D3B4E4 / 0x00D3B4E0 left where the scan stopped); else 0 */
     uint32_t fr = FIGURE_ADDR(f);
-    if (S16(st, G_FIGURE_GRID + 2u * U32(st, fr + FIG_GRID_OFFSET)) == f) {
+    if (S16(st, G_GRID_FIGURE + 2u * U32(st, fr + FIG_GRID_OFFSET)) == f) {
         return 1;
     }
     int32_t fx = S16(st, fr + FIG_X), fy = S16(st, fr + FIG_Y);
@@ -85,7 +85,7 @@ int32_t figure_area_free_480d60(game_state *st, int32_t f)
             S32(st, G_ROAD_ACCESS_X) = x0;
             for (int32_t x = x0; x <= x1;) {
                 if ((U8(st, G_GRID_TERRAIN + 4u * (uint32_t) off) & 4) != 0 &&
-                    S16(st, G_FIGURE_GRID + 2u * (uint32_t) off) == 0) {
+                    S16(st, G_GRID_FIGURE + 2u * (uint32_t) off) == 0) {
                     return 0;
                 }
                 x++;

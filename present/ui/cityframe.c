@@ -45,7 +45,7 @@ void city_cost_draw(game_state *st)
     S32(st, G_CLIP_TOP) = S32(st, G_CV_VIEW_TOP);
     S32(st, G_CLIP_BOTTOM) = S32(st, G_CV_VIEW_BOTTOM);
     int32_t cost = S32(st, G_PREVIEW_COST);
-    int32_t colour = cost <= S32(st, CITY_BASE + CITY_TREASURY + (uint32_t) (S32(st, G_PLAYER) * 0x49D8)) ? 0xFAC1 : 0xF800;
+    int32_t colour = cost <= S32(st, CITY_BASE + CITY_TREASURY + (uint32_t) (S32(st, CURRENT_PLAYER_ADDR) * 0x49D8)) ? 0xFAC1 : 0xF800;
     int32_t ty = (int32_t) ((uint32_t) y + (uint32_t) S32(st, G_TILE_H));
     int32_t off = S32(st, G_TILE_H);
     GAME_CALL(st, FN_NUMBER_DRAW, cost, 0x40, (int32_t) G_NUMBER_SUFFIX, S32(st, G_U70E458) + x + 1, ty - off + 1,
@@ -409,7 +409,7 @@ int32_t build_menu_next_item(game_state *st, int32_t menu, int32_t item)
         if (v <= 0) {
             return 0;
         }
-        uint32_t city = (uint32_t) S32(st, G_PLAYER);
+        uint32_t city = (uint32_t) S32(st, CURRENT_PLAYER_ADDR);
         switch (menu) {
         case 6:
             if (v == 0x30) {
@@ -428,17 +428,17 @@ int32_t build_menu_next_item(game_state *st, int32_t menu, int32_t item)
                     }
                     break;
                 }
-                if (S16(st, CITY_BASE + CITY_U4478 + city * 0x49D8u) == 0) {
+                if (S16(st, CITY_BASE + CITY_TEMPLE_COMPLEX + city * 0x49D8u) == 0) {
                     if (S32(st, G_MENU_AVAIL + open) != 0) {
                         return i;
                     }
                     break;
                 }
-                if ((uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CITY_BASE + CITY_U472C + city * 0x49D8u), 1) == 0) {
+                if ((uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CITY_BASE + CITY_TEMPLE_COMPLEX_ID + city * 0x49D8u), 1) == 0) {
                     return i;
                 }
-                city = (uint32_t) S32(st, G_PLAYER);
-                if ((uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CITY_BASE + CITY_U472C + city * 0x49D8u), 2) == 0) {
+                city = (uint32_t) S32(st, CURRENT_PLAYER_ADDR);
+                if ((uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CITY_BASE + CITY_TEMPLE_COMPLEX_ID + city * 0x49D8u), 2) == 0) {
                     return i;
                 }
                 break;
@@ -466,14 +466,14 @@ int32_t build_menu_next_item(game_state *st, int32_t menu, int32_t item)
             break;
         case 0x1C:
             if ((uint8_t) GAME_CALL0(st, FN_MENU_CHEAT_GATE) != 0) {
-                city = (uint32_t) S32(st, G_PLAYER);
-                if (S32(st, CITY_BASE + CITY_MONUMENT_CODE + (city * 0x1276u + (uint32_t) i) * 4u) == 0) {
+                city = (uint32_t) S32(st, CURRENT_PLAYER_ADDR);
+                if (S32(st, CITY_BASE + CITY_MONUMENT_TYPES + (city * 0x1276u + (uint32_t) i) * 4u) == 0) {
                     return i;
                 }
             }
             break;
         case 0x24:
-            if ((uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CITY_BASE + CITY_U472C + city * 0x49D8u), next) == 0) {
+            if ((uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CITY_BASE + CITY_TEMPLE_COMPLEX_ID + city * 0x49D8u), next) == 0) {
                 return i;
             }
             break;

@@ -125,7 +125,7 @@ void floodplain_tile_redraw(game_state *st, int32_t x, int32_t y, int32_t flag)
             if ((v & 0x10000) && !(v & 0x148)) {
                 land_neighbour_flags(st, 0x10000);
                 scratch_invert(st);
-                uint32_t obj = U32(st, G_UD05720 + 4u * (uint32_t) S32(st, G_TILE_CURSOR));
+                uint32_t obj = U32(st, G_FLOODPLAIN_MANAGER + 4u * (uint32_t) S32(st, G_TILE_CURSOR));
                 if (obj != 0 && P8(st, obj + FLOODOBJ_FLAG) == 0) {
                     land_pattern_match(st, G_PATTERN_FLOODPLAIN, 0x18, 0, 1);
                 } else {
@@ -139,10 +139,10 @@ void floodplain_tile_redraw(game_state *st, int32_t x, int32_t y, int32_t flag)
                 int32_t g = S32(st, G_IMAGE_GROUPS + 8u * 528), img = g + S32(st, G_MATCH_VARIANT);
                 S32(st, G_MATCH_OFFSET) = 0;
                 o = S32(st, G_TILE_CURSOR);
-                obj = U32(st, G_UD05720 + 4u * (uint32_t) o);
+                obj = U32(st, G_FLOODPLAIN_MANAGER + 4u * (uint32_t) o);
                 if (obj != 0) {
                     uint32_t t = P32(st, obj + FLOODOBJ_TILE);
-                    int32_t lvl = fertility_level(U8(st, G_FERTILITY_GRID + t));
+                    int32_t lvl = fertility_level(U8(st, G_GRID_FERTILITY + t));
                     lvl = (lvl & ~1) | (U8(st, G_GRID_RANDOM + t) & 1);
                     img += (int32_t) P32(st, P32(st, obj) + 4) + lvl * 6;
                 }

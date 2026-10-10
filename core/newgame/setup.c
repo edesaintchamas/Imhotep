@@ -138,7 +138,7 @@ void empire_scroll_clamp(game_state *st)
         x = 0;
         S32(st, G_SCROLL_X) = 0;
     }
-    int32_t lim = S32(st, G_MAP_W) + (2 * S32(st, G_MAP_X) - S32(st, G_UE38D9C));
+    int32_t lim = S32(st, G_MAP_W) + (2 * S32(st, G_MAP_X) - S32(st, G_DRAW_W));
     if (x >= lim) {
         S32(st, G_SCROLL_X) = lim - 1;
     }
@@ -159,7 +159,7 @@ void scenario_map_load(game_state *st)
 {
     GAME_CALL0(st, FN_PRE_LOAD_CLEAR); /* grids cleared */
     file_name_strip_extension(st, G_MAP_NAME);
-    GAME_CALL(st, FN_TEXT_COPY, G_STR_MAP, G_START_EXT, 3); /* "map" */
+    GAME_CALL(st, FN_TEXT_COPY, G_STR_MAP, G_FILE_EXT, 3); /* "map" */
     file_name_add_extension(st, G_MAP_NAME);
     /* @bin 0x004DE631 local := "maps\\" (0x0057626C) + the name (strcpy, strcat) */
     char path[100 + 256];
@@ -197,7 +197,7 @@ void scenario_map_load(game_state *st)
     }
     GAME_CALL(st, FN_TEXT_BOX_SET, 5, G_SCENARIO_TITLE, 0x18, 0x118, 0, (int32_t) U32(st, G_FONT_SMALL));
     GAME_CALL(st, FN_TEXT_BOX_SET, 6, G_U784954, 500, 400, 0, (int32_t) U32(st, G_FONT_SMALL));
-    GAME_CALL(st, FN_VIEW_TABLE_BUILD, (int32_t) U32(st, G_UE94E04), 1);
+    GAME_CALL(st, FN_VIEW_TABLE_BUILD, (int32_t) U32(st, G_CITY_ORIENTATION), 1);
     if (U32(st, G_EDITOR) == 1) {
         GAME_CALL0(st, 0x004BB090u);
         if (S16(st, G_ENTRY_X) != -1 && S16(st, G_ENTRY_Y) != -1 && S16(st, G_EXIT_X) != -1 &&

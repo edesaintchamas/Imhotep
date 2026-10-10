@@ -583,7 +583,7 @@ static void ghost_generic(game_state *st)
         } else if (type == 0x4D || type == 0x4E || type == 0x4F) {
             v = S32(st, city + CITY_MANSION_BUILT);
         } else if (type == 0x5F) {
-            v = S32(st, G_TYPE_COUNT + 4u * 0x14Cu);
+            v = S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x14Cu);
         } else if (type == 0x32) {
             v = S32(st, city + CITY_TYPE32_BUILT);
         } else if (type == 0x5E) {
@@ -657,7 +657,7 @@ static void ghost_generic(game_state *st)
         if (test && t != 0) {
             bad = 1;
         }
-        if (S16(st, G_FIGURE_GRID + 2u * (uint32_t) (S32(st, row + 4u * (uint32_t) i) + hov)) != 0) {
+        if (S16(st, G_GRID_FIGURE + 2u * (uint32_t) (S32(st, row + 4u * (uint32_t) i) + hov)) != 0) {
             bad = 1;
         }
     }
@@ -678,7 +678,7 @@ static void ghost_generic(game_state *st)
     }
     if (type == 0x8A) {
         uint32_t t = g_terrain(st, S32(st, row) + hov);
-        if (!(t & 0x40) || (t & 0x10000) || U8(st, G_SPRITE + (uint32_t) hov) != 0) {
+        if (!(t & 0x40) || (t & 0x10000) || U8(st, G_GRID_SPRITE + (uint32_t) hov) != 0) {
             verdict = 1;
         }
     }
@@ -706,7 +706,7 @@ static void ghost_generic(game_state *st)
         if (type == 0x7E || type == 0x7F || type == 0x80 || type == 0x77) {
             t &= ~0x40u;
         }
-        if (S16(st, G_FIGURE_GRID + 2u * (uint32_t) off) != 0) {
+        if (S16(st, G_GRID_FIGURE + 2u * (uint32_t) off) != 0) {
             t = 1;
         }
         int32_t colour;

@@ -94,18 +94,18 @@ static int32_t fe_file_exists(game_state *st, const char *path)
     }
     const char *dot = strchr(path, '.');
     if (dot) {
-        U8(st, G_START_EXT) = (uint8_t) dot[1];
-        U8(st, G_START_EXT + 1) = (uint8_t) dot[2];
-        U8(st, G_START_EXT + 2) = (uint8_t) dot[3];
-        U8(st, G_START_EXT + 3) = 0;
+        U8(st, G_FILE_EXT) = (uint8_t) dot[1];
+        U8(st, G_FILE_EXT + 1) = (uint8_t) dot[2];
+        U8(st, G_FILE_EXT + 2) = (uint8_t) dot[3];
+        U8(st, G_FILE_EXT + 3) = 0;
     }
-    for (uint32_t a = G_START_EXT; P8(st, a) != 0; a++) {
+    for (uint32_t a = G_FILE_EXT; P8(st, a) != 0; a++) {
         uint8_t c = P8(st, a);
         if (c >= 'a' && c <= 'z') {
             P8(st, a) = (uint8_t) (c - 0x20);
         }
     }
-    if (state_str_eq(st, G_STR_WAV, G_START_EXT) || state_str_eq(st, G_STR_SMK, G_START_EXT) || state_str_eq(st, G_STR_555, G_START_EXT)) {
+    if (state_str_eq(st, G_STR_WAV, G_FILE_EXT) || state_str_eq(st, G_STR_SMK, G_FILE_EXT) || state_str_eq(st, G_STR_555, G_FILE_EXT)) {
         for (uint32_t i = 0; i < 40; i++) {
             U8(st, G_CD_DIR + i) = 0;
         }
@@ -407,7 +407,7 @@ static void typed_path(game_state *st, uint32_t name, uint32_t ext, uint32_t dir
     /* the typed name with its extension replaced (0x004CE3A0, 0x004CBEA0 into 0x00E38AEC, 0x004CE3C0);
      * the path: the family's directory + "\" + name, or "maps\" + name */
     GAME_CALL(st, FN_FILE_NAME_STRIP_EXTENSION, (int32_t) name);
-    GAME_CALL(st, FN_TEXT_COPY, (int32_t) ext, (int32_t) G_START_EXT, 3);
+    GAME_CALL(st, FN_TEXT_COPY, (int32_t) ext, (int32_t) G_FILE_EXT, 3);
     GAME_CALL(st, FN_FILE_NAME_ADD_EXTENSION, (int32_t) name);
     char a[260], b[260];
     if (family) {

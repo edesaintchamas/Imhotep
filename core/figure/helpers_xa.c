@@ -42,7 +42,7 @@ static void put16(uint8_t *b, uint32_t off, int32_t v)
 /* a good the city may not trade (0x00EA42F8, i32 per good of the current city) */
 static int good_blocked(game_state *st, int32_t good)
 {
-    return S32(st, CITY_BASE + CITY_U2A88 + 4u * (U32(st, CURRENT_PLAYER_ADDR) * 0x1276u + (uint32_t) good)) != 0;
+    return S32(st, CITY_BASE + CITY_STOCKPILE + 4u * (U32(st, CURRENT_PLAYER_ADDR) * 0x1276u + (uint32_t) good)) != 0;
 }
 
 static int16_t stock(game_state *st, int32_t b, int32_t idx)
@@ -126,7 +126,7 @@ void buyer_find_sources(game_state *st, int32_t fid, int32_t b)
                     continue;
                 }
                 /* @bin 0x004569A5 the city's setting for the good (0x00EA4096, i16) is 1 or 3 */
-                int16_t v = S16(st, CITY_BASE + CITY_GOOD_SETTING + 2u * (U32(st, CURRENT_PLAYER_ADDR) * 0x24ECu + (uint32_t) good));
+                int16_t v = S16(st, CITY_BASE + CITY_TRADE_STATUS + 2u * (U32(st, CURRENT_PLAYER_ADDR) * 0x24ECu + (uint32_t) good));
                 if (v != 1 && v != 3) {
                     continue;
                 }
@@ -521,7 +521,7 @@ void event_message_0x4463c0(game_state *st, int32_t n, int32_t arg)
     if (n < 0 || n >= S32(st, G_EVENTS)) {
         return;
     }
-    uint32_t e = G_KINGDOM_EVENTS + 0x7Cu * (uint32_t) n;
+    uint32_t e = G_EVENT_RECORDS + 0x7Cu * (uint32_t) n;
     if (U8(st, e + 2) != 2) {
         return;
     }
@@ -603,10 +603,10 @@ void building_destroy_at_0x469140(game_state *st, int32_t x, int32_t y, int32_t 
                         state_unported(st, FN_BUILDING_DESTROY_AT_0X469140); /* the original reads its stack beyond the table */
                         return;
                     }
-                    int32_t amt = GAME_CALL(st, FN_CALC_PERCENTAGE, S32(st, c + CITY_U4450), share[lvl]);
+                    int32_t amt = GAME_CALL(st, FN_CALC_PERCENTAGE, S32(st, c + CITY_SAVINGS), share[lvl]);
                     if (amt != 0) {
                         c = CURRENT_CITY(st);
-                        S32(st, c + CITY_U4450) -= amt;
+                        S32(st, c + CITY_SAVINGS) -= amt;
                         S32(st, c + CITY_U4784) += amt;
                         GAME_CALL(st, FN_NOTICE_ADD_4E2970, 0xC7, 0, 0);
                     }
@@ -624,7 +624,7 @@ void building_destroy_at_0x469140(game_state *st, int32_t x, int32_t y, int32_t 
                         S32(st, G_MESSAGE_POPUP) = 1;
                         c = CURRENT_CITY(st);
                         S16(st, c + CITY_U448C) += 1;
-                        S32(st, c + CITY_U2C84) += amt;
+                        S32(st, c + CITY_THEFT_THIS_YEAR) += amt;
                         S32(st, c + CITY_U4764) += amt;
                         S32(st, c + CITY_TREASURY) -= amt;
                         /* @bin 0x0046943A (tables 0x00469548, 0x00469558) */

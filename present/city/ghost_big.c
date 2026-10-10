@@ -16,7 +16,7 @@
 static int fort_tile_blocked(game_state *st, int32_t off)
 {
     return (g_terrain(st, off) & 0xEEFFD77Fu) != 0 || g_flooded(st, off) ||
-           S16(st, G_FIGURE_GRID + 2u * (uint32_t) off) != 0;
+           S16(st, G_GRID_FIGURE + 2u * (uint32_t) off) != 0;
 }
 
 void ghost_43d720(game_state *st)
@@ -340,7 +340,7 @@ void ghost_441f80(game_state *st)
         if (t & 0xEEFED77Fu) {
             bad = 1;
         }
-        if (S16(st, G_FIGURE_GRID + 2u * (uint32_t) off) != 0) {
+        if (S16(st, G_GRID_FIGURE + 2u * (uint32_t) off) != 0) {
             bad = 1;
         }
     }
@@ -360,7 +360,7 @@ void ghost_441f80(game_state *st)
         int32_t y = S32(st, d + 4) - S32(st, G_TILE_H) + y1;
         int32_t off = S32(st, row + 4u * (uint32_t) i) + hov;
         uint32_t t = g_terrain(st, off) & 0xEEFED77Fu;
-        if (S16(st, G_FIGURE_GRID + 2u * (uint32_t) off) != 0) {
+        if (S16(st, G_GRID_FIGURE + 2u * (uint32_t) off) != 0) {
             t = 1;
         }
         g_foot(st, S32(st, G_IMG_FOOTPRINT), x, y, (red_all || t) ? RED : GREEN);

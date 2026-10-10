@@ -214,7 +214,7 @@ int32_t loader_load_save_keep_difficulty(game_state *st, uint32_t path)
 void floodplain_settings_copy(game_state *st)
 {
     /* @bin 0x004BD360 (this = 0x00D38360) */
-    const uint32_t f = G_FLOODPLAIN;
+    const uint32_t f = G_FLOODPLAIN_SETTINGS;
     S32(st, f + 0x0C) = S32(st, f + 0x00);
     S32(st, f + 0x10) = S32(st, f + 0x04);
     S32(st, f + 0x14) = S32(st, f + 0x08);
@@ -300,8 +300,8 @@ const ported_function loader_ports[] = {
     {0x004D5100u, "loader_load_save", 1, 32, 0, run_load_save, 0},
     {0x004D51B0u, "loader_load_save_keep_difficulty", 1, 32, 0, run_load_save_keep, 0},
     {0x004CE480u, "loader_file_read_at (platform_file_read)", 4, 32, 0, run_file_read_at, 0},
-    {0x004BD330u, "floodplain_settings_reset", 0, 0, 0x00D38360u, run_floodplain_reset, 0},
-    {0x004BD360u, "floodplain_settings_copy", 0, 0, 0x00D38360u, run_floodplain_copy, 0},
+    {0x004BD330u, "floodplain_settings_reset", 0, 0, G_FLOODPLAIN_SETTINGS, run_floodplain_reset, 0},
+    {0x004BD360u, "floodplain_settings_copy", 0, 0, G_FLOODPLAIN_SETTINGS, run_floodplain_copy, 0},
     {0x004D4720u, "empire_route_rebuild (save_load.c)", 0, 8, 0, run_route_rebuild, 0},
     {0x004F6700u, "vec_reserve", 1, 8, 0, run_vec_reserve, 0},
     {0x004F6760u, "vec_reset", 0, 32, 0, run_vec_reset, 0},

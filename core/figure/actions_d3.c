@@ -53,7 +53,7 @@ void figure_action_6A(game_state *st)
         U8(st, f + FIG_INVISIBLE) = 0;
         random_next_state(st); /* @bin 0x004B0019 the generator step 0x004D7090, inlined */
         /* @bin 0x004B00E0 moves on half of the updates */
-        if ((int32_t) (U32(st, G_R_1_15) % 100u) < 0x32) {
+        if ((int32_t) (U32(st, G_RANDOM_R1_15BIT) % 100u) < 0x32) {
             GAME_CALL(st, FN_FIGURE_MOVE, id, speed);
         }
         id = cur(st);
@@ -84,7 +84,7 @@ void figure_action_6A(game_state *st)
         if (GAME_CALL(st, FN_FIGURE_STEP_STRAIGHT, id, 1) == 1) {
             id = cur(st);
             U8(st, FIGURE_ADDR(id) + FIG_STATE) = 2;
-            GAME_CALL(st, FN_SPAWN_FIGURE_3, S32(st, G_PLAYER), S16(st, hb + BLD_X), S16(st, hb + BLD_Y), S16(st, hb + BLD_POPULATION));
+            GAME_CALL(st, FN_SPAWN_FIGURE_3, S32(st, CURRENT_PLAYER_ADDR), S16(st, hb + BLD_X), S16(st, hb + BLD_Y), S16(st, hb + BLD_POPULATION));
             /* @bin 0x004B0272 the house's countdown +0xF0: 0x0078D7A8 / 51 / 16, at least 1 */
             int32_t v = S32(st, G_FROGS_COUNTDOWN) / 51;
             S16(st, hb + BLD_POPULATION) = 0;
@@ -188,7 +188,7 @@ void figure_action_6B(game_state *st)
         /* @bin 0x004B0651 a point on the map diagonal: map size 0x00BCA2D0 * 3/8 (* 7/8), minus
          * a random part of size / 4 */
         int32_t size = S32(st, G_MAP_WIDTH);
-        int32_t r = (int32_t) U32(st, G_R_1_15) % (size / 4);
+        int32_t r = (int32_t) U32(st, G_RANDOM_R1_15BIT) % (size / 4);
         S16(st, f + FIG_DEST_X) = (int16_t) (size * 3 / 8 - r + 2);
         S16(st, f + FIG_DEST_Y) = (int16_t) (size * 7 / 8 - r - 2);
         S16(st, f + FIG_ROAM_LENGTH) = 0;
@@ -298,7 +298,7 @@ void figure_action_6C(game_state *st)
         }
         S16(st, f + FIG_WAIT_TICKS) += 1;
         random_next_state(st); /* @bin 0x004B089B the generator step 0x004D7090, inlined */
-        if (S16(st, f + FIG_WAIT_TICKS) > (int32_t) (U32(st, G_R_1_15) % 30u) + 30) {
+        if (S16(st, f + FIG_WAIT_TICKS) > (int32_t) (U32(st, G_RANDOM_R1_15BIT) % 30u) + 30) {
             /* @bin 0x004B0994 0x004BC2E0 and 0x004BC3B0 (their x, y arguments are unused) */
             if (monument_work_phase(st, id, 2) != 0 || monument_work_phase(st, cur(st), 3) != 0) {
                 U8(st, fig(st) + FIG_ACTION) = 9;
@@ -450,12 +450,12 @@ void figure_action_6D(game_state *st)
                 }
             }
             if (n < S32(st, G_MUMMY_ATTACK_PARAM)) {
-                int32_t nid = GAME_CALL(st, FN_FIGURE_CREATE, S32(st, G_PLAYER), 0x6D, S16(st, o + FIG_X), S16(st, o + FIG_Y), 0);
+                int32_t nid = GAME_CALL(st, FN_FIGURE_CREATE, S32(st, CURRENT_PLAYER_ADDR), 0x6D, S16(st, o + FIG_X), S16(st, o + FIG_Y), 0);
                 uint32_t nf = FIGURE_ADDR(nid);
                 S16(st, nf + FIG_HOME) = S16(st, fig(st) + FIG_HOME);
                 U8(st, nf + FIG_ACTION) = 9;
                 random_next_state(st); /* @bin 0x004B0FA8 the generator step 0x004D7090, inlined */
-                S16(st, nf + FIG_WAIT_TICKS) = (int16_t) (U32(st, G_R_1_15) % 50u + 0x19);
+                S16(st, nf + FIG_WAIT_TICKS) = (int16_t) (U32(st, G_RANDOM_R1_15BIT) % 50u + 0x19);
                 GAME_CALL(st, FN_FIGURE_WALKER_START, nid);
                 S16(st, nf + FIG_ROAM_LENGTH) = 0;
                 id = cur(st);

@@ -37,7 +37,7 @@ static int32_t ten_minus_tenth(game_state *st, int32_t id, uint32_t offset)
 int32_t overlay_level_entertainment(game_state *st, int32_t tile)
 {
     /* @bin 0x004339E0 tile byte 0x00A5D4CC in steps of 10: 0 -> 0, 1..9 -> 1, ..., >= 80 -> 9 */
-    int32_t v = U8(st, G_FERTILITY_GRID + (uint32_t) tile);
+    int32_t v = U8(st, G_GRID_FERTILITY + (uint32_t) tile);
     if (v == 0) {
         return 0;
     }
@@ -217,9 +217,9 @@ int32_t overlay_level_religion(game_state *st, int32_t id)
     if (!occupied(st, id)) {
         return 0;
     }
-    uint32_t sum = U32(st, G_TYPE_COUNT + 4u * 0x25u) + U32(st, G_TYPE_COUNT + 4u * 0x24u) + U32(st, G_TYPE_COUNT + 4u * 0x23u) + U32(st, G_TYPE_COUNT + 4u * 0x22u) +
-                   U32(st, G_TYPE_COUNT + 4u * 0x21u) + U32(st, G_TYPE_COUNT + 4u * 0xE2u) + U32(st, G_TYPE_COUNT + 4u * 0x20u) + U32(st, G_TYPE_COUNT + 4u * 0x1Fu) +
-                   U32(st, G_TYPE_COUNT + 4u * 0x1Eu);
+    uint32_t sum = U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x25u) + U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x24u) + U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x23u) + U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x22u) +
+                   U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x21u) + U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xE2u) + U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x20u) + U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x1Fu) +
+                   U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x1Eu);
     if (sum == 0) {
         return 0;
     }
@@ -234,7 +234,7 @@ int32_t overlay_level_0x81(game_state *st, int32_t id)
     if (t == 0x33 || t == 0x35 || !occupied(st, id)) {
         return 0;
     }
-    if (U32(st, G_TYPE_COUNT + 4u * 0x33u) + U32(st, G_TYPE_COUNT + 4u * 0x35u) == 0) {
+    if (U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x33u) + U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x35u) == 0) {
         return 0;
     }
     uint8_t v = U8(st, rec(id) + BLD_EDUCATION);
@@ -254,7 +254,7 @@ int32_t overlay_level_0x6C(game_state *st, int32_t id)
 {
     /* @bin 0x004340E0 */
     int16_t t = type_of(st, id);
-    if (t == 0x1F || t == 0x24 || !occupied(st, id) || U32(st, G_TYPE_COUNT + 4u * 0x24u) + U32(st, G_TYPE_COUNT + 4u * 0x1Fu) == 0) {
+    if (t == 0x1F || t == 0x24 || !occupied(st, id) || U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x24u) + U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x1Fu) == 0) {
         return 0;
     }
     return ten_minus_tenth(st, id, 0x6C);
@@ -265,7 +265,7 @@ int32_t overlay_level_0x6D(game_state *st, int32_t id)
     /* @bin 0x00434150 */
     int16_t t = type_of(st, id);
     if (t == 0x1E || t == 0x22 || t == 0x24 || !occupied(st, id) ||
-        U32(st, G_TYPE_COUNT + 4u * 0x24u) + U32(st, G_TYPE_COUNT + 4u * 0x22u) + U32(st, G_TYPE_COUNT + 4u * 0x1Eu) == 0) {
+        U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x24u) + U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x22u) + U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x1Eu) == 0) {
         return 0;
     }
     return ten_minus_tenth(st, id, 0x6D);
@@ -276,7 +276,7 @@ int32_t overlay_level_0x6F(game_state *st, int32_t id)
     /* @bin 0x004341D0 */
     int16_t t = type_of(st, id);
     if (t == 0x21 || t == 0x22 || t == 0x23 || !occupied(st, id) ||
-        U32(st, G_TYPE_COUNT + 4u * 0x23u) + U32(st, G_TYPE_COUNT + 4u * 0x22u) + U32(st, G_TYPE_COUNT + 4u * 0x21u) == 0) {
+        U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x23u) + U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x22u) + U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x21u) == 0) {
         return 0;
     }
     return ten_minus_tenth(st, id, 0x6F);
@@ -286,7 +286,7 @@ int32_t overlay_level_0x71(game_state *st, int32_t id)
 {
     /* @bin 0x00434250 */
     int16_t t = type_of(st, id);
-    if (t == 0x20 || t == 0x25 || !occupied(st, id) || U32(st, G_TYPE_COUNT + 4u * 0x25u) + U32(st, G_TYPE_COUNT + 4u * 0x20u) == 0) {
+    if (t == 0x20 || t == 0x25 || !occupied(st, id) || U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x25u) + U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x20u) == 0) {
         return 0;
     }
     return ten_minus_tenth(st, id, 0x71);
@@ -300,7 +300,7 @@ int32_t overlay_level_stock(game_state *st, int32_t id)
      * > 200 -> 0, >= 100 -> 1, > 0 -> 5, else 10; no need: 0 */
     int16_t t = type_of(st, id);
     if (t == 0x46 || t == 0xBE || t == 0x4C || t == 0x47 || t == 0xBF || !occupied(st, id) ||
-        S32(st, G_TYPE_COUNT + 4u * 0x46u) == 0) {
+        S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x46u) == 0) {
         return 0;
     }
     int32_t need = S32(st, G_HOUSE_LEVEL_U28 + 0x58u * (uint32_t) (int32_t) S16(st, rec(id) + BLD_SUBTYPE));
@@ -327,7 +327,7 @@ int32_t overlay_level_stock(game_state *st, int32_t id)
 int32_t overlay_level_0x77(game_state *st, int32_t id)
 {
     /* @bin 0x004343A0 */
-    if (type_of(st, id) == 0xB4 || !occupied(st, id) || S32(st, G_TYPE_COUNT + 4u * 0xB4u) == 0) {
+    if (type_of(st, id) == 0xB4 || !occupied(st, id) || S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xB4u) == 0) {
         return 0;
     }
     return ten_minus_tenth(st, id, 0x77);
@@ -346,10 +346,10 @@ int32_t overlay_level_health(game_state *st, int32_t id)
     for (int32_t i = 0; i < 5; i++) {
         for (int32_t j = 0; j < 3; j++) {
             int32_t k = GAME_CALL(st, FN_GOD_BUILDING_TYPE, i, j);
-            sum += U32(st, G_TYPE_COUNT + 4u * (uint32_t) k);
+            sum += U32(st, G_TYPE_COUNT_ACTIVE + 4u * (uint32_t) k);
         }
     }
-    if (U32(st, G_TYPE_COUNT + 4u * 0x14Fu) + sum == 0) {
+    if (U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x14Fu) + sum == 0) {
         return 0;
     }
     return (int32_t) S8(st, rec(id) + BLD_RELIGION) * 17 / 10;
@@ -363,13 +363,13 @@ static int32_t service_level(game_state *st, int32_t id, int16_t skip, uint32_t 
     return ten_minus_tenth(st, id, offset);
 }
 
-int32_t overlay_level_0x72(game_state *st, int32_t id) { return service_level(st, id, 0x33, G_TYPE_COUNT + 4u * 0x33u, 0x72); } /* @bin 0x00434510 */
-int32_t overlay_level_0x73(game_state *st, int32_t id) { return service_level(st, id, 0x35, G_TYPE_COUNT + 4u * 0x35u, 0x73); } /* @bin 0x00434570 */
-int32_t overlay_level_0x75(game_state *st, int32_t id) { return service_level(st, id, 0x31, G_TYPE_COUNT + 4u * 0x31u, 0x75); } /* @bin 0x004345D0 */
-int32_t overlay_level_0x6E(game_state *st, int32_t id) { return service_level(st, id, 0x31, G_TYPE_COUNT + 4u * 0xCEu, 0x6E); } /* @bin 0x00434630 */
-int32_t overlay_level_0x76(game_state *st, int32_t id) { return service_level(st, id, 0x2E, G_TYPE_COUNT + 4u * 0x2Eu, 0x76); } /* @bin 0x00434690 */
-int32_t overlay_level_0x78(game_state *st, int32_t id) { return service_level(st, id, 0x2F, G_TYPE_COUNT + 4u * 0x2Fu, 0x78); } /* @bin 0x004346F0 */
-int32_t overlay_level_0x70(game_state *st, int32_t id) { return service_level(st, id, 0xB8, G_TYPE_COUNT + 4u * 0xB8u, 0x70); } /* @bin 0x00434750 */
+int32_t overlay_level_0x72(game_state *st, int32_t id) { return service_level(st, id, 0x33, G_TYPE_COUNT_ACTIVE + 4u * 0x33u, 0x72); } /* @bin 0x00434510 */
+int32_t overlay_level_0x73(game_state *st, int32_t id) { return service_level(st, id, 0x35, G_TYPE_COUNT_ACTIVE + 4u * 0x35u, 0x73); } /* @bin 0x00434570 */
+int32_t overlay_level_0x75(game_state *st, int32_t id) { return service_level(st, id, 0x31, G_TYPE_COUNT_ACTIVE + 4u * 0x31u, 0x75); } /* @bin 0x004345D0 */
+int32_t overlay_level_0x6E(game_state *st, int32_t id) { return service_level(st, id, 0x31, G_TYPE_COUNT_ACTIVE + 4u * 0xCEu, 0x6E); } /* @bin 0x00434630 */
+int32_t overlay_level_0x76(game_state *st, int32_t id) { return service_level(st, id, 0x2E, G_TYPE_COUNT_ACTIVE + 4u * 0x2Eu, 0x76); } /* @bin 0x00434690 */
+int32_t overlay_level_0x78(game_state *st, int32_t id) { return service_level(st, id, 0x2F, G_TYPE_COUNT_ACTIVE + 4u * 0x2Fu, 0x78); } /* @bin 0x004346F0 */
+int32_t overlay_level_0x70(game_state *st, int32_t id) { return service_level(st, id, 0xB8, G_TYPE_COUNT_ACTIVE + 4u * 0xB8u, 0x70); } /* @bin 0x00434750 */
 
 int32_t overlay_level_0x46F1C0(game_state *st, int32_t id)
 {
@@ -378,8 +378,8 @@ int32_t overlay_level_0x46F1C0(game_state *st, int32_t id)
     if (!occupied(st, id)) {
         return 0;
     }
-    if (U32(st, G_TYPE_COUNT + 4u * 0xBCu) + U32(st, G_TYPE_COUNT + 4u * 0xBDu) + U32(st, G_TYPE_COUNT + 4u * 0xBBu) + U32(st, G_TYPE_COUNT + 4u * 0x57u) +
-            U32(st, G_TYPE_COUNT + 4u * 0x56u) == 0) {
+    if (U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xBCu) + U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xBDu) + U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xBBu) + U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x57u) +
+            U32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x56u) == 0) {
         return 0;
     }
     return GAME_CALL(st, FN_BUILDING_0X46F1C0, id) / 25;

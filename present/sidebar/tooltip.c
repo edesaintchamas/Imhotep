@@ -234,7 +234,7 @@ int32_t tooltip_update(game_state *st)
     if (U8(st, G_REDRAW) != 0) {
         return 0;
     }
-    if (S32(st, G_TIPS_ON) == 0) {
+    if (S32(st, G_MOUSE_HELP) == 0) {
         return no_tip(st);
     }
     int32_t clock = S32(st, G_FRAME_CLOCK);
@@ -246,7 +246,7 @@ int32_t tooltip_update(game_state *st)
         if (S32(st, G_EDITOR) == 1) {
             /* @bin 0x004C87AF the editor's buttons; a figure of type 0x24 under the mouse shows
              * its name (kind 4) */
-            int32_t figure = S16(st, G_FIGURE_GRID + 2u * (uint32_t) S32(st, G_MOUSE_OFFSET));
+            int32_t figure = S16(st, G_GRID_FIGURE + 2u * (uint32_t) S32(st, G_MOUSE_OFFSET));
             if (S32(st, G_U605A38) > 0) {
                 int32_t row = S32(st, G_HOVER);
                 if (row >= 1 && row <= 8) {
@@ -576,7 +576,7 @@ int32_t tooltip_update(game_state *st)
     }
 show:
     /* @bin 0x004C9211 */
-    if (S32(st, G_TIPS_ON) != 2) {
+    if (S32(st, G_MOUSE_HELP) != 2) {
         S32(st, G_TIP_SINCE) = clock;
         S32(st, G_TIP_ID) = 0;
         return 0;

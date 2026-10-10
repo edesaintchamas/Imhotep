@@ -48,7 +48,7 @@ int32_t tile_soldier_formation(game_state *st, int32_t offset)
 {
     /* @bin 0x004B5520 the formation (+0x60) of the first figure of types 0x0B..0x0E on the tile
      * (chain +0x08), else 0 */
-    int32_t id = S16(st, G_FIGURE_GRID + 2u * (uint32_t) offset);
+    int32_t id = S16(st, G_GRID_FIGURE + 2u * (uint32_t) offset);
     while (id != 0) {
         uint32_t f = FIGURE_ADDR(id);
         uint8_t type = U8(st, f + FIG_TYPE);
@@ -62,7 +62,7 @@ int32_t tile_soldier_formation(game_state *st, int32_t offset)
 
 static int32_t tile_figure_of_type(game_state *st, int32_t offset, uint8_t type)
 {
-    int32_t id = S16(st, G_FIGURE_GRID + 2u * (uint32_t) offset);
+    int32_t id = S16(st, G_GRID_FIGURE + 2u * (uint32_t) offset);
     while (id != 0) {
         uint32_t f = FIGURE_ADDR(id);
         if (U8(st, f + FIG_TYPE) == type) {
@@ -109,7 +109,7 @@ int32_t tile_enemy_figure(game_state *st, int32_t offset)
     /* @bin 0x004B5640 the first figure on the tile that is not dying (+0x38 4) and is of types
      * 0x2B..0x39, 0x29 in action 0x0B, or 0x52, 0x53, 0x68, 0x66, 0x67, 0x54, 0x6D, 0x63, 0x64,
      * 0x65, 0x5D, 0x5C; else 0 */
-    int32_t id = S16(st, G_FIGURE_GRID + 2u * (uint32_t) offset);
+    int32_t id = S16(st, G_GRID_FIGURE + 2u * (uint32_t) offset);
     if (id <= 0) {
         return 0;
     }
@@ -189,7 +189,7 @@ int32_t formation_attack(game_state *st, int32_t x, int32_t y, int32_t id, int32
     static const int8_t dy[9] = {-1, 0, 1, -1, 0, 1, -1, 0, 1};
     uint32_t fa = FORMATION_ADDR(id);
     int32_t leader = S16(st, fa + 0x40);
-    if (U8(st, G_GATE) != 0) {
+    if (U8(st, G_PAUSED) != 0) {
         return 0;
     }
     route_distances_to(st, S16(st, fa + 0x2E), S16(st, fa + 0x30), -2, -2);
@@ -267,7 +267,7 @@ int32_t formation_charge_to(game_state *st, int32_t x, int32_t y, int32_t id)
      * +0x140 its tile) goes to action 0x13 */
     uint32_t fa = FORMATION_ADDR(id);
     int32_t leader = S16(st, fa + 0x40);
-    if (U8(st, G_GATE) != 0) {
+    if (U8(st, G_PAUSED) != 0) {
         return 0;
     }
     route_distances_to(st, S16(st, fa + 0x2E), S16(st, fa + 0x30), -2, -2);
@@ -474,7 +474,7 @@ void military_requests(game_state *st, int32_t *first_other, int32_t *first_kind
         if (k < 0 || k >= 0x32) {
             continue;
         }
-        if (U8(st, G_ARMIES + 0x144u * (uint32_t) k) == 2) {
+        if (U8(st, G_ROUTES + ROUTE_KIND + ROUTE_SIZE * (uint32_t) k) == 2) {
             if (*first_kind2 < 0) {
                 *first_kind2 = P16(st, ev);
             }
@@ -505,7 +505,7 @@ void legion_order(game_state *st)
      * 0x00EADCCC, a player's (+0x82 < 0) */
     int32_t id = S32(st, G_INFO_FORMATION);
     uint32_t fa = FORMATION_ADDR(id);
-    if (S16(st, fa + 0x82) >= 0 || U8(st, G_GATE) != 0) {
+    if (S16(st, fa + 0x82) >= 0 || U8(st, G_PAUSED) != 0) {
         return;
     }
     int32_t p1 = S32(st, G_PARAM1);
@@ -582,7 +582,7 @@ void legion_toggle_0x77(game_state *st)
     int32_t sel = S32(st, G_FORMATION);
     int32_t ctx = S32(st, G_INFO_FORMATION);
     int32_t id = (sel != 0 && sel == ctx) ? sel : ctx;
-    if (U8(st, G_GATE) != 0) {
+    if (U8(st, G_PAUSED) != 0) {
         return;
     }
     uint32_t fa = FORMATION_ADDR(id);
@@ -614,7 +614,7 @@ void legion_return_to_fort(game_state *st)
      * (+0x03 1): home (0x004B6C20(id, 0x0E)) */
     int32_t id = S32(st, G_INFO_FORMATION);
     uint32_t fa = FORMATION_ADDR(id);
-    if (S16(st, fa + 0x82) >= 0 || U8(st, fa + 0x03) == 1 || U8(st, G_GATE) != 0) {
+    if (S16(st, fa + 0x82) >= 0 || U8(st, fa + 0x03) == 1 || U8(st, G_PAUSED) != 0) {
         return;
     }
     chariots_recall(st, id, fa, S32(st, G_PARAM1));
@@ -634,7 +634,7 @@ void legion_window_close(game_state *st)
         return;
     }
     if (S32(st, G_INFO_KIND) == 4) {
-        if (U8(st, G_GATE) != 0) {
+        if (U8(st, G_PAUSED) != 0) {
             return;
         }
         switch (S16(st, FORMATION_ADDR(S32(st, G_FORMATION)) + 0x2A)) {
@@ -670,7 +670,7 @@ void legion_click_target(game_state *st)
      * 0x00BCB9C0 (a player's, +0x64 clear): its own fort -> home (0x004B6C20(id, 0x0E)); a figure
      * to fight (0x004B5640) -> attack (its formation +0x60, or -1 for boats); else move
      * (0x004B6400) */
-    if (U8(st, G_GATE) != 0) {
+    if (U8(st, G_PAUSED) != 0) {
         return;
     }
     if (S32(st, G_MOUSE_OFFSET) == 0) {
@@ -711,7 +711,7 @@ void legion_click_target(game_state *st)
 void legion_click_target_0x49(game_state *st)
 {
     /* @bin 0x0040C570 window 0x49 (layout 0), left click: own fort -> home; else 0x004B6A40 */
-    if (U8(st, G_GATE) != 0) {
+    if (U8(st, G_PAUSED) != 0) {
         return;
     }
     if (S32(st, G_MOUSE_OFFSET) != 0) {
@@ -793,7 +793,7 @@ void transport_order(game_state *st)
      * table 0x00406C7C) */
     int32_t id = S32(st, G_INFO_TRANSPORT);
     S32(st, G_SEL_TRANSPORT) = id;
-    if (id <= 0 || U8(st, G_GATE) != 0) {
+    if (id <= 0 || U8(st, G_PAUSED) != 0) {
         return;
     }
     uint32_t f = FIGURE_ADDR(id);
@@ -869,7 +869,7 @@ void warship_order(game_state *st)
 {
     /* @bin 0x00406C90 warship window (0x00EADCC4, type 0x4E, a player's: +0x132 < 0), table
      * 0x005C6818, p1 0..3 (jump table 0x00406DCC) */
-    if (U8(st, G_GATE) != 0) {
+    if (U8(st, G_PAUSED) != 0) {
         return;
     }
     int32_t id = S32(st, G_INFO_WARSHIP);
@@ -926,7 +926,7 @@ void warship_return(game_state *st)
 {
     /* @bin 0x00406DE0 warship window, entry 4: not at its dock -> 0x004BC670 */
     int32_t id = S32(st, G_INFO_WARSHIP);
-    if (id <= 0 || U8(st, G_GATE) != 0) {
+    if (id <= 0 || U8(st, G_PAUSED) != 0) {
         return;
     }
     uint32_t f = FIGURE_ADDR(id);
@@ -961,7 +961,7 @@ void transport_click_target(game_state *st)
     /* @bin 0x0040BA40 window 0x1F, left click with transport 0x00D05700 (not in action 8): in
      * mode 0x00D05708 the cursor 0x00E390DC picks action 0x0C (= 0x00E390C8, board) or 0x0D
      * (= 0x00E390C4, unload); then by action (jump table 0x0040BD64) */
-    if (U8(st, G_GATE) != 0) {
+    if (U8(st, G_PAUSED) != 0) {
         return;
     }
     int32_t id = S32(st, G_SEL_TRANSPORT);
@@ -1201,7 +1201,7 @@ int32_t request_row_check(game_state *st, int32_t row, int32_t *event)
     }
     if (type == 0x25) {
         int32_t k = P16(st, ev + 0x1C);
-        if (k >= 0 && k < 0x32 && U8(st, G_ARMIES + 0x144u * (uint32_t) k) == 2) {
+        if (k >= 0 && k < 0x32 && U8(st, G_ROUTES + ROUTE_KIND + ROUTE_SIZE * (uint32_t) k) == 2) {
             if (U8(st, city + CITY_WARSHIPS) == 0 && U8(st, city + CITY_U466A) == 0) {
                 return -6;
             }

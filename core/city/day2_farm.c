@@ -74,7 +74,7 @@ void farm_crop_large(game_state *st, int32_t id, int32_t x, int32_t y, int32_t i
     case 6: t = S32(st, G_FOOTPRINT_OFFSETS - 0x38u + 0x38u * sz) + tile; break;
     default: break;
     }
-    int32_t depth = U8(st, G_SPRITE + (uint32_t) t);
+    int32_t depth = U8(st, G_GRID_SPRITE + (uint32_t) t);
     int32_t grown = (int32_t) ((uint32_t) stage * 10u); /* ftol(10.0) * stage */
     int32_t mode = 0, sel = -1;
     if (depth != 0 && S16(st, b + BLD_WORKERS) > 0) {
@@ -140,8 +140,8 @@ void farm_fertility_cut(game_state *st, uint32_t self, int32_t id, int32_t pct)
     for (uint32_t row = 0; row < 3; row++) {
         for (uint32_t k = 0; k < 3; k++) {
             int32_t t = S32(st, G_FOOTPRINT_OFFSETS + 0x30u * row + 8u * k) + base;
-            int32_t v = (int32_t) ((uint32_t) U8(st, G_FERTILITY_GRID + (uint32_t) t) * (uint32_t) (100 - pct)) / 100;
-            U8(st, G_FERTILITY_GRID + (uint32_t) t) = (uint8_t) (v < 1 ? 1 : v);
+            int32_t v = (int32_t) ((uint32_t) U8(st, G_GRID_FERTILITY + (uint32_t) t) * (uint32_t) (100 - pct)) / 100;
+            U8(st, G_GRID_FERTILITY + (uint32_t) t) = (uint8_t) (v < 1 ? 1 : v);
         }
     }
 }

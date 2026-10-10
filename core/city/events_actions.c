@@ -102,7 +102,7 @@ void plague_hail(game_state *st)
             continue;
         }
         random_next_state(st);
-        int32_t r = (int32_t) (U32(st, G_R_1_15) & 0x7FFF) % 100;
+        int32_t r = (int32_t) (U32(st, G_RANDOM_R1_15BIT) & 0x7FFF) % 100;
         int32_t lim;
         uint8_t t = U8(st, f + FIG_TYPE);
         if (U8(st, f + FIG_ACTION) == 8) {
@@ -282,7 +282,7 @@ void plague_tomb_robbers(game_state *st, int32_t arg)
         return;
     }
     random_next_state(st);
-    int32_t want = (int32_t) (U32(st, G_R_1_15) & 0x7FFF) % cnt + 1;
+    int32_t want = (int32_t) (U32(st, G_RANDOM_R1_15BIT) & 0x7FFF) % cnt + 1;
     int32_t seen = 0, i;
     for (i = 1; i <= S32(st, G_BUILDING_HIGHEST); i++) {
         if ((uint8_t) building_monument_reachable(st, i) != 0 && ++seen == want) {
@@ -565,10 +565,10 @@ void ramp_walk(game_state *st, int32_t x, int32_t y, int32_t mode, int32_t arg4)
 }
 
 static int32_t run_mood(game_state *st, const int32_t *a) { city_mood_add(st, a[0]); return 0; }
-static int32_t run_before(game_state *st, const int32_t *a) { (void) a; return flood_month_before(st, G_UD05720); }
+static int32_t run_before(game_state *st, const int32_t *a) { (void) a; return flood_month_before(st, G_FLOODPLAIN_MANAGER); }
 static int32_t run_quality(game_state *st, const int32_t *a) { flood_quality_add(st, (uint32_t) a[PORT_THIS_ARG], a[0]); return 0; }
-static int32_t run_worse(game_state *st, const int32_t *a) { (void) a; flood_worse(st, G_UD05720); return 0; }
-static int32_t run_better(game_state *st, const int32_t *a) { (void) a; flood_better(st, G_UD05720); return 0; }
+static int32_t run_worse(game_state *st, const int32_t *a) { (void) a; flood_worse(st, G_FLOODPLAIN_MANAGER); return 0; }
+static int32_t run_better(game_state *st, const int32_t *a) { (void) a; flood_better(st, G_FLOODPLAIN_MANAGER); return 0; }
 static int32_t run_frogs_end(game_state *st, const int32_t *a) { (void) a; plague_frogs_end(st); return 0; }
 static int32_t run_ramp(game_state *st, const int32_t *a) { ramp_walk(st, a[0], a[1], a[2], a[3]); return 0; }
 static int32_t run_hail(game_state *st, const int32_t *a) { (void) a; plague_hail(st); return 0; }
@@ -581,10 +581,10 @@ static int32_t run_destroy(game_state *st, const int32_t *a) { return building_d
 
 const ported_function month2_actions_ports[] = {
     {0x004E85D0u, "city_mood_add", 1, 0, 0, run_mood, 0},
-    {0x004BECF0u, "flood_month_before", 0, 32, G_UD05720, run_before, 0},
-    {0x004BD5E0u, "flood_quality_add", 1, 0, G_FLOODPLAIN, run_quality, 0},
-    {0x004BED00u, "flood_worse", 0, 0, G_UD05720, run_worse, 0},
-    {0x004BED40u, "flood_better", 0, 0, G_UD05720, run_better, 0},
+    {0x004BECF0u, "flood_month_before", 0, 32, G_FLOODPLAIN_MANAGER, run_before, 0},
+    {0x004BD5E0u, "flood_quality_add", 1, 0, G_FLOODPLAIN_SETTINGS, run_quality, 0},
+    {0x004BED00u, "flood_worse", 0, 0, G_FLOODPLAIN_MANAGER, run_worse, 0},
+    {0x004BED40u, "flood_better", 0, 0, G_FLOODPLAIN_MANAGER, run_better, 0},
     {0x004E6EB0u, "plague_frogs_end", 0, 0, 0, run_frogs_end, 0},
     {0x004E6ED0u, "plague_hail", 0, 0, 0, run_hail, 0},
     {0x004ED360u, "ramp_walk", 4, 0, 0, run_ramp, 0},

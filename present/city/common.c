@@ -54,7 +54,7 @@ int cv_tile_covers(game_state *st, int32_t tile)
     if (S16(st, r + BLD_TYPE) == 0xB7 && U8(st, r + BLD_INVENTORY) != 0 && S32(st, r + BLD_U68) != 0 && U8(st, r + BLD_U59) <= 3) {
         return 1;
     }
-    for (int32_t f = S16(st, G_FIGURE_GRID + 2u * (uint32_t) tile); f > 0; f = S16(st, FIGURE_ADDR(f) + FIG_NEXT_ON_TILE)) {
+    for (int32_t f = S16(st, G_GRID_FIGURE + 2u * (uint32_t) tile); f > 0; f = S16(st, FIGURE_ADDR(f) + FIG_NEXT_ON_TILE)) {
         if (U8(st, FIGURE_ADDR(f) + FIG_INVISIBLE) == 0) {
             switch (U8(st, FIGURE_ADDR(f) + FIG_TYPE)) {
             case 0x0D: case 0x2D: case 0x32: case 0x38: case 0x39:

@@ -20,7 +20,7 @@ void request_dispatch(game_state *st, int32_t event)
     if (event < 0 || event >= S32(st, G_EVENTS)) {
         return;
     }
-    uint32_t r = G_KINGDOM_EVENTS + EVENT_SIZE * (uint32_t) event;
+    uint32_t r = G_EVENT_RECORDS + EVENT_SIZE * (uint32_t) event;
     int32_t amount = S16(st, r + 0x0C);
     S16(st, r + 0x30) = (int16_t) ((S16(st, r + 0x30) != 0) + 2);
     int32_t kind = S16(st, r + 0x04);
@@ -39,7 +39,7 @@ void request_dispatch(game_state *st, int32_t event)
     /* @bin 0x0044C200 / 0x0044C335 one step of the game RNG (the 0x004D7090 step, inline), then
      * +0x2E := 1 + (iv1 & 3) */
     random_next_state(st);
-    S16(st, r + 0x2E) = (int16_t) ((U32(st, G_R_IV1) & 3) + 1);
+    S16(st, r + 0x2E) = (int16_t) ((U32(st, G_RANDOM_IV1) & 3) + 1);
     if (kind == 0x24) {
         /* @bin 0x0044C2CC money: treasury -= amount, +0x4758 += amount */
         uint32_t c = CURRENT_CITY(st);
@@ -65,11 +65,11 @@ void request_send_troops(game_state *st, int32_t event)
     if (event < 0 || event >= S32(st, G_EVENTS)) {
         return;
     }
-    int32_t army = S16(st, G_KINGDOM_EVENTS + EVENT_SIZE * (uint32_t) event + 0x1C);
+    int32_t army = S16(st, G_EVENT_RECORDS + EVENT_SIZE * (uint32_t) event + 0x1C);
     if (army < 0 || army >= 0x32) {
         return;
     }
-    int ships = U8(st, G_ARMIES + 0x144u * (uint32_t) army) == 2;
+    int ships = U8(st, G_ROUTES + ROUTE_KIND + ROUTE_SIZE * (uint32_t) army) == 2;
     /* @bin 0x004B8515 formations 1..49 in use (+0x00 = 1), with +0x42, +0x67, figures (+0x28) and
      * no request (+0x82 < 0): the ones with a ship (0x0040B5E0) for a sea army, else the others */
     for (int32_t id = 1; id < 50; id++) {

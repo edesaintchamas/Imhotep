@@ -60,15 +60,12 @@
 #define G_D2_PART3_PIXELS 0x005D28D4u /* @bin 0x0044181D the third part's */
 #define G_D2_PART2_SHIFT 0x005D28F4u /* @bin 0x0044181D i32 by orientation / 2: x shift */
 #define G_D2_PART3_SHIFT 0x005D2904u /* @bin 0x0044181D the third part's */
-#define G_CITY_KIND_TEXTS 0x005D2A3Cu /* @bin 0x004CACA3 i32 per kind (8 bytes): the text naming a city's kind */
-#define G_GATE_GROUPS 0x005DF768u /* @bin 0x004BFCD0 i32 per part (4): the gatehouse's image groups (0x1AE: the god's) */
 #define G_COMPLEX_PART_TILES 0x005DF850u /* @bin 0x004C1F0A (x, y) i32 pairs: tile steps of the temple complex's second (+ k) and third (+ 4 + k) parts */
 #define G_COMPLEX_PART_SHIFTS 0x005DF890u /* @bin 0x004C1F0A i32: their x shifts (as G_COMPLEX_PART_TILES) */
 #define G_TIP_BUTTON_IDS 0x005E0274u /* @bin 0x004C8F44 i32 per button id (0x28..0x36): its tooltip text */
 #define G_OVERLAY_TIPS 0x005E0350u /* @bin 0x004C9750 3 bytes per overlay: +0 1 occupied / 2 empty building, +1 needs a building, +2 a tile value */
 #define G_STR_NUMBER_DOT 0x005E03F0u /* @bin 0x004CA894 "%d. " */
 #define G_LINE_BREAK 0x005E03F8u /* present/sidebar/tooltip_text.c: "@L" */
-#define G_STR_COMMA 0x005E0400u /* @bin 0x004CACA3 "," */
 #define G_FAST_SCROLL 0x005E2A60u /* present/city/camera.c */
 #define G_MONUMENT_FOOT_ORDER 0x005E44D0u /* @bin 0x004E5490 the footprint tile order of a monument ghost */
 #define G_PYRAMID_LEVEL_HEIGHTS 0x005E68F8u /* @bin 0x004EF550 i32 per level (6 per kind): a pyramid layer's height (G_PYRAMID_KIND 1) */
@@ -224,9 +221,15 @@
 #define BUTTON_PART 0x1Cu /* @bin 0x00425840 i32 the menu bar button's third clicked (0, 1, 2), added to its image */
 #define BUTTON_STRIDE 0x24u /* @bin 0x00425730 bytes per button record */
 
-/* --- harvested: names the ports gave these addresses in local #defines (tools/naming/harvest.py).
- * @bin evidence: the defining port (file) and its comment. A package agent checks each name it
- * uses, and moves it above this block once checked. --- */
-/* --- end harvested --- */
+/* ---- names merged from the packages' pending fragments (phase 10.4): each group keeps its
+ * package's heading (the package and its file in brackets) ---- */
+/* ---- globals of other areas (core or another present package uses them) ---- [p8a_ui_main] */
+#define G_MESSAGE_BOX_RECTS 0x005F8910u /* @bin 0x00538920 the message box's button table (core/sim/platform.c) */
+#define G_SQUARE_BUTTON_HOVER 0x007056B0u /* @bin 0x00425E80 i32 the square button under the mouse (base + index) */
+#define G_U978D7C 0x00978D7Cu /* @bin 0x004C5E60 i32 2: the message window draws image 0x00F5690C instead of the god's */
+#define G_LAYOUT_RECT_LISTS 0x00E9461Cu /* @bin 0x004D6740 u32 per window key (stride 16): its list of rectangle overrides (present/draw/layout.c) */
+#define G_LAYOUT_RECTS_DONE 0x00E94624u /* @bin 0x004D6740 i32 per window key (stride 16): the overrides applied */
+/* images shared with core/figure, present/draw [p8c_ui_advisors] */
+#define G_INNER_PANEL_IMAGES 0x00F56844u  /* @bin 0x00536A30 i32: first image of the inner panel group (present/draw/panel.c; the strip 0x00536BA0) */
 
 #endif

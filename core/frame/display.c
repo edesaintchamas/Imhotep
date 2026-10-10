@@ -77,7 +77,7 @@ void display_mode_set(game_state *st, int32_t mode)
     display_resolution_set(st, mode);
     S32(st, G_RESOLUTION) = mode;
     int32_t w = S32(st, G_SCREEN_W), h = S32(st, G_SCREEN_H);
-    S32(st, G_UE38D9C) = w;
+    S32(st, G_DRAW_W) = w;
     S32(st, G_LAYOUT_DX) = (w - 0x280) / 2;
     S32(st, G_LAYOUT_DY) = (h - 0x1E0) / 2;
     S32(st, G_SCREEN_PITCH) = w + w;
@@ -246,7 +246,7 @@ static int32_t dd_surfaces(game_state *st)
     U32(st, G_UE92E04) = 0;
     /* @bin 0x00427480 the back buffer: an off-screen plain surface in system memory (caps 0x840) */
     int rgb565 = old == 2;
-    uint32_t back = platform_set_display(st, S32(st, G_UE38D9C), S32(st, G_DRAW_H), rgb565);
+    uint32_t back = platform_set_display(st, S32(st, G_DRAW_W), S32(st, G_DRAW_H), rgb565);
     U32(st, G_DD_BACK) = back;
     if (back == 0) {
         log_msg(st, G_STR_DD_EXTRA_SURFACE_FAILED, 0); /* "ERR:DD ExtraSurface failed." */
@@ -289,7 +289,7 @@ static int32_t dd_lock_object(game_state *st, uint32_t self, uint32_t primary, u
     P32(st, self + 0x24) = 0;
     P32(st, self + 0x28) = U32(st, G_BACK_BUFFER);
     P32(st, self + 0xC) = U32(st, G_DRAW_H);
-    P32(st, self + 8) = U32(st, G_UE38D9C);
+    P32(st, self + 8) = U32(st, G_DRAW_W);
     P32(st, self + 0x10) = S32(st, G_PIXEL_FORMAT) == 2 ? 1u : 0u;
     return 1;
 }
@@ -366,7 +366,7 @@ static void window_state(game_state *st, int32_t *iconic, int32_t *foreground, i
     *foreground = 1;
     rect[0] = 0;
     rect[1] = 0;
-    rect[2] = S32(st, G_UE38D9C);
+    rect[2] = S32(st, G_DRAW_W);
     rect[3] = S32(st, G_DRAW_H);
 }
 

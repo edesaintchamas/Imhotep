@@ -41,4 +41,15 @@
 #define G_MESSAGE_COUNTERS 0x00E95174u /* @bin 0x00468B70 i32[20]: per-category message counters (save.md §3 chunk 82) */
 #define G_POPULATION_MILESTONES 0x00E951C5u /* @bin 0x00458649 u8[9]: the population messages posted (500 .. 25000) */
 
+/* ---- names merged from the packages' pending fragments (phase 10.4): each group keeps its
+ * package's heading (the package and its file in brackets) ---- */
+/* @bin globals of other areas used by core/figure; the function or chunk on each line [p1_figure] */
+#define G_UE95184 0x00E95184u /* i32 per-category message counter 4 (chunk 82 at 0x00E95174): message 0x72 once (0x00491E60) */
+/* messages (g_message.h, P3): a collapse (message 0x70) and a fire (0x6F) of 0x00468B70 [p2_building] */
+#define G_COLLAPSE_MESSAGE_TIME 0x00E950ECu /* @bin 0x00468D75 i32: G_FRAME_CLOCK at the last one (15000 apart) */
+#define G_FIRE_MESSAGE_TIME 0x00E950F0u     /* @bin 0x00468FB5 i32 */
+/* -- named with the rewrite of core/newgame/map_load.c, start.c, start2.c -- [p6_scenario] */
+#define G_NEXT_MESSAGE_INDEX 0x00E951D4u /* @bin 0x004E23E0 i32: the next-message button's place in its cycle [g_message.h] */
+#define G_NEXT_MESSAGE_TIME 0x00E951D0u /* @bin 0x00406030 u32: wall clock of the button's last use (the cycle restarts after 3 s) [g_message.h] */
+
 #endif

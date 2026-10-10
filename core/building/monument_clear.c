@@ -129,7 +129,7 @@ void tomb_clear_546660(game_state *st, uint32_t self, int32_t id, uint32_t table
             U8(st, G_CANAL + u) = 0;
             U16(st, G_GRID_DAMAGE + 2u * u) = 0;
             U8(st, G_GRID_EDGE + u) = (uint8_t) ((b & 0xC0) | 0x40);
-            U8(st, G_SPRITE + u) = 0;
+            U8(st, G_GRID_SPRITE + u) = 0;
             U32(st, G_GRID_TERRAIN + 4u * u) = kind != S32(st, self + TOMBOBJ_PART) ? 0x20000002u : 0x80u;
         }
     }

@@ -16,7 +16,7 @@ static int32_t group_base(game_state *st, int32_t group)
 
 static uint32_t city(game_state *st, uint32_t field)
 {
-    return field + (uint32_t) (S32(st, G_PLAYER) * (int32_t) CITY_REC_SIZE);
+    return field + (uint32_t) (S32(st, CURRENT_PLAYER_ADDR) * (int32_t) CITY_REC_SIZE);
 }
 
 void ratings_frame(game_state *st, int32_t k)
@@ -201,7 +201,7 @@ void advisor_ratings_draw(game_state *st)
     case 1:
         title = 1;
         /* @bin 0x004F758A signed: above 90 the rating's top text */
-        text = S32(st, city(st, CITY_BASE + CITY_RATING_CULTURE)) > 0x5A ? 0x41 : S32(st, city(st, CITY_BASE + CITY_RATING_EXPLANATION)) + 9;
+        text = S32(st, city(st, CITY_BASE + CITY_RATING_CULTURE)) > 0x5A ? 0x41 : S32(st, city(st, CITY_BASE + CITY_RATING_CULTURE_REASON)) + 9;
         break;
     case 2:
         title = 2;
@@ -209,7 +209,7 @@ void advisor_ratings_draw(game_state *st)
             text = 0x42;
         } else {
             extra = S32(st, city(st, CITY_BASE + CITY_U42E4)) + 0x14;
-            int32_t r = S32(st, city(st, CITY_BASE + CITY_PROSPERITY_EXPLANATION));
+            int32_t r = S32(st, city(st, CITY_BASE + CITY_RATING_PROSPERITY_REASON));
             if (r != 0) {
                 text = r + 0x14;
             }
@@ -217,11 +217,11 @@ void advisor_ratings_draw(game_state *st)
         break;
     case 3:
         title = 3;
-        text = S32(st, city(st, CITY_BASE + CITY_RATING_MONUMENT)) > 0x5A ? 0x43 : S32(st, city(st, CITY_BASE + CITY_MONUMENT_EXPLANATION)) + 0x37;
+        text = S32(st, city(st, CITY_BASE + CITY_RATING_MONUMENT)) > 0x5A ? 0x43 : S32(st, city(st, CITY_BASE + CITY_RATING_MONUMENT_REASON)) + 0x37;
         break;
     case 4:
         title = 4;
-        text = S32(st, city(st, CITY_BASE + CITY_RATING_KINGDOM)) > 0x5A ? 0x44 : S32(st, city(st, CITY_BASE + CITY_KINGDOM_EXPLANATION)) + 0x20;
+        text = S32(st, city(st, CITY_BASE + CITY_RATING_KINGDOM)) > 0x5A ? 0x44 : S32(st, city(st, CITY_BASE + CITY_RATING_KINGDOM_REASON)) + 0x20;
         break;
     default:
         break;

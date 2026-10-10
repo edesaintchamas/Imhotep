@@ -108,7 +108,7 @@ int32_t route_free_tile(game_state *st, int32_t tile)
 {
     /* @bin 0x0051AFF0 0 when one of the tile's figures (list 0x00B350DC, +0x08) is in use with
      * +0x0D 1 and action 5 */
-    int16_t o = S16(st, G_FIGURE_GRID + 2u * (uint32_t) tile);
+    int16_t o = S16(st, G_GRID_FIGURE + 2u * (uint32_t) tile);
     if (o <= 0) {
         return 1;
     }

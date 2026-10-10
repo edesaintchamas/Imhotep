@@ -22,7 +22,7 @@
 #define EDGE(o) U8(st, G_GRID_EDGE + (uint32_t) (o))
 #define BITS(o) U8(st, G_GRID_BITFIELDS + (uint32_t) (o))
 #define RND(o) U8(st, G_GRID_RANDOM + (uint32_t) (o))
-#define FP_OBJECT(o) U32(st, G_UD05720 + 4u * (uint32_t) (o))
+#define FP_OBJECT(o) U32(st, G_FLOODPLAIN_MANAGER + 4u * (uint32_t) (o))
 #define SCR(i) S32(st, G_NEIGHBOUR_FLAGS + 4u * (uint32_t) ((i) & 7))
 #define GROUP(g) S32(st, G_IMAGE_GROUPS + 8u * (uint32_t) (g)) /* first image of group g */
 

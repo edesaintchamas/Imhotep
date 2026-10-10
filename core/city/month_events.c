@@ -158,11 +158,11 @@ static void rng_partial(game_state *st)
 {
     /* @bin 0x00448B1D the step as 0x00448A90 inlines it first: the pool and the two registers,
      * r1_7bit; the other derived values are not stored */
-    int32_t k = S32(st, G_R_POOL_INDEX);
-    U32(st, G_R_POOL + 4u * (uint32_t) k) = U32(st, G_R_1_7);
+    int32_t k = S32(st, G_RANDOM_POOL_INDEX);
+    U32(st, G_RANDOM_POOL + 4u * (uint32_t) k) = U32(st, G_RANDOM_R1_7BIT);
     k++;
-    S32(st, G_R_POOL_INDEX) = k < 100 ? k : 0;
-    uint32_t a = U32(st, G_R_IV1), b = U32(st, G_R_IV2);
+    S32(st, G_RANDOM_POOL_INDEX) = k < 100 ? k : 0;
+    uint32_t a = U32(st, G_RANDOM_IV1), b = U32(st, G_RANDOM_IV2);
     for (int i = 0; i < 31; i++) {
         uint32_t x = ((a >> 4) ^ a) & 1, y = ((b >> 4) ^ b) & 1;
         a >>= 1;
@@ -174,9 +174,9 @@ static void rng_partial(game_state *st)
             b |= 0x40000000u;
         }
     }
-    U32(st, G_R_IV1) = a;
-    U32(st, G_R_1_7) = a & 0x7F;
-    U32(st, G_R_IV2) = b;
+    U32(st, G_RANDOM_IV1) = a;
+    U32(st, G_RANDOM_R1_7BIT) = a & 0x7F;
+    U32(st, G_RANDOM_IV2) = b;
 }
 
 void event_range_pick(game_state *st, uint32_t p)
@@ -194,7 +194,7 @@ void event_range_pick(game_state *st, uint32_t p)
         return;
     }
     random_next_state(st);
-    int32_t r = (int32_t) (U32(st, G_R_1_15) & 0xFFFF);
+    int32_t r = (int32_t) (U32(st, G_RANDOM_R1_15BIT) & 0xFFFF);
     fixed = S16(st, p + 2);
     if (fixed < 0) {
         int16_t lo = S16(st, p + 4);
@@ -237,9 +237,9 @@ void event_reset(game_state *st, uint32_t e)
         }
     }
     rng_partial(st);
-    U8(st, e + 0x61) = (uint8_t) ((int32_t) (U32(st, G_R_IV1) & 0x7FFF) % 5 + 4);
+    U8(st, e + 0x61) = (uint8_t) ((int32_t) (U32(st, G_RANDOM_IV1) & 0x7FFF) % 5 + 4);
     random_next_state(st);
-    U8(st, e + 0x62) = (uint8_t) (U32(st, G_R_IV1) & 1);
+    U8(st, e + 0x62) = (uint8_t) (U32(st, G_RANDOM_IV1) & 1);
 }
 
 static void event_chain(game_state *st, uint32_t e)
@@ -581,12 +581,12 @@ void event_0x44e7b0(game_state *st, uint32_t e, int32_t high)
     uint8_t blk[32] = {0};
     int32_t id;
     if (high == 0) {
-        GAME_CALLT0(st, G_UD05720, FN_FLOOD_WORSE);
+        GAME_CALLT0(st, G_FLOODPLAIN_MANAGER, FN_FLOOD_WORSE);
         put16(blk, 2, 0xF7);
         put16(blk, 0, 0xF8);
         id = 0x158;
     } else {
-        GAME_CALLT0(st, G_UD05720, FN_FLOOD_BETTER);
+        GAME_CALLT0(st, G_FLOODPLAIN_MANAGER, FN_FLOOD_BETTER);
         put16(blk, 2, 0xFB);
         put16(blk, 0, 0xFC);
         id = 0x15D;

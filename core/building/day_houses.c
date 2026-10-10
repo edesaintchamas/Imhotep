@@ -492,7 +492,7 @@ int32_t house_can_evolve(game_state *st, int32_t id, int32_t up)
     if (goods[2] > S16(st, b + BLD_HOUSE_INVENTORY + 2 * 11)) {
         return 0;
     }
-    if (goods[2] >= 2 && S32(st, CURRENT_CITY(st) + CITY_U46A4) < 2) {
+    if (goods[2] >= 2 && S32(st, CURRENT_CITY(st) + CITY_WINE_SOURCES) < 2) {
         S32(st, CURRENT_CITY(st) + CITY_U46FC) += 1;
         return 0;
     }

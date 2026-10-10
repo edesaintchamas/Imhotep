@@ -146,7 +146,7 @@ void tooltip_draw_figure(game_state *st)
      * tile, by its +0x0B (group 0x30, or 0x31 text 3 for 1; texts 5, 6, 0x12, 0x13 for 2, 3,
      * 0x0C, 0x0D; b + 9 for 0x0E..0x19, b + 0x0D for 0x1A..0x1D, b + 0x1A for 0x1E..0x22, b - 0x28
      * below 0x3A, else b - 10) */
-    int32_t f = S16(st, G_FIGURE_GRID + 2u * (uint32_t) S32(st, G_MOUSE_OFFSET));
+    int32_t f = S16(st, G_GRID_FIGURE + 2u * (uint32_t) S32(st, G_MOUSE_OFFSET));
     if (f == 0) {
         return;
     }

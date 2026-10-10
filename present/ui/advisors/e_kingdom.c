@@ -13,16 +13,16 @@
 #include "sidebar/sidebar.h"
 #include "sim/call.h"
 
-#define CITY_OFF(st) (U32(st, G_PLAYER) * CITY_REC_SIZE) /* @bin the current player [0x00EAAC28] x 0x49D8 */
+#define CITY_OFF(st) (U32(st, CURRENT_PLAYER_ADDR) * CITY_REC_SIZE) /* @bin the current player [0x00EAAC28] x 0x49D8 */
 
 void advisor_gift_amounts(game_state *st)
 {
     /* @bin 0x004E7DB0 the three gift sizes from the family savings [city +0xEA5CC0]: /8 + 20, /4 + 50,
      * /2 + 100 (signed, toward zero), into +0xEA5DE4, +0xEA5DE8, +0xEA5DEC */
     uint32_t c = CITY_OFF(st);
-    S32(st, CITY_BASE + CITY_GIFT_COST + c) = S32(st, CITY_BASE + CITY_PERSONAL_SAVINGS + c) / 8 + 0x14;
-    S32(st, CITY_BASE + CITY_GIFT_COST + 4u + c) = S32(st, CITY_BASE + CITY_PERSONAL_SAVINGS + c) / 4 + 0x32;
-    S32(st, CITY_BASE + CITY_GIFT_COST + 8u + c) = S32(st, CITY_BASE + CITY_PERSONAL_SAVINGS + c) / 2 + 0x64;
+    S32(st, CITY_BASE + CITY_GIFT_COST + c) = S32(st, CITY_BASE + CITY_SAVINGS + c) / 8 + 0x14;
+    S32(st, CITY_BASE + CITY_GIFT_COST + 4u + c) = S32(st, CITY_BASE + CITY_SAVINGS + c) / 4 + 0x32;
+    S32(st, CITY_BASE + CITY_GIFT_COST + 8u + c) = S32(st, CITY_BASE + CITY_SAVINGS + c) / 2 + 0x64;
 }
 
 uint32_t advisor_king_name(game_state *st)
@@ -128,7 +128,7 @@ void advisor_kingdom_draw(game_state *st)
                              S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
                 int32_t c = P16(st, ev + 0x1C);
                 /* @bin 0x0052418A the city's +0 byte (0x007770F0, records of 0x144) == 2 */
-                int at_war = c >= 0 && c < 0x32 && U8(st, G_ARMIES + (uint32_t) c * 0x144u) == 2;
+                int at_war = c >= 0 && c < 0x32 && U8(st, G_ROUTES + ROUTE_KIND + (uint32_t) c * ROUTE_SIZE) == 2;
                 image_draw(st, S32(st, G_REQUEST_IMAGES) + (at_war ? 1 : 0), S32(st, G_ADVISOR_X) + 0x32,
                            row + S32(st, G_ADVISOR_Y) + 0x6A);
                 S32(st, G_TEXT_X) = 0;
@@ -193,7 +193,7 @@ void advisor_kingdom_draw(game_state *st)
                 } else {
                     /* @bin 0x00524650 goods: the stock [city +0xEA6160 + 4 kind], / 100 (signed) for the
                      * kinds in units, 0x1C and 0xA */
-                    have = S32(st, CITY_BASE + CITY_STORAGE_STOCK + (U32(st, G_PLAYER) * (CITY_REC_SIZE / 4u) + (uint32_t) t) * 4u);
+                    have = S32(st, CITY_BASE + CITY_STORAGE_STOCK + (U32(st, CURRENT_PLAYER_ADDR) * (CITY_REC_SIZE / 4u) + (uint32_t) t) * 4u);
                     if (kind_in_units(t) || t == 0x1C || t == 0xA) {
                         have /= 100;
                     }

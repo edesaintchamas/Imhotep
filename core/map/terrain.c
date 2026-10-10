@@ -124,18 +124,18 @@ void terrain_floodplain_build(terrain_state *t, int32_t ax, int32_t ay, int32_t 
                 TER(t, o) = (TER(t, o) & 0xFDFBF7FFu) | 0x80;
                 terrain_land_around(t->g, x, y, 1); /* @bin 0x004746D0(x, y, 1) */
                 depth[o] = (uint8_t) d;
-                U32(t->g, G_UD05720 + 4u * (uint32_t) o) = floodplain_object_create(
+                U32(t->g, G_FLOODPLAIN_MANAGER + 4u * (uint32_t) o) = floodplain_object_create(
                     t->g, FLOODPLAIN_LISTS + FLOODPLAIN_LIST_SIZE * (uint32_t) (d - 1), o, x, y, d, flag);
                 changed = 1;
-                U8(t->g, G_UD05720 + 0x32FBCu) = 1;
+                U8(t->g, G_FLOODPLAIN_MANAGER + 0x32FBCu) = 1;
                 t->stats.floodplain_objects++;
             }
         }
         marker--;
     } while (changed);
-    S32(t->g, G_UD05720 + 0x32FB8u) = 0;
+    S32(t->g, G_FLOODPLAIN_MANAGER + 0x32FB8u) = 0;
     for (int k = 0x1D; k >= 0 && S32(t->g, FLOODPLAIN_LISTS + FLOODPLAIN_LIST_SIZE * (uint32_t) k) != 0; k--) {
-        S32(t->g, G_UD05720 + 0x32FB8u) += 1;
+        S32(t->g, G_FLOODPLAIN_MANAGER + 0x32FB8u) += 1;
     }
     terrain_rebuild(t); /* @bin 0x004DEA50 */
 }
@@ -193,7 +193,7 @@ enum { IN_IMAGE, IN_EDGE, IN_TERRAIN, IN_BITFIELDS, IN_RANDOM, IN_SCENARIO, IN_F
 
 /* the variables the chunks are loaded into (@bin 0x005E17D8 map schema, 0x005E09A0 save schema) */
 static const uint32_t IN_ADDR[IN_COUNT] = {
-    G_GRID_IMAGE, G_GRID_EDGE, G_GRID_TERRAIN, G_GRID_BITFIELDS, G_GRID_RANDOM, G_START_YEAR, G_FERTILITY_GRID, G_GRID_VEGETATION, G_GRID_MOISTURE,
+    G_GRID_IMAGE, G_GRID_EDGE, G_GRID_TERRAIN, G_GRID_BITFIELDS, G_GRID_RANDOM, G_START_YEAR, G_GRID_FERTILITY, G_GRID_VEGETATION, G_GRID_MOISTURE,
 };
 static const uint32_t IN_SIZE[IN_COUNT] = {
     4 * GRID_TILES, GRID_TILES, 4 * GRID_TILES, GRID_TILES, GRID_TILES, 0x394, GRID_TILES, GRID_TILES, GRID_TILES,

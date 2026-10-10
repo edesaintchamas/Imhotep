@@ -87,7 +87,7 @@ static int32_t city_stage(game_state *st)
 {
     /* @bin 0x00511DA9 the i16 at 0x00EA5BAA of the player's record (0x49D8 bytes, index [0x00EAAC28]):
      * the stage the sphinx's texts and works follow */
-    return S16(st, CITY_BASE + CITY_U433A + CITY_REC_SIZE * U32(st, G_PLAYER));
+    return S16(st, CITY_BASE + CITY_U433A + CITY_REC_SIZE * U32(st, CURRENT_PLAYER_ADDR));
 }
 
 static void group_text(game_state *st, int32_t group, int32_t id, int32_t x, int32_t y)
@@ -301,7 +301,7 @@ static void info_resource_works(game_state *st, int32_t resource, int32_t *out, 
 static uint32_t player_goods(game_state *st, uint32_t base, int32_t good)
 {
     /* @bin 0x004F5779 the player's i32 tables at base + 4 * (good + 0x1276 * [0x00EAAC28]) */
-    return base + 4u * ((uint32_t) good + 0x1276u * U32(st, G_PLAYER));
+    return base + 4u * ((uint32_t) good + 0x1276u * U32(st, CURRENT_PLAYER_ADDR));
 }
 
 static int32_t goods_check(game_state *st, int32_t good, int32_t amount)
@@ -475,12 +475,12 @@ static void info_monument_cf(game_state *st)
     uint8_t moving51 = (uint8_t) GAME_CALL(st, FN_GOODS_ON_WAY_TO, 0x51, S32(st, G_INFO_BUILDING));
     uint8_t need51 = (uint8_t) GAME_CALL(st, FN_GOODS_NEEDED_STAGE, 0x51, S32(st, G_INFO_BUILDING));
     uint8_t need4f = (uint8_t) GAME_CALL(st, FN_GOODS_NEEDED_STAGE, 0x4F, S32(st, G_INFO_BUILDING));
-    if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB3u) == 0) {
+    if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB3u) == 0) {
         /* @bin 0x0051224C */
         group_lines(st, 0xB2, 0xE, x0, y0, width15(pw(st)), 0);
         return;
     }
-    if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB1u) == 0) {
+    if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB1u) == 0) {
         group_lines(st, 0xB2, 0x10, x0, y0, width15(pw(st)), 0);
         return;
     }
@@ -593,9 +593,9 @@ static void info_sphinx(game_state *st)
         int32_t id;
         if (blocked) {
             id = 0x95;
-        } else if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB3u) == 0) {
+        } else if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB3u) == 0) {
             id = 0xE;
-        } else if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB1u) == 0) {
+        } else if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB1u) == 0) {
             id = 0x10;
         } else if (cnt51 == 0 && moving51 == 0 && (uint8_t) GAME_CALL(st, FN_GOODS_NEEDED_PLAYER, 0x51) != 0) {
             id = 0x12;
@@ -677,13 +677,13 @@ static void info_monument_e6(game_state *st)
     int32_t id;
     if (building_cut_off(st, 1)) {
         id = 0x95;
-    } else if (need51 && S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB3u) == 0) {
+    } else if (need51 && S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB3u) == 0) {
         id = 0xE;
-    } else if (need51 && S32(st, G_TYPE_COUNT + 4u * 0xB3u) == 0 && S32(st, G_MONUMENT_STATUS_E3 + 0x4u) == 0) {
+    } else if (need51 && S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xB3u) == 0 && S32(st, G_MONUMENT_STATUS_E3 + 0x4u) == 0) {
         id = 0x12;
-    } else if (need4f && S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB1u) == 0) {
+    } else if (need4f && S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB1u) == 0) {
         id = 0x10;
-    } else if (need4f && S32(st, G_TYPE_COUNT + 4u * 0xB1u) == 0 && S32(st, G_MONUMENT_STATUS_E3 + 0x10u) == 0) {
+    } else if (need4f && S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xB1u) == 0 && S32(st, G_MONUMENT_STATUS_E3 + 0x10u) == 0) {
         id = 0x14;
     } else if (S32(st, G_MONUMENT_STATUS_E6) < 0x38) {
         id = 0x8D;
@@ -718,7 +718,7 @@ static void info_sun_temple(game_state *st)
     /* @bin 0x00512578 up to three calls of 0x00475B50, until the player's word 0x00EA5FAC[i] matches */
     for (int32_t i = 0; i < 3; i++) {
         int32_t r = GAME_CALL(st, FN_BUILDING_MAIN_PART, S32(st, G_INFO_BUILDING));
-        if (S32(st, CITY_BASE + CITY_MONUMENT_ID + 4u * ((uint32_t) i + 0x1276u * U32(st, G_PLAYER))) == r) {
+        if (S32(st, CITY_BASE + CITY_MONUMENTS + 4u * ((uint32_t) i + 0x1276u * U32(st, CURRENT_PLAYER_ADDR))) == r) {
             break;
         }
     }
@@ -733,9 +733,9 @@ static void info_sun_temple(game_state *st)
     int32_t y = y0;
     switch (S32(st, G_MONUMENT_STATUS_D5)) {
     case 1:
-        if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xC7u) == 0) {
+        if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xC7u) == 0) {
             id = 0xD;
-        } else if (S32(st, G_TYPE_COUNT + 4u * 0xC7u) == 0 && S32(st, G_MONUMENT_STATUS_D5 + 0x24u) == 0) {
+        } else if (S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xC7u) == 0 && S32(st, G_MONUMENT_STATUS_D5 + 0x24u) == 0) {
             int32_t d = S32(st, G_FLOOD_STATE);
             id = (d == 1 || d == 2 || d == 3) ? 0x33 : 0x11;
         } else {
@@ -743,9 +743,9 @@ static void info_sun_temple(game_state *st)
         }
         break;
     case 2:
-        if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB1u) == 0) {
+        if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB1u) == 0) {
             id = 0x10;
-        } else if (S32(st, G_TYPE_COUNT + 4u * 0xB1u) == 0 && S32(st, G_MONUMENT_STATUS_D5 + 0x28u) == 0) {
+        } else if (S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xB1u) == 0 && S32(st, G_MONUMENT_STATUS_D5 + 0x28u) == 0) {
             id = 0x14;
         } else {
             id = 0x36;
@@ -754,15 +754,15 @@ static void info_sun_temple(game_state *st)
     case 3:
         id = 0x37;
         if (need51) {
-            if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB3u) == 0) {
+            if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB3u) == 0) {
                 id = 0xE;
-            } else if (S32(st, G_TYPE_COUNT + 4u * 0xB3u) == 0 && S32(st, G_MONUMENT_STATUS_D5 + 0x1Cu) == 0) {
+            } else if (S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xB3u) == 0 && S32(st, G_MONUMENT_STATUS_D5 + 0x1Cu) == 0) {
                 id = 0x12;
             }
         } else if (need4f) {
-            if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB1u) == 0) {
+            if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB1u) == 0) {
                 id = 0x10;
-            } else if (S32(st, G_TYPE_COUNT + 4u * 0xB1u) == 0 && S32(st, G_MONUMENT_STATUS_D5 + 0x28u) == 0) {
+            } else if (S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xB1u) == 0 && S32(st, G_MONUMENT_STATUS_D5 + 0x28u) == 0) {
                 id = 0x14;
             }
         }
@@ -770,11 +770,11 @@ static void info_sun_temple(game_state *st)
     case 4:
         if (GAME_CALL(st, FN_MONUMENT_D5_STATUS, S32(st, G_INFO_BUILDING), 0) >= 0x64) {
             id = 0x39;
-        } else if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xC7u) == 0) {
+        } else if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xC7u) == 0) {
             id = 0xD;
-        } else if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB3u) == 0) {
+        } else if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB3u) == 0) {
             id = 0xE;
-        } else if (S32(st, G_TYPE_COUNT + 4u * 0xC7u) == 0 && S32(st, G_MONUMENT_STATUS_D5 + 0x24u) == 0 && flag4 == 0) {
+        } else if (S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xC7u) == 0 && S32(st, G_MONUMENT_STATUS_D5 + 0x24u) == 0 && flag4 == 0) {
             id = 0x11;
         } else {
             int32_t made = S32(st, G_MONUMENT_STATUS_D5 + 0x1Cu), want = S32(st, G_MONUMENT_STATUS_D5 + 0x20u);
@@ -784,7 +784,7 @@ static void info_sun_temple(game_state *st)
                 id = 0x12;
             } else if (want != 0 && ready != 0 && S32(st, G_MONUMENT_STATUS_D5 + 0x2Cu) != 0) {
                 /* @bin 0x005129F3 the player's dword 0x00EA4370 */
-                id = S32(st, CITY_BASE + CITY_STOCKPILE + 4u * 0x1Eu + CITY_REC_SIZE * U32(st, G_PLAYER)) != 0 ? 0x64 : 0x18;
+                id = S32(st, CITY_BASE + CITY_STOCKPILE + 4u * 0x1Eu + CITY_REC_SIZE * U32(st, CURRENT_PLAYER_ADDR)) != 0 ? 0x64 : 0x18;
                 y = y0 + S32(st, G_TEXT_Y);
             } else {
                 id = 0x38;
@@ -861,7 +861,7 @@ static void info_pyramid(game_state *st)
     int32_t slot = 0;
     for (int32_t i = 0; i < 3; i++) {
         int32_t r = GAME_CALL(st, FN_BUILDING_MAIN_PART, S32(st, G_INFO_BUILDING));
-        if (S32(st, CITY_BASE + CITY_MONUMENT_ID + 4u * ((uint32_t) i + 0x1276u * U32(st, G_PLAYER))) == r) {
+        if (S32(st, CITY_BASE + CITY_MONUMENTS + 4u * ((uint32_t) i + 0x1276u * U32(st, CURRENT_PLAYER_ADDR))) == r) {
             slot = S16(st, G_MONUMENT_SLOTS + 2u * (uint32_t) i);
             break;
         }
@@ -889,7 +889,7 @@ static void info_pyramid(game_state *st)
         int32_t phase = S32(st, G_PYRAMID_STATUS);
         S32(st, G_TEXT_Y) = 0;
         if (phase == 3) {
-            if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB3u) == 0 && (!f12 || f13) && slot_needs(st, 0xB3, slot)) {
+            if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB3u) == 0 && (!f12 || f13) && slot_needs(st, 0xB3, slot)) {
                 pyramid_line(st, 0xE, x0, y);
             } else if (S32(st, G_PYRAMID_STATUS + 0x48u) == 0 && slot_needs(st, 0xB3, slot)) {
                 pyramid_line(st, 0x12, x0, y);
@@ -907,11 +907,11 @@ static void info_pyramid(game_state *st)
             int32_t main = GAME_CALL(st, FN_BUILDING_MAIN_PART, S32(st, G_INFO_BUILDING));
             /* @bin 0x0051145D the record copied on the stack: its +0x68 and +0x6C as they are now */
             cut = (uint8_t) slot_goods_wanted(st, slot, main, S32(st, G_PYRAMID_STATUS + 0x68u), S32(st, G_PYRAMID_STATUS + 0x6Cu));
-            if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xC7u) == 0) {
+            if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xC7u) == 0) {
                 pyramid_line(st, 0xD, x0, y);
-            } else if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB3u) == 0 && (!f12 || f13) && slot_needs(st, 0xB3, slot)) {
+            } else if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB3u) == 0 && (!f12 || f13) && slot_needs(st, 0xB3, slot)) {
                 pyramid_line(st, 0xE, x0, y);
-            } else if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB2u) == 0 && f12 && slot_needs(st, 0xB2, slot)) {
+            } else if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB2u) == 0 && f12 && slot_needs(st, 0xB2, slot)) {
                 pyramid_line(st, 0xF, x0, y);
             } else if (S32(st, G_PYRAMID_STATUS + 0x60u) == S32(st, G_PYRAMID_STATUS + 0x5Cu) && cut == 0) {
                 pyramid_line(st, 0x11, x0, y);
@@ -921,7 +921,7 @@ static void info_pyramid(game_state *st)
                 pyramid_line(st, 0x12, x0, y);
             } else if (S32(st, G_PYRAMID_STATUS + 0x4Cu) == 0 && f12 && S32(st, G_PYRAMID_STATUS + 0x18u) != 0 && slot_needs(st, 0xB2, slot)) {
                 pyramid_line(st, 0x13, x0, y);
-            } else if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB1u) == 0
+            } else if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB1u) == 0
                        && pyramid_parts_ready(st, GAME_CALL(st, FN_BUILDING_MAIN_PART, S32(st, G_INFO_BUILDING)))
                        && slot_needs(st, 0xB1, slot)) {
                 pyramid_line(st, 0x10, x0, y);
@@ -953,9 +953,9 @@ static void info_pyramid(game_state *st)
                 }
             }
         } else if (phase == 1) {
-            if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xC7u) == 0) {
+            if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xC7u) == 0) {
                 pyramid_line(st, 0xD, x0, y);
-            } else if (S32(st, G_TYPE_COUNT + 4u * 0xC7u) == 0 && S32(st, G_PYRAMID_STATUS + 0x64u) == 0) {
+            } else if (S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xC7u) == 0 && S32(st, G_PYRAMID_STATUS + 0x64u) == 0) {
                 int32_t d = S32(st, G_FLOOD_STATE);
                 pyramid_line(st, (d == 1 || d == 2 || d == 3) ? 0x33 : 0x11, x0, y);
             } else {
@@ -1053,7 +1053,7 @@ static void info_monument_e1(game_state *st)
     if (building_cut_off(st, 1)) {
         id = 0x95;
     } else if (S32(st, G_MONUMENT_STATUS_E1 + 0x20u) != 0 && short_ != 0 && S32(st, G_MONUMENT_STATUS_E1 + 0x2Cu) != 0) {
-        uint32_t p = CITY_REC_SIZE * U32(st, G_PLAYER);
+        uint32_t p = CITY_REC_SIZE * U32(st, CURRENT_PLAYER_ADDR);
         if (v < 0x15) {
             id = S32(st, CITY_BASE + CITY_STOCKPILE + 4u * 0x23u + p) != 0 ? 0x65 : 0x1A;
             ly = S32(st, G_TEXT_Y) + y;
@@ -1063,20 +1063,20 @@ static void info_monument_e1(game_state *st)
         }
     } else {
         if (need51) {
-            if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xC7u) == 0) {
+            if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xC7u) == 0) {
                 id = 0xD;
-            } else if (S32(st, G_TYPE_COUNT + 4u * 0xC7u) == 0 && S32(st, G_MONUMENT_STATUS_E1 + 0x24u) == 0) {
+            } else if (S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xC7u) == 0 && S32(st, G_MONUMENT_STATUS_E1 + 0x24u) == 0) {
                 id = 0x11;
-            } else if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB3u) == 0) {
+            } else if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB3u) == 0) {
                 id = 0xE;
-            } else if (S32(st, G_TYPE_COUNT + 4u * 0xB3u) == 0 && S32(st, G_MONUMENT_STATUS_E3 + 0x4u) == 0) {
+            } else if (S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xB3u) == 0 && S32(st, G_MONUMENT_STATUS_E3 + 0x4u) == 0) {
                 id = 0x12;
             }
         }
         if (id < 0 && need4f) {
-            if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB1u) == 0) {
+            if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB1u) == 0) {
                 id = 0x10;
-            } else if (S32(st, G_TYPE_COUNT + 4u * 0xB1u) == 0 && S32(st, G_MONUMENT_STATUS_E3 + 0x10u) == 0) {
+            } else if (S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xB1u) == 0 && S32(st, G_MONUMENT_STATUS_E3 + 0x10u) == 0) {
                 id = 0x14;
             }
         }
@@ -1140,7 +1140,7 @@ static void info_monument_e3(game_state *st)
     if (building_cut_off(st, 1)) {
         id = 0x95;
     } else if (S32(st, G_MONUMENT_STATUS_E3 + 0x8u) != 0 && short_ != 0 && S32(st, G_MONUMENT_STATUS_E3 + 0x14u) != 0) {
-        uint32_t p = CITY_REC_SIZE * U32(st, G_PLAYER);
+        uint32_t p = CITY_REC_SIZE * U32(st, CURRENT_PLAYER_ADDR);
         if (v < 0x12) {
             id = S32(st, CITY_BASE + CITY_STOCKPILE + 4u * 0x23u + p) != 0 ? 0x65 : 0x1A;
             ly = S32(st, G_TEXT_Y) + y;
@@ -1148,22 +1148,22 @@ static void info_monument_e3(game_state *st)
             id = S32(st, CITY_BASE + CITY_STOCKPILE + 4u * 0x1Au + p) != 0 ? 0x66 : 0x19;
             ly = S32(st, G_TEXT_Y) + y;
         }
-    } else if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xC7u) == 0) {
+    } else if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xC7u) == 0) {
         id = 0xD;
-    } else if (S32(st, G_TYPE_COUNT + 4u * 0xC7u) == 0 && S32(st, G_MONUMENT_STATUS_E3 + 0xCu) == 0) {
+    } else if (S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xC7u) == 0 && S32(st, G_MONUMENT_STATUS_E3 + 0xCu) == 0) {
         id = 0x11;
     } else {
         if (need51) {
-            if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB3u) == 0) {
+            if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB3u) == 0) {
                 id = 0xE;
-            } else if (S32(st, G_TYPE_COUNT + 4u * 0xB3u) == 0 && S32(st, G_MONUMENT_STATUS_E3 + 0x4u) == 0) {
+            } else if (S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xB3u) == 0 && S32(st, G_MONUMENT_STATUS_E3 + 0x4u) == 0) {
                 id = 0x12;
             }
         }
         if (id < 0 && need4f) {
-            if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB1u) == 0) {
+            if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB1u) == 0) {
                 id = 0x10;
-            } else if (S32(st, G_TYPE_COUNT + 4u * 0xB1u) == 0 && S32(st, G_MONUMENT_STATUS_E3 + 0x10u) == 0) {
+            } else if (S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xB1u) == 0 && S32(st, G_MONUMENT_STATUS_E3 + 0x10u) == 0) {
                 id = 0x14;
             }
         }
@@ -1288,19 +1288,19 @@ static void info_tomb(game_state *st)
             id = 0x94;
             ly = y;
         } else {
-            if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xC7u) == 0) {
+            if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xC7u) == 0) {
                 id = 0xD;
-            } else if (S32(st, G_TYPE_COUNT + 4u * 0xC7u) == 0 && S32(st, G_MONUMENT_STATUS_E5 + 0x8u) == 0) {
+            } else if (S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xC7u) == 0 && S32(st, G_MONUMENT_STATUS_E5 + 0x8u) == 0) {
                 id = 0x11;
             } else if (tomb_call(st, FN_MONUMENT_PARTS_FREE_547BA0, 1, main)) {
                 id = 0x8F;
-            } else if (role1 && S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB3u) == 0) {
+            } else if (role1 && S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB3u) == 0) {
                 id = 0xE;
-            } else if (role1 && S32(st, G_TYPE_COUNT + 4u * 0xB3u) == 0 && S32(st, G_MONUMENT_STATUS_E5 + 0x4u) == 0) {
+            } else if (role1 && S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xB3u) == 0 && S32(st, G_MONUMENT_STATUS_E5 + 0x4u) == 0) {
                 id = 0x12;
-            } else if (role23 && S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xE7u) == 0) {
+            } else if (role23 && S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xE7u) == 0) {
                 id = 0x69;
-            } else if (role23 && S32(st, G_TYPE_COUNT + 4u * 0xE7u) == 0 && S32(st, G_MONUMENT_STATUS_E5 + 0x10u) == 0) {
+            } else if (role23 && S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xE7u) == 0 && S32(st, G_MONUMENT_STATUS_E5 + 0x10u) == 0) {
                 id = 0x6A;
             } else {
                 id = 0x90;
@@ -1343,24 +1343,24 @@ static void info_monument_e4(game_state *st)
     } else if (cut) {
         id = 0x95;
     } else if (S32(st, G_MONUMENT_STATUS_E4 + 0x8u) != 0 && short_ != 0 && S32(st, G_MONUMENT_STATUS_E4 + 0x14u) != 0) {
-        id = S32(st, CITY_BASE + CITY_STOCKPILE + 4u * 0x23u + CITY_REC_SIZE * U32(st, G_PLAYER)) != 0 ? 0x65 : 0x1A;
+        id = S32(st, CITY_BASE + CITY_STOCKPILE + 4u * 0x23u + CITY_REC_SIZE * U32(st, CURRENT_PLAYER_ADDR)) != 0 ? 0x65 : 0x1A;
         ly = S32(st, G_TEXT_Y) + y;
     } else {
         if (need51) {
-            if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xC7u) == 0) {
+            if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xC7u) == 0) {
                 id = 0xD;
-            } else if (S32(st, G_TYPE_COUNT + 4u * 0xC7u) == 0 && S32(st, G_MONUMENT_STATUS_E4 + 0xCu) == 0) {
+            } else if (S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xC7u) == 0 && S32(st, G_MONUMENT_STATUS_E4 + 0xCu) == 0) {
                 id = 0x11;
-            } else if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB3u) == 0) {
+            } else if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB3u) == 0) {
                 id = 0xE;
-            } else if (S32(st, G_TYPE_COUNT + 4u * 0xB3u) == 0 && S32(st, G_MONUMENT_STATUS_E4 + 0x4u) == 0) {
+            } else if (S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xB3u) == 0 && S32(st, G_MONUMENT_STATUS_E4 + 0x4u) == 0) {
                 id = 0x12;
             }
         }
         if (id < 0 && need4f) {
-            if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB1u) == 0) {
+            if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB1u) == 0) {
                 id = 0x10;
-            } else if (S32(st, G_TYPE_COUNT + 4u * 0xB1u) == 0 && S32(st, G_MONUMENT_STATUS_E4 + 0x10u) == 0) {
+            } else if (S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xB1u) == 0 && S32(st, G_MONUMENT_STATUS_E4 + 0x10u) == 0) {
                 id = 0x14;
             }
         }
@@ -1406,9 +1406,9 @@ static void info_mausoleum(game_state *st)
     int32_t made, want;
     switch (S32(st, G_MONUMENT_STATUS_DE)) {
     case 1:
-        if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xC7u) == 0) {
+        if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xC7u) == 0) {
             id = 0xD;
-        } else if (S32(st, G_TYPE_COUNT + 4u * 0xC7u) == 0 && S32(st, G_MONUMENT_STATUS_DE + 0x18u) == 0) {
+        } else if (S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0xC7u) == 0 && S32(st, G_MONUMENT_STATUS_DE + 0x18u) == 0) {
             int32_t d = S32(st, G_FLOOD_STATE);
             id = (d == 1 || d == 2 || d == 3) ? 0x33 : 0x11;
         } else {
@@ -1418,16 +1418,16 @@ static void info_mausoleum(game_state *st)
     case 2:
         made = S32(st, G_MONUMENT_STATUS_DE + 0x10u);
         want = S32(st, G_MONUMENT_STATUS_DE + 0x14u);
-        if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xC7u) == 0) {
+        if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xC7u) == 0) {
             id = 0xD;
-        } else if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB3u) == 0) {
+        } else if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB3u) == 0) {
             id = 0xE;
         } else if (made == want && ready == 0) {
             id = 0x18;
         } else if (made == 0) {
             id = 0x12;
         } else if (want != 0 && ready != 0 && S32(st, G_MONUMENT_STATUS_DE + 0x1Cu) != 0) {
-            id = S32(st, CITY_BASE + CITY_STOCKPILE + 4u * 0x1Eu + CITY_REC_SIZE * U32(st, G_PLAYER)) != 0 ? 0x64 : 0x18;
+            id = S32(st, CITY_BASE + CITY_STOCKPILE + 4u * 0x1Eu + CITY_REC_SIZE * U32(st, CURRENT_PLAYER_ADDR)) != 0 ? 0x64 : 0x18;
         } else {
             id = 0x3B;
         }
@@ -1438,9 +1438,9 @@ static void info_mausoleum(game_state *st)
         } else if (S32(st, G_MONUMENT_STATUS_DE + 0x1Cu) != 0) {
             made = S32(st, G_MONUMENT_STATUS_DE + 0x10u);
             want = S32(st, G_MONUMENT_STATUS_DE + 0x14u);
-            if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xC7u) == 0) {
+            if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xC7u) == 0) {
                 id = 0xD;
-            } else if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xB3u) == 0) {
+            } else if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xB3u) == 0) {
                 id = 0xE;
             } else if (S32(st, G_MONUMENT_STATUS_DE + 0x2Cu) != 0) {
                 id = 0x61;
@@ -1454,7 +1454,7 @@ static void info_mausoleum(game_state *st)
                 id = 0x3B;
             }
         } else if (S32(st, G_MONUMENT_STATUS_DE + 0xCu) != 0) {
-            if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0xC7u) == 0) {
+            if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0xC7u) == 0) {
                 id = 0xD;
             } else if (S32(st, G_MONUMENT_STATUS_DE + 0x18u) == 0) {
                 id = 0x11;

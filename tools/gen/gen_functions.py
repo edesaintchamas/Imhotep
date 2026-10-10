@@ -11,13 +11,43 @@ Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0.
 FN_<NAME>: the port's name in upper case (parenthesised notes and anything that is not a letter or a
 digit dropped). Names that two addresses share get the address appended. Functions without a port
 (docs/provenance/frontier.md) are not listed: code names them by address until they get one.
+
+The tables are read the way the build sees them: every .c file of core/ and present/ goes through the
+C preprocessor with the Makefile's include paths, so rows in included files (present/ui/advisors/
+X_ports.inc) and rows made by a macro (LAY_ENTRY in core/building/tomb_stones.c, whose name is two
+adjacent string literals) are found; the file named after each define is the one holding the row
+(from the preprocessor's line markers).
 """
 import os
 import re
+import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-ROW = re.compile(r'\{\s*(0x[0-9A-Fa-f]{8})u?,\s*"([^"]*)"')
+ROW = re.compile(r'\{\s*(0x[0-9A-Fa-f]{8})u?,\s*((?:"[^"]*"\s*)+)')
+MARK = re.compile(r'^# (\d+) "([^"]*)"', re.M)
+CC = os.environ.get('CC', 'cc')
+
+
+def preprocess(path):
+    """the rows of a .c file after the preprocessor: (address, name, file holding the row)"""
+    r = subprocess.run([CC, '-E', '-std=c11', '-Icore', '-Ipresent', path], cwd=ROOT,
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        sys.exit('gen_functions: preprocessing %s failed:\n%s' % (path, r.stderr[-2000:]))
+    text = r.stdout
+    marks = [(m.start(), m.group(2)) for m in MARK.finditer(text)]
+    rows = []
+    k = 0
+    src = path
+    for m in ROW.finditer(text):
+        while k < len(marks) and marks[k][0] < m.start():
+            src = marks[k][1]
+            k += 1
+        name = ''.join(re.findall(r'"([^"]*)"', m.group(2)))
+        rows.append((int(m.group(1), 16), name, os.path.normpath(src)))
+    return rows
 
 
 def ident(name):
@@ -27,18 +57,42 @@ def ident(name):
 
 
 def main():
-    found = {}
+    sources = []
     for top in ('core', 'present'):
         for d, _, files in sorted(os.walk(os.path.join(ROOT, top))):
             for f in sorted(files):
-                if not f.endswith('.c'):
-                    continue
-                path = os.path.join(d, f)
-                for m in ROW.finditer(open(path).read()):
-                    a = int(m.group(1), 16)
-                    if a >= 0x0056F000:  # data, not code (should not happen)
-                        continue
-                    found.setdefault(a, (m.group(2), os.path.relpath(path, ROOT)))
+                if f.endswith('.c'):
+                    sources.append(os.path.relpath(os.path.join(d, f), ROOT))
+    with ThreadPoolExecutor(2) as pool:
+        results = list(pool.map(preprocess, sources))
+    texts = {}
+
+    def text_of(path):
+        if path not in texts:
+            texts[path] = open(os.path.join(ROOT, path)).read()
+        return texts[path]
+
+    def holder(a, src):
+        """the file that spells the row: src, or a file next to it that src includes (an .inc whose
+        rows a macro of it expands in src)"""
+        lit = '0x%08X' % a
+        if lit in text_of(src).upper().replace('0X', '0x'):
+            return src
+        d = os.path.dirname(src)
+        for f in sorted(os.listdir(os.path.join(ROOT, d))):
+            if f.endswith(('.inc', '.h')) and lit in text_of(os.path.join(d, f)).upper().replace('0X', '0x'):
+                return os.path.join(d, f)
+        return src
+
+    found = {}
+    for rows in results:
+        for a, name, src in rows:
+            if a >= 0x0056F000:  # data, not code (should not happen)
+                continue
+            if src.startswith('/') or not src.startswith(('core/', 'present/')):
+                continue  # a system header
+            if a not in found:
+                found[a] = (name, holder(a, src))
     by_name = {}
     for a, (n, _) in found.items():
         by_name.setdefault(ident(n), []).append(a)

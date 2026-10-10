@@ -116,11 +116,11 @@ static void fort(game_state *st, int32_t player, int32_t type, int32_t id, int32
             kind = 0xC, soldiers = G_WAITING_SOLDIERS, home = G_WAITING_SOLDIERS + 4, count = G_WAITING_SOLDIERS + 8;
         }
         S16(st, r + BLD_SUBTYPE) = kind;
-        S16(st, FORM(f) + FORM_FIGURE_TYPE) = kind;
+        S16(st, FORM(f) + FM_TYPE) = kind;
         if (U8(st, count) != 0) {
-            U8(st, FORM(f) + FORM_KIND) = U8(st, soldiers);
+            U8(st, FORM(f) + FM_LEGION) = U8(st, soldiers);
             fort_soldiers_472790(st, U8(st, count), f, x + 4, y + 1);
-            U16(st, FORM(f) + FORM_TRAINING) = U16(st, home);
+            U16(st, FORM(f) + FM_EXPERIENCE) = U16(st, home);
             U32(st, home) = 0xFFFFFFFFu;
             U8(st, count) = 0;
             U8(st, soldiers) = 0xFF;
@@ -367,7 +367,7 @@ void building_map_add(game_state *st, int32_t player, int32_t type, int32_t id, 
         break;
     case 0x4D: case 0x4E: case 0x4F:
         /* @bin 0x00470F53 a mansion: the city's flag +0x499C */
-        S32(st, CITY + CITY_U499C) = 1;
+        S32(st, CITY + CITY_MANSION_BUILT) = 1;
         img = (int32_t) G(type == 0x4D ? G_IMAGE_GROUPS + 8 * 354 : type == 0x4E ? G_IMAGE_GROUPS + 8 * 355 : G_IMAGE_GROUPS + 8 * 356);
         break;
     case 0x50: img = (int32_t) GROUP(453); break;
@@ -384,7 +384,7 @@ void building_map_add(game_state *st, int32_t player, int32_t type, int32_t id, 
     case 0x59: img = (int32_t) GROUP(452) + 2; break;
     case 0x5D: img = (int32_t) GROUP(325); break;
     case 0x5E:
-        S32(st, CITY + CITY_U49D0) = 1;
+        S32(st, CITY + CITY_ACADEMY_EXISTS) = 1;
         img = (int32_t) GROUP(442);
         break;
     case 0xB9: case 0xBA: img = (int32_t) GROUP(442); break;
@@ -403,12 +403,12 @@ void building_map_add(game_state *st, int32_t player, int32_t type, int32_t id, 
     }
     case 0xD3: case 0xD4: {
         /* @bin 0x004710EF a complex add-on: the complex (city +0x472C) +0xA9 counts them */
-        int32_t p = S32(st, G_PLAYER);
+        int32_t p = S32(st, CURRENT_PLAYER_ADDR);
         if (is_new) {
-            uint32_t c = B(S32(st, CITY_ADDR(p) + CITY_U472C)) + BLD_UA9;
+            uint32_t c = B(S32(st, CITY_ADDR(p) + CITY_TEMPLE_COMPLEX_ID)) + BLD_UA9;
             U8(st, c) = (uint8_t) (U8(st, c) + (type != 0xD3) + 1);
         }
-        GAME_CALL(st, FN_BUILDING_REDRAW_4C0D50, S32(st, CITY_ADDR(p) + CITY_U472C), 0);
+        GAME_CALL(st, FN_BUILDING_REDRAW_4C0D50, S32(st, CITY_ADDR(p) + CITY_TEMPLE_COMPLEX_ID), 0);
         return;
     }
     case 0x4A:
@@ -461,12 +461,12 @@ void building_map_add(game_state *st, int32_t player, int32_t type, int32_t id, 
         return;
     case 0x5F:
         tiles(st, id, x, y, size, size, (int32_t) GROUP(435), 8);
-        palace_record(st, id, x, y, CITY_U44A4 - 4);
+        palace_record(st, id, x, y, CITY_RECRUITER_X - 4);
         return;
     case 0x32:
-        S32(st, CITY + CITY_U4600) = 1;
+        S32(st, CITY + CITY_TYPE32_BUILT) = 1;
         tiles(st, id, x, y, size, size, (int32_t) GROUP(435), 8);
-        palace_record(st, id, x, y, CITY_U45F4 - 4);
+        palace_record(st, id, x, y, CITY_TYPE32_X - 4);
         return;
     case 0xD2:
         sphinx(st, player, id, x, y, size, is_new);
@@ -555,7 +555,7 @@ void building_map_add(game_state *st, int32_t player, int32_t type, int32_t id, 
         S16(st, CITY + CITY_U4486) = 1;
         img = (int32_t) G(type == 0xBC ? G_IMAGE_GROUPS + 8 * 308 : type == 0xBD ? G_IMAGE_GROUPS + 8 * 287 : G_IMAGE_GROUPS + 8 * 316);
         tiles(st, id, x, y, size, size, img, 8);
-        palace_record(st, id, x, y, CITY_U2788 - 4);
+        palace_record(st, id, x, y, CITY_PALACE_X - 4);
         return;
     case 0x8A:
         /* @bin 0x00472272 flags 0x48 and the tile's terrain bit 0x100 */
@@ -636,7 +636,7 @@ void house_split_46cf40(game_state *st, int32_t id)
     int32_t x = S16(st, r + BLD_X), y = S16(st, r + BLD_Y);
     static const int32_t at[3][2] = {{1, 0}, {0, 1}, {1, 1}};
     for (int k = 0; k < 3; k++) {
-        int32_t b = create(st, S32(st, G_PLAYER), S16(st, r + BLD_TYPE), x + at[k][0], y + at[k][1], 0, 0);
+        int32_t b = create(st, S32(st, CURRENT_PLAYER_ADDR), S16(st, r + BLD_TYPE), x + at[k][0], y + at[k][1], 0, 0);
         S16(st, B(b) + BLD_POPULATION) = 0;
         S16(st, B(b) + BLD_DISTANCE) = 0;
         tiles(st, b, S16(st, B(b) + BLD_X), S16(st, B(b) + BLD_Y), 1, 1, img, 8);
@@ -655,18 +655,18 @@ void fort_soldiers_472790(game_state *st, int32_t n, int32_t f, int32_t x, int32
      * city's first entry point reachable from the formation's tile (city +0x2778 / +0x2780, by
      * 0x00518400), else at (x, y); then the formations again (0x004B7C80) */
     uint32_t fr = FORM(f);
-    int32_t owner_b = S16(st, fr + FORM_FORT);
+    int32_t owner_b = S16(st, fr + FM_FORT);
     for (int32_t i = n; i > 0; i--) {
         int32_t ex = S16(st, CITY + CITY_ENTRY_X), ey = S16(st, CITY + CITY_ENTRY_Y);
-        if (GAME_CALL(st, FN_ROUTE_EVEN_TO, ex, ey, (int32_t) S16(st, fr + FORM_X), (int32_t) S16(st, fr + FORM_Y)) == 0) {
+        if (GAME_CALL(st, FN_ROUTE_EVEN_TO, ex, ey, (int32_t) S16(st, fr + FM_X), (int32_t) S16(st, fr + FM_Y)) == 0) {
             ex = S16(st, CITY + CITY_EXIT_X);
             ey = S16(st, CITY + CITY_EXIT_Y);
-            if (GAME_CALL(st, FN_ROUTE_EVEN_TO, ex, ey, (int32_t) S16(st, fr + FORM_X), (int32_t) S16(st, fr + FORM_Y)) == 0) {
+            if (GAME_CALL(st, FN_ROUTE_EVEN_TO, ex, ey, (int32_t) S16(st, fr + FM_X), (int32_t) S16(st, fr + FM_Y)) == 0) {
                 ex = x;
                 ey = y;
             }
         }
-        int32_t fig = GAME_CALL(st, FN_FIGURE_CREATE, (int32_t) U8(st, B(owner_b) + BLD_OWNER), (int32_t) S16(st, fr + FORM_FIGURE_TYPE), ex, ey, 0);
+        int32_t fig = GAME_CALL(st, FN_FIGURE_CREATE, (int32_t) U8(st, B(owner_b) + BLD_OWNER), (int32_t) S16(st, fr + FM_TYPE), ex, ey, 0);
         uint32_t fa = FIGURE_ADDR(fig);
         S16(st, fa + FIG_FORMATION) = (int16_t) f;
         U8(st, fa + FIG_U63) = 1;
@@ -717,7 +717,7 @@ int32_t shore_fit_47d060(game_state *st, int32_t x, int32_t y, int32_t turn)
                 if (v & 0x10004) {
                     break;
                 }
-                uint32_t p = U32(st, G_UD05720 + 4u * (uint32_t) t);
+                uint32_t p = U32(st, G_FLOODPLAIN_MANAGER + 4u * (uint32_t) t);
                 if (p != 0 && P8(st, p + 0x18) == 0) {
                     break;
                 }
@@ -811,8 +811,8 @@ int32_t formation_create_4b6e10(game_state *st, int32_t id)
     }
     for (int32_t f = 0; f < 50; f++) {
         uint32_t fr = FORM(f);
-        if (U8(st, fr + FORM_IN_USE) != 0 && U8(st, fr + FORM_PLAYER) == 1) {
-            used[U8(st, fr + FORM_KIND)] = 1;
+        if (U8(st, fr + FM_IN_USE) != 0 && U8(st, fr + FM_PLAYER) == 1) {
+            used[U8(st, fr + FM_LEGION)] = 1;
         }
     }
     int32_t kind = 0;
@@ -824,33 +824,33 @@ int32_t formation_create_4b6e10(game_state *st, int32_t id)
     }
     for (int32_t f = 1; f < 50; f++) {
         uint32_t fr = FORM(f);
-        if (U8(st, fr + FORM_IN_USE) != 0) {
+        if (U8(st, fr + FM_IN_USE) != 0) {
             continue;
         }
         uint32_t r = B(id);
-        U8(st, fr + FORM_IN_USE) = 1;
-        U8(st, fr + FORM_PLAYER) = 1;
-        U8(st, fr + FORM_OWNER) = U8(st, G_PLAYER);
-        U16(st, fr + FORM_FIGURE_TYPE) = U16(st, r + BLD_SUBTYPE);
-        S16(st, fr + FORM_FORT) = (int16_t) id;
+        U8(st, fr + FM_IN_USE) = 1;
+        U8(st, fr + FM_PLAYER) = 1;
+        U8(st, fr + FM_OWNER) = U8(st, CURRENT_PLAYER_ADDR);
+        U16(st, fr + FM_TYPE) = U16(st, r + BLD_SUBTYPE);
+        S16(st, fr + FM_FORT) = (int16_t) id;
         int16_t ry = S16(st, r + BLD_Y);
-        S16(st, fr + FORM_U2A) = 1;
-        S16(st, fr + FORM_U2C) = 0x32;
-        U8(st, fr + FORM_U03) = 1;
-        U16(st, fr + FORM_U82) = 0xFFFF;
-        U8(st, fr + FORM_U77) = 0;
-        U8(st, fr + FORM_KIND) = (uint8_t) kind;
+        S16(st, fr + FM_LAYOUT) = 1;
+        S16(st, fr + FM_MORALE) = 0x32;
+        U8(st, fr + FM_U03) = 1;
+        U16(st, fr + FM_U82) = 0xFFFF;
+        U8(st, fr + FM_U77) = 0;
+        U8(st, fr + FM_LEGION) = (uint8_t) kind;
         int16_t fx = (int16_t) (S16(st, r + BLD_X) + 3), fy = (int16_t) (ry - 1);
-        S16(st, fr + FORM_X) = fx;
-        S16(st, fr + FORM_Y) = fy;
-        S16(st, fr + FORM_U32) = fx;
-        S16(st, fr + FORM_U34) = fy;
-        S16(st, fr + FORM_U36) = fx;
-        S16(st, fr + FORM_U38) = fy;
-        S16(st, fr + FORM_U80) = 0;
-        S16(st, fr + FORM_U7E) = 0;
+        S16(st, fr + FM_X) = fx;
+        S16(st, fr + FM_Y) = fy;
+        S16(st, fr + FM_U32) = fx;
+        S16(st, fr + FM_U34) = fy;
+        S16(st, fr + FM_U36) = fx;
+        S16(st, fr + FM_U38) = fy;
+        S16(st, fr + FM_U80) = 0;
+        S16(st, fr + FM_U7E) = 0;
         int32_t fig = GAME_CALL(st, FN_FIGURE_CREATE, (int32_t) U8(st, r + BLD_OWNER), 0xE, 0, 0, 0);
-        S16(st, fr + FORM_FIGURE) = (int16_t) fig;
+        S16(st, fr + FM_STANDARD_BEARER) = (int16_t) fig;
         S16(st, FIGURE_ADDR(fig) + FIG_HOME) = (int16_t) id;
         S16(st, FIGURE_ADDR(fig) + FIG_FORMATION) = (int16_t) f;
         S32(st, G_LEGIONS) += 1;
@@ -875,9 +875,9 @@ void temple_complex_add_4c3420(game_state *st, int32_t id, int32_t x, int32_t y,
     int32_t turn;
     if (is_new) {
         U8(st, r + BLD_UA9) = 0;
-        S16(st, CITY + CITY_U4478) = 1;
+        S16(st, CITY + CITY_TEMPLE_COMPLEX) = 1;
         S16(st, CITY + CITY_U448A) = 2;
-        S32(st, CITY + CITY_U472C) = id;
+        S32(st, CITY + CITY_TEMPLE_COMPLEX_ID) = id;
         turn = S32(st, G_BUILD_ORIENTATION) * 2 - S32(st, G_VIEW_ORIENTATION);
         if (turn < 0) {
             turn += 8;

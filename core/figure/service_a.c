@@ -185,7 +185,7 @@ static void clear_ferry(game_state *st, int32_t tile, scan_ctx *c)
     if (b > 0) {
         int16_t t = S16(st, BUILDING_ADDR(b) + BLD_TYPE);
         if (t == 0x58 || t == 0x59) {
-            U8(st, BUILDING_ADDR(b) + BLD_SENTIMENT) = 0;
+            U8(st, BUILDING_ADDR(b) + BLD_UC2) = 0;
         }
     }
 }

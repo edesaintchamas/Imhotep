@@ -9,7 +9,7 @@
 #include "present_layout.h"
 #include "sidebar/sidebar.h"
 
-#define CITY_OFF(st) (U32(st, G_PLAYER) * CITY_REC_SIZE)
+#define CITY_OFF(st) (U32(st, CURRENT_PLAYER_ADDR) * CITY_REC_SIZE)
 
 #define PX(st) S32(st, G_ADVISOR_X)
 #define PY(st) S32(st, G_ADVISOR_Y)

@@ -18,7 +18,6 @@
 #define G_HERD_RECORDS 0x005E4C20u /* core/newgame/figures.c: @bin 0x004BB407 records of 0x30 bytes */
 #define G_STR_DAT 0x005F80E8u /* core/newgame/flow.c: ".dat" */
 #define G_STR_FAMILY_PATTERN 0x005F80F0u /* core/newgame/flow2.c: "Save\*.dat" */
-#define G_CRT_RAND_STATE 0x00604950u /* core/random/crt_rand.h: @bin 0x00562348 */
 #define G_NO_GROUND 0x006DE515u /* present/city/city.h: u8: the overlay ground replaces the ground pass */
 #define G_ADVISOR_AVAILABLE 0x006FDC88u /* core/command/advisor.c: u8 per advisor: the mission offers it */
 #define G_MISSION_PICTURE_KIND 0x006FDCB0u /* present/ui/empire/mission.c: i32 window 4: 0 mission start, 1 plain, 2 victory [single+clash] */
@@ -58,7 +57,6 @@
 #define G_EMPIRE_OBJECTS_END 0x007843D8u /* core/city/route_points.c */
 #define G_MONUMENT_MODE 0x00784CBCu /* core/newgame/graphics.c: @bin 0x004F4520 byte */
 #define G_BUILDING_HIGHEST_EVER 0x0078D78Cu /* core/city/day_buildings.c */
-#define G_TOTAL_DAYS 0x0078D7C8u /* core/sim/tick.c: chunk 38 */
 #define G_NOT_FOUND 0x00D3B1B3u /* present/ui/frontend/files.c: u8 frames of the "not found" title */
 #define G_FILES_MODE 0x00D3B1C0u /* present/ui/frontend/files.c: u8 0 save, 1 load, 2 delete [generic] */
 #define G_CARET_Y 0x00E20794u /* present/draw/text.c */
@@ -145,9 +143,6 @@
 #define G_WORKSTEPS_SUN_TEMPLE 0x005C1350u /* @bin 0x00420240 chunk 149: Sun Temple, 13 records */
 #define G_WORKSTEP_STRIDE 24u
 /* game-time countdowns (save.md §3) */
-#define G_FROGS_COUNTDOWN 0x0078D7A8u /* @bin 0x004E70B0 i32 chunk 105: Plague of Frogs countdown */
-#define G_PYRAMID_CURSE_COUNTDOWN 0x0078D7A4u /* @bin 0x004F3AA0 i32 chunk 106: god-curse countdown from Pyramid progress (flag G_GOD_CURSE_ON) */
-#define G_BLOOD_RIVER_DURATION 0x0078D7ACu /* @bin 0x004E7200 i32 chunk 107: River of Blood duration */
 #define G_MUMMY_ATTACK_PARAM 0x0078D798u /* @bin 0x004E7AC0 i32 chunk 173: mummy-attack parameter (default 10) */
 
 /* -- named with the rewrite of core/newgame/flow.c, flow2.c, figures.c, setup.c -- */
@@ -253,7 +248,7 @@
 /* -- named with the rewrite of core/newgame/map_load.c, start.c, start2.c -- */
 /* strings of the exe (the text in the comment) */
 #define G_STR_ERR_COMP 0x006036B4u /* @bin 0x0055BCF0 "ERR:COMP Error uncompressing." (the log line of a failed explode) */
-#define G_STR_MAPS 0x005E17CCu /* @bin 0x004D4AE0 "MAPS" (the map file's magic) */
+#define G_STR_MAPS 0x005E17CCu /* @bin 0x004D4AE0 "MAPS" (the map file's magic); also: @bin 0x004D4E20 "MAPS" */
 #define G_STR_C_ROOT 0x005E06DCu /* @bin 0x004CE100 "c:\" (the CD drive's root, drive letter replaced) */
 #define G_STR_555 0x005E06E0u /* @bin 0x004CE100 "555" (graphics extension) */
 #define G_STR_SMK 0x005E06E4u /* @bin 0x004CE100 "SMK" */
@@ -280,7 +275,7 @@
 #define G_U78D81C 0x0078D81Cu /* @bin 0x005405B0 i32: := 1 at the start */
 #define G_U78D820 0x0078D820u /* @bin 0x005405B0 i32: := 1 at the start */
 #define G_U78D824 0x0078D824u /* @bin 0x005405B0 i32: := 1 at the start */
-#define G_U78D828 0x0078D828u /* @bin 0x005405B0 i32 chunk 100: := 1 at the start of campaign missions 0-4; blocks screen 0x14 (0x00409FA0) */
+#define G_U78D828 0x0078D828u /* @bin 0x005405B0 i32 chunk 100: := 1 at the start of campaign missions 0-4; blocks screen 0x14 (0x00409FA0); also: @bin 0x004D52A0 i32 := 0 for a custom map (chunk 100: set by campaign missions 0-4, blocks screen 0x14) */
 #define G_U78D82C 0x0078D82Cu /* @bin 0x005405B0 i32: := 1 at the start */
 #define G_U78D830 0x0078D830u /* @bin 0x005405B0 i32 chunk 99: := 1 at the start of mission 0; no reader found */
 /* the message list reset (0x004E1770) */
@@ -301,21 +296,57 @@
 #define G_IMAGE_DUNES 0x00F56BA4u /* @bin 0x00477210 i32: first image of the dunes group (core/map/terrain_rocks.c) */
 
 
-/* --- harvested: names the ports gave these addresses in local #defines (tools/naming/harvest.py).
- * @bin evidence: the defining port (file) and its comment. A package agent checks each name it
- * uses, and moves it above this block once checked. --- */
+/* named after the ports' local #defines (phase 10 wave 0, tools/naming/candidates.tsv); evidence: the
+ * defining port in each comment */
 #define G_GRAPH 0x00605A40u /* present/ui/advisors/b_population.c: i32 the graphs shown (0-5; saved, chunk 45; 0x0040A8A0) */
-#define G_CAMPAIGN_CAMPAIGN_KIND 0x006FDC98u /* present/ui/frontend/campaign.c: i32 0 Pharaoh, 1 Cleopatra [single+clash] */
-#define G_U6FF608 0x006FF608u /* core/newgame/flow2.c: campaign table + 0x1900 [unresolved] */
-#define G_MISSION_LIST_FLAGS 0x007027B8u /* core/command/menu.c: u8 per record */
+#define G_CAMPAIGN_SELECTED 0x006FDC98u /* present/ui/frontend/campaign.c: i32 the campaign chosen, 0 Pharaoh, 1 Cleopatra (docs/newgame.md: 0x0041BB70 sets 0x007027B4 := 1 + (this != 0)) */
+#define G_TUTORIAL_FLAGS 0x007027B8u /* @bin 0x00417AE0 u8[26]: the tutorial trigger flags, one per step of G_MISSION_LISTS (save.md chunk 166; core/command/menu.c) */
 #define G_GOAL_SEPARATOR 0x007027D4u /* present/ui/frontend/scenario.c: the string between a value and its goal */
-#define G_LIST_OBJECT 0x00704C00u /* core/newgame/start.c: the scenario / mission list of screen 0x3D */
+#define G_SCENARIO_LIST 0x00704C00u /* core/newgame/start.c: the scenario / mission list of screen 0x3D */
 #define G_SELECTED 0x00784F14u /* present/ui/empire/empire.h: i32 the selected object + 1 (0: none) */
-#define G_KINGDOM_EVENTS 0x00785D74u /* present/ui/messages/window.c: records of 0x7C bytes [single+clash] */
-#define G_START_EXT 0x00E38AECu /* core/newgame/start.c: char[4]: the current file extension [generic] */
-#define G_FLOW2_PERIOD 0x00E38EA9u /* core/newgame/start.c: u8 [generic] */
-#define G_KINGDOM_START 0x00E38EB0u /* core/newgame/start.c: i32 */
-#define G_KINGDOM_CARRY 0x00E38EB4u /* core/newgame/start.c: i32 */
-/* --- end harvested --- */
+#define G_EVENT_RECORDS 0x00785D74u /* present/ui/messages/window.c: the event records, 0x7C bytes each (G_EVENTS + 4, after the count) */
+#define G_FILE_EXT 0x00E38AECu /* core/newgame/start.c: char[4]: the current file extension [generic] */
+#define G_PERIOD 0x00E38EA9u /* core/newgame/start.c: u8 the campaign period (save.md chunk 1 "campaign id", @bin 0x00417DD0; docs/newgame.md) */
+#define G_CARRY_KINGDOM 0x00E38EB0u /* @bin 0x00417DD0 i32: the campaign carry-over rating (save.md chunk 87; city data +0x42D8) */
+#define G_CARRY_SAVINGS 0x00E38EB4u /* @bin 0x00418640 i32: the campaign carry-over savings (save.md chunk 88; CITY_SAVINGS) */
+
+/* ---- names merged from the packages' pending fragments (phase 10.4): each group keeps its
+ * package's heading (the package and its file in brackets) ---- */
+/* @bin globals of other areas used by core/figure; the function or chunk on each line [p1_figure] */
+#define G_U7027BC 0x007027BCu /* u8 of the tutorial trigger flags (chunk 166 at 0x007027B8, +4) */
+#define G_TRADERS 0x0077AF00u /* trader records, 100 x 0x58 (chunk 94; figure FIG_U7F = index) */
+#define G_TRADERS_U04 0x0077AF04u /* i32 at +4 of the trader records (loads counted, below 12) */
+#define G_ALT_SPRITES 0x00784CBDu /* u8: the other sprite set (0x00490A54, 0x00497FC0; set at the start, newgame.md) */
+/* P6 (g_scenario.h): the scenario info (chunk 75 at 0x007848D8) and other scenario data [p4_command] */
+#define G_ALLOWED_BUILDINGS 0x00784CE0u /* @bin 0x00404350 i16[100]: the scenario's allowed buildings (scenario info +0x408, save.md upgrade 117) */
+#define G_U784DB0 0x00784DB0u          /* @bin 0x00404350 i16[5]: allow the temple complexes 0x41..0x45 */
+#define G_CARRY_GROUPS 0x006FDCBCu     /* @bin 0x004D3C40 3 records of 12 bytes (u8, i32, u8): the waiting groups of G_CARRY */
+/* the scenario info (chunk 75, G_START_YEAR = its +0; g_scenario.h) [p5_map] */
+#define G_SCENARIO_MAP_WIDTH 0x00784904u  /* @bin 0x004D52A0 i32 (+0x2C): copied to G_MAP_WIDTH (map.md §5) */
+#define G_SCENARIO_MAP_HEIGHT 0x00784908u /* i32 (+0x30) */
+/* the empire map objects (G_EMPIRE_OBJECTS, 0x62-byte records; g_scenario.h); +0: the kind (u8) [p5_map] */
+#define EMPOBJ_IN_USE 0x01u  /* @bin 0x00442660 u8 */
+#define EMPOBJ_WIDTH 0x08u   /* @bin 0x004426C0 u16: the image's width */
+#define EMPOBJ_HEIGHT 0x0Au  /* @bin 0x004426C0 u16 */
+#define EMPOBJ_IMAGE 0x0Cu   /* @bin 0x00442660 u16 */
+#define EMPOBJ_U0E 0x0Eu     /* @bin 0x00442660 u16: kind 0: the image's offset in group 459 */
+/* the empire routes (G_ROUTES, chunk 143, 0x144-byte records; g_scenario.h) [p5_map] */
+#define ROUTE_POINTS 0x04u   /* @bin 0x004D4E20 u32: the heap block of the points (released before a save) */
+#define ROUTE_U134 0x134u    /* @bin 0x004D4E20 i32: record 0's := 0 before a save */
+#define ROUTE_U138 0x138u    /* @bin 0x004D4E20 i32 := 0 with the points */
+#define ROUTE_U141 0x141u    /* @bin 0x004D4E20 u8: record 0's := 0 before a save */
+/* the pending names of package P7, on no heading of their own [p7_frame] */
+#define EMPOBJ_X 0x04u  /* @bin 0x00407C10 i16: the object's x on the empire map [with EMPOBJ_IN_USE] */
+#define EMPOBJ_X2 0x14u /* @bin 0x00407C10 i16: a second x (+2 its y) the editor moves when G_EMPIRE_ALT_POSITIONS (assumed its name's) [with EMPOBJ_IN_USE] */
+/* ---- globals of other areas (core or another present package uses them) ---- [p8a_ui_main] */
+#define G_CARRY_GROUP_0 0x006FDCC4u /* @bin 0x00417B40 u8 the first waiting group's flag (G_CARRY_GROUPS + 8) */
+#define G_CARRY_GROUP_1 0x006FDCD0u /* @bin 0x00417B40 u8 the second waiting group's flag */
+#define G_CARRY_GROUP_2 0x006FDCDCu /* @bin 0x00417B40 u8 the third waiting group's flag */
+#define G_EMPIRE_OBJECT_IMAGE 0x0077F754u /* @bin 0x004D9CB5 u16 +0x0C of empire object 0 (G_EMPIRE_OBJECTS, stride 0x62): its image (core/city/events_handlers.c) */
+#define G_EMPIRE_OBJECT_ALT_X 0x0077F75Cu /* @bin 0x00407A10 i16 +0x14 of empire object 0: the alternative x (+0x16 y) when 0x00784CB4 is set */
+#define G_EMPIRE_SCROLL_Y 0x007843DAu /* @bin 0x0040A090 i16 +2 of the records of 0x20 bytes at G_EMPIRE_OBJECTS_END: the scroll y */
+/* record and table fields [p9_city_view] */
+#define EMPOBJ_CITY_KIND 0x18u /* @bin 0x004C95D0 u8 the trade window city's kind: 1, 3, 5 trade; 0 lists what it sells */
+#define EMPOBJ_U19 0x19u /* @bin 0x004CACA3 u8 indexes the texts G_CITY_KIND_TEXTS (good 0x13 sold) */
 
 #endif

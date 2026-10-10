@@ -177,7 +177,7 @@ void ghost_footprint(game_state *st, int32_t n, int32_t x, int32_t y, uint32_t m
             if (ter & mask & 0xEEFED77Fu) {
                 return;
             }
-            if (S16(st, G_FIGURE_GRID + 2u * (uint32_t) t) != 0) {
+            if (S16(st, G_GRID_FIGURE + 2u * (uint32_t) t) != 0) {
                 return;
             }
         }
@@ -206,7 +206,7 @@ int32_t footprint_fits(game_state *st, int32_t n, int32_t x, int32_t y, uint32_t
             if ((uint8_t) GAME_CALL(st, FN_MAP_NEAR_EDGE, t % GRID_W, t / GRID_W, 3) != 0) {
                 return 0;
             }
-            uint32_t obj = U32(st, G_UD05720 + 4u * (uint32_t) t);
+            uint32_t obj = U32(st, G_FLOODPLAIN_MANAGER + 4u * (uint32_t) t);
             uint32_t ter = TER(t) & mask;
             if ((ter & 0x10000u) && (uint8_t) floodable == 0) {
                 return 0;

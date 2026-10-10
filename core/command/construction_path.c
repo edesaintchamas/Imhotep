@@ -142,7 +142,7 @@ int32_t ramp_passable(game_state *st, int32_t o)
     if (TER(o) & 0x100u) {
         return bridge_passable(st, o);
     }
-    uint32_t obj = U32(st, G_UD05720 + 4u * (uint32_t) o);
+    uint32_t obj = U32(st, G_FLOODPLAIN_MANAGER + 4u * (uint32_t) o);
     if (obj == 0 || P8(st, obj + 0x18) != 0) {
         return 1;
     }

@@ -103,7 +103,7 @@ static void signpost_place(game_state *st, uint32_t point, int32_t dir, uint32_t
     int32_t o = S32(st, G_MAP_START) + y * GRID + x;
     S32(st, tile_var) = o;
     TER(o) |= 2;
-    int32_t d = S32(st, G_UE94E04) + dir;
+    int32_t d = S32(st, G_CITY_ORIENTATION) + dir;
     if (d >= 8) {
         d -= 8;
     }

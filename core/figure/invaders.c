@@ -118,7 +118,7 @@ int32_t formation_find_place(game_state *st, int32_t id, int32_t x, int32_t y)
                     if ((v & 4) || (v & 0x1200) || S32(st, G_GRID_ROAD_DISTANCE + 4 * t) <= 0) {
                         break;
                     }
-                    int16_t fid = S16(st, G_FIGURE_GRID + 2 * t);
+                    int16_t fid = S16(st, G_GRID_FIGURE + 2 * t);
                     if (fid != 0 && S16(st, FIGURE_ADDR(fid) + FIG_FORMATION) != id) {
                         break;
                     }
@@ -283,12 +283,12 @@ static void invaders_mode1(game_state *st, int32_t id, uint32_t f, int16_t type,
         }
         U8(st, f + FM_U75) = 0;
         random_next_state(st);
-        int32_t k = camp_tile(st, f, (int32_t) (U32(st, G_R_1_15) & 0xF), 0);
+        int32_t k = camp_tile(st, f, (int32_t) (U32(st, G_RANDOM_R1_15BIT) & 0xF), 0);
         if (k < 0) {
             return;
         }
         random_next_state(st);
-        new_soldier(st, id, f, k, (int32_t) (U32(st, G_R_1_15) & 7), G_DIRECTIONS); /* @bin 0x004B965B */
+        new_soldier(st, id, f, k, (int32_t) (U32(st, G_RANDOM_R1_15BIT) & 7), G_DIRECTIONS); /* @bin 0x004B965B */
         return;
     }
     S16(st, f + FM_U54) += 1;
@@ -306,7 +306,7 @@ static void invaders_mode1(game_state *st, int32_t id, uint32_t f, int16_t type,
     int direct = 0;
     if (S16(st, f + FM_DEST_X) != S16(st, f + FM_U36) || S16(st, f + FM_DEST_Y) != S16(st, f + FM_U38)) {
         random_next_state(st);
-        direct = (U32(st, G_R_1_15) & 7) == 0;
+        direct = (U32(st, G_RANDOM_R1_15BIT) & 7) == 0;
     }
     move_to(st, id, f, radius, 0, direct);
 }
@@ -328,7 +328,7 @@ static void invaders_mode2(game_state *st, int32_t id, uint32_t f, int16_t type,
         if ((int32_t) d > limit) {
             U8(st, f + FM_U75) = 0;
             random_next_state(st);
-            int32_t k = camp_tile(st, f, (int32_t) (U32(st, G_R_1_15) & 0xF), 1);
+            int32_t k = camp_tile(st, f, (int32_t) (U32(st, G_RANDOM_R1_15BIT) & 0xF), 1);
             if (k == -1) {
                 return;
             }
@@ -351,14 +351,14 @@ static void invaders_mode2(game_state *st, int32_t id, uint32_t f, int16_t type,
     if (radius != 0) {
         /* @bin 0x004B9BAA two random steps; the first one's 15-bit value widens the radius */
         random_next_state(st);
-        radius += (int32_t) U32(st, G_R_1_15) % radius;
+        radius += (int32_t) U32(st, G_RANDOM_R1_15BIT) % radius;
     }
     random_next_state(st);
-    U8(st, f + FM_U76) = (uint8_t) (U32(st, G_R_1_15) & 7);
+    U8(st, f + FM_U76) = (uint8_t) (U32(st, G_RANDOM_R1_15BIT) & 7);
     int direct = 0;
     if (S16(st, f + FM_DEST_X) != S16(st, f + FM_U36) || S16(st, f + FM_DEST_Y) != S16(st, f + FM_U38)) {
         random_next_state(st);
-        direct = (U32(st, G_R_1_15) & 7) == 0;
+        direct = (U32(st, G_RANDOM_R1_15BIT) & 7) == 0;
     }
     if (!move_to(st, id, f, radius, 1, direct)) {
         return;
@@ -386,8 +386,8 @@ void formations_invaders(game_state *st)
     uint8_t max2 = (uint8_t) S32(st, kr + 8), max1 = (uint8_t) S32(st, sr + 8);
     int halve = 0;
     uint32_t c = CURRENT_CITY(st);
-    if (S16(st, c + CITY_U4478) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_U472C)) == 0 &&
-        (uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_U472C), 2) != 0) {
+    if (S16(st, c + CITY_TEMPLE_COMPLEX) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_TEMPLE_COMPLEX_ID)) == 0 &&
+        (uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_TEMPLE_COMPLEX_ID), 2) != 0) {
         halve = 1;
     }
     for (int32_t id = 1; id < 50; id++) {

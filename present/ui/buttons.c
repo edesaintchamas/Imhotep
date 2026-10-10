@@ -101,12 +101,12 @@ static void empire_open_route(game_state *st)
     if (U8(st, G_EMPIRE_CITY_OPEN + c) >= 0x32) {
         return;
     }
-    if (S32(st, CITY_BASE + CITY_TREASURY + U32(st, G_PLAYER) * 0x49D8u) <= -5000) {
+    if (S32(st, CITY_BASE + CITY_TREASURY + U32(st, CURRENT_PLAYER_ADDR) * 0x49D8u) <= -5000) {
         GAME_CALL(st, FN_POPUP_CONFIRM_OPEN, 0x77, FN_NOTHING, 0);
         return;
     }
     uint32_t route = U8(st, G_EMPIRE_CITY_ROUTE + c);
-    if (U8(st, G_ARMIES + route * 0x144u) == 1) {
+    if (U8(st, G_ROUTES + ROUTE_KIND + route * ROUTE_SIZE) == 1) {
         GAME_CALL(st, FN_POPUP_CONFIRM_OPEN, 2, FN_CMD_TRADE_OPEN_ROUTE, 2);
     } else {
         GAME_CALL(st, FN_POPUP_CONFIRM_OPEN, 4, FN_CMD_TRADE_OPEN_ROUTE, 2);
@@ -220,7 +220,7 @@ static void trade_scroll(game_state *st)
 {
     /* @bin 0x0040C760 the trade advisor's list (arrows 0x005C5B78 / 0x005C5B90): the first row
      * (player +0x60A4) up (p 0, at least 1) or down (p != 0, at most 0x00F53E6C - 13) */
-    uint32_t r = CITY_BASE + CITY_TRADE_SCROLL + U32(st, G_PLAYER) * 0x49D8u;
+    uint32_t r = CITY_BASE + CITY_TRADE_SCROLL + U32(st, CURRENT_PLAYER_ADDR) * 0x49D8u;
     if (S32(st, G_PARAM1) == 0) {
         int32_t v = S32(st, r) - 1;
         S32(st, r) = v;

@@ -9,7 +9,7 @@
 #define G_MISSION 0x00E38EA8u      /* @bin 0x004F46D0 i8: the campaign mission (0x7F: none) */
 #define G_CUSTOM 0x00E38EBCu       /* @bin 0x004E8840 i32: != 0 a custom map */
 #define G_PYRAMID_KIND 0x005E4EF4u /* @bin 0x004F30B0 i32: the scenario's pyramid kind 1..5 (5: the other tables) */
-#define G_FLOODPLAIN 0x00D38360u   /* @bin 0x004BD330 the floodplain settings (`this`; docs/formats/state.md) */
+#define G_FLOODPLAIN_SETTINGS 0x00D38360u   /* @bin 0x004BD330 the floodplain settings (`this`; docs/formats/state.md) */
 #define G_REQUEST_EVENT 0x006057E4u /* @bin 0x004E0F90 i32: the request passed to 0x0044C1A0 */
 
 /* sentiment (0x004E8840) */
@@ -21,7 +21,7 @@
 
 /* Package P3 (phase 10.3): named from the ports' comments and docs/formats (the @bin of each
  * line); G_U<address> where the meaning is not established. */
-/* the tutorial steps: records of G_MISSION_LISTS, flags G_MISSION_LIST_FLAGS + step (0x00417AE0) */
+/* the tutorial steps: records of G_MISSION_LISTS, flags G_TUTORIAL_FLAGS + step (0x00417AE0) */
 #define G_MISSION_LIST_STRIDE 0x1Cu /* @bin 0x00417AE0 the stride of G_MISSION_LISTS */
 #define MISSIONLIST_MISSION 0x00u /* @bin 0x004179F0 i32: the mission of the step (G_MISSION_LISTS entries) */
 #define MISSIONLIST_COUNT 0x0Cu   /* @bin 0x004179F0 i32: the indexes in MISSIONLIST_INDEXES */
@@ -104,7 +104,7 @@
 #define G_HOUSE_MESSAGE_146_ON 0x0070E134u /* @bin 0x004302B0 i32: message 0x146 pending */
 #define G_HOUSE_MESSAGE_147_ON 0x0070E138u /* @bin 0x004302B0 i32: message 0x147 pending */
 #define G_U775814 0x00775814u /* @bin 0x00443330 i32[35]: a value per kind 1..35 (core/city/day_city.c) */
-#define G_TRADE_RECOMMENDS 0x007758A0u /* @bin 0x00541310 trade_recommends.txt: 4 records of 6 i32 (core/boot/steps.c), by population */
+#define G_TRADE_RECOMMENDS 0x007758A0u /* @bin 0x00541310 trade_recommends.txt: 4 records of 6 i32 (core/boot/steps.c), by population; also: @bin 0x00541310 i32[4][6] from trade_recommends.txt (by population: core/city/day_city.c) */
 #define G_INVASION_SEQUENCE 0x00775900u /* @bin 0x00446A30 i16: invasion id counter (save.md §3 chunk 126) */
 #define G_U775930 0x00775930u /* @bin 0x0044F0A0 records of 0x90 bytes (core/city/month.c) */
 #define G_U784B60 0x00784B60u /* @bin 0x004F6C6B i16: no population goal when set (present/ui/advisors/b_ratings.c) */
@@ -153,23 +153,19 @@
 #define G_U78D618 0x0078D618u /* @bin 0x00468170 i32: an output of houses_access_ratios */
 #define G_U78D61C 0x0078D61Cu /* @bin 0x00468170 i32: an output of houses_access_ratios */
 #define G_GOD_COVERAGE 0x0078D620u /* @bin 0x00468170 i32[5]: the gods' coverage */
-#define G_LOCUST_TIMER 0x0078D79Cu /* @bin 0x004E6EB0 i32: locust plague timer, -1 armed (save.md §3 chunk 40) */
 #define G_U78D844 0x0078D844u /* @bin 0x00461A20 i32 per resource (core/city/day_buildings.c) */
 #define G_STORAGE_BUILDINGS 0x0078D8D4u /* @bin 0x0045DE80 i16 list of storage buildings, 99 at most (core/figure/actions_a2.c) */
 #define G_STORAGE_LIST_COUNT 0x0078D9A0u /* @bin 0x0045DE80 i32: entries of G_STORAGE_LIST */
 #define G_U978D80 0x00978D80u /* @bin 0x00469B90 i32: day counter, every 10 days */
-#define G_FERTILITY_GRID 0x00A5D4CCu /* @bin 0x00489050 u8 per tile: fertility (core/io/map_file.h chunk 15) */
 #define G_UBCA344 0x00BCA344u /* @bin 0x0047E290 i32: day counter, every 20 days */
 #define G_HARVEST_SIZE 0x00BCA34Cu /* @bin 0x004883D0 i32: the farms' harvest size (core/boot/ctors.c) */
-#define G_UE38EC3 0x00E38EC3u /* @bin 0x004F5340 u8: an option (Options 9, core/command/menu_items.c) */
 #define G_UE3907C 0x00E3907Cu /* @bin 0x004EA2C0 i32: toggles which win window opens */
-#define G_UE39084 0x00E39084u /* @bin 0x004C47A0 i32 (core/city/day_city.c) */
+#define G_UE39084 0x00E39084u /* @bin 0x004C47A0 i32 (core/city/day_city.c); also: @bin 0x00414802 i32: default 1; 0: no god event in the month (core/city/day_city.c) */
 #define G_UEA1380 0x00EA1380u /* @bin 0x004EA920 u8: := 0x004183D0() (present/ui/frontend/victory.c) */
 #define G_UEA17FC 0x00EA17FCu /* @bin 0x004EA2C0 u8 (present/ui/frontend/victory.c) */
-#define G_UEAAC2C 0x00EAAC2Cu /* @bin 0x004E81D0 u8: passed to house_mood_month, then cleared */
+#define G_UEAAC2C 0x00EAAC2Cu /* @bin 0x004E81D0 u8: passed to house_mood_month, then cleared; also: @bin 0x004D52A0 u8 := 1 */
 #define G_UEAAE94 0x00EAAE94u /* @bin 0x004ED360 i32 := 2 */
 #define G_GOODS_AVAILABLE 0x00F53E70u /* @bin 0x005596D0 i32 list of available goods, 1..35 (core/city/goods.h) */
-#define G_UF55B94 0x00F55B94u /* @bin 0x004E6EB0 i32 := 1 with an ambient track (core/sim/tick.c) */
 #define G_UF560A4 0x00F560A4u /* @bin 0x00488B1E i32: an image base of the farm overlay */
 #define G_UF560AC 0x00F560ACu /* @bin 0x00488B1E i32: an image base of the farm overlay */
 #define G_UF56444 0x00F56444u /* @bin 0x0044E9C0 i32: an image base (core/city/events_handlers.c) */
@@ -192,7 +188,7 @@
 #define G_RATING_TABLE 0x005C9350u /* core/city/month_ratings.c: 11 records of 14 i32: index into 0x0078D5F0, 7 values, 6 limits */
 #define G_DEFAULT_SHARES 0x005DA44Cu /* core/city/day_labour.c: (i32 category, i32 workers)[9] */
 #define G_GLYPH_MAP 0x005E047Cu /* core/city/text_lookup.c: u8 per character: glyph number (0: none) */
-#define G_DAY_BUILDINGS_TYPE_COUNT 0x00705AF0u /* core/city/day_buildings.c: i32 per building type: buildings [single+clash] */
+#define G_TYPE_COUNT_TOTAL 0x00705AF0u /* @bin 0x004677C0 i32 per building type: all the buildings of the type (main parts; core/city/day_buildings.c) */
 #define G_DOCK_COUNT 0x00705C1Cu /* core/building/day2_docks.c: i32 */
 #define G_U70E448 0x0070E448u /* core/city/day2_farm.c [unresolved] */
 #define G_TILE_W 0x0070E45Cu /* core/frame/view.c: tile width - 1 (the step is +1) */
@@ -209,30 +205,63 @@
 #define G_HOUSE_LIST_INDEX 0x0078D840u /* core/city/day_labour.c */
 #define G_HOUSE_LIST 0x0078E178u /* core/city/day_labour.c: i16 list of the used houses (0x004583F0) */
 #define G_NETWORK2 0x00A69FDCu /* core/city/day_buildings.c */
-#define G_ELEVATION_GRID 0x00AB623Cu /* core/command/construction_ui.c: u8 per tile */
 #define G_DAY_FLOOD_PERIOD 0x00D05718u /* core/city/day_flood.c: double: days between two floods [generic] */
-#define G_UD05720 0x00D05720u /* core/city/month.c: `this` of 0x004BE640, 0x004BE770 [unresolved] */
-#define G_R_POOL_INDEX 0x00D3B1C4u /* core/city/month_events.c */
-#define G_R_POOL 0x00D3B1C8u /* core/city/month_events.c */
-#define G_R_1_7 0x00D3B374u /* core/city/month_events.c */
-#define G_R_IV2 0x00D3B380u /* core/city/month_events.c */
+#define G_FLOODPLAIN_MANAGER 0x00D05720u /* the floodplain manager: `this` of 0x004BE640, 0x004BE770, 0x004BE160 (docs/formats/tick.md, map.md: its per-tile pointer grid; G_FLOODPLAIN_SETTINGS = this + 0x32C40, save.md chunk 147) */
 #define G_GLYPH_LAST 0x00D3B5C0u /* core/city/text_lookup.c: the last glyph looked up */
 #define G_TEXT_GROUPS 0x00E34C38u /* core/city/text_lookup.c: 1000 group entries of 8 bytes: +0 offset into the text */
 #define G_UE38DD9 0x00E38DD9u /* core/city/day_goals.c: i8: 1 won, -1 (0xFF) lost, 0 neither [unresolved] */
 #define G_FONT_TITLE 0x00F56FB4u /* core/city/text_lookup.c: first glyph ids of three fonts */
 #define G_FONT_LARGE2 0x00F56FBCu /* present/ui/info/figure.c: i32 the figure's name font */
-#define G_IMAGE_ENTRIES 0x010D6A00u /* core/city/day2_farm.c: 0x40-byte records */
 #define G_U0D6A0C 0x010D6A0Cu /* core/city/route_points.c: i16 width, i16 height of a city's picture, records of 64 bytes [unresolved] */
-#define G_IMAGE_COUNT 0x0126517Cu /* present/ui/info/military.c: i32 image entries */
 
-/* --- harvested: names the ports gave these addresses in local #defines (tools/naming/harvest.py).
- * @bin evidence: the defining port (file) and its comment. A package agent checks each name it
- * uses, and moves it above this block once checked. --- */
-/* P3: core/city writes these three from their tables: G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 13
- * (tutorial step 13, 0x00417AE0), G_MISSION_LIST_FLAGS + 13, FIGURE_ADDR(FIGURE_COUNT) + FIG_TYPE */
-#define G_CHEAT_MISSION 0x0057961Cu /* core/command/menu.c */
-#define G_CHEAT_FLAG 0x007027C5u /* core/command/menu.c */
-#define G_FIGURES_END 0x00C8AD42u /* present/ui/info/queries.c: the loops' bound for +0x12 of the 0x184-byte figure records from 0x00BCD5F0 */
-/* --- end harvested --- */
+/* ---- names merged from the packages' pending fragments (phase 10.4): each group keeps its
+ * package's heading (the package and its file in brackets) ---- */
+/* @bin globals of other areas used by core/figure; the function or chunk on each line [p1_figure] */
+#define G_U7058B8 0x007058B8u /* i32 > 0 tested for forts and military (0x004E3200) */
+/* @bin fields of other records and tables, read by core/figure [p1_figure] */
+#define EMPCITY_ROUTE 0x04u       /* u8: trade route id of the empire city (G_EMPIRE_CITIES, save.md section 5) */
+#define EMPCITY_U54 0x54u         /* i16: +6 and +8 from here: figure ids (0x004B4E5B) */
+/* globals of the city area (g_city.h, P3) [p2_building] */
+#define G_RAMP_WALK_TILE 0x00EAAE90u /* @bin 0x004ED360 i32: the tile the walk found (core/city/events_actions.c) */
+#define G_RAMP_WALK_TYPE 0x00EAAE8Cu /* @bin 0x004ED360 i32: the building type to place there (0xDA .. 0xDC) */
+/* an animation object's fields (core/city/day_anim.c, P3) [p2_building] */
+#define ANIMOBJ_WORK 0x0Cu   /* @bin 0x004201FF i32: the work left (core/building/monument.c) */
+#define ANIMOBJ_MODE 0x10u   /* @bin 0x0041FF60 i16: 2, 3 stopped; 1 clamp at the ends */
+#define ANIMOBJ_FIGURE 0x12u /* @bin 0x0041FF60 i16: the figure it follows; 0x004233F0 tests it */
+#define ANIMOBJ_FIGURE_ACTION 0x14u /* @bin 0x0041FD80 u8: that figure's action */
+/* P3 (g_city.h) [p4_command] */
+#define G_RATING_LOWEST_INDEX 0x00705738u /* @bin 0x00426B00 i32: the index of the lowest rating (core/city/month_ratings.c) */
+#define G_RAMP_LAST_TILE 0x00EAAE9Cu   /* @bin 0x004ED003 i32: the last tile of the ramp walk 0x004ED360 */
+#define G_UEADB28 0x00EADB28u          /* @bin 0x004F6AD0 i32: := houses_at_least(G_GOAL_HOUSE_LEVEL) */
+/* -- named with the rewrite of core/boot, core/newgame/graphics.c -- [p6_scenario] */
+#define G_REASON_PHRASES 0x007854A8u /* @bin 0x0044EFA0 u8[0x36][0x24] from "auto reason phrases.txt": the level table of core/city/events.c [g_city.h] */
+/* formations (save.md §3 chunks 25-27) [p6_scenario] */
+#define G_CHEAT_WIN 0x00E38DD8u /* @bin 0x0041CFC0 u8: := 1 by the "Pharaohs Tomb" cheat; the goals check then wins (core/city/day_goals.c) [g_city.h] */
+/* -- named with the rewrite of core/newgame/map_load.c, start.c, start2.c -- [p6_scenario] */
+#define G_POP_MILESTONES 0x00E951C4u /* @bin 0x00458540 u8[10] chunk 81: population milestone flags (+1 .. +9) [g_city.h] */
+/* ---- globals of other areas (core or another present package uses them) ---- [p8a_ui_main] */
+#define G_EMPIRE_CITY_KIND 0x0077DE02u /* @bin 0x004D9A47 u8 +2 of empire city 0 (G_EMPIRE_CITIES, stride 0x6A): its kind */
+#define G_EMPIRE_CITY_NAME 0x0077DE03u /* @bin 0x00447890 u8 +3 of empire city 0: its name (text index) */
+#define G_EMPIRE_CITY_ROUTE 0x0077DE04u /* @bin 0x00409490 u8 +4 of empire city 0: its route (core/figure/helpers_xb.c) */
+#define G_EMPIRE_CITY_OPEN 0x0077DE05u /* @bin 0x00409490 u8 +5 of empire city 0: below 50 not yet open */
+#define G_SCENARIO_GODS 0x00784DDEu /* @bin 0x00520632 i16, 1-based: the scenario's list read by build menu 0x1C (G_MONUMENT_SLOTS - 2; core/command/construction_ui.c) */
+/* [g_city.h] [p8b_ui_info] */
+#define G_RAMP_FOUND 0x00EAAE84u   /* @bin 0x004F5D90 u8 := 1 by the ramp walk 0x004ED360 when it reaches G_RAMP_TARGET (core/city/events_actions.c) */
+#define G_RAMP_TARGET 0x00EAAE88u  /* @bin 0x004F5D90 i32 the building the ramp walk looks for */
+#define G_HARVEST_MONTHS 0x0056F5B8u /* @bin 0x00489240 i32[10][4] the farms' harvest months by season row, -1 ends a row (core/city/day_buildings.c) */
+#define G_U78D728 0x0078D728u      /* @bin 0x0050E3C0 i32 > 0: the house's entertainment need 0 is met (core/city/day_buildings.c: type 0x71) */
+/* scenario goals (core/city/day_goals.c 0x004EA2C0, month_ratings.c; owner g_city.h / g_scenario.h) [p8c_ui_advisors] */
+#define G_U7027C6 0x007027C6u             /* @bin 0x00409FA0 u8: 0 (with the mission G_U579638) shows tutorial step 0x0E */
+#define G_U579638 0x00579638u             /* @bin 0x00409FA0 i32: a mission number (4) compared with G_MISSION */
+/* the population graph's dates, written by population_history_dates 0x004E97C0 [p8c_ui_advisors] */
+#define G_GRAPH_LAST_YEAR 0x00EA1800u     /* @bin 0x004E97C0 i32 */
+#define G_GRAPH_LAST_MONTH 0x00EA1804u    /* @bin 0x004E97C0 i32 */
+#define G_GRAPH_FIRST_YEAR 0x00EA1808u    /* @bin 0x004E97C0 i32 */
+#define G_GRAPH_FIRST_MONTH 0x00EA180Cu   /* @bin 0x004E97C0 i32 */
+/* globals (owner: the area header named in the comment, or the lead) [p9_city_view] */
+#define G_RAMP_STEPS 0x00EAAE98u /* @bin 0x004ED360 i32 the walk's steps (at most 20) */
+#define G_RAMP_STEP 0x00EAAEA0u /* @bin 0x004ED360 i32 := 1: the walk goes by 2 * this tiles */
+#define G_RAMP_START 0x00EAAEA4u /* @bin 0x004ED360 i32 the walk's first tile */
 
+#define G_CITY_KIND_TEXTS 0x005D2A3Cu /* @bin 0x004CACA3 i32 per kind (8 bytes): the text naming a city's kind */
 #endif

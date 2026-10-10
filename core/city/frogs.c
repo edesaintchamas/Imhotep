@@ -78,13 +78,13 @@ void frog_create_4e7410(game_state *st, int32_t id, int32_t x, int32_t y)
     /* @bin 0x004E7410 a figure of type 0x6A at (x, y) (0x004B4800 with 0x00EAAC28, flag 0):
      * (offsets from the figure's +8:) action +0x30 := 8, building +0x54 := id, the building's +0x2E := the figure; one game random
      * draw; +0x2E := the 15-bit draw % 150, +0x5C := 0, +0x6A := 6. */
-    int32_t f = GAME_CALL(st, FN_FIGURE_CREATE, S32(st, G_PLAYER), 0x6A, x, y, 0);
+    int32_t f = GAME_CALL(st, FN_FIGURE_CREATE, S32(st, CURRENT_PLAYER_ADDR), 0x6A, x, y, 0);
     uint32_t a = FIGURE_ADDR(f);
     U8(st, a + FIG_ACTION) = 8;
     S16(st, a + FIG_TARGET_HOUSE) = (int16_t) id;
     S16(st, BREC(id) + BLD_IMMIGRANT) = (int16_t) f;
     random_next_state(st);
-    S16(st, a + FIG_WAIT_TICKS) = (int16_t) (S32(st, G_R_1_15) % 0x96);
+    S16(st, a + FIG_WAIT_TICKS) = (int16_t) (S32(st, G_RANDOM_R1_15BIT) % 0x96);
     U8(st, a + FIG_MIGRANT_PEOPLE) = 0;
     U8(st, a + FIG_TERRAIN_USAGE) = 6;
     /* @bin 0x004E7573 sprintf(buffer, 0x005E4958, figure, x, y, id) into the original's frame, then
@@ -97,7 +97,7 @@ void frog_maybe_4e7300(game_state *st, int32_t id)
     /* @bin 0x004E7300 one game random draw; when its 15-bit value % 100 is below 50, the frog's
      * tile (0x004E75A0) and, when there is one, the frog (0x004E7410) */
     random_next_state(st);
-    if (S32(st, G_R_1_15) % 100 >= 0x32) {
+    if (S32(st, G_RANDOM_R1_15BIT) % 100 >= 0x32) {
         return;
     }
     int32_t x = 0, y = id;

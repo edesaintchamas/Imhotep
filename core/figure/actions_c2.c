@@ -181,7 +181,7 @@ int32_t line_search_land(game_state *st, int32_t x0, int32_t y0, int32_t x1, int
 
 static int free_water(game_state *st, uint32_t idx)
 {
-    return S8(st, G_GRID_ROUTING_WATER + idx) >= 0 && U16(st, G_FIGURE_GRID + 2u * idx) == 0;
+    return S8(st, G_GRID_ROUTING_WATER + idx) >= 0 && U16(st, G_GRID_FIGURE + 2u * idx) == 0;
 }
 
 static int free_land(game_state *st, uint32_t idx)
@@ -725,7 +725,7 @@ void warship_ram(game_state *st, int32_t id, int32_t *moving)
             S32(st, g + FIG_HIT_POINTS) = (int32_t) ((uint32_t) S32(st, g + FIG_HIT_POINTS) - (uint32_t) damage);
             GAME_CALL(st, FN_FIGURE_ROUTE_RELEASE, id);
             /* @bin 0x004A621E a turn of -1 or +1 by bit 1 of 0x00D3B374 */
-            int32_t r = (S32(st, G_R_1_7) & 2) - 1;
+            int32_t r = (S32(st, G_RANDOM_R1_7BIT) & 2) - 1;
             int32_t nd = S8(st, f + FIG_DIRECTION) + r;
             if (nd >= 7) {
                 nd = 7;
@@ -1106,7 +1106,7 @@ void formation_land(game_state *st, int32_t fmi, int32_t x, int32_t y)
  * other than `id`, of one of the types */
 static int32_t tile_figure_of(game_state *st, int32_t tile, int32_t id, const uint8_t *types, int ntypes)
 {
-    int32_t k = S16(st, G_FIGURE_GRID + 2u * (uint32_t) tile);
+    int32_t k = S16(st, G_GRID_FIGURE + 2u * (uint32_t) tile);
     while (k != 0) {
         uint32_t f = FIG(k);
         if (k != id) {
@@ -1534,7 +1534,7 @@ INT2(run_enemy_warship, enemy_warship)
 
 static int32_t run_boat_unstick(game_state *st, const int32_t *a)
 {
-    boat_unstick(st, G_UD05720, a[0]);
+    boat_unstick(st, G_FLOODPLAIN_MANAGER, a[0]);
     return 0;
 }
 
@@ -1620,7 +1620,7 @@ const ported_function figc2_ports[] = {
     {0x004BCAE0u, "warship_target", 2, 32, 0, run_warship_target, 0},
     {0x004BCD90u, "enemy_warship_at", 3, 32, 0, run_enemy_warship_at, 0},
     {0x004BCD60u, "enemy_warship", 2, 32, 0, run_enemy_warship, 0},
-    {0x004BE4A0u, "boat_unstick", 1, 0, G_UD05720, run_boat_unstick, 0},
+    {0x004BE4A0u, "boat_unstick", 1, 0, G_FLOODPLAIN_MANAGER, run_boat_unstick, 0},
     {0x004069E0u, "dock_battle_value", 1, 32, 0, run_dock_battle_value, 0},
     {0x00406A30u, "best_dock", 1, 32, 0, run_best_dock, 0},
     {0x004F68F0u, "battle_add_boat", 1, 32, 0, run_battle_add_boat, 0},

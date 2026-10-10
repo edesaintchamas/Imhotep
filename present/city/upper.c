@@ -220,7 +220,7 @@ static void walk_figures(game_state *st, int32_t x0, int32_t y, int plain, int32
             int32_t tile = S32(st, G_VIEW_TABLE + 4u * (uint32_t) (S32(st, G_VIEW_ROW) * 0xE7 + vx));
             S32(st, G_VIEW_TILE) = tile;
             if (tile < 0xFFF0000 && ((U32(st, G_GRID_TERRAIN + 4u * (uint32_t) tile) & TERRAIN_PLAIN_MASK) == 0) == plain) {
-                for (int32_t f = S16(st, G_FIGURE_GRID + 2u * (uint32_t) tile); f > 0;
+                for (int32_t f = S16(st, G_GRID_FIGURE + 2u * (uint32_t) tile); f > 0;
                      f = S16(st, FIGURE_ADDR(f) + FIG_NEXT_ON_TILE)) {
                     if (U8(st, FIGURE_ADDR(f) + FIG_INVISIBLE) == 0 && S16(st, FIGURE_ADDR(f) + FIG_FOLLOW) == 0) {
                         GAME_CALL(st, FN_FIGURE_DRAW, f, x, y, param);
@@ -426,7 +426,7 @@ static void walk3(game_state *st, int32_t x0, int32_t y)
             S32(st, G_VIEW_TILE) = tile;
             if (tile < 0xFFF0000) {
                 uint32_t terrain = U32(st, G_GRID_TERRAIN + 4u * (uint32_t) tile);
-                uint8_t sprite = U8(st, G_SPRITE + (uint32_t) tile);
+                uint8_t sprite = U8(st, G_GRID_SPRITE + (uint32_t) tile);
                 if ((terrain & 0x44) == 0x44 && sprite != 0) {
                     /* @bin 0x0043763C terrain 0x44 with a sprite: image 0x00F56D34 + sprite - 1 */
                     cv_image_draw(st, sprite + S32(st, G_IMAGE_GROUP(560)) - 1, x, y - S32(st, G_U70E448));

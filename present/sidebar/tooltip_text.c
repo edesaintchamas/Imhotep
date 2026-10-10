@@ -216,7 +216,7 @@ int32_t tooltip_overlay_text(game_state *st)
     /* @bin 0x004C9750 (see the file comment); the overlay table 0x005E0350 (3 bytes per overlay):
      * +1 needs a building, +0 = 1 an occupied one, = 2 an empty one, +2 a tile with a value in
      * 0x00A5D4CC */
-    if (S32(st, G_TIPS_ON) == 0 || U8(st, G_RIGHT_HELD) != 0 || U8(st, G_WINDOW) != 1 ||
+    if (S32(st, G_MOUSE_HELP) == 0 || U8(st, G_RIGHT_HELD) != 0 || U8(st, G_WINDOW) != 1 ||
         S32(st, G_EDITOR) == 1) {
         return 0;
     }
@@ -246,7 +246,7 @@ int32_t tooltip_overlay_text(game_state *st)
     if (U8(st, row) == 2 && occupied(st, id)) {
         return 0;
     }
-    if (U8(st, row + 2) != 0 && U8(st, G_FERTILITY_GRID + (uint32_t) tile) == 0) {
+    if (U8(st, row + 2) != 0 && U8(st, G_GRID_FERTILITY + (uint32_t) tile) == 0) {
         return 0;
     }
     int32_t length = 0;
@@ -391,7 +391,7 @@ int32_t tooltip_overlay_text(game_state *st)
         break;
     }
     case 0x1C: {
-        int32_t v = U8(st, G_FERTILITY_GRID + (uint32_t) tile);
+        int32_t v = U8(st, G_GRID_FERTILITY + (uint32_t) tile);
         text = v == 0 ? 0x6D : v < 0x19 ? 0x6C : v < 0x32 ? 0x6B : v < 0x4B ? 0x6A : 0x69;
         break;
     }

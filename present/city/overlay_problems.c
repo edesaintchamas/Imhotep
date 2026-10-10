@@ -177,7 +177,7 @@ void city_house_evolve_reason(game_state *st, int32_t b)
         U8(st, reason) = 0x48;
         return;
     }
-    uint32_t city = CURRENT_CITY(st) + CITY_U46A4;
+    uint32_t city = CURRENT_CITY(st) + CITY_WINE_SOURCES;
     if (q34 > 1 && S32(st, city) < 2) {
         U8(st, reason) = 0x46;
         return;
@@ -290,7 +290,7 @@ void city_house_evolve_reason(game_state *st, int32_t b)
         U8(st, reason) = 0x44;
         return;
     }
-    city = CURRENT_CITY(st) + CITY_U46A4;
+    city = CURRENT_CITY(st) + CITY_WINE_SOURCES;
     if (q34 > 1 && S32(st, city) < 2) {
         U8(st, reason) = 0x4A;
         return;

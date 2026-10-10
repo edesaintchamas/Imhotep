@@ -65,10 +65,10 @@
 #define G_HOTKEY_RECTS 0x005C6DF0u         /* @bin 0x00537260 window 0x46's second key boxes (5); the first ones 0x118 below */
 #define G_FILE_DIALOG_BUTTONS 0x005C79F0u  /* @bin 0x00532340 the file dialog's buttons */
 #define G_MAP_DIALOG_BUTTONS 0x005C7A80u   /* @bin 0x005325F0 the editor's map dialog's buttons */
-#define G_DIFFICULTY_ARROWS 0x005C8EE8u    /* @bin 0x00531BE0 window 0x45's arrows */
+#define G_DIFFICULTY_ARROWS 0x005C8EE8u /* @bin 0x00531BE0 window 0x45's arrows; also: @bin 0x004D8310 window 0x45's arrows (present/ui/frontend/options.c) */
 #define G_FAMILY_MENU_BUTTONS 0x005E0408u  /* @bin 0x004CB4D0 window 0x30's buttons */
 #define G_FAMILY_LIST_BUTTONS 0x005F7EE0u  /* @bin 0x00516630 window 0x2F's buttons */
-#define G_FAMILY_RECTS 0x005F7F28u         /* @bin 0x00516720 window 0x2F: 12 rows, then the four buttons */
+#define G_FAMILY_RECTS 0x005F7F28u /* @bin 0x00516720 window 0x2F: 12 rows, then the four buttons; also: @bin 0x004D8310 window 0x2F's rows and buttons (present/ui/frontend/family.c) */
 
 /* ---- the number pad (window 0x0E) and the pop-up list ---- */
 #define G_NUMPAD_FIELD32 0x0060595Cu  /* @bin 0x004035F0 u32: the i32 field the value goes to (type 4) */
@@ -79,7 +79,7 @@
 #define G_NUMPAD_PERIOD 0x00605A14u   /* @bin 0x004035F0 i32: action 1, the map's period + 1 */
 #define G_NUMPAD_CALLBACK 0x00605A4Cu /* @bin 0x004035F0 u32: a function called after OK (cleared) */
 #define G_LIST_EXTRA_LABEL 0x00605A54u /* @bin 0x00530D70 i32: the extra button's label (group 0x130); 0: callback 0x004092B0 */
-#define G_LIST_EXTRA_ON 0x00605A58u   /* @bin 0x00530D70 i32: the pop-up list has the extra button */
+#define G_LIST_EXTRA_ON 0x00605A58u /* @bin 0x00530D70 i32: the pop-up list has the extra button; also: @bin 0x004D8310 i32 the list window 0x0F / 0x48's extra button shown (cleared on a right press) */
 
 /* ---- the campaign, the missions, the high scores ---- */
 #define G_CAMPAIGN_MISSION_NAMES 0x006FF60Cu /* @bin 0x004C5660 char[0x32] per mission: the names in the campaign table */
@@ -88,9 +88,14 @@
 #define G_U784F0C 0x00784F0Cu          /* @bin 0x00447840 i32: a string of group 0x98 put with the player's name; := 0 while a title is expanded */
 #define G_HIGHSCORE_PREV_NAME 0x00D386E0u /* @bin 0x004C5A40 char[]: the name of the record's holder before it is replaced */
 #define G_UE36EFC 0x00E36EFCu          /* @bin 0x004CDFF0 i32: := 0 when the file list is read */
-#define G_UF53F28 0x00F53F28u          /* @bin 0x00520AB0 i32: := 100 by the front end's full redraws */
+#define G_UF53F28 0x00F53F28u /* @bin 0x00520AB0 i32: := 100 by the front end's full redraws; also: @bin 0x00536FD0 i32 := 100 (0x00520B20 too) */
 #define G_EMPIRE_ANIM 0x00F53FD8u      /* @bin 0x0052F8B0 i32: 0..100, + 1 per empire map draw (the armies' markers) */
 #define G_ROUTE_ANIM 0x00F53FE0u       /* @bin 0x0052F8B0 i32: 0..100, + 1 per draw: the editor's chosen route's marker */
 #define G_MISSION_SPEECH_PATH 0x00F558F4u      /* @bin 0x00539B20 char[]: the mission speech's path */
+
+/* ---- names merged from the packages' pending fragments (phase 10.4): each group keeps its
+ * package's heading (the package and its file in brackets) ---- */
+/* ---- globals of other areas (core or another present package uses them) ---- [p8a_ui_main] */
+#define G_PHARAOH_NAME 0x00784F08u /* @bin 0x00447B50 i32 the pharaoh's name (string of group 0x97) */
 
 #endif

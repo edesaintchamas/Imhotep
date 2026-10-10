@@ -203,7 +203,7 @@ const ported_function state_ports[] = {
     {0x004CDC70u, "anim_counters", 0, 0, 0, run_anim_counters, 0},
     {0x00452150u, "clear_0x0078d784", 0, 0, 0, run_clear_0x0078d784, 0},
     {0x004E7E40u, "countdown_0x00ea89dc", 0, 0, 0, run_countdown_0x00ea89dc, 0},
-    {0x004BE160u, "floodplain_build", 4, 0, 0x00D05720u, run_floodplain_build, 0},
+    {0x004BE160u, "floodplain_build", 4, 0, G_FLOODPLAIN_MANAGER, run_floodplain_build, 0},
     {0x0040F8F0u, "fill_bytes", 3, 0, 0, run_fill_bytes, 0},
     /* helpers ported inside their callers (not callable on their own): the oracle does not record
      * them, since every call from ported code is handled by the port */

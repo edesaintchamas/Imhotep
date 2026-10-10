@@ -48,8 +48,8 @@ void day_cascade(game_state *st, const sim_env *env)
     if (S32(st, G_TICK_DAY) > 0xF) { /* a new month */
         S32(st, G_TICK_DAY) = 0;
         uint32_t c = city(st);
-        S32(st, c + CITY_U475C) = S32(st, c + CITY_U273C); /* 0x00EA5FCC := 0x00EA3FAC */
-        S32(st, c + CITY_U273C) = 0;
+        S32(st, c + CITY_IMMIGRANTS_LAST_MONTH) = S32(st, c + CITY_IMMIGRANTS_THIS_MONTH); /* 0x00EA5FCC := 0x00EA3FAC */
+        S32(st, c + CITY_IMMIGRANTS_THIS_MONTH) = 0;
         S32(st, c + CITY_U4760) = 0;
         S32(st, c + CITY_U4764) = 0;
         S32(st, c + CITY_U438C) += 1; /* 0x00EA5BFC */
@@ -101,22 +101,22 @@ void day_cascade(game_state *st, const sim_env *env)
     if (S32(st, G_TICK_DAY) == 0 || S32(st, G_TICK_DAY) == 8) {
         call(st, env, FN_CITY_HEALTH_UPDATE);
         if (S32(st, G_TICK_DAY) == 8) {
-            sim_call(st, env, FN_MONTH_0X004BE640, NULL, 0, G_UD05720);
+            sim_call(st, env, FN_MONTH_0X004BE640, NULL, 0, G_FLOODPLAIN_MANAGER);
         }
     }
     call(st, env, FN_MONTH_0X004E8DB0);
     uint32_t c = city(st);
-    if (U8(st, G_MISSION_LIST_FLAGS) != 0 && S32(st, c + CITY_U4720) == 0) { /* 0x00EA5F90 */
+    if (U8(st, G_TUTORIAL_FLAGS) != 0 && S32(st, c + CITY_U4720) == 0) { /* 0x00EA5F90 */
         S32(st, c + CITY_U4720) = 1;
         S32(st, G_MESSAGE_POPUP) = 1;
     }
-    if (U8(st, G_MISSION_LIST_FLAGS + 6) != 0 && S32(st, c + CITY_U4724) == 0) { /* 0x00EA5F94 */
+    if (U8(st, G_TUTORIAL_FLAGS + 6) != 0 && S32(st, c + CITY_U4724) == 0) { /* 0x00EA5F94 */
         S32(st, c + CITY_U4724) = 1;
         S32(st, G_MESSAGE_POPUP) = 1;
         call_n(st, env, FN_MESSAGE_POST, 0x13E, 0, 0, 0, 0, 5);
         c = city(st);
     }
-    if (U8(st, G_MISSION_LIST_FLAGS + 1) == 0 && S32(st, c + CITY_POPULATION) >= 0x96) {
+    if (U8(st, G_TUTORIAL_FLAGS + 1) == 0 && S32(st, c + CITY_POPULATION) >= 0x96) {
         call1(st, env, FN_TUTORIAL_STEP, 1);
     }
 }
@@ -141,7 +141,7 @@ void day_dispatch(game_state *st, const sim_env *env)
         c = city(st);
         S32(st, c + CITY_POPULATION) = 0;
         for (uint32_t i = 0; i < 100; i++) {
-            S32(st, c + CITY_POPULATION) += S16(st, c + CITY_POPULATION_AGES + 2 * i);
+            S32(st, c + CITY_POPULATION) += S16(st, c + CITY_AGES + 2 * i);
         }
         if (S32(st, c + CITY_POPULATION) > S32(st, c + CITY_POPULATION_HIGHEST)) {
             S32(st, c + CITY_POPULATION_HIGHEST) = S32(st, c + CITY_POPULATION);
@@ -176,7 +176,7 @@ void day_dispatch(game_state *st, const sim_env *env)
     case 0x22: call(st, env, FN_DAY_SERVICE_SHARES); break;
     case 0x23:
         c = city(st);
-        if (S16(st, c + CITY_U4478) == 0 || call1(st, env, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_U472C)) != 4) {
+        if (S16(st, c + CITY_TEMPLE_COMPLEX) == 0 || call1(st, env, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_TEMPLE_COMPLEX_ID)) != 4) {
             call(st, env, FN_HOUSE_SERVICE_DECAY);
         } else if (S32(st, city(st) + CITY_U4990) != 0) { /* 0x00EA6200: every other day */
             S32(st, city(st) + CITY_U4990) = 0;
@@ -252,7 +252,7 @@ void game_tick(game_state *st, const sim_env *env)
     if (S32(st, G_EDITOR) == 0) {
         day_dispatch(st, env);
         call(st, env, FN_COUNTDOWN_0X00EA89DC);
-        sim_call(st, env, FN_FLOOD_TICK, NULL, 0, G_UD05720);
+        sim_call(st, env, FN_FLOOD_TICK, NULL, 0, G_FLOODPLAIN_MANAGER);
         if (S32(st, G_FLOOD_STATE) == 3 && S32(st, city(st) + CITY_U4998) == 2) { /* 0x00EA6208 */
             S32(st, city(st) + CITY_U4998) = 0;
         }

@@ -18,18 +18,15 @@
 #include "state/ported.h"
 #include "sim/platform.h"
 
-#define IMAGE_COUNT 0x30F5CCu   /* i32 gfx + : the number of image ids in use */
-#define IMAGE_ENTRIES 0x180E48u /* gfx + 64 id: the entries */
-#define EXTERNAL_BUF 0x30F5C0u  /* u32 gfx + : the buffer holding the last external image read */
 #define IMAGE_ID_END 0x639C     /* ids from here on are not drawn */
 
 static uint32_t entry_at(game_state *st, uint32_t gfx, int32_t id)
 {
     /* the entry of id, or of id 0 when id >= the count (cmp / jl: signed) */
-    if (id >= S32(st, gfx + IMAGE_COUNT)) {
+    if (id >= S32(st, gfx + GFX_IMAGE_COUNT)) {
         id = 0;
     }
-    return ((uint32_t) id << 6) + gfx + IMAGE_ENTRIES;
+    return ((uint32_t) id << 6) + gfx + GFX_ENTRIES;
 }
 
 /* "data\\" + the bitmap name of the entry of id (slot +12, bitmap +56): the name of an external
@@ -37,9 +34,9 @@ static uint32_t entry_at(game_state *st, uint32_t gfx, int32_t id)
 static uint32_t external_name(game_state *st, uint32_t gfx, int32_t id)
 {
     uint32_t e = entry_at(st, gfx, id);
-    uint32_t slot = U32(st, e + 12);
+    uint32_t slot = U32(st, e + IMGENTRY_SLOT);
     uint32_t bitmap = U8(st, e + 0x38);
-    return gfx + slot * 0xCC3Cu + 0x2044u + bitmap * 0x104u;
+    return gfx + slot * GFX_SLOT_SIZE + GFX_SLOTS + 0x104u + bitmap * 0x104u;
 }
 
 /* the C string at a state address, up to n - 1 bytes (strcpy / repne scasb: up to the NUL) */
@@ -61,7 +58,7 @@ void path_set_extension(game_state *st, char *path, uint32_t ext)
     /* @bin 0x004CE310 the 3 bytes at ext copied to 0x00E38AEC (0x004CBEA0), then 0x004CE370: the
      * characters after the path's first '.' replaced by them (nothing without a '.') */
     for (uint32_t i = 0; i < 3; i++) {
-        U8(st, G_START_EXT + i) = mem_rd8(st, ext + i);
+        U8(st, G_FILE_EXT + i) = mem_rd8(st, ext + i);
     }
     path_replace_extension(st, path);
 }
@@ -72,9 +69,9 @@ void path_replace_extension(game_state *st, char *path)
     for (char *p = path;; p++) {
         char c = *p;
         if (c == '.') {
-            p[1] = (char) U8(st, G_START_EXT);
-            p[2] = (char) U8(st, G_START_EXT + 1u);
-            p[3] = (char) U8(st, G_START_EXT + 2u);
+            p[1] = (char) U8(st, G_FILE_EXT);
+            p[2] = (char) U8(st, G_FILE_EXT + 1u);
+            p[3] = (char) U8(st, G_FILE_EXT + 2u);
             p[4] = 0;
             return;
         }
@@ -143,7 +140,7 @@ int32_t external_image_read(game_state *st, uint32_t gfx, uint32_t name, uint32_
     if (total < 1) {
         return 0;
     }
-    GAME_CALL(st, FN_PIXELS_555_TO_565, (int32_t) U32(st, gfx + EXTERNAL_BUF), total);
+    GAME_CALL(st, FN_PIXELS_555_TO_565, (int32_t) U32(st, gfx + GFX_EXTERNAL_BUF), total);
     return total;
 }
 
@@ -154,9 +151,9 @@ static int external_small_read(game_state *st, uint32_t gfx, int32_t id, uint32_
     char path[0x108] = "data\\";
     cstr_at(st, external_name(st, gfx, id), path + 5, sizeof(path) - 5);
     path_set_extension(st, path, G_STR_555);
-    external_buffer_free(st, gfx + EXTERNAL_BUF, 0);
+    external_buffer_free(st, gfx + GFX_EXTERNAL_BUF, 0);
     uint32_t buf = U32(st, G_SPARE_SCREEN);
-    U32(st, gfx + EXTERNAL_BUF) = buf;
+    U32(st, gfx + GFX_EXTERNAL_BUF) = buf;
     uint32_t len = U32(st, e + 4);
     uint8_t *tmp = malloc(len ? len : 1);
     if (!tmp) {
@@ -171,9 +168,9 @@ static int external_small_read(game_state *st, uint32_t gfx, int32_t id, uint32_
         return 0;
     }
     if (U8(st, e + 0x33) != 0) {
-        GAME_CALL(st, FN_RLE_555_TO_565, (int32_t) U32(st, gfx + EXTERNAL_BUF), (int32_t) U32(st, e + 4));
+        GAME_CALL(st, FN_RLE_555_TO_565, (int32_t) U32(st, gfx + GFX_EXTERNAL_BUF), (int32_t) U32(st, e + 4));
     } else {
-        GAME_CALL(st, FN_PIXELS_555_TO_565, (int32_t) U32(st, gfx + EXTERNAL_BUF), (int32_t) U32(st, e + 4));
+        GAME_CALL(st, FN_PIXELS_555_TO_565, (int32_t) U32(st, gfx + GFX_EXTERNAL_BUF), (int32_t) U32(st, e + 4));
     }
     return 1;
 }
@@ -259,11 +256,11 @@ static int32_t image_draw_any(game_state *st, uint32_t gfx, int32_t id, int32_t 
     if (!flipped && U8(st, e + 0x3E) != 0) {
         /* @bin 0x0053E625 a mirrored entry: the image at id + its offset +16, drawn right to left */
         int32_t t = S32(st, e + 0x10) + id;
-        if (t >= S32(st, gfx + IMAGE_COUNT)) {
+        if (t >= S32(st, gfx + GFX_IMAGE_COUNT)) {
             t = 0;
         }
         mirrored = 1;
-        e = ((uint32_t) t << 6) + gfx + IMAGE_ENTRIES;
+        e = ((uint32_t) t << 6) + gfx + GFX_ENTRIES;
         if (e == 0) {
             return 0;
         }
@@ -279,7 +276,7 @@ static int32_t image_draw_any(game_state *st, uint32_t gfx, int32_t id, int32_t 
     U8(st, G_IMG_TYPE) = U8(st, e + 0x32);
     S32(st, G_BLIT_Y) = y;
     int32_t w = w16;
-    int32_t screen_w = S32(st, G_UE38D9C);
+    int32_t screen_w = S32(st, G_DRAW_W);
     S32(st, G_VIS_W) = w;
     if (U8(st, e + 0x34) != 0) {
         if (w <= screen_w) {
@@ -288,7 +285,7 @@ static int32_t image_draw_any(game_state *st, uint32_t gfx, int32_t id, int32_t 
             if (!external_small_read(st, gfx, id, e)) {
                 return 0;
             }
-            uint32_t buf = U32(st, gfx + EXTERNAL_BUF);
+            uint32_t buf = U32(st, gfx + GFX_EXTERNAL_BUF);
             clip_horizontal(st);
             clip_vertical(st);
             int32_t width = S16(st, G_UD3B5BE);
@@ -326,15 +323,15 @@ static int32_t image_draw_any(game_state *st, uint32_t gfx, int32_t id, int32_t 
                 break;
             }
         }
-        external_buffer_free(st, gfx + EXTERNAL_BUF, 0);
-        U32(st, gfx + EXTERNAL_BUF) = U32(st, G_SPARE_SCREEN);
+        external_buffer_free(st, gfx + GFX_EXTERNAL_BUF, 0);
+        U32(st, gfx + GFX_EXTERNAL_BUF) = U32(st, G_SPARE_SCREEN);
         S32(st, G_BLIT_Y) = 0;
         S32(st, G_BLIT_X) = 0;
-        external_image_read(st, gfx, G_EXTERNAL_NAME, U32(st, gfx + EXTERNAL_BUF), 2 * S32(st, G_VIS_W), S32(st, G_VIS_H),
+        external_image_read(st, gfx, G_EXTERNAL_NAME, U32(st, gfx + GFX_EXTERNAL_BUF), 2 * S32(st, G_VIS_W), S32(st, G_VIS_H),
                             offset);
         S32(st, G_SRC_SKIP) = 0;
         S32(st, G_DST_SKIP) = 0;
-        blit_opaque(st, U32(st, gfx + EXTERNAL_BUF));
+        blit_opaque(st, U32(st, gfx + GFX_EXTERNAL_BUF));
         return S32(st, G_VIS_W);
     }
     uint8_t window = U8(st, G_WINDOW);
@@ -563,8 +560,8 @@ int32_t image_draw_pixel_pair_on(game_state *st, uint32_t gfx, int32_t id, int32
     if (id <= 0 || id >= IMAGE_ID_END) {
         return id;
     }
-    int32_t i = id >= S32(st, gfx + IMAGE_COUNT) ? 0 : id;
-    uint32_t data = U32(st, ((uint32_t) i << 6) + gfx + IMAGE_ENTRIES);
+    int32_t i = id >= S32(st, gfx + GFX_IMAGE_COUNT) ? 0 : id;
+    uint32_t data = U32(st, ((uint32_t) i << 6) + gfx + GFX_ENTRIES);
     U32(st, G_MEM_SRC) = data;
     if ((int32_t) data <= 0) {
         return (int32_t) data;

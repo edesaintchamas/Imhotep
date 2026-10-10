@@ -455,7 +455,7 @@ void message_window_draw(game_state *st)
                 int32_t x = S32(st, G_TEXT_X) + S32(st, G_MESSAGE_WINDOW_BOX_X) + 0x50;
                 int32_t y = S32(st, G_MESSAGE_WINDOW_BOX_Y) + 6;
                 int32_t f = S32(st, G_FONT_9C);
-                int32_t s = GAME_CALL(st, 0x00447840u, x, y, f, 0);
+                int32_t s = GAME_CALL(st, FN_ADVISOR_KING_NAME, x, y, f, 0);
                 GAME_CALL(st, FN_TEXT_DRAW, s, x, y, f, 0);
             }
         }
@@ -466,7 +466,7 @@ void message_window_draw(game_state *st)
             draw_rich(st, body, S32(st, G_MESSAGE_WINDOW_BOX_X) + 8, S32(st, G_MESSAGE_WINDOW_BOX_Y) + 0x56, (S32(st, G_MESSAGE_WINDOW_BOX_W) << 4) - 0x10, 0, 0);
         } else if (kind == 3) {
             /* @bin 0x004C6667 the city's +0x4540 (rank 1..5) names it */
-            int32_t r = S32(st, CITY_BASE + CITY_SENTIMENT_LOW + 0x49D8u * U32(st, G_PLAYER));
+            int32_t r = S32(st, CITY_BASE + CITY_SENTIMENT_LOW + 0x49D8u * U32(st, CURRENT_PLAYER_ADDR));
             if (r >= 1 && r <= 5) {
                 GAME_CALL(st, FN_TEXT_GROUP_DRAW, 0x0C, r + 2, S32(st, G_MESSAGE_WINDOW_X) + 0x40, S32(st, G_MESSAGE_WINDOW_BOX_Y) + 0x2C,
                           S32(st, G_FONT_9C), 0);
@@ -495,7 +495,7 @@ void message_window_draw(game_state *st)
         /* a request: amount, resource and the months left */
         int32_t ev = S32(st, G_MESSAGE_WINDOW_PARAM_A);
         if (tf(st, 0x4A) == 2 && ev >= 0 && ev < S32(st, G_EVENTS)) {
-            uint32_t e = G_KINGDOM_EVENTS + 0x7Cu * (uint32_t) ev;
+            uint32_t e = G_EVENT_RECORDS + 0x7Cu * (uint32_t) ev;
             uint32_t m = msg_rec(st);
             int32_t amount = S16(st, m + 0x18);
             int32_t res = S16(st, m + 0x1A);
@@ -593,7 +593,7 @@ void message_window_draw_video(game_state *st)
         int32_t x = S32(st, G_TEXT_X) + S32(st, G_MESSAGE_WINDOW_X) + 0x5A;
         int32_t y = S32(st, G_MESSAGE_WINDOW_Y) + 0x101;
         int32_t f = S32(st, G_FONT_9C);
-        int32_t s = GAME_CALL(st, 0x00447840u, x, y, f, 0);
+        int32_t s = GAME_CALL(st, FN_ADVISOR_KING_NAME, x, y, f, 0);
         GAME_CALL(st, FN_TEXT_DRAW, s, x, y, f, 0);
     }
     int32_t used = S32(st, G_MW_FOOT) - S32(st, G_MESSAGE_WINDOW_Y) + S32(st, G_MESSAGE_WINDOW_BOX_Y);
@@ -605,7 +605,7 @@ void message_window_draw_video(game_state *st)
     draw_rich(st, body, S32(st, G_MESSAGE_WINDOW_X) + 0x10, S32(st, G_MESSAGE_WINDOW_Y) + 0x115, 0x1E0, 0, 0);
     if (tf(st, 0x48) == 2 && tf(st, 0x4A) == 2) {
         int32_t ev = S32(st, G_MESSAGE_WINDOW_PARAM_A);
-        uint32_t e = (ev >= 0 && ev < S32(st, G_EVENTS)) ? G_KINGDOM_EVENTS + 0x7Cu * (uint32_t) ev : 0;
+        uint32_t e = (ev >= 0 && ev < S32(st, G_EVENTS)) ? G_EVENT_RECORDS + 0x7Cu * (uint32_t) ev : 0;
         uint32_t m = msg_rec(st);
         int32_t res = S16(st, m + 0x1A);
         int32_t amount = amount_scaled(res, S16(st, m + 0x18));

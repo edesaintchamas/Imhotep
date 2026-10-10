@@ -286,7 +286,7 @@ void trade_advisor_draw_list(game_state *st)
         if (row == S32(st, G_HOVER) - 4) {
             frame(st, px(st) + 0x14, py(st) + y + 0x36, 0x23A, 0x18, 1);
         }
-        int32_t font = S16(st, city(st) + CITY_U28B6 + 2u * (uint32_t) r) == 1 ? S32(st, G_FONT_RED) : S32(st, G_FONT_9C);
+        int32_t font = S16(st, city(st) + CITY_INDUSTRY_OFF + 2u * (uint32_t) r) == 1 ? S32(st, G_FONT_RED) : S32(st, G_FONT_9C);
         group(st, 0x17, r, px(st) + 0x2C, py(st) + y + 0x3D, font);
         if (U8(st, city(st) + CITY_U49CC) == 0) {
             int32_t v = S32(st, city(st) + CITY_STORAGE_STOCK + 4u * (uint32_t) r);
@@ -332,7 +332,7 @@ static void dialog_industry(game_state *st, int32_t r, int32_t res)
         group(st, 0x36, 7, px(st) + 0x62, y, font);
         return;
     }
-    if (S16(st, city(st) + CITY_U28B6 + 2u * (uint32_t) r) == 1) {
+    if (S16(st, city(st) + CITY_INDUSTRY_OFF + 2u * (uint32_t) r) == 1) {
         number(st, n, px(st) + 0x62, py(st) + 0xAC, S32(st, G_FONT_LARGE));
         group(st, 0x36, S32(st, total) == 1 ? 0x0A : 0x0B, S32(st, G_TEXT_X) + px(st) + 0x62, py(st) + 0xAC,
               S32(st, G_FONT_LARGE));
@@ -468,7 +468,7 @@ void trade_dialog_draw(game_state *st, int32_t unused)
     if (S32(st, G_U78D6DC + 4u * (uint32_t) res) > 0) {
         frame(st, px(st) + 0x62, py(st) + 0xFA, 0x1B0, 0x1E, S32(st, G_HOVER) != 0);
         r = S32(st, G_TRADE_RESOURCE);
-        group_centred(st, 0x36, S16(st, city(st) + CITY_U28B6 + 2u * (uint32_t) r) == 0 ? 0x10 : 0x11, px(st) + 0x72,
+        group_centred(st, 0x36, S16(st, city(st) + CITY_INDUSTRY_OFF + 2u * (uint32_t) r) == 0 ? 0x10 : 0x11, px(st) + 0x72,
                       py(st) + 0x103, 0x190, S32(st, G_FONT_LARGE));
     }
     frame(st, px(st) + 0x62, py(st) + 0x120, 0x1B0, 0x32, S32(st, G_HOVER_3) != 0);

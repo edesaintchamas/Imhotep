@@ -411,14 +411,14 @@ void build_menu_draw(game_state *st)
             int32_t god = S16(st, G_SCENARIO_GODS + U32(st, G_GOD_MENU_GODS + (uint32_t) r * 4u) * 2u);
             int skip = 0;
             if (r == 1) {
-                if (god == S16(st, G_MONUMENT_SLOTS) && S32(st, CITY_BASE + CITY_MONUMENT_CODE + U32(st, G_PLAYER) * 0x49D8u) == 0) {
+                if (god == S16(st, G_MONUMENT_SLOTS) && S32(st, CITY_BASE + CITY_MONUMENT_TYPES + U32(st, CURRENT_PLAYER_ADDR) * 0x49D8u) == 0) {
                     skip = 1;
                 }
             } else if (r == 2) {
-                if (god == S16(st, G_MONUMENT_SLOTS) && S32(st, CITY_BASE + CITY_MONUMENT_CODE + U32(st, G_PLAYER) * 0x49D8u) == 0) {
+                if (god == S16(st, G_MONUMENT_SLOTS) && S32(st, CITY_BASE + CITY_MONUMENT_TYPES + U32(st, CURRENT_PLAYER_ADDR) * 0x49D8u) == 0) {
                     skip = 1;
                 } else if (god == S16(st, G_MONUMENT_SLOT_2) &&
-                           S32(st, CITY_BASE + CITY_MONUMENT_CODE + 4 + U32(st, G_PLAYER) * 0x49D8u) == 0) {
+                           S32(st, CITY_BASE + CITY_MONUMENT_TYPES + 4 + U32(st, CURRENT_PLAYER_ADDR) * 0x49D8u) == 0) {
                     skip = 1;
                 }
             }
@@ -431,7 +431,7 @@ void build_menu_draw(game_state *st)
             int32_t left = layout_panel_left(st);
             menu_button(st, sx - left - 0x61, row + S32(st, G_MENU_Y) + 0x6E, w, style);
             if (S32(st, G_SUBMENU) == 0x24) {
-                int32_t b = S32(st, CITY_BASE + CITY_U472C + U32(st, G_PLAYER) * 0x49D8u);
+                int32_t b = S32(st, CITY_BASE + CITY_TEMPLE_COMPLEX_ID + U32(st, CURRENT_PLAYER_ADDR) * 0x49D8u);
                 int32_t x = sx - layout_panel_left(st) - 0x61;
                 int32_t index = r + S16(st, BUILDING_BASE + BLD_TYPE + (uint32_t) b * 0x108u) * 2 - 0x82;
                 menu_text(st, 0xBD, index, x, row + S32(st, G_MENU_Y) + 0x71, 0xB0, font, colour);

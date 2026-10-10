@@ -89,7 +89,7 @@ static void status(game_state *st, int32_t group, int32_t resource, int byte_che
     }
     int32_t id;
     uint32_t b = BUILDING_ADDR(S32(st, G_INFO_BUILDING));
-    if (S16(st, CURRENT_CITY(st) + CITY_U28B6 + 2u * (uint32_t) resource) != 0) {
+    if (S16(st, CURRENT_CITY(st) + CITY_INDUSTRY_OFF + 2u * (uint32_t) resource) != 0) {
         id = 4;
     } else if (byte_check && U8(st, b + BLD_UAD) > 4) {
         id = 0xB;

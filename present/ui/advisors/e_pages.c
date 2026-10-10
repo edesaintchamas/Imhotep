@@ -44,7 +44,7 @@ static int page_panel(game_state *st)
 /* @bin 0x00529DA3 a signed byte of the god's row in the city record ([0x00EAAC28] x 0x49D8 + god) */
 static int32_t god_byte(game_state *st, uint32_t base, int32_t god)
 {
-    return S8(st, base + U32(st, G_PLAYER) * CITY_REC_SIZE + (uint32_t) god);
+    return S8(st, base + U32(st, CURRENT_PLAYER_ADDR) * CITY_REC_SIZE + (uint32_t) god);
 }
 
 static void number_centred(game_state *st, int32_t v, int32_t x, int32_t y)
@@ -60,7 +60,7 @@ static void temple_count(game_state *st, int32_t god, int32_t kind, int32_t dxo,
     int32_t py = S32(st, G_ADVISOR_Y);
     int32_t x = S32(st, G_ADVISOR_X) + dxo;
     int32_t type = god_building_type(god, kind);
-    number_draw_centred(st, S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * (uint32_t) type), 0x40, G_NUMBER_SUFFIX, x, y + py, 0x32, font, 0);
+    number_draw_centred(st, S32(st, G_TYPE_COUNT_TOTAL + 4u * (uint32_t) type), 0x40, G_NUMBER_SUFFIX, x, y + py, 0x32, font, 0);
 }
 
 void advisor_religion_draw(game_state *st)
@@ -111,7 +111,7 @@ void advisor_religion_draw(game_state *st)
             temple_count(st, god, 0, 0x104, row + 0x42);
             temple_count(st, god, 2, 0x14A, row + 0x42);
             /* @bin 0x00529D43 the festivals i32 [0x00EA5C50 + 4 ([0x00EAAC28] x 0x1276 + god)] */
-            number_centred(st, S32(st, CITY_BASE + CITY_GOD_MONTHS + (U32(st, G_PLAYER) * (CITY_REC_SIZE / 4u) + (uint32_t) god) * 4u),
+            number_centred(st, S32(st, CITY_BASE + CITY_GOD_MONTHS + (U32(st, CURRENT_PLAYER_ADDR) * (CITY_REC_SIZE / 4u) + (uint32_t) god) * 4u),
                            S32(st, G_ADVISOR_X) + 0x186, row + S32(st, G_ADVISOR_Y) + 0x42);
             S32(st, G_TEXT_X) = 0;
             /* @bin 0x00529DA3 the mood's word: byte +0xEA5C0A / 10 (signed) + 0x14 */
@@ -152,7 +152,7 @@ void advisor_religion_draw(game_state *st)
     /* @bin 0x0052A18E the advice: the angriest god g = [city +0xEA5C78] with wrath byte
      * [city +0xEA5C13 + g] > 4: 0xE + g; else by [city +0xEA5C90] 1: 9 / 10 (by [city +0xEA5BCC]), 2: 0xB,
      * 3: 0xC, other: 0xD, or 0xE + g when [city +0xEA5BCC] is set */
-    uint32_t c = U32(st, G_PLAYER) * CITY_REC_SIZE;
+    uint32_t c = U32(st, CURRENT_PLAYER_ADDR) * CITY_REC_SIZE;
     int32_t g = S32(st, CITY_BASE + CITY_U4408 + c);
     int32_t idx;
     if (g > 0 && S8(st, CITY_BASE + CITY_GOD_WRATH - 1u + c + (uint32_t) g) > 4) {

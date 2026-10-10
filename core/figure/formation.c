@@ -293,7 +293,7 @@ void formations_rebuild(game_state *st)
     for (int32_t e = 0; e < n; e++) {
         int32_t v = S32(st, G_EMPTY_EVENTS + 4u * (uint32_t) e);
         if (U8(st, G_EMPTY_FLAGS + (uint32_t) e) != 0 && v >= 0 && v < S32(st, G_EVENTS)) {
-            U8(st, G_KINGDOM_EVENTS + 0x7Cu * (uint32_t) v + 0x32u) = 0;
+            U8(st, G_EVENT_RECORDS + 0x7Cu * (uint32_t) v + 0x32u) = 0;
         }
     }
 }

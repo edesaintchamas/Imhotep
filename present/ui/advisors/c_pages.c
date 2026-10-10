@@ -91,7 +91,7 @@ void advisor_draw_page8(game_state *st)
         }
         int32_t row = i * 20;
         layout_group(st, 0x38, text, PX + 0x28, PY + row + 0x70, FONT_SMALL_B, 0, DX, DY);
-        number_draw_centred(st, S32(st, G_TYPE_COUNT + 4u * (uint32_t) count), 0x40, G_NUMBER_SUFFIX, PX + 0x96,
+        number_draw_centred(st, S32(st, G_TYPE_COUNT_ACTIVE + 4u * (uint32_t) count), 0x40, G_NUMBER_SUFFIX, PX + 0x96,
                             PY + row + 0x70, 0x64, FONT_SMALL_B, 0);
         int32_t r = S32(st, G_COVERAGE + 4u * (uint32_t) rating);
         S32(st, G_TEXT_X) = 0;
@@ -106,11 +106,11 @@ void advisor_draw_page8(game_state *st)
     }
     S32(st, G_TEXT_X) = 0;
     S32(st, G_TEXT_Y) = 0;
-    number_draw_centred(st, S32(st, G_TYPE_COUNT + 4u * 0x2Eu), 0x40, G_NUMBER_SUFFIX, PX + 0x3C, PY + 0xC2, 5, FONT_NORMAL, 0);
+    number_draw_centred(st, S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x2Eu), 0x40, G_NUMBER_SUFFIX, PX + 0x3C, PY + 0xC2, 5, FONT_NORMAL, 0);
     layout_group_lines(st, 0x38, 0x3B, S32(st, G_TEXT_X) + PX + 0x39, PY + 0xC2, 0x200, FONT_NORMAL, 0, DX, DY);
     S32(st, G_TEXT_X) = 0;
     /* @bin 0x00528153 city +0x4750: 0 -> 0x36, <= 2 -> 0x37, <= 5 -> 0x38, <= 8 -> 0x39, else 0x3A */
-    int32_t m = S32(st, CITY + CITY_U4750);
+    int32_t m = S32(st, CITY + CITY_HOUSES_DISEASED);
     if (m == 0) {
         index = 0x36;
     } else if (m <= 2) {
@@ -171,9 +171,9 @@ void advisor_draw_page9(game_state *st)
         uint32_t per;
     } rows[2] = {
         /* @bin 0x00528510 row 1: text 0x1C, count 0x00705808 (served * 300), rating 0x0078D604 */
-        {0x1C, 4, 0x69, G_TYPE_COUNT + 4u * 0x33u, G_COVERAGE + 4u * 5u, 300},
+        {0x1C, 4, 0x69, G_TYPE_COUNT_ACTIVE + 4u * 0x33u, G_COVERAGE + 4u * 5u, 300},
         /* @bin 0x005286C7 row 2: text 0x1D, count 0x00705810 (served * 800), rating 0x0078D608 */
-        {0x1D, 6, 0x7D, G_TYPE_COUNT + 4u * 0x35u, G_COVERAGE + 4u * 6u, 800},
+        {0x1D, 6, 0x7D, G_TYPE_COUNT_ACTIVE + 4u * 0x35u, G_COVERAGE + 4u * 6u, 800},
     };
     for (int i = 0; i < 2; i++) {
         int32_t y = rows[i].y;
@@ -246,7 +246,7 @@ void advisor_draw_page10(game_state *st)
     for (int i = 0; i < 5; i++) {
         int32_t field = S32(st, CITY + rows[i].field);
         int32_t y = i * 24 + 0x50;
-        uint32_t count = G_TYPE_COUNT + 4u * (uint32_t) rows[i].count;
+        uint32_t count = G_TYPE_COUNT_ACTIVE + 4u * (uint32_t) rows[i].count;
         layout_group(st, 0x3A, rows[i].text, PX + 0x28, PY + y, FONT_SMALL_B, 0, DX, DY);
         number_draw_centred(st, S32(st, count), 0x40, G_NUMBER_SUFFIX, PX + 0x96, PY + y, 0x64, FONT_SMALL_B, 0);
         number_draw_centred(st, field, 0x40, G_NUMBER_SUFFIX, PX + 0xE6, PY + y, 0x64, FONT_SMALL_B, 0);

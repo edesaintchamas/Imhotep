@@ -130,7 +130,7 @@ int32_t boot_settings(game_state *st, const boot_host *host, int32_t screen_widt
     /* @bin 0x00414802 .. 0x004148B1 the defaults */
     S32(st, G_OPTIONS) = 0x10;
     S32(st, G_FULLSCREEN) = 1;
-    U8(st, G_GATE) = 0;
+    U8(st, G_PAUSED) = 0;
     U8(st, G_UE38E61) = 0;
     S32(st, G_UE38ED4) = 2;
     S32(st, G_RAM) = 0xF;
@@ -142,7 +142,7 @@ int32_t boot_settings(game_state *st, const boot_host *host, int32_t screen_widt
     U8(st, G_SPEECH_ON) = 1;
     U8(st, G_CITY_SOUNDS_ON) = 1;
     U8(st, G_NOTICES_ON) = 1;
-    S32(st, G_TIPS_ON) = 2;
+    S32(st, G_MOUSE_HELP) = 2;
     S32(st, G_GAME_SPEED) = 0x5A;
     S32(st, G_SCROLL_SPEED) = 0x46;
     U8(st, G_CHECK_CD) = 1;
@@ -175,12 +175,12 @@ int32_t boot_settings(game_state *st, const boot_host *host, int32_t screen_widt
     U8(st, G_CHECK_CD) = 1; /* @bin 0x00414924 */
     boot_ini_read(st, host); /* @bin 0x0041492A */
     S32(st, G_UE36C6C) = 1;
-    U8(st, G_GATE) = 0;
+    U8(st, G_PAUSED) = 0;
     /* @bin 0x0041493A the words 0x005C9022 / 0x005C9062 by 0x00E38EAC (2: 4, 1: 3) */
-    if (S32(st, G_TIPS_ON) == 2) {
+    if (S32(st, G_MOUSE_HELP) == 2) {
         S16(st, G_MENU_TEXT_TIPS) = 4;
         S16(st, G_MENU_TEXT_TIPS2) = 4;
-    } else if (S32(st, G_TIPS_ON) == 1) {
+    } else if (S32(st, G_MOUSE_HELP) == 1) {
         S16(st, G_MENU_TEXT_TIPS) = 3;
         S16(st, G_MENU_TEXT_TIPS2) = 3;
     }

@@ -171,7 +171,7 @@ void figure_count_on_tile(game_state *st, int32_t id)
     /* @bin 0x004B53B0 +0x8A: the figures ahead of it in its tile's list (at most 20) */
     uint32_t f = FIGURE_ADDR(id);
     U8(st, f + FIG_TILE_INDEX) = 0;
-    int16_t o = S16(st, G_FIGURE_GRID + 2u * (uint32_t) S32(st, f + FIG_GRID_OFFSET));
+    int16_t o = S16(st, G_GRID_FIGURE + 2u * (uint32_t) S32(st, f + FIG_GRID_OFFSET));
     while (o != 0) {
         if (o == id) {
             return;
@@ -194,7 +194,7 @@ void figure_tile_list_remove(game_state *st, int32_t id)
         GAME_CALL(st, FN_NOTHING, id);
         return;
     }
-    uint32_t head = G_FIGURE_GRID + 2u * (uint32_t) tile;
+    uint32_t head = G_GRID_FIGURE + 2u * (uint32_t) tile;
     int16_t o = S16(st, head);
     if (o == 0) {
         GAME_CALL(st, FN_NOTHING, id);
@@ -659,7 +659,7 @@ void figure_enter_next_tile(game_state *st, int32_t id)
         U8(st, f + FIG_ON_ROAD) = 0;
     } else {
         U8(st, f + FIG_ON_ROAD) = 1;
-        uint8_t b = U8(st, G_SPRITE + (uint32_t) tile);
+        uint8_t b = U8(st, G_GRID_SPRITE + (uint32_t) tile);
         if ((t & 4) && b != 0) {
             U8(st, f + FIG_HEIGHT_TICKS) = 0x12;
             uint8_t v;
@@ -677,7 +677,7 @@ void figure_enter_next_tile(game_state *st, int32_t id)
     }
     uint8_t type = U8(st, f + FIG_TYPE);
     if (!(type == 0x4D || type == 0x4E || type == 0x5C || type == 0x5D || type == 0x64 || type == 0x65)) {
-        figure_meet(st, id, S16(st, G_FIGURE_GRID + 2u * (uint32_t) S32(st, f + FIG_GRID_OFFSET)));
+        figure_meet(st, id, S16(st, G_GRID_FIGURE + 2u * (uint32_t) S32(st, f + FIG_GRID_OFFSET)));
     }
     S16(st, f + FIG_PREV_X) = ox;
     S16(st, f + FIG_PREV_Y) = oy;
@@ -1394,7 +1394,7 @@ int32_t figure_serve_tile(game_state *st, int32_t id)
     case 0x40: served = clear_buildings_58(st, XY); break;
     case 0x1B: {
         int16_t b = S16(st, f + FIG_HOME);
-        int32_t god = S32(st, city + CITY_U472C); /* @bin 0x004BAC4C 0x00EA5F9C */
+        int32_t god = S32(st, city + CITY_TEMPLE_COMPLEX_ID); /* @bin 0x004BAC4C 0x00EA5F9C */
         int32_t k = -1;
         switch (S16(st, BUILDING_ADDR(b) + BLD_TYPE)) {
         case 0x3C: case 0x41: k = 0; break;
@@ -1407,7 +1407,7 @@ int32_t figure_serve_tile(game_state *st, int32_t id)
         if (k >= 0) {
             served = serve_houses_god(st, XY, k);
         }
-        if (S16(st, city + CITY_U4478) == 0) {
+        if (S16(st, city + CITY_TEMPLE_COMPLEX) == 0) {
             break;
         }
         int32_t a = GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, god);
@@ -1416,13 +1416,13 @@ int32_t figure_serve_tile(game_state *st, int32_t id)
         }
         a = GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, god);
         if (a == 1 || a == 3) {
-            if ((uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_U472C), a == 1 ? 1 : 2) == 0) {
+            if ((uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_TEMPLE_COMPLEX_ID), a == 1 ? 1 : 2) == 0) {
                 break;
             }
             lower_buildings_e4(st, XY, S32(st, a == 1 ? G_U706918 : G_U706968));
             U8(st, f + FIG_SERVICE_MAX) = U8(st, G_SERVICE_TOP);
         } else if (a == 4) {
-            if ((uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_U472C), 10) != 0) {
+            if ((uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_TEMPLE_COMPLEX_ID), 10) != 0) {
                 clear_houses_87(st, XY);
             }
         }
@@ -1580,8 +1580,8 @@ void figure_meet(game_state *st, int32_t id, int32_t first)
                     U8(st, f + FIG_STATE) = 2;
                     return;
                 }
-                if (S16(st, city + CITY_U4478) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, city + CITY_U472C)) == 4 &&
-                    (uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_U472C), 1) != 0) {
+                if (S16(st, city + CITY_TEMPLE_COMPLEX) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, city + CITY_TEMPLE_COMPLEX_ID)) == 4 &&
+                    (uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_TEMPLE_COMPLEX_ID), 1) != 0) {
                     if (U8(st, f + FIG_TYPE) == 0x1B && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S16(st, f + FIG_HOME)) == 4 &&
                         U8(st, g + FIG_TYPE) == 0x62) {
                         U8(st, g + FIG_STATE) = 2;

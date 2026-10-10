@@ -21,7 +21,7 @@ static uint8_t storage_setting(game_state *st, uint32_t storage, uint32_t good)
 /* @bin 0x00EA42F8 per player, per good (0x1276 dwords per player): non-zero, the good is held */
 static int32_t good_held(game_state *st, uint32_t good)
 {
-    return S32(st, CITY_BASE + CITY_U2A88 + 4u * (U32(st, CURRENT_PLAYER_ADDR) * 0x1276u + good));
+    return S32(st, CITY_BASE + CITY_STOCKPILE + 4u * (U32(st, CURRENT_PLAYER_ADDR) * 0x1276u + good));
 }
 
 /* append building `id` at grid offset `offset` to the candidate lists (count `n` before) */

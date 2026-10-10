@@ -11,7 +11,7 @@
 #include "state/records.h"
 
 #define TER(o) U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (o))
-#define FGRID(o) S16(st, G_FIGURE_GRID + 2u * (uint32_t) (o))
+#define FGRID(o) S16(st, G_GRID_FIGURE + 2u * (uint32_t) (o))
 
 static int32_t offset_of(game_state *st, int32_t x, int32_t y)
 {
@@ -63,7 +63,7 @@ void place_bridge(game_state *st, int32_t x, int32_t y, int32_t kind)
     int32_t step = S32(st, G_BRIDGE_STEP);
     for (int32_t i = 0; i < len; i++, off += step) {
         TER(off) |= 0x40u;
-        uint32_t s = G_SPRITE + (uint32_t) off;
+        uint32_t s = G_GRID_SPRITE + (uint32_t) off;
         int32_t v = -1;
         if (kind == 0) {
             if (i == len - 1) {

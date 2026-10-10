@@ -12,7 +12,7 @@
 #include "state/records.h"
 
 #define B(id) BUILDING_ADDR(id)
-#define PLAYER S32(st, G_PLAYER)
+#define PLAYER S32(st, CURRENT_PLAYER_ADDR)
 #define CITY CURRENT_CITY(st)
 
 static int32_t create(game_state *st, int32_t player, int32_t type, int32_t x, int32_t y, int32_t n, int32_t id)
@@ -123,7 +123,7 @@ int32_t monument_kind_4f4b70(game_state *st, int32_t id)
 static void slot_set_4f4a60(game_state *st, int32_t b, int32_t i)
 {
     /* @bin 0x004F4A60 city +0x473C[i] := the monument's building */
-    S32(st, CITY + CITY_U473C + 4u * (uint32_t) i) = b;
+    S32(st, CITY + CITY_MONUMENTS + 4u * (uint32_t) i) = b;
 }
 
 static int32_t slot_of_4f4aa0(game_state *st, int32_t b)
@@ -131,7 +131,7 @@ static int32_t slot_of_4f4aa0(game_state *st, int32_t b)
     /* @bin 0x004F4AA0 the slot (0-2) whose city +0x473C is b, or -1 */
     uint32_t c = CITY;
     for (int32_t i = 0; i < 3; i++) {
-        if (S32(st, c + CITY_U473C + 4u * (uint32_t) i) == b) {
+        if (S32(st, c + CITY_MONUMENTS + 4u * (uint32_t) i) == b) {
             return i;
         }
     }
@@ -150,8 +150,8 @@ int32_t monument_slot_4f4f80(game_state *st, int32_t id)
         return -1;
     }
     for (int32_t i = 0; i < 3; i++) {
-        if (S16(st, G_MONUMENT_SLOTS + 2u * (uint32_t) i) == k && S32(st, CITY_ADDR(1) + CITY_U4730 + 4u * (uint32_t) i) == 0) {
-            S32(st, CITY_ADDR(1) + CITY_U4730 + 4u * (uint32_t) i) = k;
+        if (S16(st, G_MONUMENT_SLOTS + 2u * (uint32_t) i) == k && S32(st, CITY_ADDR(1) + CITY_MONUMENT_TYPES + 4u * (uint32_t) i) == 0) {
+            S32(st, CITY_ADDR(1) + CITY_MONUMENT_TYPES + 4u * (uint32_t) i) = k;
             slot_set_4f4a60(st, id, i);
             return i;
         }

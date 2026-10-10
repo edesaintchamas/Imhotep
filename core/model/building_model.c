@@ -3,6 +3,7 @@
 #include "model/building_model.h"
 
 #include "model/model_text.h"
+#include "state/layout.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -60,12 +61,12 @@ void building_model_store(const building_model *m, game_state *st)
 {
     for (int t = 0; t < MODEL_BUILDINGS; t++) {
         for (int f = 0; f < 10; f++) {
-            S32(st, 0x00705EA4u + 0x28u * (uint32_t) t + 4u * (uint32_t) f) = m->building[t][f];
+            S32(st, G_MODEL_BUILDING + 0x28u * (uint32_t) t + 4u * (uint32_t) f) = m->building[t][f];
         }
     }
     for (int h = 0; h < MODEL_HOUSES; h++) {
         for (int f = 0; f < 22; f++) {
-            S32(st, 0x0070CDCCu + 0x58u * (uint32_t) h + 4u * (uint32_t) f) = m->house[h][f];
+            S32(st, G_HOUSE_LEVELS + 0x58u * (uint32_t) h + 4u * (uint32_t) f) = m->house[h][f];
         }
     }
 }

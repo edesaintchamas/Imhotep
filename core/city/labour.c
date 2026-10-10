@@ -26,7 +26,7 @@ int32_t building_resource_in_stock(game_state *st, int32_t id)
      * t >= 0x6A || t <= 0x72 holds for every type); the call is kept */
     GAME_CALLT(st, G_BUILDING_MANAGER, FN_BUILDING_IS_TYPE_0X487F80, id);
     uint32_t i = U8(st, BUILDING_ADDR(id) + BLD_OUTPUT_RESOURCE) + CITY_REC_SIZE / 2 * U32(st, CURRENT_PLAYER_ADDR);
-    return S16(st, CITY_BASE + CITY_U28B6 + 2 * i) != 0;
+    return S16(st, CITY_BASE + CITY_INDUSTRY_OFF + 2 * i) != 0;
 }
 
 void labour_allocate(game_state *st)

@@ -12,7 +12,6 @@
 #include "sim/call.h"
 #include "state/ported.h"
 
-#define ARMY_SIZE 0x144u
 
 static void image(game_state *st, int32_t id, int32_t x, int32_t y)
 {
@@ -224,7 +223,7 @@ void empire_city_panel_draw(game_state *st)
         if (route >= 0x32) {
             return;
         }
-        int32_t index = U8(st, G_ROUTES + 0x140u + ARMY_SIZE * route) == 1 ? 6 : 7;
+        int32_t index = U8(st, G_ROUTES + ROUTE_KIND + ROUTE_SIZE * route) == 1 ? 6 : 7;
         group(st, 0x2F, index, S32(st, G_TEXT_X) + x0 + 0x3C, top + 0x49, S32(st, G_FONT_LARGE), 0);
         return;
     }
@@ -308,7 +307,7 @@ void empire_army_panel_draw(game_state *st)
     }
     int32_t x = (S32(st, G_SCREEN_W) - 0xF0) / 2;
     int32_t ev = S32(st, G_MARKERS + 20u * (uint32_t) S32(st, G_ARMY_SEL));
-    uint32_t e = (ev >= 0 && ev < S32(st, G_EVENTS)) ? G_KINGDOM_EVENTS + 0x7Cu * (uint32_t) ev : 0;
+    uint32_t e = (ev >= 0 && ev < S32(st, G_EVENTS)) ? G_EVENT_RECORDS + 0x7Cu * (uint32_t) ev : 0;
     int32_t index;
     /* @bin 0x0052E662 an event out of range reads address 2 (as the original) */
     if (mem_rd8(st, e + 2) == 1) {
@@ -475,7 +474,7 @@ static int32_t army_progress(game_state *st, uint32_t e, int32_t *army, int32_t 
     if (own != 0) {
         *pct = 100 - *pct;
     }
-    *ours = U8(st, G_ARMIES + ARMY_SIZE * (uint32_t) *army) == 1;
+    *ours = U8(st, G_ROUTES + ROUTE_KIND + ROUTE_SIZE * (uint32_t) *army) == 1;
     *c = 0;
     return 1;
 }
@@ -539,7 +538,7 @@ void empire_map_draw(game_state *st)
     GAME_CALL0(st, FN_MARCH_STEP_START);
     int32_t mx = S32(st, G_MAP_X);
     int32_t my = S32(st, G_MAP_Y);
-    int32_t view_w = S32(st, G_UE38D9C) - 2 * mx;
+    int32_t view_w = S32(st, G_DRAW_W) - 2 * mx;
     S32(st, G_PIC_W) = view_w;
     int32_t view_h = S32(st, G_DRAW_H) - S32(st, G_MAP_BOTTOM) - my;
     S32(st, G_PIC_H) = view_h;
@@ -556,7 +555,7 @@ void empire_map_draw(game_state *st)
     S32(st, G_PIC_X) = sx;
     S32(st, G_PIC_Y) = sy;
     image(st, S32(st, G_EMPIRE_MAP_IMAGE), mx, my);
-    S32(st, G_CLIP_RIGHT) = S32(st, G_UE38D9C) - S32(st, G_MAP_X);
+    S32(st, G_CLIP_RIGHT) = S32(st, G_DRAW_W) - S32(st, G_MAP_X);
     S32(st, G_CLIP_LEFT) = S32(st, G_MAP_X);
     S32(st, G_CLIP_TOP) = S32(st, G_MAP_Y);
     S32(st, G_CLIP_BOTTOM) = S32(st, G_DRAW_H) - S32(st, G_MAP_BOTTOM);
@@ -670,7 +669,7 @@ void empire_map_draw(game_state *st)
             }
         }
         k = 0;
-        for (uint32_t q = G_ROUTES + 0x134u; q < G_ROUTES + 0x32u * ARMY_SIZE + 0x134u; q += ARMY_SIZE, k++) {
+        for (uint32_t q = G_ROUTES + ROUTE_U134; q < G_ROUTES + 0x32u * ROUTE_SIZE + ROUTE_U134; q += ROUTE_SIZE, k++) {
             uint32_t army = q - 0x134;
             if (U8(st, q + 0x0D) <= 1) {
                 U8(st, q + 0x0E) = 0;
@@ -703,7 +702,7 @@ void empire_map_draw(game_state *st)
     routes:
         /* @bin 0x005301C9 the routes of the open cities as dots */
         k = 0;
-        for (uint32_t q = G_ROUTES + 0x142u; q < G_ROUTES + 0x32u * ARMY_SIZE + 0x142u; q += ARMY_SIZE, k++) {
+        for (uint32_t q = G_ROUTES + 0x142u; q < G_ROUTES + 0x32u * ROUTE_SIZE + 0x142u; q += ROUTE_SIZE, k++) {
             uint32_t army = q - 0x142;
             if (U8(st, q - 1) <= 1) {
                 U8(st, q) = 0;
@@ -721,7 +720,7 @@ void empire_map_draw(game_state *st)
             int32_t left = GAME_CALLT(st, e, FN_EVENT_MONTHS_LEFT);
             int32_t a = S16(st, e + 0x58);
             if (a >= 0 && a < 0x32) {
-                uint32_t army = G_ROUTES + ARMY_SIZE * (uint32_t) a;
+                uint32_t army = G_ROUTES + ROUTE_SIZE * (uint32_t) a;
                 int32_t months = GAME_CALLT(st, army, FN_ARMY_TRAVEL_MONTHS);
                 if (left <= months && months > 0) {
                     int32_t pct = 100 - (int32_t) ((uint32_t) left * 100u) / months;
@@ -749,7 +748,7 @@ void empire_map_draw(game_state *st)
             int32_t a, pct, c;
             uint8_t ours;
             if (army_progress(st, e, &a, &pct, &ours, &c) && a >= 0 && a < 0x32) {
-                uint32_t army = G_ROUTES + ARMY_SIZE * (uint32_t) a;
+                uint32_t army = G_ROUTES + ROUTE_SIZE * (uint32_t) a;
                 int32_t x, y;
                 route_point(st, army, pct, 0, &x, &y);
                 int32_t img = ours ? S32(st, G_ARMY_IMAGE_OURS) : S32(st, G_ARMY_IMAGE_OTHER);

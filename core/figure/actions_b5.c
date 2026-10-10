@@ -26,7 +26,7 @@ static int wander_to(game_state *st, uint32_t rec)
 {
     random_next_state(st);
     uint32_t f = FIGB_F(st);
-    int32_t r = GAME_CALL(st, FN_HERD_SPOT, S16(st, rec), S16(st, rec + 2), (int32_t) (U32(st, G_R_1_15) & 0xF),
+    int32_t r = GAME_CALL(st, FN_HERD_SPOT, S16(st, rec), S16(st, rec + 2), (int32_t) (U32(st, G_RANDOM_R1_15BIT) & 0xF),
                           S16(st, f + FIG_X), S16(st, f + FIG_Y), 0);
     if (r < 0 || r >= 0x10) {
         return 0;

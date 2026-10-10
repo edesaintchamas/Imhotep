@@ -382,7 +382,7 @@ static void boat_4AE2C0(game_state *st, int32_t id, int32_t *moving)
             GAME_CALL(st, FN_BOAT_RAM_SOUND, div);
             S32(st, ef + FIG_HIT_POINTS) -= damage;
             GAME_CALL(st, FN_FIGURE_ROUTE_RELEASE, id);
-            int32_t r = (int32_t) (U32(st, G_R_1_7) & 2u) - 1; /* @bin 0x004AE3B1 -1 or +1 */
+            int32_t r = (int32_t) (U32(st, G_RANDOM_R1_7BIT) & 2u) - 1; /* @bin 0x004AE3B1 -1 or +1 */
             int32_t nd = clamp7(S8(st, f + FIG_DIRECTION) + r);
             int32_t ed = clamp7(S8(st, ef + FIG_DIRECTION) - r);
             U8(st, f + FIG_DIRECTION) = (uint8_t) nd;

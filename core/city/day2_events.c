@@ -94,7 +94,7 @@ int32_t event_move_step(game_state *st, uint32_t e)
     }
     /* @bin 0x0044BF55 the direction (low 4 bits of 0x00D3B374): which of the four points (+0x40
      * + 4 n) moves, and by how much */
-    uint16_t d = (uint16_t) (U32(st, G_R_1_7) & 0xF);
+    uint16_t d = (uint16_t) (U32(st, G_RANDOM_R1_7BIT) & 0xF);
     S16(st, e + 0x50) = (int16_t) d;
     int n, dx, dy;
     switch (d) {

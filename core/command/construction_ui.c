@@ -116,7 +116,7 @@ static void type_flags_1(game_state *st, int32_t t)
     case 0xB0: sub = 0x20; break;
     case 0x60: sub = 0x17; break;
     case 0x61: /* @bin 0x0040583F i16 CITY+0x4478 != 0 */
-        sub = S16(st, CURRENT_CITY(st) + CITY_U4478) != 0 ? 0x24 : 0x18;
+        sub = S16(st, CURRENT_CITY(st) + CITY_TEMPLE_COMPLEX) != 0 ? 0x24 : 0x18;
         break;
     case 0x96: sub = 0x1D; break;
     case 0x39: sub = 0x19; break;
@@ -407,7 +407,7 @@ int32_t construction_undo_snapshot(game_state *st)
         {G_CANAL, G_CANAL_BACKUP, 0xCB10u},  /* canals */
         {G_GRID_BITFIELDS, G_BITS_BACKUP, 0xCB10u},  /* bitfields */
         {G_GRID_EDGE, G_EDGE_BACKUP, 0xCB10u},  /* edge */
-        {G_SPRITE, G_SPRITE_BACKUP, 0xCB10u},  /* sprite */
+        {G_GRID_SPRITE, G_SPRITE_BACKUP, 0xCB10u},  /* sprite */
     };
     for (int i = 0; i < 6; i++) {
         memcpy(state_ptr(st, copies[i][1], copies[i][2]), state_ptr(st, copies[i][0], copies[i][2]), copies[i][2]);
@@ -427,7 +427,7 @@ void construction_undo_button(game_state *st)
 void construction_mouse_down(game_state *st)
 {
     /* @bin 0x00405C20 */
-    if (S32(st, G_HOVER_TILE) == 0 || U8(st, G_GATE) != 0) {
+    if (S32(st, G_HOVER_TILE) == 0 || U8(st, G_PAUSED) != 0) {
         return;
     }
     int32_t y = S32(st, G_HOVER_Y), x = S32(st, G_HOVER_X);
@@ -438,7 +438,7 @@ void construction_mouse_down(game_state *st)
     U8(st, G_DRAGGED) = 0;
     int32_t off = S32(st, G_MAP_START) + y * GRID_W + x;
     S32(st, G_HOVER_MARK) = off;
-    S32(st, G_DRAG_START_HEIGHT) = U8(st, G_ELEVATION_GRID + (uint32_t) off);
+    S32(st, G_DRAG_START_HEIGHT) = U8(st, G_GRID_ELEVATION + (uint32_t) off);
     /* @bin 0x00405C83 no undo snapshot for the first landing of a ferry */
     if (S32(st, G_FERRY_STATE) != 0 || S32(st, G_CONSTRUCTION_UI_TYPE) != 0x88) {
         if (construction_undo_snapshot(st) == 0) {
@@ -767,7 +767,7 @@ void construction_preview(game_state *st, int32_t x1, int32_t y1, int32_t x2, in
         GAME_CALL(st, FN_GHOST_FOOTPRINT, size, x2, y2, -1, 0, 0);
         goto done;
     case 0x5F:
-        if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0x5Fu) > 0) {
+        if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0x5Fu) > 0) {
             goto done;
         }
         GAME_CALL(st, FN_GHOST_FOOTPRINT, size, x2, y2, -1, 0, 0);

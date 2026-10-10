@@ -99,7 +99,8 @@
 /* ---- the display (core/frame/display.c, docs/presentation.md 2.1) ---- */
 #define G_SCREEN_W 0x00E38DB0u          /* @bin 0x004CFD60 i32: the mode's width (G_SCREEN_H) */
 #define G_SCREEN_PITCH 0x00E38D94u      /* @bin 0x004CFDC0 i32: the back buffer's pitch in bytes */
-#define G_DRAW_H 0x00E38D98u            /* @bin 0x004CFDC0 i32: the drawing height (width G_UE38D9C) */
+#define G_DRAW_W 0x00E38D9Cu            /* @bin 0x004CF960 i32: the drawing width (= G_SCREEN_W at the set-up, docs/presentation.md 2.1) */
+#define G_DRAW_H 0x00E38D98u            /* @bin 0x004CFDC0 i32: the drawing height (width G_DRAW_W) */
 #define G_FULLSCREEN 0x00E38E5Cu        /* @bin 0x00426B40 i32: the option, fullscreen (1) or windowed */
 #define G_CLIENT_RECT 0x00E39130u       /* @bin 0x00414E8A i32[4]: left, top, right, bottom of the client area */
 #define G_DDRAW 0x00E39148u             /* @bin 0x00426EE0 the DirectDraw object */
@@ -180,9 +181,36 @@
 #define G_STR_AUTOSAVE_HISTORY 0x005E1BFCu /* @bin 0x004D5C79 "autosave_history.sav" */
 #define G_STR_AUTOSAVE_SAV 0x005E1C14u  /* @bin 0x004D5C79 "autosave.sav" */
 
-/* --- harvested: names the ports gave these addresses in local #defines (tools/naming/harvest.py).
- * @bin evidence: the defining port (file) and its comment. A package agent checks each name it
- * uses, and moves it above this block once checked. --- */
-/* --- end harvested --- */
+/* ---- names merged from the packages' pending fragments (phase 10.4): each group keeps its
+ * package's heading (the package and its file in brackets) ---- */
+/* P7 (g_frame.h) [p4_command] */
+#define G_U6FDC50 0x006FDC50u          /* @bin 0x004DE080 i32: Alt+D toggle, widens the editor's camera bounds */
+#define G_U70E418 0x0070E418u          /* @bin 0x00430530 i32: := 0 by the view table build (core/frame/view.c) */
+#define G_OVERLAY_PREV 0x00E94E10u     /* @bin 0x004023A0 i32: the previous overlay (core/frame/wndproc.c) */
+/* -- named with the rewrite of core/boot, core/newgame/graphics.c -- [p6_scenario] */
+#define G_DEBUG_EVENT 0x00605A08u /* @bin 0x0051FBCC i32: debug: the event (text group 0x9D), Ctrl+G cycles it (core/frame/wndproc.c) [g_frame.h] */
+#define G_DEBUG_EVENT_LEVEL 0x00605A04u /* @bin 0x0051FBCC i32: debug: its level, Ctrl+H [g_frame.h] */
+#define G_DEBUG_EVENT_KIND 0x00605A00u /* @bin 0x0051FBCC i32: debug: its kind, Ctrl+J; Ctrl+K posts it [g_frame.h] */
+#define G_SURFACE_LOCK 0x006DE518u /* @bin 0x004D0480 the surface lock object: +8 / +0xC the back buffer's width / height, +0x10 1 for 565, +0x1C / +0x20 the surfaces, +0x24 / +0x28 their pixels [g_frame.h] */
+#define G_WINDOWED_X 0x00E390E8u /* @bin 0x00426E09 i32: the windowed window's place, centred on the screen [g_frame.h] */
+#define G_WINDOWED_Y 0x00E390E4u /* @bin 0x00426E09 i32 [g_frame.h] */
+#define G_UE92E00 0x00E92E00u /* @bin 0x004D01E0 an object released (never set in the runs, core/frame/display.c) [g_frame.h] */
+#define G_UE92E04 0x00E92E04u /* @bin 0x00426FF0 i32: := 0 around the lock test; != 0 with a video: no present (core/frame/frame.c) [g_frame.h] */
+#define G_RESOLUTION_KEPT 0x00E92E4Cu /* @bin 0x004D0220 i32: the last resolution that worked [g_frame.h] */
+#define G_FULLSCREEN_KEPT 0x005E06D8u /* @bin 0x004D0220 i32: the last fullscreen option that worked [g_frame.h] */
+#define G_U5E06D4 0x005E06D4u /* @bin 0x004D0220 u8: := 0 when a mode works [g_frame.h] */
+#define G_APP_ACTIVE 0x00E3912Cu /* @bin 0x004D0220 i32: the window is active (core/frame/display.c) [g_frame.h] */
+#define G_DRAG_STATE 0x00E38E14u /* @bin 0x004CF263 i32: a mouse drag, 1 started, 2 past 50 px from its start (core/frame/frame.c) [g_frame.h] */
+#define G_UE38D90 0x00E38D90u /* @bin 0x004CF990 i32: the mode's height (with G_DRAW_H) [g_frame.h] */
+#define G_SCREEN_BYTES 0x00E38D8Cu /* @bin 0x004CF990 i32: the back buffer's size in bytes, 2 * w * h (docs/presentation.md 2.1) [g_frame.h] */
+#define G_RESOLUTION_SAVED 0x00E38EE4u /* @bin 0x00414902 i32: the confirmed resolution (core/frame/display.c, present/ui/frontend/screens.c) [g_frame.h] */
+#define G_AMBIENT_CHOICE 0x00F55B80u /* @bin 0x0053B9A3 i32: the ambient sound chosen (-1 by the start-up; core/frame/sound.c) [g_frame.h] */
+/* formations (save.md §3 chunks 25-27) [p6_scenario] */
+#define G_SOUND_LAST_TIME 0x007028FCu /* @bin 0x0041D5BE u32: the last time (timeGetTime) a city sound slot was chosen [g_frame.h] */
+#define G_UE38E54 0x00E38E54u /* @bin 0x00431029 i32: 1: no border image off the map (present/city/ground.c); := 0 by 0x00540B50 [g_frame.h] */
+#define G_ANIM_TIMERS 0x00605A6Cu /* @bin 0x0040F270 i32[51]: the animation timers (flags G_ANIM_FLAGS) [g_frame.h] */
+/* ---- globals of other areas (core or another present package uses them) ---- [p8a_ui_main] */
+#define G_TEST_VALUE4A 0x00D3B460u /* @bin 0x00534610 i32 "test_value4a" */
+#define G_WAS_IN_SET 0x00F55B9Cu /* @bin 0x00534610 i32 "was_in_set" */
 
 #endif

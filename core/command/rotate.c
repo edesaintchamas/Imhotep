@@ -123,19 +123,19 @@ void rotate_view(game_state *st, int dir)
     int32_t centre = view_centre(st);
     int32_t o;
     if (dir > 0) {
-        o = S32(st, G_UE94E04) + 2;
-        S32(st, G_UE94E04) = o;
+        o = S32(st, G_CITY_ORIENTATION) + 2;
+        S32(st, G_CITY_ORIENTATION) = o;
         if (o > 6) {
             o = 0;
-            S32(st, G_UE94E04) = 0;
+            S32(st, G_CITY_ORIENTATION) = 0;
         }
     } else {
-        o = S32(st, G_UE94E04) - 2;
-        S32(st, G_UE94E04) = o;
+        o = S32(st, G_CITY_ORIENTATION) - 2;
+        S32(st, G_CITY_ORIENTATION) = o;
         if (o < 0) {
-            S32(st, G_UE94E04) = 6;
+            S32(st, G_CITY_ORIENTATION) = 6;
         }
-        o = S32(st, G_UE94E04);
+        o = S32(st, G_CITY_ORIENTATION);
     }
     view_table_build(st, o);
     if (centre >= 0xFFF0000) {
@@ -146,7 +146,7 @@ void rotate_view(game_state *st, int dir)
     S32(st, G_CAMERA_X) = x;
     int32_t y = S32(st, G_ROAD_ACCESS_Y) - S32(st, G_VIEW_ROWS) / 2;
     S32(st, G_CAMERA_Y) = y;
-    int32_t now = S32(st, G_UE94E04);
+    int32_t now = S32(st, G_CITY_ORIENTATION);
     if (now == 4 || now == 0) {
         if (dir > 0) {
             S32(st, G_CAMERA_X) = x + 1;
@@ -256,7 +256,7 @@ static void edge_draw_tiles(game_state *st)
     /* @bin 0x0047D720 bit 0x40 of the edge grid: tiles of no building, and the tile of each
      * building (size 1..5, bitfields low nibble) whose position (edge & 0x3F) is drawn for the
      * orientation: 8 * size (0), 9 * size (6), size (4), 0 (2) */
-    int32_t o = S32(st, G_UE94E04);
+    int32_t o = S32(st, G_CITY_ORIENTATION);
     for (int32_t row = 0; row < S32(st, G_MAP_HEIGHT); row++) {
         int32_t first = S32(st, G_ROW_FIRST + 4u * (uint32_t) row);
         int32_t end = S32(st, G_ROW_END + 4u * (uint32_t) row);
@@ -301,26 +301,26 @@ static void bridge_sprites_rotate(game_state *st)
             if (!(U8(st, G_GRID_TERRAIN + 4 * off) & 4)) {
                 continue;
             }
-            uint8_t s = U8(st, G_SPRITE + off);
+            uint8_t s = U8(st, G_GRID_SPRITE + off);
             int one = last == 1;
             switch (s) {
             case 1:
-                U8(st, G_SPRITE + off) = one ? 6 : 4;
+                U8(st, G_GRID_SPRITE + off) = one ? 6 : 4;
                 break;
             case 2:
-                U8(st, G_SPRITE + off) = 5;
+                U8(st, G_GRID_SPRITE + off) = 5;
                 break;
             case 3:
-                U8(st, G_SPRITE + off) = one ? 4 : 6;
+                U8(st, G_GRID_SPRITE + off) = one ? 4 : 6;
                 break;
             case 4:
-                U8(st, G_SPRITE + off) = one ? 1 : 3;
+                U8(st, G_GRID_SPRITE + off) = one ? 1 : 3;
                 break;
             case 5:
-                U8(st, G_SPRITE + off) = 2;
+                U8(st, G_GRID_SPRITE + off) = 2;
                 break;
             case 6:
-                U8(st, G_SPRITE + off) = one ? 3 : 1;
+                U8(st, G_GRID_SPRITE + off) = one ? 3 : 1;
                 break;
             default:
                 break;

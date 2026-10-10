@@ -62,6 +62,9 @@
 #define FIGTYPE_U24 0x24u        /* i32: shares of an invasion's three groups (0x004AD556: types 0x2B..0x2D, 0x36..0x38, 0x63) */
 #define FIGTYPE_U28 0x28u        /* i32: compared with FIG_U134 (0x004A61E2, 0x004AE34A) */
 #define FIGTYPE_U2C 0x2Cu        /* i32: compared with FIG_U138 (0x004A5DA0 caller, actions_a3.c) */
+#define FIGTYPE_U30 0x30u        /* @bin 0x00446A30 i32: an invader's FIG_FRAME_PERIOD (core/city/events_troops.c) */
+#define FIGTYPE_U34 0x34u        /* @bin 0x00446A30 i32: an invader's FIG_FRAME_TICKS (core/city/events_troops.c) */
+#define G_FIGURE_TYPE_STRIDE 0x38u /* @bin 0x00446A30 the stride of G_PROPS (one entry per figure type) */
 
 /* @bin formations and the combat searches (formation.c, enemies.c, invaders.c, actions_d.c): scratch
  * globals and the counters of chunks 26, 27, 108-112 (save.md section 3) */
@@ -429,9 +432,7 @@
 #define G_FULL_LIST 0x0096E6B4u /* core/building/day_water.c: i32[4000]: tiles at 255, floodplain from the start, others from the end */
 #define G_CANDIDATE_IDS 0x00972530u /* core/figure/actions_a2.c: the candidates' building ids, 1-based like the offsets */
 #define G_FERRY_SLOTS 0x009784D8u /* ferry-boat passenger lists, 50 x 44 (save.md chunk 138; figure +0x11C) (core/figure/actions_c.c) */
-#define G_GRID_VEGETATION 0x00A43EACu /* u8 per tile: vegetation grid (save.md chunk 144); 0xFF tested by the wood cutters (0x00486810) */
 #define G_THREAT 0x00A835FCu /* core/figure/enemies.c: u8 per tile: threat of the player's soldiers */
-#define G_FIGURE_GRID 0x00B350DCu /* i16 per tile: first figure (save.md chunk 12; core/city/day2_flood.c) */
 #define G_MAP_YE 0x00BCA2F4u /* core/figure/actions_c2.c: last y */
 #define G_PROF_STATS 0x00BCA850u /* core/figure/figure.c */
 #define G_PROF_TYPE 0x00BCB610u /* core/figure/figure.c */
@@ -446,21 +447,49 @@
 #define G_CURRENT_FIGURE 0x00D056F8u /* core/figure/actions_b.h: the figure being updated */
 #define G_FIGURE_SERIAL 0x00D056FCu /* creation counter, kept at +0x86 (save.md chunk 86; core/figure/figure_create.c) */
 #define G_PROF_PRECISE 0x00D05710u /* core/figure/figure.c: QueryPerformanceCounter available */
-#define G_R_1_15 0x00D3B370u /* core/city/month_events.c */
-#define G_R_IV1 0x00D3B384u /* core/city/month_events.c */
 #define G_DIST_Y 0x00D3B4F8u /* core/figure/actions_d2.c: @bin |dy| of the last distance */
 #define G_DIST_X 0x00D3B4FCu /* core/figure/actions_a.c: the last distances computed (kept by the original in globals) */
 #define G_SPRITE_DIRECTION 0x00E94E00u /* core/figure/actions_a.c: the current figure's direction relative to the view */
-#define G_PLAYER 0x00EAAC28u /* core/city/goods.c: chunk 31 */
 #define G_FERRY_QUEUES 0x00EAAF68u /* ferry-landing queues, 50 x 0xE0 (save.md chunk 137; building +0xCA) */
 #define G_EBAB20 0x00EBAB20u /* core/map/routing.h */
 #define G_EC7630 0x00EC7630u /* core/map/routing.h */
-#define G_GRID_ROUTING_WATER 0x00ED4140u /* core/figure/actions_c2.c: i8 per tile: routing (water) */
 #define G_RESOURCE_ICONS 0x00F571FCu /* present/ui/messages/window.c: i32 first resource icon */
 
-/* --- harvested: names the ports gave these addresses in local #defines (tools/naming/harvest.py).
- * @bin evidence: the defining port (file) and its comment. A package agent checks each name it
- * uses, and moves it above this block once checked. --- */
-/* --- end harvested --- */
+/* ---- names merged from the packages' pending fragments (phase 10.4): each group keeps its
+ * package's heading (the package and its file in brackets) ---- */
+/* @bin globals of other areas used by core/figure; the function or chunk on each line [p1_figure] */
+#define G_TRADER_NEXT 0x0077AEFCu /* i32 next trader record index (chunk 95) */
+#define G_U784DC4 0x00784DC4u /* i32 x of three points (-1: none; 0x004AEAB0) */
+#define G_U784DD0 0x00784DD0u /* i32 y of the three points */
+#define G_STORAGE_SETTINGS_U08 0x007900C0u /* storage settings records of 0xC4 bytes by building +0xC1 (chunk 113 at 0x007900B8, +8) */
+#define G_FLOOD_STATE 0x00D386D4u /* i32 flood state 1..3 (0x004894A0; tick.md) */
+/* @bin 0x0053DFF0 image groups (G_IMAGE_GROUPS + 8 * n: the group's first image id,
+ * docs/formats/graphics.md) also drawn outside core/figure [p1_figure] */
+#define G_IMAGE_GROUP_157 0x00F5609Cu
+#define G_IMAGE_GROUP_323 0x00F565CCu
+#define G_IMAGE_GROUP_348 0x00F56694u /* the warship picture (present/ui/advisors/a_military.c), also a map marker (core/figure/actions_b1.c) */
+#define G_IMAGE_GROUP_353 0x00F566BCu
+#define G_IMAGE_GROUP_395 0x00F5680Cu
+#define G_IMAGE_GROUP_396 0x00F56814u /* the legion banners, + the legion (present/ui/info/military.c, a_military.c), also map markers (core/figure/actions_b1.c) */
+#define G_IMAGE_GROUP_714 0x00F57204u
+/* the military (g_figure.h, P1) [p2_building] */
+#define G_FORMATION_HIGHEST 0x00BCB9BCu /* @bin 0x004B6E10 i32: the highest formation id in use (save.md chunk 25) */
+/* ferry slots (G_FERRY_SLOTS, chunk 138, 0x2C-byte records, +0 in use; g_figure.h) [p5_map] */
+#define FERRY_SLOT_FIGURES 0x04u /* @bin 0x004A3560 i32[4]: the figures listed */
+/* ferry-landing queues (chunk 137): G_FERRY_QUEUES + 0xE0 * id, ids 1..49; the building's BLD_UCA holds the id [p5_map] */
+#define REC88_BUILDING 0xDCu /* @bin 0x0046EFD0 i32: the building */
+/* @bin 0x004B5AF0 the figure name counters (save.md §3 chunks 54-74, 101-104, 150-165; seeded by
+ * 0x004B58D0), named after their text group as G_NAME_COUNTER_10F [g_figure.h] [p6_scenario] */
+#define G_NAME_COUNTER_10B 0x00D056ACu /* [g_figure.h] */
+#define G_NAME_COUNTER_10C 0x00D056A8u /* [g_figure.h] */
+#define G_NAME_COUNTER_10D 0x00D056A4u /* [g_figure.h] */
+#define G_NAME_COUNTER_10E 0x00D056A0u /* [g_figure.h] */
+/* ---- globals of other areas (core or another present package uses them) ---- [p8a_ui_main] */
+#define G_FORMATION_X 0x00BCB9F6u /* @bin 0x004B80B0 i16 +0x2E of formation 0 (G_FORMATION_BASE, stride 0x90): x */
+#define G_FORMATION_Y 0x00BCB9F8u /* @bin 0x004B80B0 i16 +0x30 of formation 0: y (present/sidebar/minimap.c) */
+#define G_FORMATION_U42 0x00BCBA0Au /* @bin 0x004B80B0 u8 +0x42 of formation 0: 0 when not dying */
+#define G_FORMATION_IN_FIELD 0x00BCBA2Fu /* @bin 0x00522A60 u8 +0x67 of formation 0: set makes the legions page's "any" */
+#define G_FORMATION_U82 0x00BCBA4Au /* @bin 0x00522A60 i16 +0x82 of formation 0: < 0 still to place */
+#define G_IMG_OVERLAY_LEVELS 0x00F56CA4u /* @bin 0x00434AA0 i32 the first overlay level image (present/city/overlay_tiles.c) */
 
 #endif

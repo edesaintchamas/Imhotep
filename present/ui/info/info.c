@@ -598,7 +598,7 @@ static void open_figures(game_state *st, int32_t tile)
         S32(st, G_FIGURES + 4u * (uint32_t) i) = 0;
     }
     for (uint32_t o = G_TILE_NEIGHBOURS; o < G_FIGURE_THUMB_OFFSETS; o += 4) {
-        int32_t f = S16(st, G_FIGURE_GRID + 2u * (uint32_t) (tile + S32(st, o)));
+        int32_t f = S16(st, G_GRID_FIGURE + 2u * (uint32_t) (tile + S32(st, o)));
         while (f > 0) {
             uint32_t fa = FIGURE_ADDR(f);
             if (U8(st, fa + FIG_STATE) != 2) {
@@ -817,7 +817,7 @@ void info_advisors_of_building(game_state *st, uint32_t out)
     case 0xC7: {
         if (lacks_workers(st)) FLAG(1);
         /* @bin 0x005151FE the three gods of the city (+0x4730, or the defaults 0x00784DE0) */
-        uint32_t c = CURRENT_CITY(st) + CITY_MONUMENT_CODE;
+        uint32_t c = CURRENT_CITY(st) + CITY_MONUMENT_TYPES;
         for (uint32_t d = G_MONUMENT_SLOTS; d < G_MONUMENT_SLOTS + 6u; d += 2, c += 4) {
             int32_t v = S32(st, c);
             int32_t g = v == 0 ? S16(st, d) : v;
@@ -1047,7 +1047,7 @@ int32_t info_open(game_state *st)
     b = S32(st, G_INFO_BUILDING);
     S32(st, G_INFO_KIND) = 1;
     S32(st, G_INFO_FIGURE_VIEW) = 0;
-    if (S16(st, G_GRID_BUILDING + 2u * (uint32_t) tile) == 0 && U8(st, G_SPRITE + (uint32_t) tile) != 0) {
+    if (S16(st, G_GRID_BUILDING + 2u * (uint32_t) tile) == 0 && U8(st, G_GRID_SPRITE + (uint32_t) tile) != 0) {
         /* @bin 0x004F80EC a tile of 0x00ADC36C (no building): 0xA, or 0xB with flag 4 */
         S32(st, G_INFO_TERRAIN_KIND) = (int32_t) (((U32(st, G_GRID_TERRAIN + 4u * (uint32_t) tile) & 0xFF & 4) | 0x28) >> 2);
     } else {

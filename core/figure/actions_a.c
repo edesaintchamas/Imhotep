@@ -60,7 +60,7 @@ static uint32_t type_info(game_state *st, uint32_t f)
 static int on_alt_tile(game_state *st, uint32_t f)
 {
     int32_t tile = S32(st, f + FIG_GRID_OFFSET);
-    return (U32(st, G_GRID_TERRAIN + 4u * (uint32_t) tile) & 4) != 0 && U8(st, G_SPRITE + (uint32_t) tile) == 0;
+    return (U32(st, G_GRID_TERRAIN + 4u * (uint32_t) tile) & 4) != 0 && U8(st, G_GRID_SPRITE + (uint32_t) tile) == 0;
 }
 
 void figure_action_01(game_state *st)
@@ -624,9 +624,9 @@ void figure_action_04(game_state *st)
          * player) and 0x00EA42F8 (u32, 0x1276 per player) */
         uint32_t good = U8(st, b + BLD_OUTPUT_RESOURCE);
         uint32_t player = U32(st, CURRENT_PLAYER_ADDR);
-        int16_t mode = S16(st, CITY_BASE + CITY_GOOD_SETTING + 2u * (player * 0x24ECu + good));
+        int16_t mode = S16(st, CITY_BASE + CITY_TRADE_STATUS + 2u * (player * 0x24ECu + good));
         int held = mode == 2 || mode == 4;
-        if (S32(st, CITY_BASE + CITY_U2A88 + 4u * (player * 0x1276u + good)) == 0 && !held) {
+        if (S32(st, CITY_BASE + CITY_STOCKPILE + 4u * (player * 0x1276u + good)) == 0 && !held) {
             figure_route_release(st, id);
         }
         int32_t dest = cart_find_destination(st, cur(st), terrain);
@@ -1885,7 +1885,7 @@ void figure_action_14(game_state *st)
             if (!a14_found_building(st)) {
                 f = fig(st);
                 /* @bin 0x00491D97 the figure grid 0x00B350DC at its tile */
-                if (S16(st, G_FIGURE_GRID + 2u * (uint32_t) S32(st, f + FIG_GRID_OFFSET)) != cur(st) &&
+                if (S16(st, G_GRID_FIGURE + 2u * (uint32_t) S32(st, f + FIG_GRID_OFFSET)) != cur(st) &&
                     GAME_CALL(st, FN_DOCK_FREE_MOORINGS, cur(st)) != 0) {
                     f = fig(st);
                     U8(st, f + FIG_ACTION) = 0x0B;

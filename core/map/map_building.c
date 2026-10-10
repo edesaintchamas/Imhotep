@@ -12,7 +12,7 @@ void map_building_tiles(game_state *st, int32_t id, int32_t x, int32_t y, int32_
 {
     /* @bin 0x0047BF50 the tile that gets edge bit 0x40, by view orientation */
     int32_t cx, cy;
-    switch (S32(st, G_UE94E04)) {
+    switch (S32(st, G_CITY_ORIENTATION)) {
     case 0: cx = 0; cy = sy - 1; break;
     case 2: cx = 0; cy = 0; break;
     case 4: cx = sx - 1; cy = 0; break;

@@ -11,7 +11,7 @@
 
 static uint32_t city(game_state *st, uint32_t field)
 {
-    return field + (uint32_t) (S32(st, G_PLAYER) * (int32_t) CITY_REC_SIZE);
+    return field + (uint32_t) (S32(st, CURRENT_PLAYER_ADDR) * (int32_t) CITY_REC_SIZE);
 }
 
 static int32_t cs32(game_state *st, uint32_t field)
@@ -74,11 +74,11 @@ void advisor_explain_draw(game_state *st)
         if (mode == 1) {
             if (cs32(st, CITY_BASE + CITY_U4644) + cs32(st, CITY_BASE + CITY_U4634) > 3) {
                 text = -1;
-            } else if (cs32(st, CITY_BASE + CITY_IMMIGRANTS_MONTH) >= 5) {
+            } else if (cs32(st, CITY_BASE + CITY_IMMIGRANTS_THIS_MONTH) >= 5) {
                 text = 0x44;
                 page = 0;
-            } else if (cs32(st, CITY_BASE + CITY_U2728) == 0 && cs32(st, CITY_BASE + CITY_HOUSE_ROOM_LEFT) > 0) {
-                if (cs32(st, CITY_BASE + CITY_MIGRATION_PERCENT) >= 0x50) {
+            } else if (cs32(st, CITY_BASE + CITY_U2728) == 0 && cs32(st, CITY_BASE + CITY_HOUSE_ROOM) > 0) {
+                if (cs32(st, CITY_BASE + CITY_MIGRATION_PCT) >= 0x50) {
                     text = 0x44;
                     page = 0;
                 } else {
@@ -89,7 +89,7 @@ void advisor_explain_draw(game_state *st)
                 page = 7;
             }
         } else if (mode == 0) {
-            if (cs32(st, CITY_BASE + CITY_U2728) == 0 && cs32(st, CITY_BASE + CITY_HOUSE_ROOM_LEFT) > 0) {
+            if (cs32(st, CITY_BASE + CITY_U2728) == 0 && cs32(st, CITY_BASE + CITY_HOUSE_ROOM) > 0) {
                 text += 0x46;
             } else {
                 page = 7;
@@ -292,7 +292,7 @@ void advisor_explain_draw(game_state *st)
     }
     case 11: {
         page = 7;
-        int32_t v = GAME_CALLT0(st, G_FLOODPLAIN, FN_FLOOD_0X4BD590);
+        int32_t v = GAME_CALLT0(st, G_FLOODPLAIN_SETTINGS, FN_FLOOD_0X4BD590);
         text = (v + 0x13) / 0x14 + 0xC6; /* @bin 0x005386D2 toward zero */
         break;
     }

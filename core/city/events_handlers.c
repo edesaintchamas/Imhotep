@@ -129,7 +129,7 @@ void event_request(game_state *st, uint32_t e)
         }
         message_post(st, id, S16(st, e), 0, blk, 0);
         /* @bin 0x0044D302 the tutorial step 8 */
-        if (U8(st, G_MISSION_LIST_FLAGS + 8) != 0 || (int32_t) S8(st, G_MISSION) != S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 8) || U8(st, e + 2) != 1 ||
+        if (U8(st, G_TUTORIAL_FLAGS + 8) != 0 || (int32_t) S8(st, G_MISSION) != S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 8) || U8(st, e + 2) != 1 ||
             S16(st, e + 4) != 0xD || S32(st, G_CUSTOM) != 0) {
             return;
         }

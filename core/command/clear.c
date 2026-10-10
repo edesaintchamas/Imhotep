@@ -88,7 +88,7 @@ void clear_land(game_state *st, int32_t preview, int32_t x1, int32_t y1, int32_t
         if (xmin <= xmax) {
             do {
                 int32_t bid = S16(st, G_GRID_BUILDING + 2u * (uint32_t) off);
-                uint8_t sprite = G8(st, G_SPRITE, off);
+                uint8_t sprite = G8(st, G_GRID_SPRITE, off);
                 uint32_t bridge_bit = T32(st, off) & 4u;
                 if (bid != 0) {
                     /* @bin 0x00474521 fort parts 0x39 / 0x36 (text 0x10) */
@@ -165,28 +165,28 @@ void clear_confirm_bridge(game_state *st)
 static int32_t bridge_step(game_state *st, int32_t off)
 {
     int32_t ny = 0, nx = 0;
-    if ((T32(st, off - 228) & 4u) && G8(st, G_SPRITE, off - 228) != 0) {
+    if ((T32(st, off - 228) & 4u) && G8(st, G_GRID_SPRITE, off - 228) != 0) {
         ny = 1;
     }
-    if ((T32(st, off - 456) & 4u) && G8(st, G_SPRITE, off - 456) != 0) {
+    if ((T32(st, off - 456) & 4u) && G8(st, G_GRID_SPRITE, off - 456) != 0) {
         ny++;
     }
-    if ((T32(st, off + 228) & 4u) && G8(st, G_SPRITE, off + 228) != 0) {
+    if ((T32(st, off + 228) & 4u) && G8(st, G_GRID_SPRITE, off + 228) != 0) {
         ny++;
     }
-    if ((T32(st, off + 456) & 4u) && G8(st, G_SPRITE, off + 456) != 0) {
+    if ((T32(st, off + 456) & 4u) && G8(st, G_GRID_SPRITE, off + 456) != 0) {
         ny++;
     }
-    if ((T32(st, off + 1) & 4u) && G8(st, G_SPRITE, off + 1) != 0) {
+    if ((T32(st, off + 1) & 4u) && G8(st, G_GRID_SPRITE, off + 1) != 0) {
         nx = 1;
     }
-    if ((T32(st, off + 2) & 4u) && G8(st, G_SPRITE, off + 2) != 0) {
+    if ((T32(st, off + 2) & 4u) && G8(st, G_GRID_SPRITE, off + 2) != 0) {
         nx++;
     }
-    if ((T32(st, off - 1) & 4u) && G8(st, G_SPRITE, off - 1) != 0) {
+    if ((T32(st, off - 1) & 4u) && G8(st, G_GRID_SPRITE, off - 1) != 0) {
         nx++;
     }
-    if ((T32(st, off - 2) & 4u) && G8(st, G_SPRITE, off - 2) != 0) {
+    if ((T32(st, off - 2) & 4u) && G8(st, G_GRID_SPRITE, off - 2) != 0) {
         nx++;
     }
     return ny >= nx ? 228 : 1;
@@ -197,7 +197,7 @@ static int32_t bridge_start(game_state *st, int32_t off, int32_t step)
 {
     int32_t back = -step;
     if (T32(st, off + back) & 4u) {
-        while (G8(st, G_SPRITE, off + back) != 0) {
+        while (G8(st, G_GRID_SPRITE, off + back) != 0) {
             off += back;
             if (!(T32(st, off + back) & 4u)) {
                 break;
@@ -210,17 +210,17 @@ static int32_t bridge_start(game_state *st, int32_t off, int32_t step)
 int32_t bridge_figures(game_state *st, int32_t off)
 {
     /* @bin 0x0047F9B0 */
-    if (!(T32(st, off) & 4u) || G8(st, G_SPRITE, off) == 0) {
+    if (!(T32(st, off) & 4u) || G8(st, G_GRID_SPRITE, off) == 0) {
         return 0;
     }
     int32_t step = bridge_step(st, off);
     int32_t p = bridge_start(st, off, step);
-    int32_t count = S16(st, G_FIGURE_GRID + 2u * (uint32_t) p) != 0;
+    int32_t count = S16(st, G_GRID_FIGURE + 2u * (uint32_t) p) != 0;
     G8(st, G_GRID_BITFIELDS, p) &= 0xBF;
     if (T32(st, p + step) & 4u) {
-        while (G8(st, G_SPRITE, p + step) != 0) {
+        while (G8(st, G_GRID_SPRITE, p + step) != 0) {
             p += step;
-            if (S16(st, G_FIGURE_GRID + 2u * (uint32_t) p) != 0) {
+            if (S16(st, G_GRID_FIGURE + 2u * (uint32_t) p) != 0) {
                 count++;
             }
             G8(st, G_GRID_BITFIELDS, p) &= 0xBF;
@@ -238,7 +238,7 @@ static void bridge_remove_tile(game_state *st, int32_t p, int32_t preview)
         G8(st, G_GRID_BITFIELDS, p) |= 0x40;
     } else {
         uint32_t t = T32(st, p);
-        G8(st, G_SPRITE, p) = 0;
+        G8(st, G_GRID_SPRITE, p) = 0;
         T32(st, p) = t & 0xFFFFFFBFu;
     }
 }
@@ -246,14 +246,14 @@ static void bridge_remove_tile(game_state *st, int32_t p, int32_t preview)
 void bridge_remove(game_state *st, int32_t off, int32_t preview)
 {
     /* @bin 0x0047F810 */
-    if (!(T32(st, off) & 4u) || G8(st, G_SPRITE, off) == 0) {
+    if (!(T32(st, off) & 4u) || G8(st, G_GRID_SPRITE, off) == 0) {
         return;
     }
     int32_t step = bridge_step(st, off);
     int32_t p = bridge_start(st, off, step);
     bridge_remove_tile(st, p, preview);
     if (T32(st, p + step) & 4u) {
-        while (G8(st, G_SPRITE, p + step) != 0) {
+        while (G8(st, G_GRID_SPRITE, p + step) != 0) {
             p += step;
             bridge_remove_tile(st, p, preview);
             if (!(T32(st, p + step) & 4u)) {

@@ -123,9 +123,9 @@ static void add_ext(game_state *st, char *path)
     /* as 0x004CE3C0: "." and the three bytes of 0x00E38AEC */
     size_t n = strlen(path);
     path[n] = '.';
-    path[n + 1] = (char) U8(st, G_START_EXT);
-    path[n + 2] = (char) U8(st, G_START_EXT + 1);
-    path[n + 3] = (char) U8(st, G_START_EXT + 2);
+    path[n + 1] = (char) U8(st, G_FILE_EXT);
+    path[n + 2] = (char) U8(st, G_FILE_EXT + 1);
+    path[n + 3] = (char) U8(st, G_FILE_EXT + 2);
     path[n + 4] = 0;
 }
 
@@ -148,10 +148,10 @@ static void ext_of_path(game_state *st, const char *path)
     /* @bin 0x004CE330 the three bytes after the first '.' (if any) into 0x00E38AEC, then 0 */
     const char *dot = strchr(path, '.');
     if (dot) {
-        U8(st, G_START_EXT) = (uint8_t) dot[1];
-        U8(st, G_START_EXT + 1) = (uint8_t) dot[2];
-        U8(st, G_START_EXT + 2) = (uint8_t) dot[3];
-        U8(st, G_START_EXT + 3) = 0;
+        U8(st, G_FILE_EXT) = (uint8_t) dot[1];
+        U8(st, G_FILE_EXT + 1) = (uint8_t) dot[2];
+        U8(st, G_FILE_EXT + 2) = (uint8_t) dot[3];
+        U8(st, G_FILE_EXT + 3) = 0;
     }
 }
 
@@ -173,14 +173,14 @@ static void upper_case(game_state *st, uint32_t a)
 static int32_t file_cd_retry(game_state *st, const char *path)
 {
     ext_of_path(st, path);
-    upper_case(st, G_START_EXT);
-    if (!state_str_eq(st, G_STR_WAV, G_START_EXT) && !state_str_eq(st, G_STR_SMK, G_START_EXT) &&
-        !state_str_eq(st, G_STR_555, G_START_EXT)) {
+    upper_case(st, G_FILE_EXT);
+    if (!state_str_eq(st, G_STR_WAV, G_FILE_EXT) && !state_str_eq(st, G_STR_SMK, G_FILE_EXT) &&
+        !state_str_eq(st, G_STR_555, G_FILE_EXT)) {
         return 0;
     }
     memset(st->mem + (G_CD_DIR - STATE_BASE), 0, 40);
-    if (state_str_eq(st, G_STR_WAV, G_START_EXT) || state_str_eq(st, G_STR_SMK, G_START_EXT) ||
-        state_str_eq(st, G_STR_555, G_START_EXT)) {
+    if (state_str_eq(st, G_STR_WAV, G_FILE_EXT) || state_str_eq(st, G_STR_SMK, G_FILE_EXT) ||
+        state_str_eq(st, G_STR_555, G_FILE_EXT)) {
         text_copy(st, G_STR_C_ROOT, G_CD_DIR, 10);
     }
     U8(st, G_CD_DIR) = U8(st, G_DRIVE);
@@ -205,7 +205,7 @@ int32_t newgame_map_file_exists(game_state *st, char *path)
     /* @bin 0x005409D7 0x004CE3A0(path); 0x004CBEA0("map" 0x00576274, 0x00E38AEC, 3);
      * 0x004CE3C0(path) */
     strip_ext(path);
-    text_copy(st, G_STR_MAP, G_START_EXT, 3);
+    text_copy(st, G_STR_MAP, G_FILE_EXT, 3);
     add_ext(st, path);
     int32_t ok = file_exists(st, path);
     /* @bin 0x00540A02 the extension is cut again */
@@ -307,7 +307,7 @@ void newgame_mission_buildings(game_state *st)
     uint32_t carry = U32(st, G_CARRY_COPY);
     U32(st, G_CARRY_COPY) = 0;
     /* @bin 0x00418C26 flag 0 == '1': the kingdom rating is carried */
-    U32(st, G_KINGDOM_CARRY) = P8(st, t) == '1' ? carry : 0;
+    U32(st, G_CARRY_SAVINGS) = P8(st, t) == '1' ? carry : 0;
     uint8_t kind = P8(st, t + 4);
     if (kind == 'A') {
         /* @bin 0x00418C48 'A': pyramid 0xDE (x masked to 13 bits) */
@@ -385,9 +385,9 @@ void newgame_start(game_state *st, uint32_t name, int32_t flag)
     }
     path[n] = 0;
     /* @bin 0x005405CB the campaign globals the loader overwrites: kept and restored below */
-    int32_t carry = S32(st, G_KINGDOM_CARRY);
+    int32_t carry = S32(st, G_CARRY_SAVINGS);
     int8_t mission = S8(st, G_MISSION);
-    uint8_t period = U8(st, G_FLOW2_PERIOD);
+    uint8_t period = U8(st, G_PERIOD);
     uint8_t kind = U8(st, G_CAMPAIGN_KIND);
     uint8_t played = U8(st, G_PLAYED);
     uint8_t step = U8(st, G_STEP);
@@ -420,9 +420,9 @@ void newgame_start(game_state *st, uint32_t name, int32_t flag)
     /* @bin 0x00540747 the kept globals back */
     U32(st, G_PLAYED) = played;
     S8(st, G_MISSION) = mission;
-    U8(st, G_FLOW2_PERIOD) = period;
+    U8(st, G_PERIOD) = period;
     U8(st, G_CAMPAIGN_KIND) = kind;
-    S32(st, G_KINGDOM_CARRY) = carry;
+    S32(st, G_CARRY_SAVINGS) = carry;
     int8_t m = mission;
     if (kind == 3) {
         /* @bin 0x00540781 mission list: the step of the mission in the campaign table */
@@ -438,11 +438,11 @@ void newgame_start(game_state *st, uint32_t name, int32_t flag)
     int32_t custom = S32(st, G_CUSTOM);
     int32_t kingdom = S32(st, G_KINGDOM_BY_DIFF + 4u * U32(st, G_DIFFICULTY));
     uint32_t city = CURRENT_CITY(st);
-    S32(st, G_KINGDOM_START) = kingdom;
+    S32(st, G_CARRY_KINGDOM) = kingdom;
     S32(st, city + CITY_RATING_KINGDOM) = kingdom;
-    S32(st, city + CITY_PERSONAL_SAVINGS) = S32(st, G_KINGDOM_CARRY);
+    S32(st, city + CITY_SAVINGS) = S32(st, G_CARRY_SAVINGS);
     if (custom != 0) {
-        S32(st, city + CITY_PERSONAL_SAVINGS) = 0;
+        S32(st, city + CITY_SAVINGS) = 0;
     }
     int32_t rank = S16(st, G_SCENARIO_RANK);
     S32(st, city + CITY_PLAYER_RANK) = rank;
@@ -481,7 +481,7 @@ void newgame_start(game_state *st, uint32_t name, int32_t flag)
         for (uint32_t e = G_MISSION_LISTS; e + 0xC < G_MISSION_LISTS + 26u * 0x1Cu + 0xCu; e += 0x1C, i++) {
             uint8_t on = (int32_t) m > S32(st, e) ? 1 : 0;
             int32_t cnt = S32(st, e + 0xC);
-            U8(st, G_MISSION_LIST_FLAGS + i) = on;
+            U8(st, G_TUTORIAL_FLAGS + i) = on;
             uint32_t list = U32(st, e + 0x10);
             for (int32_t k = 0; k < cnt; k++) {
                 P8(st, G_ADVISOR_AVAILABLE + P32(st, list + 4u * (uint32_t) k)) = on;
@@ -489,7 +489,7 @@ void newgame_start(game_state *st, uint32_t name, int32_t flag)
         }
     } else {
         /* @bin 0x0054091A everything available: 26 bytes at 0x007027B8, 15 at 0x006FDC88 */
-        memset(st->mem + (G_MISSION_LIST_FLAGS - STATE_BASE), 1, 26);
+        memset(st->mem + (G_TUTORIAL_FLAGS - STATE_BASE), 1, 26);
         memset(st->mem + (G_ADVISOR_AVAILABLE - STATE_BASE), 1, 15);
     }
     build_menu_update(st);    /* 0x00404350 */
@@ -499,8 +499,8 @@ void newgame_start(game_state *st, uint32_t name, int32_t flag)
     city = CURRENT_CITY(st);
     if (S32(st, G_CUSTOM) == 0) {
         /* @bin 0x00540974 the campaign's kingdom ratings again */
-        S32(st, city + CITY_RATING_KINGDOM) = S32(st, G_KINGDOM_START);
-        S32(st, city + CITY_PERSONAL_SAVINGS) = S32(st, G_KINGDOM_CARRY);
+        S32(st, city + CITY_RATING_KINGDOM) = S32(st, G_CARRY_KINGDOM);
+        S32(st, city + CITY_SAVINGS) = S32(st, G_CARRY_SAVINGS);
     }
     S32(st, city + CITY_DIFFICULTY) = S32(st, G_DIFFICULTY);
     /* @bin 0x005409A5 */
@@ -518,7 +518,7 @@ void newgame_start(game_state *st, uint32_t name, int32_t flag)
  * 0x133) == '1' the positions of its monuments; then the campaign progress file is written */
 void newgame_carry_over(game_state *st)
 {
-    U32(st, G_CARRY) = U32(st, CURRENT_CITY(st) + CITY_PERSONAL_SAVINGS);
+    U32(st, G_CARRY) = U32(st, CURRENT_CITY(st) + CITY_SAVINGS);
     int32_t best12 = -1, idx12 = -1, best11 = -1, idx11 = -1, best = -1, idx = -1;
     int32_t lvl12 = 0, lvl11 = 0, lvl = 0;
     /* @bin 0x0041892F formations 1 .. 49 (0x90 bytes; a = record + 0x78) */
@@ -624,10 +624,10 @@ void newgame_next_mission(game_state *st)
 {
     uint32_t city = CURRENT_CITY(st);
     int32_t kingdom = S32(st, city + CITY_RATING_KINGDOM);
-    int32_t carry = S32(st, city + CITY_PERSONAL_SAVINGS);
+    int32_t carry = S32(st, city + CITY_SAVINGS);
     int32_t custom = S32(st, G_CUSTOM);
-    S32(st, G_KINGDOM_START) = kingdom;
-    S32(st, G_KINGDOM_CARRY) = carry;
+    S32(st, G_CARRY_KINGDOM) = kingdom;
+    S32(st, G_CARRY_SAVINGS) = carry;
     U32(st, G_PLAYED) = U32(st, G_PLAYED) + 1;
     int choose = 0;
     int32_t next = -1;
@@ -638,7 +638,7 @@ void newgame_next_mission(game_state *st)
             U8(st, G_CAMPAIGN_TABLE + CAMPAIGN_STEP_SIZE * (uint32_t) s + 0x3C) = 1;
             progress_save(st);
         }
-        next = GAME_CALLT(st, G_CAMPAIGN_TABLE, FN_CAMPAIGN_NEXT_STEP, S8(st, G_FLOW2_PERIOD), S8(st, G_STEP), 0);
+        next = GAME_CALLT(st, G_CAMPAIGN_TABLE, FN_CAMPAIGN_NEXT_STEP, S8(st, G_PERIOD), S8(st, G_STEP), 0);
         uint8_t kind = U8(st, G_CAMPAIGN_KIND);
         if ((kind == 2 || kind == 1) && next >= 0) {
             newgame_carry_over(st);
@@ -671,9 +671,9 @@ void newgame_next_mission(game_state *st)
         }
     }
     city = CURRENT_CITY(st);
-    S32(st, city + CITY_U44D0) = 0;
-    S32(st, city + CITY_U44D4) = 0;
-    S32(st, city + CITY_U44D8) = 0;
+    S32(st, city + CITY_KEEP_GOVERNING) = 0;
+    S32(st, city + CITY_EXTRA_MONTHS) = 0;
+    S32(st, city + CITY_EXTRA_MONTHS_GIVEN) = 0;
     custom = S32(st, G_CUSTOM);
     int list = 0, period = 0;
     if (next < 0) {
@@ -702,13 +702,13 @@ void newgame_next_mission(game_state *st)
     } else if (period) {
         /* @bin 0x00418835 the end of a period: the next one (videos after the fifth) */
         if (U8(st, G_CAMPAIGN_KIND) == 1) {
-            int32_t p = S8(st, G_FLOW2_PERIOD) + 1;
+            int32_t p = S8(st, G_PERIOD) + 1;
             S32(st, G_PERIOD_REACHED) = p;
             if (p != 5) {
                 if (p < 9) {
                     S32(st, G_CAMPAIGN_PERIOD) = p;
                     U8(st, G_WINDOW) = 0x17;
-                    U32(st, G_CAMPAIGN_CAMPAIGN_KIND) = 0;
+                    U32(st, G_CAMPAIGN_SELECTED) = 0;
                     goto done;
                 }
             } else {
@@ -772,7 +772,7 @@ void newgame_list_start(game_state *st)
 {
     uint8_t flag = 0;
     sound_stop_stream(st, G_SOUND, 0);
-    int32_t r = GAME_CALLT(st, G_LIST_OBJECT, FN_LIST_ROW_KIND, S32(st, G_SCENARIO_LIST_ROW));
+    int32_t r = GAME_CALLT(st, G_SCENARIO_LIST, FN_LIST_ROW_KIND, S32(st, G_SCENARIO_LIST_ROW));
     if (r == 0) {
         U8(st, G_CAMPAIGN_KIND) = 0;
     } else if (r == 1) {
@@ -813,17 +813,17 @@ void newgame_list_row(game_state *st)
     }
     row += S32(st, G_SCENARIO_FIRST);
     S32(st, G_SCENARIO_LIST_ROW) = row;
-    uint32_t name = (uint32_t) GAME_CALLT(st, G_LIST_OBJECT, FN_LIST_ROW_NAME, row);
+    uint32_t name = (uint32_t) GAME_CALLT(st, G_SCENARIO_LIST, FN_LIST_ROW_NAME, row);
     if (name == 0) {
         return;
     }
     GAME_CALL(st, FN_FILL_BYTES, (int32_t) G_MAP_NAME, 0x40, 0);
     strcpy_state(st, G_MAP_NAME, name);
     file_name_strip_extension(st, G_MAP_NAME); /* 0x004CE3A0 */
-    int32_t r = GAME_CALLT(st, G_LIST_OBJECT, FN_LIST_ROW_KIND, S32(st, G_SCENARIO_LIST_ROW));
+    int32_t r = GAME_CALLT(st, G_SCENARIO_LIST, FN_LIST_ROW_KIND, S32(st, G_SCENARIO_LIST_ROW));
     if (r == 0) {
         /* @bin 0x0041F772 maps\<name>.map, preview */
-        text_copy(st, G_STR_MAP, G_START_EXT, 3);
+        text_copy(st, G_STR_MAP, G_FILE_EXT, 3);
         file_name_add_extension(st, G_MAP_NAME); /* 0x004CE3C0 */
         char path[512];
         size_t n = 0;
@@ -843,7 +843,7 @@ void newgame_list_row(game_state *st)
         return;
     }
     /* @bin 0x0041F70C a mission: its record loaded without the scenario start */
-    int8_t m = (int8_t) GAME_CALLT(st, G_LIST_OBJECT, FN_LIST_ROW_MISSION, S32(st, G_SCENARIO_LIST_ROW));
+    int8_t m = (int8_t) GAME_CALLT(st, G_SCENARIO_LIST, FN_LIST_ROW_MISSION, S32(st, G_SCENARIO_LIST_ROW));
     S8(st, G_MISSION) = m;
     GAME_CALL(st, FN_LOADER_CAMPAIGN_RECORD, 0, 1);
     S8(st, G_MISSION) = m;

@@ -76,13 +76,13 @@ static void take_stone(game_state *st, int32_t site)
 {
     uint32_t f = fig(st);
     S16(st, f + FIG_AMOUNT) = 0;
-    int32_t r = GAME_CALL(st, FN_STORAGE_TAKE, S32(st, G_PLAYER), site, U8(st, f + FIG_COLLECTING), 0x190);
+    int32_t r = GAME_CALL(st, FN_STORAGE_TAKE, S32(st, CURRENT_PLAYER_ADDR), site, U8(st, f + FIG_COLLECTING), 0x190);
     if (r == 0x190) {
         S16(st, fig(st) + FIG_AMOUNT) = 0;
     } else if (r == 0) {
         S16(st, fig(st) + FIG_AMOUNT) = 0x190;
     } else {
-        GAME_CALL(st, FN_STORAGE_ADD, S32(st, G_PLAYER), S16(st, fig(st) + FIG_DEST_BUILDING), U8(st, fig(st) + FIG_COLLECTING), 0x190 - r);
+        GAME_CALL(st, FN_STORAGE_ADD, S32(st, CURRENT_PLAYER_ADDR), S16(st, fig(st) + FIG_DEST_BUILDING), U8(st, fig(st) + FIG_COLLECTING), 0x190 - r);
         S16(st, fig(st) + FIG_AMOUNT) = 0;
     }
 }
@@ -92,13 +92,13 @@ static void take_stone_at(game_state *st, int32_t site)
 {
     uint32_t f = fig(st);
     S16(st, f + FIG_AMOUNT) = 0;
-    int32_t r = GAME_CALL(st, FN_STORAGE_TAKE, S32(st, G_PLAYER), site, U8(st, f + FIG_COLLECTING), 0x190);
+    int32_t r = GAME_CALL(st, FN_STORAGE_TAKE, S32(st, CURRENT_PLAYER_ADDR), site, U8(st, f + FIG_COLLECTING), 0x190);
     if (r == 0x190) {
         S16(st, fig(st) + FIG_AMOUNT) = 0;
     } else if (r == 0) {
         S16(st, fig(st) + FIG_AMOUNT) = 0x190;
     } else {
-        GAME_CALL(st, FN_STORAGE_ADD, S32(st, G_PLAYER), site, U8(st, fig(st) + FIG_COLLECTING), 0x190 - r);
+        GAME_CALL(st, FN_STORAGE_ADD, S32(st, CURRENT_PLAYER_ADDR), site, U8(st, fig(st) + FIG_COLLECTING), 0x190 - r);
         S16(st, fig(st) + FIG_AMOUNT) = 0;
     }
 }
@@ -214,7 +214,7 @@ static void state_load(game_state *st, int32_t id, uint32_t home)
         if (!at_dest) {
             GAME_CALL(st, FN_FIGURE_FIND_ROUTE, cur(st));
             if (S16(st, fig(st) + FIG_PATH_ID) <= 0) {
-                GAME_CALL(st, FN_STORAGE_ADD, S32(st, G_PLAYER), site, U8(st, fig(st) + FIG_COLLECTING), 0x190);
+                GAME_CALL(st, FN_STORAGE_ADD, S32(st, CURRENT_PLAYER_ADDR), site, U8(st, fig(st) + FIG_COLLECTING), 0x190);
                 U8(st, fig(st) + FIG_ACTION) = 8;
                 return;
             }
@@ -844,13 +844,13 @@ void figure_action_55(game_state *st)
         U8(st, f + FIG_U0C) = 1;
         U8(st, f + FIG_INVISIBLE) = 1;
         if (GAME_CALL(st, FN_FIGURE_STEP_STRAIGHT, id, 1) == 1) {
-            labor_assign(st, G_UD05720, cur(st));
+            labor_assign(st, G_FLOODPLAIN_MANAGER, cur(st));
         }
         U8(st, fig(st) + FIG_INVISIBLE) = 1;
         break;
     case 0x0A: {
         if (U8(st, BUILDING_ADDR(S16(st, f + FIG_DEST_BUILDING)) + BLD_STATE) != 1) {
-            labor_assign(st, G_UD05720, id);
+            labor_assign(st, G_FLOODPLAIN_MANAGER, id);
             break;
         }
         U8(st, f + FIG_TERRAIN_USAGE) = 7;
@@ -1081,7 +1081,7 @@ void figure_action_55(game_state *st)
         if ((int8_t) GAME_CALL(st, FN_FIGURE_PYRAMID_LAY, id) != 0) {
             break;
         }
-        if (labor_wanted_anywhere(st, G_UD05720) != 0) {
+        if (labor_wanted_anywhere(st, G_FLOODPLAIN_MANAGER) != 0) {
             U8(st, fig(st) + FIG_ACTION) = 8;
             break;
         }

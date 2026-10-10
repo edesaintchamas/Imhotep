@@ -58,7 +58,7 @@ void line_error_step(game_state *st, int32_t along_y)
 void pixel_put_screen(game_state *st, int32_t x, int32_t y, int32_t colour)
 {
     /* @bin 0x004CD4E0 the pixel when (x, y) is on the screen */
-    if (x < 0 || x >= S32(st, G_UE38D9C) || y < 0 || y >= S32(st, G_DRAW_H)) {
+    if (x < 0 || x >= S32(st, G_DRAW_W) || y < 0 || y >= S32(st, G_DRAW_H)) {
         return;
     }
     pixel_put(st, x, y, colour);
@@ -115,11 +115,11 @@ static void clamp(game_state *st, int32_t *x, int32_t *y, int32_t *w, int32_t *h
 {
     if (*x <= 0) {
         *x = 0;
-        if (!bevel && *x + *w >= S32(st, G_UE38D9C)) {
-            *w = S32(st, G_UE38D9C) - *x;
+        if (!bevel && *x + *w >= S32(st, G_DRAW_W)) {
+            *w = S32(st, G_DRAW_W) - *x;
         }
-    } else if (*x + *w >= S32(st, G_UE38D9C)) {
-        *w = S32(st, G_UE38D9C) - *x;
+    } else if (*x + *w >= S32(st, G_DRAW_W)) {
+        *w = S32(st, G_DRAW_W) - *x;
     }
     if (*y <= 0) {
         *y = 0;

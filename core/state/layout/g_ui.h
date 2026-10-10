@@ -21,4 +21,12 @@
 #define G_TEXT_CURSOR 0x00E20768u     /* @bin 0x004CC110 u32: the text found */
 #define G_MM_TEXT 0x00E36C74u         /* u32: the Pharaoh_MM.eng block from byte 0x13898 */
 
+/* ---- names merged from the packages' pending fragments (phase 10.4): each group keeps its
+ * package's heading (the package and its file in brackets) ---- */
+/* formations (save.md §3 chunks 25-27) [p6_scenario] */
+#define G_U78D7E0 0x0078D7E0u /* @bin 0x00451BE0 i32: := 0 with the date; the debug panel's "error" (present/ui/debug_panels.c) [g_ui.h] */
+#define G_DEBUG_EVOLVE 0x0078D7DCu /* @bin 0x00534DF0 i32: debug switch, 1: the evolve counters panel [g_ui.h] */
+#define G_DEBUG_TILE 0x0078D7D8u /* @bin 0x00535080 i32: debug switch, 1: the tile under the mouse panel [g_ui.h] */
+#define G_DEBUG_FIGURE 0x0078D7D4u /* @bin 0x00536120 i32: debug switch, 1: the figure under the mouse panel [g_ui.h] */
+
 #endif

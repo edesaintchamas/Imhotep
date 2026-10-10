@@ -80,7 +80,7 @@ static void cheat_hippo_stomp(game_state *st)
         random_next_state(st);
         int32_t x = S32(st, G_DIRECTIONS + 8u * (uint32_t) dir) + S32(st, G_MOUSE_TILE_X);
         int32_t y = S32(st, G_DIRECTIONS + 4 + 8u * (uint32_t) dir) + S32(st, G_MOUSE_TILE_Y);
-        int32_t fig = GAME_CALL(st, FN_FIGURE_CREATE, 1, 0x54, x, y, (int32_t) (U32(st, G_R_IV1) & 7));
+        int32_t fig = GAME_CALL(st, FN_FIGURE_CREATE, 1, 0x54, x, y, (int32_t) (U32(st, G_RANDOM_IV1) & 7));
         uint32_t p = FIGURE_ADDR(fig);
         U8(st, p + FIG_ACTION) = 0x19;
         S16(st, p + FIG_FORMATION) = (int16_t) f;

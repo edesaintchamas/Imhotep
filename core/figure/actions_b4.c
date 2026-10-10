@@ -81,7 +81,7 @@ void figb_action_44(game_state *st)
         }
         random_next_state(st);
         uint32_t rec = G_FORMATION_BASE + FM_U36 + 0x90u * (uint32_t) herd;
-        int32_t r = GAME_CALL(st, FN_HERD_SPOT, S16(st, rec), S16(st, rec + 2), (int32_t) (U32(st, G_R_1_15) & 0xF),
+        int32_t r = GAME_CALL(st, FN_HERD_SPOT, S16(st, rec), S16(st, rec + 2), (int32_t) (U32(st, G_RANDOM_R1_15BIT) & 0xF),
                               S16(st, f + FIG_X), S16(st, f + FIG_Y), 1);
         f = FIGB_F(st);
         if (r >= 0 && r < 0x10) {
@@ -107,7 +107,7 @@ void figb_action_44(game_state *st)
             U8(st, f + FIG_DIRECTION) = U8(st, f + FIG_PREV_DIRECTION);
             U8(st, f + FIG_ACTION) = 0x12;
             random_next_state(st);
-            S16(st, f + FIG_WAIT_TICKS) = (int16_t) (S32(st, G_R_1_15) % 0x96 + 0x96);
+            S16(st, f + FIG_WAIT_TICKS) = (int16_t) (S32(st, G_RANDOM_R1_15BIT) % 0x96 + 0x96);
         }
         break;
     case 0x0C:
@@ -163,13 +163,13 @@ void figb_action_44(game_state *st)
 /* @bin 0x0049BF3A the walk after a pause: 0x12 when bit 0 of the random value is set, else 0x13 */
 static uint8_t pause_kind(game_state *st)
 {
-    return (U32(st, G_R_1_15) & 1) ? 0x12 : 0x13;
+    return (U32(st, G_RANDOM_R1_15BIT) & 1) ? 0x12 : 0x13;
 }
 
 /* @bin 0x0049C3E7 a pause of 150..299 ticks */
 static void pause_random(game_state *st, uint32_t f)
 {
-    S16(st, f + FIG_WAIT_TICKS) = (int16_t) (S32(st, G_R_1_15) % 0x96 + 0x96);
+    S16(st, f + FIG_WAIT_TICKS) = (int16_t) (S32(st, G_RANDOM_R1_15BIT) % 0x96 + 0x96);
 }
 
 void figb_action_45(game_state *st)
@@ -296,7 +296,7 @@ void figb_action_45(game_state *st)
         }
         random_next_state(st);
         uint32_t rec = G_FORMATION_BASE + FM_DEST_X + 0x90u * (uint32_t) herd;
-        int32_t r = GAME_CALL(st, FN_HERD_SPOT, S16(st, rec), S16(st, rec + 2), (int32_t) (U32(st, G_R_1_15) & 0xF),
+        int32_t r = GAME_CALL(st, FN_HERD_SPOT, S16(st, rec), S16(st, rec + 2), (int32_t) (U32(st, G_RANDOM_R1_15BIT) & 0xF),
                               S16(st, f + FIG_X), S16(st, f + FIG_Y), 1);
         f = FIGB_F(st);
         if (r >= 0 && r < 0x10) {
@@ -506,7 +506,7 @@ void figb_action_46(game_state *st)
         }
         random_next_state(st);
         uint32_t rec = G_FORMATION_BASE + FM_DEST_X + 0x90u * (uint32_t) herd;
-        int32_t r = GAME_CALL(st, FN_HERD_SPOT, S16(st, rec), S16(st, rec + 2), (int32_t) (U32(st, G_R_1_15) & 0xF),
+        int32_t r = GAME_CALL(st, FN_HERD_SPOT, S16(st, rec), S16(st, rec + 2), (int32_t) (U32(st, G_RANDOM_R1_15BIT) & 0xF),
                               S16(st, f + FIG_X), S16(st, f + FIG_Y), 1);
         f = FIGB_F(st);
         if (r >= 0 && r < 0x10) {

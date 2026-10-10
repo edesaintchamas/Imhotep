@@ -34,7 +34,7 @@ static int32_t queue_at(game_state *st, int32_t i)
 int32_t route_tile_not_held(game_state *st, int32_t tile)
 {
     /* @bin 0x0051AFA0 */
-    int32_t f = S16(st, G_FIGURE_GRID + 2u * (uint32_t) tile);
+    int32_t f = S16(st, G_GRID_FIGURE + 2u * (uint32_t) tile);
     if (f <= 0) {
         return 1;
     }

@@ -157,7 +157,7 @@ static int32_t pick_present(game_state *st, int32_t *types, const int32_t *goods
      * by good); a random one (CRT rand), or 0 */
     int32_t count = 0;
     for (int i = 0; i < n; i++) {
-        if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * (uint32_t) types[i]) > 0) {
+        if (S32(st, G_TYPE_COUNT_TOTAL + 4u * (uint32_t) types[i]) > 0) {
             count++;
         } else if (goods[i] > 0 && S32(st, G_INDUSTRY_WORKING + 4u * (uint32_t) goods[i]) > 0) {
             count++;

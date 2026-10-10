@@ -54,9 +54,8 @@
 #define G_SCALE_MAX 0x00F53DCCu     /* @bin 0x00527AD0 i32: the graph's top value */
 #define G_DISTRIBUTION 0x00EADD44u  /* @bin 0x00529BBB i32: != 0: page 11 shows the raw god bytes; the bazaar / storage view toggle (0x004062D0, present/ui/info/info.h) */
 
-/* --- harvested: names the ports gave these addresses in local #defines (tools/naming/harvest.py).
- * @bin evidence: the defining port (file) and its comment. A package agent checks each name it
- * uses, and moves it above this block once checked. --- */
+/* named after the ports' local #defines (phase 10 wave 0, tools/naming/candidates.tsv); evidence: the
+ * defining port in each comment */
 #define G_MENU_LABELS 0x0057BE14u /* present/ui/frontend/menu.c: i32[5] the labels' string indexes in group 0x1E */
 #define G_PERIOD_BUTTONS 0x0057BE78u /* present/ui/frontend/campaign.c: 11 rectangles of 0x1C: 9 periods, 2 tabs */
 #define G_FILE_NAME 0x005E02A8u /* present/ui/frontend/highscore.c: "save\highscore.jas" */
@@ -86,6 +85,5 @@
 #define G_CARET_TIME 0x00F53FE4u /* present/ui/frontend/family.c: i32 the frame clock at the last change */
 #define G_CARET_PHASE 0x00F53FE8u /* present/ui/frontend/family.c: i32 0 hidden, 1 shown */
 #define G_BACKGROUND 0x00F55C24u /* present/ui/frontend/menu.c: i32 the main menu's picture */
-/* --- end harvested --- */
 
 #endif

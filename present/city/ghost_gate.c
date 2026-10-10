@@ -212,7 +212,7 @@ void ghost_4c0f30(game_state *st, int32_t type)
     int32_t y1 = sy0 + S32(st, G_TILE_H);
     int32_t bad = 0, red_all = 0;
     int32_t orient, turn, k3c;
-    if (S16(st, CURRENT_CITY(st) + CITY_U4478) == 0) {
+    if (S16(st, CURRENT_CITY(st) + CITY_TEMPLE_COMPLEX) == 0) {
         int16_t key = frame_key_state(st, 0x52);
         orient = S32(st, G_VIEW_ORIENTATION);
         if ((uint16_t) key == 0x8001) {
@@ -273,7 +273,7 @@ void ghost_4c0f30(game_state *st, int32_t type)
             }
         }
     }
-    if (S16(st, CURRENT_CITY(st) + CITY_U4478) != 0) {
+    if (S16(st, CURRENT_CITY(st) + CITY_TEMPLE_COMPLEX) != 0) {
         red_all = 1;
     } else if (bad == 0) {
         goto good;
@@ -349,7 +349,7 @@ void ghost_4c2f50(game_state *st, int32_t type)
     view_tile_to_screen(st, S32(st, G_HOVER_X), S32(st, G_HOVER_Y), &sx, &sy);
     int32_t y1 = sy + S32(st, G_TILE_H);
     uint32_t city = CURRENT_CITY(st);
-    if (S16(st, city + CITY_U4478) == 0) {
+    if (S16(st, city + CITY_TEMPLE_COMPLEX) == 0) {
         bad = 1;
     }
     int32_t hov = S32(st, G_HOVER_TILE);
@@ -362,7 +362,7 @@ void ghost_4c2f50(game_state *st, int32_t type)
     if (S16(st, city + CITY_U448A) < 2) {
         bad = 1;
     }
-    if ((GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, city + CITY_U472C), type == 0xD3 ? 1 : 2) & 0xFF) != 0) {
+    if ((GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, city + CITY_TEMPLE_COMPLEX_ID), type == 0xD3 ? 1 : 2) & 0xFF) != 0) {
         bad = 1;
     }
     if (g_treasury_low(st)) {
@@ -377,7 +377,7 @@ void ghost_4c2f50(game_state *st, int32_t type)
             int32_t x = S32(st, d) + sx;
             int32_t y = S32(st, d + 4) - S32(st, G_TILE_H) + y1;
             int32_t off = S32(st, row + 4u * (uint32_t) i) + hov;
-            uint32_t v = (uint32_t) (int32_t) S16(st, G_FIGURE_GRID + 2u * (uint32_t) off) |
+            uint32_t v = (uint32_t) (int32_t) S16(st, G_GRID_FIGURE + 2u * (uint32_t) off) |
                          (g_terrain(st, off) & 0xEEFED77Fu);
             g_foot(st, S32(st, G_IMG_FOOTPRINT), x, y, (bad || v) ? RED : GREEN);
         }

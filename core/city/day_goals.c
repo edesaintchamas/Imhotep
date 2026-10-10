@@ -129,8 +129,8 @@ void goals_check(game_state *st)
         }
         c = CURRENT_CITY(st);
     }
-    if (S32(st, G_CUSTOM) == 0 && (int32_t) S8(st, G_MISSION) == S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 11) && U8(st, G_MISSION_LIST_FLAGS + 11) == 0 &&
-        U8(st, G_MISSION_LIST_FLAGS + 10) != 0) {
+    if (S32(st, G_CUSTOM) == 0 && (int32_t) S8(st, G_MISSION) == S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 11) && U8(st, G_TUTORIAL_FLAGS + 11) == 0 &&
+        U8(st, G_TUTORIAL_FLAGS + 10) != 0) {
         if (houses_at_least(st, 9) > 0) {
             GAME_CALL(st, FN_TUTORIAL_STEP, 0xB);
         }
@@ -153,7 +153,7 @@ void goals_check(game_state *st)
         /* @bin 0x004EA473 the year limit 0x0078D7B8, extended by +0x47A8 (0: 7 years, 1: 2) */
         int32_t year = S32(st, G_DEADLINE_YEAR);
         if (limit != 0) {
-            int32_t ext = S32(st, c + CITY_U47A8);
+            int32_t ext = S32(st, c + CITY_DIFFICULTY);
             if (ext == 0) {
                 year += 7;
             } else if (ext == 1) {
@@ -186,8 +186,8 @@ void goals_check(game_state *st)
     if (goals <= 0) {
         U8(st, G_UE38DD9) = 0;
     }
-    if (S32(st, c + CITY_U44D0) != 0) {
-        U8(st, G_UE38DD9) = S32(st, c + CITY_U44D4) <= 0;
+    if (S32(st, c + CITY_KEEP_GOVERNING) != 0) {
+        U8(st, G_UE38DD9) = S32(st, c + CITY_EXTRA_MONTHS) <= 0;
     }
     if (U8(st, G_CHEAT_WIN) != 0) {
         U8(st, G_UE38DD9) = 1;
@@ -223,7 +223,7 @@ void goals_check(game_state *st)
         return;
     }
     /* @bin 0x004EA6CD lost */
-    if (S32(st, c + CITY_U4714) == 0 && !(U8(st, G_UEA17FC) == 0 && limit != 0 && S32(st, c + CITY_U47A8) > 0)) {
+    if (S32(st, c + CITY_U4714) == 0 && !(U8(st, G_UEA17FC) == 0 && limit != 0 && S32(st, c + CITY_DIFFICULTY) > 0)) {
         S32(st, c + CITY_U4714) = 1;
         S32(st, G_MESSAGE_POPUP) = 1;
         GAME_CALL(st, FN_MESSAGE_POST, 0x137, 0, 0, 0, 0);

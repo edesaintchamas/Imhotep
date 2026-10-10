@@ -93,7 +93,6 @@
 #define G_SPEED_ARROWS 0x005C8D98u /* @bin 0x004D8310 window 0x0C's arrows (present/ui/frontend/options.c) */
 #define G_SOUND_ARROWS 0x005C8DF8u /* @bin 0x004D8310 window 0x0B's arrows (present/ui/frontend/options.c) */
 #define G_EDITOR_MENU_BUTTONS 0x005C8EB8u /* @bin 0x00409430 the editor menu's square buttons (docs/provenance/frontier.md) */
-#define G_DIFFICULTY_ARROWS 0x005C8EE8u /* @bin 0x004D8310 window 0x45's arrows (present/ui/frontend/options.c) */
 #define G_GOD_MENU_GODS 0x005CF0DCu /* @bin 0x00520632 i32 per row of build menu 0x1C: its god (1-based index of G_SCENARIO_GODS) */
 #define G_OVL_GROUP_OVERLAYS 0x005CF734u /* @bin 0x00409DA0 i32 per overlay group: its overlay, also its name in text group 0x0E */
 #define G_OVL_ITEMS 0x005CF75Cu /* @bin 0x00409E00 i32 [group * 30 + row]: the overlay of a group's row, its name (group 0x0E) */
@@ -108,7 +107,6 @@
 #define G_STR_SMK_INTRO 0x005E1E08u /* @bin 0x004D8310 "smk\intro.smk" */
 #define G_STR_SMK_LOGO 0x005E1E18u /* @bin 0x004D8310 "smk\logo.smk" */
 #define G_ADVISOR5_RECTS 0x005F7650u /* @bin 0x0040ACE0 advisor page 5's rectangles (present/ui/advisors/callbacks.c) */
-#define G_FAMILY_RECTS 0x005F7F28u /* @bin 0x004D8310 window 0x2F's rows and buttons (present/ui/frontend/family.c) */
 #define G_STR_DBG_BUILDING_IN_PROGRESS 0x005F8A04u /* @bin 0x00534610 " building_in_progress" */
 #define G_STR_DBG_SIDE_PANEL_X1 0x005F8A1Cu /* @bin 0x00534610 " side_panel_x1" */
 #define G_STR_DBG_MOUSE_MOVEMENT 0x005F8A2Cu /* @bin 0x00534610 " mouse_movement" */
@@ -222,7 +220,6 @@
 #define G_OVL_HOVER_TIME 0x00605790u /* @bin 0x00409E40 i32 the frame clock when the overlays menu was last hovered */
 #define G_NUMPAD_Y 0x00605970u /* @bin 0x004D8310 i32 window 0x0E's y (present/ui/frontend/numpad.c) */
 #define G_NUMPAD_X 0x00605974u /* @bin 0x004D8310 i32 window 0x0E's x */
-#define G_LIST_EXTRA_ON 0x00605A58u /* @bin 0x004D8310 i32 the list window 0x0F / 0x48's extra button shown (cleared on a right press) */
 #define G_TUTORIAL_DONE 0x007027C7u /* @bin 0x00417B40 u8 per tutorial step 0x0F..0x19: done */
 #define G_CHEAT_BACK 0x007027E8u /* @bin 0x0041D3F0 u8 the window to go back to after the cheat window */
 #define G_MENU_OPEN 0x00705724u /* @bin 0x00425F20 u32 the open menu's entry in the menu bar (0x10 bytes: i16 x, y, +4 y of the list, +6 text group, +8 items, +0x0C count) */
@@ -344,11 +341,16 @@
 #define G_FONT_LINK 0x00F56FACu /* present/ui/messages/window.c */
 #define G_PICTURES2 0x00F5731Cu /* present/ui/messages/window.c: i32 pictures from 1001 on */
 
-/* --- harvested: names the ports gave these addresses in local #defines (tools/naming/harvest.py).
- * @bin evidence: the defining port (file) and its comment. A package agent checks each name it
- * uses, and moves it above this block once checked. --- */
+/* named after the ports' local #defines (phase 10 wave 0, tools/naming/candidates.tsv); evidence: the
+ * defining port in each comment */
 #define G_MARKERS 0x00F535D0u /* present/ui/empire/empire.h: 100 army markers of 5 i32: event, x, y, w, h */
 #define G_IMG_ENTRIES 0x010D69F8u /* present/ui/empire/empire.c: image entries of 0x40 bytes: +0x14 width, +0x16 height (i16) */
-/* --- end harvested --- */
+
+/* ---- names merged from the packages' pending fragments (phase 10.4): each group keeps its
+ * package's heading (the package and its file in brackets) ---- */
+/* the pending names of package P7, on no heading of their own [p7_frame] */
+#define G_EMPIRE_ALT_POSITIONS 0x00784CB4u /* @bin 0x00407C10 i32: the empire editor moves the objects' second position [g_ui_main.h] */
+/* ---- globals of other areas (core or another present package uses them) ---- [p8a_ui_main] */
+#define G_SIDEBAR_RECT 0x005C6CB8u /* @bin 0x004D8310 the sidebar's rectangle table (1 entry; present/sidebar/input.c) */
 
 #endif

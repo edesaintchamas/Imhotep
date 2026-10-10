@@ -27,7 +27,7 @@
 
 static uint32_t city(game_state *st)
 {
-    return (uint32_t) S32(st, G_PLAYER) * 0x49D8u;
+    return (uint32_t) S32(st, CURRENT_PLAYER_ADDR) * 0x49D8u;
 }
 
 static void state_copy_str(game_state *st, uint32_t dst, uint32_t src)
@@ -206,7 +206,7 @@ int32_t victory_score(game_state *st, int32_t months)
      * minus the city's i32 0x00EA5D10 */
     int32_t weights = 0;
     for (uint32_t k = 0; k < 3; k++) {
-        int32_t b = S32(st, CITY_BASE + CITY_MONUMENT_ID + ((uint32_t) S32(st, G_PLAYER) * 0x1276u + k) * 4u);
+        int32_t b = S32(st, CITY_BASE + CITY_MONUMENTS + ((uint32_t) S32(st, CURRENT_PLAYER_ADDR) * 0x1276u + k) * 4u);
         if (b <= 0) {
             continue;
         }
@@ -215,7 +215,7 @@ int32_t victory_score(game_state *st, int32_t months)
             return 0;
         }
         if (p == 100) {
-            uint32_t kind = U32(st, CITY_BASE + CITY_MONUMENT_CODE + ((uint32_t) S32(st, G_PLAYER) * 0x1276u + k) * 4u);
+            uint32_t kind = U32(st, CITY_BASE + CITY_MONUMENT_TYPES + ((uint32_t) S32(st, CURRENT_PLAYER_ADDR) * 0x1276u + k) * 4u);
             weights += S16(st, G_MONUMENT_MODELS + 0x0Cu + (kind << 4));
         }
     }
@@ -242,7 +242,7 @@ int32_t victory_monuments_draw(game_state *st)
      * 0x113, 20 pixels apart from y + 0xC8; their number */
     int32_t n = 0, y = 0xB4;
     for (uint32_t k = 0; k < 3; k++) {
-        int32_t b = S32(st, CITY_BASE + CITY_MONUMENT_ID + ((uint32_t) S32(st, G_PLAYER) * 0x1276u + k) * 4u);
+        int32_t b = S32(st, CITY_BASE + CITY_MONUMENTS + ((uint32_t) S32(st, CURRENT_PLAYER_ADDR) * 0x1276u + k) * 4u);
         if (b <= 0) {
             continue;
         }
@@ -255,7 +255,7 @@ int32_t victory_monuments_draw(game_state *st)
         }
         y += 0x14;
         n++;
-        int32_t kind = S32(st, CITY_BASE + CITY_MONUMENT_CODE + ((uint32_t) S32(st, G_PLAYER) * 0x1276u + k) * 4u);
+        int32_t kind = S32(st, CITY_BASE + CITY_MONUMENT_TYPES + ((uint32_t) S32(st, CURRENT_PLAYER_ADDR) * 0x1276u + k) * 4u);
         GAME_CALL(st, FN_TEXT_GROUP_DRAW, 0xC6, kind, S32(st, G_PANEL_X) + 0x113, S32(st, G_PANEL_Y) + y, S32(st, G_FONT_LARGE), 0);
     }
     return n;
@@ -267,7 +267,7 @@ int32_t mission_victory_text(game_state *st)
      * 0x40 step + 0x10, steps 0x006FF608); else 0x25 */
     if (S32(st, G_CUSTOM) == 0) {
         int32_t s = (int8_t) U8(st, G_STEP);
-        if (s >= 0 && s < S32(st, G_U6FF608)) {
+        if (s >= 0 && s < S32(st, G_CAMPAIGN_TABLE + CAMPAIGN_STEP_COUNT)) {
             return S32(st, G_CAMPAIGN_TABLE + 0x10u + (uint32_t) s * 0x40u);
         }
     }

@@ -12,7 +12,7 @@
 static uint32_t dock_slot(game_state *st, uint32_t k)
 {
     /* the city's 10 docks: i16 at city +0x4460 (0x00EA5CD0) */
-    return CITY_BASE + CITY_U4460 + 2u * ((uint32_t) S32(st, CURRENT_PLAYER_ADDR) * 0x24ECu + k);
+    return CITY_BASE + CITY_DOCKS + 2u * ((uint32_t) S32(st, CURRENT_PLAYER_ADDR) * 0x24ECu + k);
 }
 
 int32_t dock_reserve(game_state *st, int32_t f)
@@ -68,7 +68,7 @@ static int32_t mooring_free(game_state *st, int32_t d, int32_t far)
     }
     S32(st, G_ROAD_ACCESS_X) = x;
     S32(st, G_ROAD_ACCESS_Y) = y;
-    return S16(st, G_FIGURE_GRID + 2u * (uint32_t) (S32(st, G_MAP_START) + y * 0xE4 + x)) == 0;
+    return S16(st, G_GRID_FIGURE + 2u * (uint32_t) (S32(st, G_MAP_START) + y * 0xE4 + x)) == 0;
 }
 
 int32_t dock_free_moorings(game_state *st, int32_t f)

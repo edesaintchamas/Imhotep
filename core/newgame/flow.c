@@ -719,17 +719,17 @@ int32_t list_fill(game_state *st, uint32_t self, uint32_t pattern, int32_t keep)
 void list_load(game_state *st, uint32_t pattern)
 {
     /* @bin 0x0041F810 */
-    list_fill(st, G_LIST_OBJECT, pattern, 0);
-    S32(st, G_SCENARIO_ROWS) = S32(st, G_LIST_OBJECT + 8);
+    list_fill(st, G_SCENARIO_LIST, pattern, 0);
+    S32(st, G_SCENARIO_ROWS) = S32(st, G_SCENARIO_LIST + 8);
     if (S32(st, G_SCENARIO_LIST_MODE) != 0) {
         return;
     }
     /* the file names without their extension (0x004CE3A0), sorted with _stricmp (0x0041CA10) */
     for (int32_t i = 0; i < S32(st, G_SCENARIO_ROWS); i++) {
-        uint32_t name = list_row_name(st, G_LIST_OBJECT, i);
+        uint32_t name = list_row_name(st, G_SCENARIO_LIST, i);
         GAME_CALL(st, FN_FILE_NAME_STRIP_EXTENSION, (int32_t) name);
     }
-    GAME_CALLT(st, G_LIST_OBJECT, FN_FILE_LIST_SORT, FN_CRT_STRCMPI);
+    GAME_CALLT(st, G_SCENARIO_LIST, FN_FILE_LIST_SORT, FN_CRT_STRCMPI);
 }
 
 void list_open(game_state *st)
@@ -869,10 +869,10 @@ const ported_function newgame_flow_ports[] = {
     {0x00418140u, "briefing_text_id", 0, 32, 0, run_text_id, 0},
     {0x004181E0u, "briefing_open", 0, 0, 0, run_briefing, 0},
     {0x004CB6A0u, "main_menu_open", 0, 0, 0, run_main_menu, 0},
-    {0x0041DFE0u, "list_row_kind", 1, 32, G_LIST_OBJECT, run_row_kind, 0},
-    {0x0041E010u, "list_row_name", 1, 32, G_LIST_OBJECT, run_row_name, 0},
-    {0x0041DFC0u, "list_row_mission", 1, 32, G_LIST_OBJECT, run_row_mission, 0},
-    {0x0041DF70u, "list_fill", 2, 8, G_LIST_OBJECT, run_list_fill, 0},
+    {0x0041DFE0u, "list_row_kind", 1, 32, G_SCENARIO_LIST, run_row_kind, 0},
+    {0x0041E010u, "list_row_name", 1, 32, G_SCENARIO_LIST, run_row_name, 0},
+    {0x0041DFC0u, "list_row_mission", 1, 32, G_SCENARIO_LIST, run_row_mission, 0},
+    {0x0041DF70u, "list_fill", 2, 8, G_SCENARIO_LIST, run_list_fill, 0},
     {0x0041F810u, "list_load", 1, 0, 0, run_list_load, 0},
     {0x0041F870u, "list_open", 0, 0, 0, run_list_open, 0},
     /* inside campaign_load, on its own frame (stack arguments) */

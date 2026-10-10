@@ -64,7 +64,7 @@ int32_t list_has_extra(game_state *st)
 int32_t list_button_count(game_state *st)
 {
     /* @bin 0x0041E170 3 buttons when the chosen row is a heading (kind 2), else 4 */
-    return (list_row_kind(st, G_LIST_OBJECT, S32(st, G_SCENARIO_LIST_ROW)) != 2) + 3;
+    return (list_row_kind(st, G_SCENARIO_LIST, S32(st, G_SCENARIO_LIST_ROW)) != 2) + 3;
 }
 
 uint32_t list_rows_table(game_state *st)
@@ -135,7 +135,7 @@ static uint32_t event_record(game_state *st, int32_t n)
     if (n < 0 || n >= S32(st, G_EVENTS)) {
         return 0;
     }
-    return G_KINGDOM_EVENTS + 0x7Cu * (uint32_t) n;
+    return G_EVENT_RECORDS + 0x7Cu * (uint32_t) n;
 }
 
 static void follow(game_state *st, uint32_t e, int32_t link, int32_t level)
@@ -241,7 +241,7 @@ int32_t scenario_rating(game_state *st)
     int32_t requests = 0;
     if (count > 0) {
         for (int32_t i = count; i > 0; i--) {
-            uint32_t e = G_KINGDOM_EVENTS + 0x7Cu * (uint32_t) i;
+            uint32_t e = G_EVENT_RECORDS + 0x7Cu * (uint32_t) i;
             if (i < count && U8(st, e + 2) == 1) {
                 requests++;
             }
@@ -278,7 +278,7 @@ void list_rows_draw(game_state *st)
     GAME_CALL(st, FN_PANEL_DRAW_INNER, S32(st, G_LAYOUT_DX) + 0x0F, S32(st, G_LAYOUT_DY) + top - 0x0F, 0x10, n + 1);
     int32_t y = 0x10;
     for (int32_t k = 1; k <= shown(st); k++, y += 0x10) {
-        uint32_t name = list_row_name(st, G_LIST_OBJECT, S32(st, G_SCENARIO_FIRST) - 1 + k);
+        uint32_t name = list_row_name(st, G_SCENARIO_LIST, S32(st, G_SCENARIO_FIRST) - 1 + k);
         if (name == 0) {
             continue;
         }
@@ -287,7 +287,7 @@ void list_rows_draw(game_state *st)
             font = S32(st, G_FONT_9C);
         } else if (S32(st, G_HOVER) == 0 && S32(st, G_SCENARIO_FIRST) + k - 1 == S32(st, G_SCENARIO_LIST_ROW)) {
             font = S32(st, G_FONT_9C);
-        } else if (list_row_kind(st, G_LIST_OBJECT, S32(st, G_SCENARIO_FIRST) - 1 + k) == 2) {
+        } else if (list_row_kind(st, G_SCENARIO_LIST, S32(st, G_SCENARIO_FIRST) - 1 + k) == 2) {
             font = S32(st, G_FONT_RED);
         }
         int32_t off = S32(st, G_SCENARIO_LIST_MODE) != 1 ? -0x20 : 0;
@@ -559,7 +559,7 @@ void scenario_list_draw(game_state *st)
     }
     /* the buttons' labels */
     int32_t ly = y14 + 0x1AA;
-    if (list_row_kind(st, G_LIST_OBJECT, S32(st, G_SCENARIO_LIST_ROW)) == 2) {
+    if (list_row_kind(st, G_SCENARIO_LIST, S32(st, G_SCENARIO_LIST_ROW)) == 2) {
         group_text(st, 0x2C, 0x15, x140 + 0x20, ly, S32(st, G_FONT_ROW));
         return;
     }

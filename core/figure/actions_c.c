@@ -383,7 +383,7 @@ int32_t return_zero(game_state *st, int32_t a)
 int32_t tile_figure_of_type(game_state *st, int32_t id, int32_t type)
 {
     /* @bin 0x004B57E0 the first figure of the type in the list of the figure's tile (+0x20) */
-    int32_t k = S16(st, G_FIGURE_GRID + 2u * U32(st, FIG(id) + FIG_GRID_OFFSET));
+    int32_t k = S16(st, G_GRID_FIGURE + 2u * U32(st, FIG(id) + FIG_GRID_OFFSET));
     while (k > 0) {
         uint32_t g = FIG(k);
         if ((int32_t) U8(st, g + FIG_TYPE) == type) {
@@ -398,7 +398,7 @@ int32_t tile_target(game_state *st, int32_t id)
 {
     /* @bin 0x004B5770 the first figure of the tile's list that a missile hits: not dying, not of
      * the types 0, 6, 0x0E, 0x24, 0x25, nor 0x29 .. 0x4C, nor above 0x4E */
-    int32_t k = S16(st, G_FIGURE_GRID + 2u * U32(st, FIG(id) + FIG_GRID_OFFSET));
+    int32_t k = S16(st, G_GRID_FIGURE + 2u * U32(st, FIG(id) + FIG_GRID_OFFSET));
     while (k > 0) {
         uint32_t g = FIG(k);
         uint8_t t = U8(st, g + FIG_TYPE);
@@ -706,7 +706,7 @@ void figure_action_4b(game_state *st)
              * figure in action 0x0A */
             int32_t g = S32(st, f + FIG_GRID_OFFSET);
             if (U8(st, (uint32_t) ((int32_t) G_GRID_VEGETATION + g)) >= 0xFF) {
-                uint16_t o = U16(st, (uint32_t) ((int32_t) G_FIGURE_GRID + 2 * g));
+                uint16_t o = U16(st, (uint32_t) ((int32_t) G_GRID_FIGURE + 2 * g));
                 if (o == 0 || U8(st, FIG((int16_t) o) + FIG_ACTION) != 0x0A) {
                     U8(st, f + FIG_ACTION) = 0x0A;
                 } else {
@@ -1146,7 +1146,7 @@ void figure_action_4c(game_state *st)
 void figure_action_4d(game_state *st)
 {
     /* @bin 0x004A4FD0 a transport ship of a building (+0x5A); +0x128 its hit points (of +0x12C) */
-    boat_unstick(st, G_UD05720, CUR(st));
+    boat_unstick(st, G_FLOODPLAIN_MANAGER, CUR(st));
     int32_t moving = 1; /* [esp+0x10]: the sprite moves (the states below clear it) */
     uint32_t c = FIG(CUR(st));
     int32_t speed = type_speed(st, U8(st, c + FIG_TYPE));
@@ -1542,7 +1542,7 @@ void figure_action_4f(game_state *st)
         /* @bin 0x004A7716 the random generator, inlined; a job after 30 + rand % 30 ticks */
         U16(st, c + FIG_WAIT_TICKS) += 1;
         random_next_state(st);
-        if (S16(st, c + FIG_WAIT_TICKS) > (int32_t) (U32(st, G_R_1_15) % 30) + 30) {
+        if (S16(st, c + FIG_WAIT_TICKS) > (int32_t) (U32(st, G_RANDOM_R1_15BIT) % 30) + 30) {
             int32_t job = GAME_CALL(st, FN_MONUMENT_TAKE_WORKER, S16(st, c + FIG_X), S16(st, c + FIG_Y), id);
             if (job != 0) {
                 U8(st, FIG(CUR(st)) + FIG_ACTION) = 9;
@@ -1892,7 +1892,7 @@ void figure_action_50(game_state *st)
         /* @bin 0x004A7FA2 the random generator, inlined; a job after 30 + rand % 30 ticks */
         U16(st, c + FIG_WAIT_TICKS) += 1;
         random_next_state(st);
-        if (S16(st, c + FIG_WAIT_TICKS) > (int32_t) (U32(st, G_R_1_15) % 30) + 30) {
+        if (S16(st, c + FIG_WAIT_TICKS) > (int32_t) (U32(st, G_RANDOM_R1_15BIT) % 30) + 30) {
             int32_t job = GAME_CALL(st, FN_PYRAMID_ASSIGN_4EFE30, S16(st, c + FIG_X), S16(st, c + FIG_Y), id, 0); /* @bin 0x004BC480 -> 0x004F01C0 -> */
             if (job != 0) {
                 U8(st, FIG(CUR(st)) + FIG_ACTION) = 0x0A;
@@ -2107,7 +2107,7 @@ void figure_action_50(game_state *st)
 static int32_t rand15(game_state *st)
 {
     random_next_state(st);
-    return (int32_t) U32(st, G_R_1_15);
+    return (int32_t) U32(st, G_RANDOM_R1_15BIT);
 }
 
 int32_t ground_rule(game_state *st, int32_t flag)
@@ -2151,7 +2151,7 @@ int32_t herd_spot(game_state *st, int32_t cx, int32_t cy, int32_t k, int32_t x, 
         } else {
             ok = GAME_CALL(st, FN_ROUTE_WALK_DISTANCES, x, y, tx, ty) != 0;
         }
-        if (ok && U16(st, G_FIGURE_GRID + 2u * tile) == 0 &&
+        if (ok && U16(st, G_GRID_FIGURE + 2u * tile) == 0 &&
             (uint8_t) GAME_CALL(st, FN_INVADER_TILE_OK, S32(st, G_GRID_TERRAIN + 4u * tile), flag) != 0) {
             return k;
         }
@@ -2169,7 +2169,7 @@ int32_t herd_spot(game_state *st, int32_t cx, int32_t cy, int32_t k, int32_t x, 
  * other than id's type, that 0x004EADA0 does not exclude */
 static int32_t animal_prey_on_tile(game_state *st, int32_t tile, int32_t id)
 {
-    int32_t k = S16(st, G_FIGURE_GRID + 2u * (uint32_t) tile);
+    int32_t k = S16(st, G_GRID_FIGURE + 2u * (uint32_t) tile);
     while (k != 0) {
         uint32_t g = FIG(k);
         if (k != id && U8(st, g + FIG_STATE) != 0 && U8(st, g + FIG_ACTION) != 4) {

@@ -285,9 +285,9 @@ static void tops_tile(game_state *st, int32_t tile, int32_t x, int32_t y)
 {
     int32_t b = S16(st, G_GRID_BUILDING + 2u * (uint32_t) tile);
     int kept = overlay_kept(building_type(st, b));
-    if ((U32(st, G_GRID_TERRAIN + 4u * (uint32_t) tile) & 0x44) == 0x44 && U8(st, G_SPRITE + (uint32_t) tile) != 0) {
+    if ((U32(st, G_GRID_TERRAIN + 4u * (uint32_t) tile) & 0x44) == 0x44 && U8(st, G_GRID_SPRITE + (uint32_t) tile) != 0) {
         /* @bin 0x0043A127 the sprite on a 0x44 tile (group 0x00F56D34) */
-        cv_image_draw(st, U8(st, G_SPRITE + (uint32_t) tile) + S32(st, G_IMAGE_GROUP(560)) - 1, x,
+        cv_image_draw(st, U8(st, G_GRID_SPRITE + (uint32_t) tile) + S32(st, G_IMAGE_GROUP(560)) - 1, x,
                       y - S32(st, G_U70E448));
         return;
     }
@@ -601,7 +601,7 @@ void city_overlay_tops_draw(game_state *st)
                     int32_t tile = S32(st, G_VIEW_TABLE + 4u * (uint32_t) (S32(st, G_VIEW_ROW) * 0xE7 + vx));
                     S32(st, G_VIEW_TILE) = tile;
                     if (tile < 0xFFF0000) {
-                        int32_t f = S16(st, G_FIGURE_GRID + 2u * (uint32_t) tile);
+                        int32_t f = S16(st, G_GRID_FIGURE + 2u * (uint32_t) tile);
                         while (f > 0) {
                             uint32_t a = FIGURE_ADDR(f);
                             if (U8(st, a + FIG_INVISIBLE) == 0 && S16(st, a + FIG_FOLLOW) == 0) {

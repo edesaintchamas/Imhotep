@@ -6,6 +6,7 @@
 #define IMHOTEP_CITY_DESIRABILITY_H
 
 #include "state/layout/g_building.h"
+#include "state/layout/g_map.h"
 #include "state/state.h"
 
 #define DESIRABILITY_GRID_SIDE 228

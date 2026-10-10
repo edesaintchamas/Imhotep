@@ -89,7 +89,7 @@ void buildings_map_add_all(game_state *st)
         int32_t type = S16(st, b + BLD_TYPE);
         int32_t size = S32(st, G_MODELS + 20u * (uint32_t) type);
         S32(st, G_CONSTRUCTION_UI_SIZE) = size;
-        GAME_CALL(st, FN_BUILDING_MAP_ADD, S32(st, G_PLAYER), type, id, S16(st, b + BLD_X), S16(st, b + BLD_Y), size, 0, 0);
+        GAME_CALL(st, FN_BUILDING_MAP_ADD, S32(st, CURRENT_PLAYER_ADDR), type, id, S16(st, b + BLD_X), S16(st, b + BLD_Y), size, 0, 0);
     }
     /* @bin 0x00485F70 figures 1..1999 in use: the chain of +0x08 links is cut where it comes back
      * to the figure (the link pointing to it := 0) */
@@ -272,13 +272,13 @@ void city_building_d1_position(game_state *st)
     uint32_t c = CURRENT_CITY(st);
     for (int32_t id = 0; id < 4000; id++) {
         if (U8(st, BUILDING(id) + BLD_STATE) == 1 && S16(st, BUILDING(id) + BLD_TYPE) == 0xD1) {
-            S32(st, c + CITY_U47A0) = S16(st, BUILDING(id) + BLD_X);
-            S32(st, c + CITY_U47A4) = S16(st, BUILDING(id) + BLD_Y);
+            S32(st, c + CITY_FESTIVAL_SQUARE_X) = S16(st, BUILDING(id) + BLD_X);
+            S32(st, c + CITY_FESTIVAL_SQUARE_Y) = S16(st, BUILDING(id) + BLD_Y);
             return;
         }
     }
-    S32(st, c + CITY_U47A0) = -1;
-    S32(st, c + CITY_U47A4) = -1;
+    S32(st, c + CITY_FESTIVAL_SQUARE_X) = -1;
+    S32(st, c + CITY_FESTIVAL_SQUARE_Y) = -1;
 }
 
 void figures_check_kind6(game_state *st)
@@ -345,10 +345,10 @@ void scenario_start(game_state *st)
     GAME_CALL0(st, FN_BUILDINGS_COUNT_4677C0); /* industry and building counts */
     GAME_CALL0(st, FN_DAY_COVERAGE_468170);
     /* @bin 0x004D52A0 view orientation 0..6, else 0; 0x00BCA2E0 := it */
-    if (S32(st, G_UE94E04) < 0 || S32(st, G_UE94E04) > 6) {
-        S32(st, G_UE94E04) = 0;
+    if (S32(st, G_CITY_ORIENTATION) < 0 || S32(st, G_CITY_ORIENTATION) > 6) {
+        S32(st, G_CITY_ORIENTATION) = 0;
     }
-    S32(st, G_VIEW_ORIENTATION) = S32(st, G_UE94E04);
+    S32(st, G_VIEW_ORIENTATION) = S32(st, G_CITY_ORIENTATION);
     monument_slots_images(st);   /* 0x004E59A0 */
     buildings_map_add_all(st);   /* 0x00485F70 */
     if (S32(st, G_VERSION) < 0x8D) { /* @bin 0x004D52A0 file versions below 0x8D */
@@ -359,8 +359,8 @@ void scenario_start(game_state *st)
         buildings_scale_0x54(st); /* 0x00489840 */
     }
     GAME_CALL0(st, FN_TERRAIN_REBUILD); /* terrain rebuild */
-    GAME_CALLT(st, G_UD05720, FN_FLOODPLAIN_BUILD, 0, 0, S32(st, G_MAP_WIDTH) - 1, S32(st, G_MAP_HEIGHT) - 1); /* floodplain */
-    GAME_CALL(st, FN_VIEW_TABLE_BUILD, S32(st, G_UE94E04), 1); /* view tables */
+    GAME_CALLT(st, G_FLOODPLAIN_MANAGER, FN_FLOODPLAIN_BUILD, 0, 0, S32(st, G_MAP_WIDTH) - 1, S32(st, G_MAP_HEIGHT) - 1); /* floodplain */
+    GAME_CALL(st, FN_VIEW_TABLE_BUILD, S32(st, G_CITY_ORIENTATION), 1); /* view tables */
     GAME_CALL0(st, FN_VIEW_BOUNDS);
     GAME_CALL0(st, FN_CAMERA_CLAMP);
     GAME_CALL0(st, FN_ROUTING_CLEAR_EE0C50); /* routing grids */
@@ -388,7 +388,7 @@ void scenario_start(game_state *st)
     GAME_CALL0(st, FN_BUILDINGS_REDRAW);
     S32(st, G_MESSAGE_SCROLL_ROWS) = 0;
     S32(st, G_MESSAGE_SCROLL) = 0;
-    U8(st, G_GATE) = 0;
+    U8(st, G_PAUSED) = 0;
     GAME_CALL0(st, FN_MONTH_0X004BC7A0);
     figures_count_5d_64(st);     /* 0x004BCA90 */
     U8(st, G_UEAAC2C) = 1;

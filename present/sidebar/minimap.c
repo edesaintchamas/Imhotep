@@ -348,7 +348,7 @@ void minimap_draw(game_state *st, int32_t x, int32_t y, int32_t w, int32_t h)
                         {
                             int32_t building = S16(st, G_GRID_BUILDING + 2u * (uint32_t) tile);
                             uint32_t has_building = terrain & 8;
-                            int32_t figure = S16(st, G_FIGURE_GRID + 2u * (uint32_t) tile);
+                            int32_t figure = S16(st, G_GRID_FIGURE + 2u * (uint32_t) tile);
                             int32_t dot = pair;
                             int32_t soldier = minimap_figure_soldier(st, figure);
                             int32_t animal = minimap_figure_animal(st, figure);
@@ -388,7 +388,7 @@ void minimap_draw(game_state *st, int32_t x, int32_t y, int32_t w, int32_t h)
                             }
                             uint32_t v = U8(st, G_GRID_RANDOM + (uint32_t) S32(st, G_VIEW_TILE));
                             int32_t image;
-                            if ((terrain & 0x40000044u) != 0 && U8(st, G_SPRITE + (uint32_t) S32(st, G_VIEW_TILE)) != 0) {
+                            if ((terrain & 0x40000044u) != 0 && U8(st, G_GRID_SPRITE + (uint32_t) S32(st, G_VIEW_TILE)) != 0) {
                                 image = S32(st, G_IMAGE_GROUP(416));
                             } else if (terrain & 0x10000000u) {
                                 image = S32(st, G_IMAGE_GROUP(492)) + 0x37;

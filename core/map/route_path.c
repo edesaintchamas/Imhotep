@@ -100,7 +100,7 @@ int32_t route_path(game_state *st, int32_t id, int32_t from_x, int32_t from_y, i
                    int32_t *out)
 {
     /* @bin 0x0051E720 */
-    uint32_t rnd = U32(st, G_R_1_7) & 3;
+    uint32_t rnd = U32(st, G_RANDOM_R1_7BIT) & 3;
     int32_t t = S32(st, G_MAP_START) + y * GRID_SIZE + x;
     S32(st, G_ROUTE_START) = t;
     int32_t d = S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) t);

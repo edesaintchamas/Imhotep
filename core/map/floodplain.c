@@ -48,7 +48,7 @@ void floodplain_list_release(game_state *st, uint32_t obj)
  * objects of 7 dwords from +0x32C64 reset (id 1..30, owner = the manager), counters */
 void floodplain_manager_reset(game_state *st)
 {
-    const uint32_t m = G_UD05720;
+    const uint32_t m = G_FLOODPLAIN_MANAGER;
     memset(state_ptr(st, m, 0xCB10u * 4), 0, 0xCB10u * 4);
     for (uint32_t i = 0; i < 0x1E; i++) {
         uint32_t obj = m + 4 * (0xCB1Au - 1) + 28 * i;

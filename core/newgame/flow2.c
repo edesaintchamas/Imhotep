@@ -487,11 +487,11 @@ void campaign_period_first(game_state *st, int32_t period)
     /* @bin 0x00417DD0 the kingdom rating of the difficulty (0x005D1988), counters cleared, the first
      * step of the period */
     uint32_t city = CURRENT_CITY(st);
-    U8(st, G_FLOW2_PERIOD) = (uint8_t) period;
-    U32(st, G_KINGDOM_START) = U32(st, G_KINGDOM_BY_DIFF + 4u * U32(st, G_DIFFICULTY));
-    U32(st, G_KINGDOM_CARRY) = 0;
+    U8(st, G_PERIOD) = (uint8_t) period;
+    U32(st, G_CARRY_KINGDOM) = U32(st, G_KINGDOM_BY_DIFF + 4u * U32(st, G_DIFFICULTY));
+    U32(st, G_CARRY_SAVINGS) = 0;
     U32(st, G_PLAYED) = 0;
-    U32(st, city + CITY_PERSONAL_SAVINGS) = 0;
+    U32(st, city + CITY_SAVINGS) = 0;
     int8_t step = (int8_t) campaign_next_step(st, G_CAMPAIGN_TABLE, (int8_t) period, -1, 0);
     U8(st, G_STEP) = (uint8_t) step;
     if (step >= 0 && step < S32(st, G_CAMPAIGN_TABLE + CAMPAIGN_STEP_COUNT)) {
@@ -507,7 +507,7 @@ void campaign_period_first(game_state *st, int32_t period)
 void campaign_period_start(game_state *st)
 {
     /* @bin 0x0041BB70 a Pharaoh period (0x006FDC98 == 0) only when it is the one open (0x007027B0) */
-    uint32_t cleopatra = U32(st, G_CAMPAIGN_CAMPAIGN_KIND);
+    uint32_t cleopatra = U32(st, G_CAMPAIGN_SELECTED);
     int32_t period = S32(st, G_CAMPAIGN_PERIOD);
     if (cleopatra == 0 && period != S32(st, G_PERIOD_REACHED)) {
         return;
@@ -562,7 +562,7 @@ void flow_continue(game_state *st)
             int32_t choice = (int32_t) (U32(st, G_CHOICE) & 0xFFu) - 1;
             uint8_t from = U8(st, G_STEP);
             U8(st, G_STEP_PREV) = from;
-            int8_t step = (int8_t) campaign_next_step(st, G_CAMPAIGN_TABLE, S8(st, G_FLOW2_PERIOD), (int8_t) from, choice);
+            int8_t step = (int8_t) campaign_next_step(st, G_CAMPAIGN_TABLE, S8(st, G_PERIOD), (int8_t) from, choice);
             U8(st, G_STEP) = (uint8_t) step;
             if (step < 0 || step >= S32(st, G_CAMPAIGN_TABLE + CAMPAIGN_STEP_COUNT)) {
                 state_unported(st, FN_FLOW_CONTINUE); /* @bin 0x004182D2 reads address 0xC: a crash */
@@ -734,8 +734,8 @@ static int32_t run_period_first(game_state *st, const int32_t *a)
 
 const ported_function newgame_flow2_ports[] = {
     {0x0041B680u, "campaign_progress_read", 1, 8, G_CAMPAIGN_TABLE, run_progress_read, 0},
-    {0x0041C740u, "file_list_fill", 2, 8, G_LIST_OBJECT, run_list_fill, 0},
-    {0x0041CA10u, "file_list_sort", 1, 0, G_LIST_OBJECT, run_list_sort, 0},
+    {0x0041C740u, "file_list_fill", 2, 8, G_SCENARIO_LIST, run_list_fill, 0},
+    {0x0041CA10u, "file_list_sort", 1, 0, G_SCENARIO_LIST, run_list_sort, 0},
     {0x0041CA50u, "file_list_compare", 2, 32, 0, run_list_compare, 0},
     {0x0041ACD0u, "name_trim", 1, 0, 0, run_trim, 0},
     {0x00516B50u, "family_list_load", 1, 0, 0, run_family_list_load, 0},

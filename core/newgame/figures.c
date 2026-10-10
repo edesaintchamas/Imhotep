@@ -49,7 +49,7 @@ static void herd_animals(game_state *st, int32_t formation, int32_t type, int32_
         int32_t dx = S32(st, offsets + 8u * (uint32_t) k);
         int32_t dy = S32(st, offsets + 8u * (uint32_t) k + 4u);
         /* @bin 0x004BB6F4 direction: the 3-bit random value */
-        int32_t f = figure_create(st, 1, type, dx + x, dy + y, (int32_t) (U32(st, G_R_IV1) & 7));
+        int32_t f = figure_create(st, 1, type, dx + x, dy + y, (int32_t) (U32(st, G_RANDOM_IV1) & 7));
         uint32_t fa = FIGURE_ADDR(f);
         /* @bin 0x004BB718 the RNG pool push of the next step comes before the figure writes */
         random_state r;

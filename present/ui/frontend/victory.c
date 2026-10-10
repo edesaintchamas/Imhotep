@@ -87,7 +87,7 @@ static void mission_won_draw(game_state *st)
      * (0x94: 1 0x10, 2 0xA, 3 0xB, 4 0xC; 5 0xE and 6 0xD expanded (0x00448370) with the record's
      * player as the name 0x00E38E74 for the while: 5 the former holder 0x00D386E0, 6 the holder); the
      * note (0xD, 1) */
-    uint32_t c = (uint32_t) S32(st, G_PLAYER) * 0x49D8u;
+    uint32_t c = (uint32_t) S32(st, CURRENT_PLAYER_ADDR) * 0x49D8u;
     int32_t d = S16(st, G_START_YEAR) - S32(st, G_YEAR);
     if (d < 0) {
         d = -d;
@@ -103,12 +103,12 @@ static void mission_won_draw(game_state *st)
     int32_t text = mission_victory_text(st);
     GAME_CALL(st, FN_TEXT_GROUP_DRAW_LINES, 0x93, text, S32(st, G_PANEL_X) + 0x20, S32(st, G_PANEL_Y) + 0x40, 0x1F0,
               S32(st, G_FONT_9C), 0);
-    c = (uint32_t) S32(st, G_PLAYER) * 0x49D8u;
-    label_number(st, 0, S32(st, CITY_ADDR(S32(st, G_PLAYER)) + CITY_RATING_CULTURE), 0x28, 0xB4);
-    label_number(st, 1, S32(st, CITY_ADDR(S32(st, G_PLAYER)) + CITY_RATING_PROSPERITY), 0x28, 0xC8);
-    label_number(st, 3, S32(st, CITY_ADDR(S32(st, G_PLAYER)) + CITY_RATING_KINGDOM), 0x28, 0xDC);
-    label_number(st, 5, S32(st, CITY_ADDR(S32(st, G_PLAYER)) + CITY_TREASURY), 0x28, 0xF0);
-    label_number(st, 4, S32(st, CITY_ADDR(S32(st, G_PLAYER)) + CITY_POPULATION), 0x28, 0x104);
+    c = (uint32_t) S32(st, CURRENT_PLAYER_ADDR) * 0x49D8u;
+    label_number(st, 0, S32(st, CITY_ADDR(S32(st, CURRENT_PLAYER_ADDR)) + CITY_RATING_CULTURE), 0x28, 0xB4);
+    label_number(st, 1, S32(st, CITY_ADDR(S32(st, CURRENT_PLAYER_ADDR)) + CITY_RATING_PROSPERITY), 0x28, 0xC8);
+    label_number(st, 3, S32(st, CITY_ADDR(S32(st, CURRENT_PLAYER_ADDR)) + CITY_RATING_KINGDOM), 0x28, 0xDC);
+    label_number(st, 5, S32(st, CITY_ADDR(S32(st, CURRENT_PLAYER_ADDR)) + CITY_TREASURY), 0x28, 0xF0);
+    label_number(st, 4, S32(st, CITY_ADDR(S32(st, CURRENT_PLAYER_ADDR)) + CITY_POPULATION), 0x28, 0x104);
     (void) c;
     int32_t done = victory_monuments_draw(st);
     if (st->unported) {
@@ -122,7 +122,7 @@ static void mission_won_draw(game_state *st)
               S32(st, G_FONT_LARGE), 0);
     S32(st, G_TEXT_X) = 0;
     GAME_CALL(st, FN_TEXT_GROUP_DRAW, 0x94, 8, S32(st, G_PANEL_X) + 0xA0, S32(st, G_PANEL_Y) + 0x12C, S32(st, G_FONT_LARGE), 0);
-    GAME_CALL(st, FN_TEXT_GROUP_DRAW, 0x99, S32(st, CITY_ADDR(S32(st, G_PLAYER)) + CITY_DIFFICULTY) + 1,
+    GAME_CALL(st, FN_TEXT_GROUP_DRAW, 0x99, S32(st, CITY_ADDR(S32(st, CURRENT_PLAYER_ADDR)) + CITY_DIFFICULTY) + 1,
               S32(st, G_TEXT_X) + S32(st, G_PANEL_X) + 0xA0, S32(st, G_PANEL_Y) + 0x12C, S32(st, G_FONT_LARGE), 0);
     label_number(st, 9, score, 0xC8, 0x140);
     int32_t outcome = S32(st, G_HIGHSCORE_RESULT);
@@ -197,7 +197,7 @@ void mission_end_frame(game_state *st)
     S32(st, G_PANEL_Y) = y;
     if (U8(st, G_UE38DD9) == 1) {
         button(st, 1, x + 0x20, y + 0x70, 0x1E, 3, 0x1E0, font);
-        if ((int8_t) S8(st, G_MISSION) >= 2 || S32(st, G_CUSTOM) != 0 || U8(st, G_FLOW2_PERIOD) != 0) {
+        if ((int8_t) S8(st, G_MISSION) >= 2 || S32(st, G_CUSTOM) != 0 || U8(st, G_PERIOD) != 0) {
             button(st, 2, S32(st, G_PANEL_X) + 0x20, S32(st, G_PANEL_Y) + 0x90, 0x1E, 4, 0x1E0, font);
             button(st, 3, S32(st, G_PANEL_X) + 0x20, S32(st, G_PANEL_Y) + 0xB0, 0x1E, 5, 0x1E0, font);
         }

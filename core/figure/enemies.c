@@ -58,7 +58,7 @@ void threat_add(game_state *st, int32_t x, int32_t y, int32_t r, int32_t add)
             for (int32_t col = x0; col <= x1; col++, t++) {
                 uint8_t v = (uint8_t) (U8(st, G_THREAT + (uint32_t) t) + (uint8_t) add);
                 U8(st, G_THREAT + (uint32_t) t) = v;
-                int16_t f = S16(st, G_FIGURE_GRID + 2u * (uint32_t) t);
+                int16_t f = S16(st, G_GRID_FIGURE + 2u * (uint32_t) t);
                 if (f > 0) {
                     uint8_t ft = U8(st, FIGURE_ADDR(f) + FIG_TYPE);
                     if (ft >= 0xB && ft <= 0xD) {

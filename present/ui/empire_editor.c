@@ -181,7 +181,7 @@ static void route_find_ends(game_state *st, uint32_t r)
 static int in_map(game_state *st)
 {
     int32_t mx = S32(st, G_MOUSE_X), left = S32(st, G_MAP_X);
-    if (mx < left || mx >= S32(st, G_UE38D9C) - 2 * left) {
+    if (mx < left || mx >= S32(st, G_DRAW_W) - 2 * left) {
         return 0;
     }
     int32_t my = S32(st, G_MOUSE_Y), top = S32(st, G_MAP_Y);

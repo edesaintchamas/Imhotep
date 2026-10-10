@@ -530,7 +530,7 @@ static void upgrades(ctx *c)
     if (v < 0x7A) { /* @bin 0x004D1880 both city records: 7 dwords +0x2900 -> +0x483C */
         for (uint32_t p = 0; p < 2; p++) {
             for (uint32_t k = 0; k < 7; k++) {
-                wr32(c, CITY_ADDR(p) + CITY_U483C + 4 * k, rd32(c, CITY_ADDR(p) + CITY_U2900 + 4 * k));
+                wr32(c, CITY_ADDR(p) + CITY_GRANARY_FOOD + 4 * k, rd32(c, CITY_ADDR(p) + CITY_U2900 + 4 * k));
             }
         }
         st->upgrades++;
@@ -538,8 +538,8 @@ static void upgrades(ctx *c)
     if (v < 0x7B) { /* @bin 0x004D18B0 i16[30] +0x2796 -> i32 +0x4860, +0x27DE -> +0x48F0 */
         for (uint32_t p = 0; p < 2; p++) {
             for (uint32_t k = 0; k < 30; k++) {
-                wr32(c, CITY_ADDR(p) + CITY_U48F0 + 4 * k, rd16(c, CITY_ADDR(p) + CITY_U27DE + 2 * k));
-                wr32(c, CITY_ADDR(p) + CITY_U4860 + 4 * k, rd16(c, CITY_ADDR(p) + CITY_U2796 + 2 * k));
+                wr32(c, CITY_ADDR(p) + CITY_STORAGE_STOCK + 4 * k, rd16(c, CITY_ADDR(p) + CITY_U27DE + 2 * k));
+                wr32(c, CITY_ADDR(p) + CITY_STORAGE_FREE + 4 * k, rd16(c, CITY_ADDR(p) + CITY_U2796 + 2 * k));
             }
         }
         st->upgrades++;
@@ -551,12 +551,12 @@ static void upgrades(ctx *c)
     if (v < 0x7D) { /* @bin 0x004BD330 on the floodplain settings */
         static const int32_t F[8] = {180, 70, 100, 180, 70, 100, 0, 100};
         for (uint32_t k = 0; k < 8; k++) {
-            wr32(c, G_FLOODPLAIN + 4 * k, F[k]);
+            wr32(c, G_FLOODPLAIN_SETTINGS + 4 * k, F[k]);
         }
         st->upgrades++;
     }
     if (v < 0x84) { /* @bin 0x004BD5D0 */
-        wr32(c, G_FLOODPLAIN + 0x1C, rd32(c, G_FLOODPLAIN + 8));
+        wr32(c, G_FLOODPLAIN_SETTINGS + 0x1C, rd32(c, G_FLOODPLAIN_SETTINGS + 8));
         st->upgrades++;
     }
     /* @bin 0x004D0A40(1): the 10 shipwright queues (0x009783C0 + j * 0x1C) from chunk 140's
@@ -609,7 +609,7 @@ static void upgrades(ctx *c)
     if (v < 0x88) { /* @bin 0x004D3C20 -> 0x004E59C0, 0x004E5B90 */
         int32_t cur = rd32(c, CURRENT_PLAYER_ADDR), found = 0;
         for (uint32_t k = 0; k < 3 && !found; k++) {
-            int32_t id = rd32(c, CITY_ADDR(cur) + CITY_U473C + 4 * k);
+            int32_t id = rd32(c, CITY_ADDR(cur) + CITY_MONUMENTS + 4 * k);
             int16_t t = rd16(c, BUILDING_ADDR(id) + BLD_TYPE);
             if (id != 0 && rd8(c, BUILDING_ADDR(id) + BLD_STATE) == 1 && (t == 0xCF || t == 0xD0) && rd8(c, BUILDING_ADDR(id) + BLD_U55) != 100) {
                 found = id;
@@ -654,7 +654,7 @@ static void upgrades(ctx *c)
         st->upgrades++;
     }
     if (v < 0x93) {
-        wr32(c, G_FLOODPLAIN + 0x20, rd32(c, G_FLOODPLAIN + 0x14));
+        wr32(c, G_FLOODPLAIN_SETTINGS + 0x20, rd32(c, G_FLOODPLAIN_SETTINGS + 0x14));
         st->upgrades++;
     }
     if (v < 0x94) { /* @bin 0x004D3D00 formation +0x84: transport figure */

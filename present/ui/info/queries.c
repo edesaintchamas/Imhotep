@@ -15,7 +15,7 @@ static uint8_t goods_on_way_to_type(game_state *st, int32_t good, int16_t type)
 {
     /* the loop of 0x00420500: a figure in use (+0x16 = 1) carrying `good` (+0x12, u8) whose tile
      * (+0x30, i32) holds a building (grid 0x00B4E6FC) of `type` */
-    for (uint32_t f = FIGURE_ADDR(1) + FIG_TYPE; f < G_FIGURES_END; f += FIGURE_SIZE) {
+    for (uint32_t f = FIGURE_ADDR(1) + FIG_TYPE; f < FIGURE_ADDR(FIGURE_COUNT) + FIG_TYPE; f += FIGURE_SIZE) {
         if (U8(st, f + (FIG_STATE - FIG_TYPE)) != 1 || U8(st, f) != (uint32_t) good) {
             continue;
         }
@@ -43,7 +43,7 @@ static uint8_t goods_needed_player(game_state *st, int32_t good)
         if (P16(st, obj + 0x12) != 0) {
             continue;
         }
-        int32_t key = S16(st, CITY_BASE + CITY_U433A + U32(st, G_PLAYER) * CITY_REC_SIZE);
+        int32_t key = S16(st, CITY_BASE + CITY_U433A + U32(st, CURRENT_PLAYER_ADDR) * CITY_REC_SIZE);
         if (S32(st, e) == key && S32(st, e + 4) == good && (int32_t) P32(st, obj + 0x0C) > 0) {
             return 1;
         }
@@ -80,7 +80,7 @@ static uint8_t goods_on_way_to(game_state *st, int32_t good, int32_t building)
 {
     /* @bin 0x004E60F0 whether a figure in use carries `good` to the tile of `building`, a
      * building of type 0xCF or 0xD0 (the type tested per figure, as the original) */
-    for (uint32_t f = FIGURE_ADDR(1) + FIG_TYPE; f < G_FIGURES_END; f += FIGURE_SIZE) {
+    for (uint32_t f = FIGURE_ADDR(1) + FIG_TYPE; f < FIGURE_ADDR(FIGURE_COUNT) + FIG_TYPE; f += FIGURE_SIZE) {
         if (U8(st, f + (FIG_STATE - FIG_TYPE)) != 1 || U8(st, f) != (uint32_t) good) {
             continue;
         }

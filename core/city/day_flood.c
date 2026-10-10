@@ -146,11 +146,11 @@ void flood_tick(game_state *st, uint32_t self)
 static int32_t run_flood_tick(game_state *st, const int32_t *a)
 {
     (void) a;
-    flood_tick(st, G_UD05720);
+    flood_tick(st, G_FLOODPLAIN_MANAGER);
     return 0;
 }
 
 const ported_function day_flood_ports[] = {
-    {0x004BE770u, "flood_tick", 0, 0, G_UD05720, run_flood_tick, 0},
+    {0x004BE770u, "flood_tick", 0, 0, G_FLOODPLAIN_MANAGER, run_flood_tick, 0},
 };
 const int day_flood_ports_count = sizeof(day_flood_ports) / sizeof(day_flood_ports[0]);

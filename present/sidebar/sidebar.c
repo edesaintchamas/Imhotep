@@ -705,7 +705,7 @@ void sidebar_draw_city_texts(game_state *st)
                     0xFFFF);
         S32(st, G_TEXT_X) = saved;
     }
-    if (U8(st, G_GATE) != 0) {
+    if (U8(st, G_PAUSED) != 0) {
         /* @bin 0x0051FCF9 paused: a 28 x 3 panel centred on the city view, text 13:2 */
         int32_t x = (cityview_pixel_width(st) - 0x1C0) / 2;
         panel_draw(st, x, 0x28, 0x1C, 3);

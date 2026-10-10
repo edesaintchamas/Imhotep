@@ -161,7 +161,7 @@ int32_t building_anim_frame(game_state *st, int32_t image, int32_t tile)
 {
     /* @bin 0x0040F2C0 (image, tile) the frame to draw (0: none); advances the sprite grid byte */
     int32_t b = S16(st, G_GRID_BUILDING + 2u * (uint32_t) tile);
-    uint32_t sprite = U8(st, G_SPRITE + (uint32_t) tile);
+    uint32_t sprite = U8(st, G_GRID_SPRITE + (uint32_t) tile);
     if (b != 0) {
         int k = animates(st, b);
         if (k < 0) {
@@ -203,9 +203,9 @@ int32_t building_anim_frame(game_state *st, int32_t image, int32_t tile)
             frame = 1;
         }
     }
-    U8(st, G_SPRITE + (uint32_t) tile) = (uint8_t) frame;
+    U8(st, G_GRID_SPRITE + (uint32_t) tile) = (uint8_t) frame;
     if (rev) {
-        U8(st, G_SPRITE + (uint32_t) tile) = (uint8_t) (frame | 0x80);
+        U8(st, G_GRID_SPRITE + (uint32_t) tile) = (uint8_t) (frame | 0x80);
     }
     return frame;
 }

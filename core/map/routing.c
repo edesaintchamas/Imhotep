@@ -72,7 +72,7 @@ void routing_fill_ed4140(game_state *st, int32_t x0, int32_t y0, int32_t x1, int
             } else if (y < 1 || x < 1 || h - 2 < y || w - 2 < x) {
                 g = 0xFE;
             } else {
-                uint8_t c = U8(st, G_SPRITE + (uint32_t) o); /* chunk 14 */
+                uint8_t c = U8(st, G_GRID_SPRITE + (uint32_t) o); /* chunk 14 */
                 g = c == 13 ? 0xFF : (c == 5 || c == 2) ? 0xFD : 0;
             }
             U8(st, G_GRID_ROUTING_WATER + (uint32_t) o) = g;
@@ -91,7 +91,7 @@ void routing_rebuild_ebab20(game_state *st)
 {
     /* @bin 0x005178E0 depends on the view orientation */
     fill(st, G_EBAB20);
-    int32_t view = S32(st, G_UE94E04);
+    int32_t view = S32(st, G_CITY_ORIENTATION);
     int32_t o = S32(st, G_MAP_START);
     for (int32_t y = 0; y < S32(st, G_MAP_HEIGHT); y++) {
         for (int32_t x = 0; x < S32(st, G_MAP_WIDTH); x++, o++) {
@@ -200,7 +200,7 @@ void routing_fill_ee0c50(game_state *st, int32_t x0, int32_t y0, int32_t x1, int
         for (int32_t x = x0; x <= x1; x++) {
             int32_t o = S32(st, G_MAP_START) + y * SIDE + x;
             uint32_t uo = (uint32_t) o;
-            if (flag && (T(st, o) & 0x10044) == 0x44 && U8(st, G_SPRITE + uo) == 0) {
+            if (flag && (T(st, o) & 0x10044) == 0x44 && U8(st, G_GRID_SPRITE + uo) == 0) {
                 U32(st, G_GRID_TERRAIN + 4 * uo) &= ~0x40u;
             }
             int32_t base = S32(st, G_IMAGE_GROUPS + 8u * 507); /* an image group's first id (startup numbering) */
@@ -242,7 +242,7 @@ void routing_fill_ee0c50(game_state *st, int32_t x0, int32_t y0, int32_t x1, int
             } else if (t & 0x100) {
                 *g = 4;
             } else {
-                uint32_t obj = U32(st, G_UD05720 + 4 * uo); /* floodplain object of the tile */
+                uint32_t obj = U32(st, G_FLOODPLAIN_MANAGER + 4 * uo); /* floodplain object of the tile */
                 const uint8_t *flooded = obj ? state_ptr(st, obj + FLOODOBJ_FLAG, 1) : NULL;
                 if (flooded && *flooded == 0) {
                     int32_t d = S32(st, G_GRID_IMAGE + 4 * uo) - S32(st, G_IMAGE_GROUPS + 8u * 528);

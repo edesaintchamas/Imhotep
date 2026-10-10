@@ -96,7 +96,7 @@ int32_t map_area_test(game_state *st, int32_t x, int32_t y, int32_t width, int32
         for (int32_t j = 0; j < width; j++) {
             int32_t tile = base + S32(st, row + 8u * (uint32_t) j);
             if (mask & 0x10000) {
-                uint32_t obj = U32(st, G_UD05720 + 4u * (uint32_t) tile);
+                uint32_t obj = U32(st, G_FLOODPLAIN_MANAGER + 4u * (uint32_t) tile);
                 if (obj != 0 && P8(st, obj + 0x18) == 0) {
                     return 1;
                 }

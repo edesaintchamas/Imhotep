@@ -169,4 +169,10 @@ When unsure, stop and write down the question in `docs/unverified.md` rather tha
       never called); the game reports any gap it meets (gaps.log); 94 randomised sessions, 1.04 million
       frames, equal to the original (`tools/oracle/fuzz.py`, docs/roadmap.md 8.3)
 
-Next steps: `docs/roadmap.md` (carried-over items under 4.8, 5.3, 6.1, 7.9 and 8.4).
+- [x] Release (phase 9): CI on Linux, macOS and Windows; the game finds a Pharaoh installation;
+      release packages built by a workflow (docs/release.md)
+
+- [x] Readability (phase 10): core/ and present/ written with names (core/state/layout/,
+      present/layout/, docs/naming.md); object code identical to before (`tools/check_same_code.py`)
+
+Next steps: `docs/roadmap.md` (carried-over items under 4.8, 5.3, 6.1, 7.9, 8.4 and 9.6).

@@ -398,7 +398,7 @@ static void wm_char(game_state *st, uint32_t ch)
              * during the toggle, then back) */
             uint8_t old = U8(st, G_WINDOW);
             if (back_to_city(st) && S32(st, G_EDITOR) == 0) {
-                U8(st, G_GATE) = U8(st, G_GATE) == 0;
+                U8(st, G_PAUSED) = U8(st, G_PAUSED) == 0;
                 GAME_CALL0(st, FN_VIEW_ROWS_RESET);
             }
             U8(st, G_WINDOW) = old;

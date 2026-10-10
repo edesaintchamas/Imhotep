@@ -121,7 +121,7 @@ static void scan_events(game_state *st, war_flags *w)
             int32_t c = S16(st, e + 0x1C);
             int ours = 0;
             if (c >= 0 && c < 0x32) {
-                ours = U8(st, G_ARMIES + (uint32_t) c * 0x144u) == 2;
+                ours = U8(st, G_ROUTES + ROUTE_KIND + (uint32_t) c * ROUTE_SIZE) == 2;
             }
             int16_t k = S16(st, e + 0x30);
             if (k == 5) {

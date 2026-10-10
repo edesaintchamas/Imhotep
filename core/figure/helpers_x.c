@@ -342,7 +342,7 @@ int32_t missile_create(game_state *st, int32_t from, int32_t x, int32_t y, int32
     /* @bin 0x004B45C0 a missile figure `type` (0x004B4800) at (x, y) shot by figure `from` (its
      * sound 0x004B5210) towards (tx, ty): +0x1C 0x3C for type 0x3D else 10, +0x5A the shooter, a
      * straight line (0x004B4220, exact), +0x11 its angle (0x0051CAE0, x87, replayed) */
-    int32_t id = figure_create(st, S32(st, G_PLAYER), type, x, y, 0);
+    int32_t id = figure_create(st, S32(st, CURRENT_PLAYER_ADDR), type, x, y, 0);
     if (id == 0) {
         return 0;
     }
@@ -368,7 +368,7 @@ void figure_spawn_ring(game_state *st, int32_t x, int32_t y, int32_t size, int32
     int32_t sub = S32(st, G_U5DC614 + 4u * (uint32_t) size);
     int32_t n = (uint8_t) many != 0 ? 16 : 4;
     for (int32_t k = 0; k < n; k++) {
-        int32_t id = figure_create(st, S32(st, G_PLAYER), 6, x + off, y + off, 0);
+        int32_t id = figure_create(st, S32(st, CURRENT_PLAYER_ADDR), 6, x + off, y + off, 0);
         if (id == 0) {
             continue;
         }
@@ -468,7 +468,7 @@ void figure_fight(game_state *st, int32_t fid)
     int32_t kind = S32(st, FIGURE_PROPS(U8(st, o + FIG_TYPE)) + FIGTYPE_U00);
     U8(st, f + FIG_ATTACK_IMAGE) = (kind == 1 || kind == 4) ? 0x0C : 0;
     int32_t bonus = 0;
-    if ((int32_t) U8(st, o + FIG_OWNER) == S32(st, G_PLAYER)) {
+    if ((int32_t) U8(st, o + FIG_OWNER) == S32(st, CURRENT_PLAYER_ADDR)) {
         bonus = (S16(st, FORMATION_AT(fm) + FM_EXPERIENCE) + 10) / 20;
     }
     int32_t attack = S32(st, FIGURE_PROPS(U8(st, f + FIG_TYPE)) + FIGTYPE_ATTACK);
@@ -561,7 +561,7 @@ void figure_fight(game_state *st, int32_t fid)
     }
     uint8_t otype = U8(st, o + FIG_TYPE);
     if ((uint8_t) GAME_CALL(st, FN_FIGURE_TYPE_IS_ENEMY_0X52, otype) == 0 && (uint8_t) GAME_CALL(st, FN_FIGURE_TYPE_IS_0X44_0X46, U8(st, o + FIG_TYPE)) == 0 &&
-        U8(st, o + FIG_TYPE) != 0x17 && (int32_t) U8(st, f + FIG_OWNER) == S32(st, G_PLAYER)) {
+        U8(st, o + FIG_TYPE) != 0x17 && (int32_t) U8(st, f + FIG_OWNER) == S32(st, CURRENT_PLAYER_ADDR)) {
         int32_t m = S16(st, fa + FM_EXPERIENCE) + 1;
         if (m >= 100) {
             m = 100;
@@ -578,7 +578,7 @@ void figure_fight(game_state *st, int32_t fid)
 static void animal_rest(game_state *st, uint32_t f)
 {
     random_next_state(st);
-    S16(st, f + FIG_WAIT_TICKS) = (int16_t) (S32(st, G_R_1_15) % 100 + 0xFA);
+    S16(st, f + FIG_WAIT_TICKS) = (int16_t) (S32(st, G_RANDOM_R1_15BIT) % 100 + 0xFA);
     S32(st, f + FIG_FRAME_PERIOD) = 0x0C;
     S32(st, f + FIG_FRAME_TICKS) = 0;
 }
@@ -591,7 +591,7 @@ static void animal_wander(game_state *st, int32_t fid, uint32_t offsets, uint32_
 {
     uint32_t f = FIGURE_ADDR(fid);
     random_next_state(st);
-    int32_t dir = (int32_t) (U32(st, G_R_IV1) & 7u);
+    int32_t dir = (int32_t) (U32(st, G_RANDOM_IV1) & 7u);
     int32_t k;
     for (k = 0; k < 8; k++) {
         uint32_t t = U32(st, offsets + 4u * (uint32_t) dir) + U32(st, f + FIG_GRID_OFFSET);
@@ -678,7 +678,7 @@ void animal_choose_action(game_state *st, int32_t fid)
         w[1] = 75;
     }
     random_next_state(st);
-    int32_t r = S32(st, G_R_1_15) % 100;
+    int32_t r = S32(st, G_RANDOM_R1_15BIT) % 100;
     int32_t i, sum = 0;
     for (i = 0; i < 2; i++) {
         sum += w[i];
@@ -922,7 +922,7 @@ int32_t find_gatherable(game_state *st, int32_t x, int32_t y, int32_t unused, ui
                 if (mask == 0x40000u && tile_neighbours_with(st, 0x40000u, tile) != 8) {
                     continue;
                 }
-                int32_t fig = S16(st, G_FIGURE_GRID + 2u * (uint32_t) tile);
+                int32_t fig = S16(st, G_GRID_FIGURE + 2u * (uint32_t) tile);
                 if (U8(st, FIGURE_ADDR(fig) + FIG_TYPE) == ftype) {
                     continue;
                 }
@@ -972,7 +972,7 @@ int32_t formation_move_to(game_state *st, int32_t x, int32_t y, int32_t formatio
      * whose first figure is in action 0x13 (and 0x00D3B198 not 1) sends its men to action 0x14
      * (+0x2A 15), then every man (+0x08, 16) not dying, not attacking (0x004B63D0), with +0x73 0
      * and +0x66 at most 1 (1: morale +10, 0x004B7B50) goes to action 0x0B */
-    if (U8(st, G_GATE) != 0) {
+    if (U8(st, G_PAUSED) != 0) {
         return 0;
     }
     uint32_t fa = G_FORMATION_BASE + 0x90u * (uint32_t) formation;

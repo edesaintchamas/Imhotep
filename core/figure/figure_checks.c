@@ -14,7 +14,7 @@
 
 #define FIG(id) (FIGURE_BASE + 8u + 0x184u * (uint32_t) (int32_t) (id))
 #define BLD(id) BUILDING_ADDR((int32_t) (id))
-#define ON_TILE(grid) (G_FIGURE_GRID + 2u * (uint32_t) (int32_t) (grid))
+#define ON_TILE(grid) (G_GRID_FIGURE + 2u * (uint32_t) (int32_t) (grid))
 
 int32_t building_type_4d_4f(game_state *st, int32_t id)
 {

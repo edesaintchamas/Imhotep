@@ -146,7 +146,7 @@ uint32_t keyword_monument_name(game_state *st, int32_t building)
         }
         return text_string(st, 0xB2, index);
     }
-    uint32_t ids = CITY_BASE + CITY_MONUMENT_ID + (uint32_t) S32(st, G_PLAYER) * 0x49D8u;
+    uint32_t ids = CITY_BASE + CITY_MONUMENTS + (uint32_t) S32(st, CURRENT_PLAYER_ADDR) * 0x49D8u;
     int32_t k = 0;
     while (S32(st, ids + 4u * (uint32_t) k) != b) {
         k++;
@@ -247,8 +247,8 @@ static int32_t run_greeting(game_state *st, const int32_t *a)
 {
     (void) a;
     /* @bin 0x00447800 group 0x20, string [city +0xEA5CBC] + 0xB */
-    uint32_t city = (uint32_t) S32(st, G_PLAYER) * 0x49D8u;
-    return (int32_t) text_string(st, 0x20, (int32_t) (U32(st, CITY_BASE + CITY_RANK + city) + 0xBu));
+    uint32_t city = (uint32_t) S32(st, CURRENT_PLAYER_ADDR) * 0x49D8u;
+    return (int32_t) text_string(st, 0x20, (int32_t) (U32(st, CITY_BASE + CITY_PLAYER_RANK + city) + 0xBu));
 }
 
 static int32_t run_city_name(game_state *st, const int32_t *a)
@@ -363,7 +363,7 @@ static int32_t run_percent_complete(game_state *st, const int32_t *a)
         v = U8(st, BUILDING_BASE + BLD_U55 + id * 0x108u);
         break;
     case 0xD2: {
-        int32_t p = S16(st, CITY_BASE + CITY_U433A + (uint32_t) S32(st, G_PLAYER) * 0x49D8u);
+        int32_t p = S16(st, CITY_BASE + CITY_U433A + (uint32_t) S32(st, CURRENT_PLAYER_ADDR) * 0x49D8u);
         v = (int32_t) ((uint32_t) p * 100u) / 16; /* @bin 0x00447CB8 cdq; and 0xF; sar 4 */
         break;
     }

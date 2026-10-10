@@ -83,16 +83,16 @@ void day_totals_45aae0(game_state *st, int32_t player)
         }
     }
     /* @bin 0x0045AC2E three one-time messages of the scenario 0x00E38EA8 */
-    if ((int32_t) S8(st, G_MISSION) == S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 9) && U8(st, G_MISSION_LIST_FLAGS + 9) == 0 &&
+    if ((int32_t) S8(st, G_MISSION) == S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 9) && U8(st, G_TUTORIAL_FLAGS + 9) == 0 &&
         S32(st, G_CUSTOM) == 0 && S32(st, c + CITY_STORAGE_STOCK + 4 * 13) >= 200) {
         GAME_CALL(st, FN_TUTORIAL_STEP, 9);
     }
-    if ((int32_t) S8(st, G_MISSION) == S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 10) && U8(st, G_MISSION_LIST_FLAGS + 10) == 0 &&
+    if ((int32_t) S8(st, G_MISSION) == S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 10) && U8(st, G_TUTORIAL_FLAGS + 10) == 0 &&
         S32(st, G_CUSTOM) == 0 && S32(st, c + CITY_STORAGE_STOCK + 4 * 15) >= 300) {
         GAME_CALL(st, FN_TUTORIAL_STEP, 10);
     }
-    if ((int32_t) S8(st, G_MISSION) == S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 13) && U8(st, G_MISSION_LIST_FLAGS + 13) == 0 &&
-        U8(st, G_MISSION_LIST_FLAGS + 12) != 0 && S32(st, G_CUSTOM) == 0 && S32(st, c + CITY_STORAGE_STOCK + 4 * 12) >= 800) {
+    if ((int32_t) S8(st, G_MISSION) == S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 13) && U8(st, G_TUTORIAL_FLAGS + 13) == 0 &&
+        U8(st, G_TUTORIAL_FLAGS + 12) != 0 && S32(st, G_CUSTOM) == 0 && S32(st, c + CITY_STORAGE_STOCK + 4 * 12) >= 800) {
         GAME_CALL(st, FN_TUTORIAL_STEP, 0xD);
     }
 }
@@ -217,10 +217,10 @@ void figure_tile_list_add(game_state *st, int32_t id)
     uint32_t f = FIGURE_ADDR(id);
     int32_t tile = S32(st, f + FIG_GRID_OFFSET);
     if (tile >= 0) {
-        int32_t head = S16(st, G_FIGURE_GRID + 2u * (uint32_t) tile);
+        int32_t head = S16(st, G_GRID_FIGURE + 2u * (uint32_t) tile);
         U8(st, f + FIG_TILE_INDEX) = 0;
         if (head == 0) {
-            S16(st, G_FIGURE_GRID + 2u * (uint32_t) S32(st, f + FIG_GRID_OFFSET)) = (int16_t) id;
+            S16(st, G_GRID_FIGURE + 2u * (uint32_t) S32(st, f + FIG_GRID_OFFSET)) = (int16_t) id;
         } else {
             U8(st, f + FIG_TILE_INDEX) = 1;
             int32_t last = head;

@@ -18,30 +18,30 @@ void building_formation_size(game_state *st, int32_t id)
      * +0x12 while it has fewer (+0x28) than it may (+0x29); extra figures go (action 10) */
     uint32_t b = BUILDING_ADDR(id);
     uint32_t f = FORMATION_ADDR(S16(st, b + BLD_FORMATION));
-    S16(st, f + FORM_WANT) = 0;
-    if (U8(st, f + FORM_U03) == 0 || S16(st, f + FORM_U64) != 0) {
+    S16(st, f + FM_WANT) = 0;
+    if (U8(st, f + FM_U03) == 0 || S16(st, f + FM_U64) != 0) {
         return;
     }
-    uint8_t have = U8(st, f + FORM_COUNT), may = U8(st, f + FORM_MAX);
+    uint8_t have = U8(st, f + FM_COUNT), may = U8(st, f + FM_MAX_COUNT);
     if (have == may) {
         return;
     }
     if (have < may) {
         int16_t kind = S16(st, b + BLD_SUBTYPE);
         if (kind == 0xD) {
-            S16(st, f + FORM_WANT) = 3;
+            S16(st, f + FM_WANT) = 3;
         }
         if (kind == 0xB) {
-            S16(st, f + FORM_WANT) = 1;
+            S16(st, f + FM_WANT) = 1;
         }
         if (kind == 0xC) {
-            S16(st, f + FORM_WANT) = 2;
+            S16(st, f + FM_WANT) = 2;
         }
         return;
     }
     int32_t extra = have - may;
     for (int k = 15; k >= 0; k--) {
-        int16_t fid = S16(st, f + FORM_FIGURES + 2u * (uint32_t) k);
+        int16_t fid = S16(st, f + FM_FIGURES + 2u * (uint32_t) k);
         if (fid > 0) {
             extra--;
             U8(st, FIGURE_ADDR(fid) + FIG_ACTION) = 10;
@@ -306,7 +306,7 @@ int32_t building_find_supplier(game_state *st, int32_t id, int32_t good, int32_t
      * is of the types below; its road tile in 0x00D3B4E4 / 0x00D3B4E0 */
     uint32_t b = BUILDING_ADDR(id);
     int good_range = good > 0 && good <= 8;
-    if (S32(st, CITY_BASE + CITY_U2A88 + 4u * (U32(st, CURRENT_PLAYER_ADDR) * 0x1276u + (uint32_t) good)) != 0) {
+    if (S32(st, CITY_BASE + CITY_STOCKPILE + 4u * (U32(st, CURRENT_PLAYER_ADDR) * 0x1276u + (uint32_t) good)) != 0) {
         return 0;
     }
     int same_city = 1;
@@ -428,13 +428,13 @@ int32_t storage_take(game_state *st, int32_t player, int32_t id, int32_t good, i
             amount -= have;
             S16(st, p + BLD_STORED) = 0;
             S16(st, p + BLD_STORED_GOOD) = 0;
-            S32(st, CITY_BASE + CITY_U4860 + idx) += have;
-            S32(st, CITY_BASE + CITY_U48F0 + idx) -= have;
+            S32(st, CITY_BASE + CITY_STORAGE_FREE + idx) += have;
+            S32(st, CITY_BASE + CITY_STORAGE_STOCK + idx) -= have;
             more = amount > 0;
         } else {
             S16(st, p + BLD_STORED) = (int16_t) (have - amount);
-            S32(st, CITY_BASE + CITY_U4860 + idx) += amount;
-            S32(st, CITY_BASE + CITY_U48F0 + idx) -= amount;
+            S32(st, CITY_BASE + CITY_STORAGE_FREE + idx) += amount;
+            S32(st, CITY_BASE + CITY_STORAGE_STOCK + idx) -= amount;
             amount = 0;
         }
         int32_t g = S32(st, p + BLD_GRID_OFFSET);
@@ -461,7 +461,7 @@ int32_t storage_take_stock(game_state *st, int32_t player, int32_t id, int32_t g
     }
     uint32_t b = BUILDING_ADDR(id);
     uint32_t slot = b + BLD_INVENTORY + 2u * (uint32_t) good;
-    uint32_t c = CITY_BASE + CITY_U483C + 4u * ((uint32_t) player * 0x1276u + (uint32_t) good);
+    uint32_t c = CITY_BASE + CITY_GRANARY_FOOD + 4u * ((uint32_t) player * 0x1276u + (uint32_t) good);
     int16_t have = S16(st, slot);
     if (have <= amount) {
         S16(st, b + BLD_INVENTORY) = (int16_t) (S16(st, b + BLD_INVENTORY) + have);
@@ -492,7 +492,7 @@ static int32_t stock_capacity(int16_t type)
 
 static int good_blocked(game_state *st, int32_t good)
 {
-    return S32(st, CITY_BASE + CITY_U2A88 + 4u * (U32(st, CURRENT_PLAYER_ADDR) * 0x1276u + (uint32_t) good)) != 0;
+    return S32(st, CITY_BASE + CITY_STOCKPILE + 4u * (U32(st, CURRENT_PLAYER_ADDR) * 0x1276u + (uint32_t) good)) != 0;
 }
 
 /* @bin 0x0045C17E a part of the storage (+0x3A chain of 8) with some of `good` (not blocked) */
@@ -536,8 +536,8 @@ int32_t storage_cart_good(game_state *st, int32_t id, int32_t pending)
             }
         }
     }
-    if (S32(st, G_TYPE_COUNT + 4 * 0x5F) > 0 && S32(st, G_LEGIONS) != 0) {
-        int32_t kid = S32(st, CURRENT_CITY(st) + CITY_U44AC);
+    if (S32(st, G_TYPE_COUNT_ACTIVE + 4 * 0x5F) > 0 && S32(st, G_LEGIONS) != 0) {
+        int32_t kid = S32(st, CURRENT_CITY(st) + CITY_RECRUITER);
         uint32_t k = BUILDING_ADDR(kid);
         if (U8(st, b + BLD_ROAD_NETWORK) == U8(st, k + BLD_ROAD_NETWORK)) {
             int16_t s3c = S16(st, k + BLD_STORED), scc = S16(st, k + BLD_STOCK2);

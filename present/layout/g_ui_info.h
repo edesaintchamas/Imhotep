@@ -85,7 +85,7 @@
 #define G_HEALTH_BAR_IMAGES 0x00F56B1Cu /* @bin 0x00510363 the legion's health bar, - (health + 3) / 5 + 20 */
 
 /* strings of the exe's data */
-#define G_STR_COMMA 0x005E0400u         /* @bin 0x0050EBBD "," */
+#define G_STR_COMMA 0x005E0400u /* @bin 0x0050EBBD ","; also: @bin 0x004CACA3 "," */
 #define G_STR_OR 0x005F7E74u            /* @bin 0x0050EBBD "or" */
 #define G_STR_CLOSE_PAREN 0x005F7E78u   /* @bin 0x0050EA73 ")" */
 #define G_STR_VOICE_WALKER 0x005F90A4u  /* @bin 0x00539A70 the speech directory "audio\voice\walker\"  */
@@ -173,9 +173,33 @@
 #define G_BLIT_X 0x00D3B5E0u /* present/ui/info/figure.c: i32 the copy's destination x */
 #define G_TEXT_Y 0x00E20774u /* present/ui/messages/richtext.c: i32 the height laid out (+16 per line) */
 
-/* --- harvested: names the ports gave these addresses in local #defines (tools/naming/harvest.py).
- * @bin evidence: the defining port (file) and its comment. A package agent checks each name it
- * uses, and moves it above this block once checked. --- */
-/* --- end harvested --- */
+/* ---- names merged from the packages' pending fragments (phase 10.4): each group keeps its
+ * package's heading (the package and its file in brackets) ---- */
+/* ---- the monuments' status records (owner: present/layout/g_ui_info.h, P8b), computed by the
+ * info panel's open (present/ui/info/info.c) and read by the keyword handlers
+ * (present/ui/messages/keywords.c): per building type, the percent complete (keyword_percent_complete
+ * 0x00447C30), the main course's remainder (0x00447E30) and total (0x004481B0) ---- [p8a_ui_main] */
+#define G_MON_E5_PERCENT 0x00EADB4Cu    /* @bin 0x00447C30 i32 types 0xE5, 0xEA..0xEC (record 0x00EADB38 + 0x14) */
+#define G_MON_DE_REMAINDER 0x00EADB74u  /* @bin 0x00447E30 i32 type 0xDE (record 0x00EADB58 + 0x1C), / 100 */
+#define G_MON_DE_PERCENT 0x00EADB78u    /* @bin 0x00447C30 i32 type 0xDE */
+#define G_MON_DE_TOTAL 0x00EADB7Cu      /* @bin 0x004481B0 i32 type 0xDE, / 100 */
+#define G_MON_E4_REMAINDER 0x00EADB9Cu  /* @bin 0x00447E30 i32 type 0xE4 (record 0x00EADB88 + 0x14) */
+#define G_MON_E4_PERCENT 0x00EADBA0u    /* @bin 0x00447C30 i32 type 0xE4 */
+#define G_MON_E3_REMAINDER 0x00EADBBCu  /* @bin 0x00447E30 i32 type 0xE3 (record 0x00EADBA8 + 0x14) */
+#define G_MON_E3_PERCENT 0x00EADBC0u    /* @bin 0x00447C30 i32 type 0xE3 */
+#define G_MON_E6_PERCENT 0x00EADBD4u    /* @bin 0x00447C30 i32 type 0xE6 (record 0x00EADBC8 + 0x0C) */
+#define G_MON_E1_REMAINDER 0x00EADC04u  /* @bin 0x00447E30 i32 type 0xE1 (record 0x00EADBD8 + 0x2C) */
+#define G_MON_E1_PERCENT 0x00EADC08u    /* @bin 0x00447C30 i32 type 0xE1 */
+#define G_MON_D5_REMAINDER 0x00EADC3Cu  /* @bin 0x00447E30 i32 type 0xD5 (record 0x00EADC10 + 0x2C) */
+#define G_MON_D5_PERCENT 0x00EADC40u    /* @bin 0x00447C30 i32 type 0xD5 */
+#define G_MON_D5_TOTAL 0x00EADC44u      /* @bin 0x004481B0 i32 type 0xD5 */
+#define G_PYRAMID_COURSES_DONE 0x00EADC4Cu    /* @bin 0x00447D60 i32 G_PYRAMID_STATUS + 4: the courses complete */
+#define G_PYRAMID_NEEDED_MAIN 0x00EADC60u     /* @bin 0x00447D80 i32 G_PYRAMID_STATUS + 0x18: the main course's current loads */
+#define G_PYRAMID_NEEDED_SECOND 0x00EADC64u   /* @bin 0x00447DE0 i32 + 0x1C: the secondary course's current loads */
+#define G_PYRAMID_REMAINDER_MAIN 0x00EADC68u  /* @bin 0x00447E30 i32 + 0x20: the main course's remainder */
+#define G_PYRAMID_REMAINDER_SECOND 0x00EADC6Cu /* @bin 0x00447F70 i32 + 0x24: the secondary course's remainder */
+#define G_PYRAMID_TOTAL_MAIN 0x00EADC70u      /* @bin 0x004481B0 i32 + 0x28: the main course's total */
+#define G_PYRAMID_TOTAL_SECOND 0x00EADC74u    /* @bin 0x00448270 i32 + 0x2C: the secondary course's total */
+#define G_PYRAMID_PERCENT 0x00EADC7Cu         /* @bin 0x00447C30 i32 + 0x34: the percent complete (type 0xB7) */
 
 #endif

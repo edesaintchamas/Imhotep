@@ -204,11 +204,11 @@ void city_records_init(game_state *st)
     U32(st, CITY_ADDR(1) + CITY_TAX_RATE) = 9;
     U32(st, CITY_ADDR(1) + CITY_U42C4) = 1;
     U32(st, CITY_ADDR(1) + CITY_U42C8) = 1;
-    U32(st, CITY_ADDR(1) + CITY_U25BC) = 0;
-    U32(st, CITY_ADDR(1) + CITY_U25C0) = 0;
+    U32(st, CITY_ADDR(1) + CITY_POPULATION_HISTORY_INDEX) = 0;
+    U32(st, CITY_ADDR(1) + CITY_POPULATION_HISTORY_MONTHS) = 0;
     U32(st, CITY_ADDR(1) + CITY_U438C) = 1;
-    U32(st, CITY_ADDR(1) + CITY_U44F4) = 1;
-    U32(st, CITY_ADDR(1) + CITY_U4574) = 0;
+    U32(st, CITY_ADDR(1) + CITY_FESTIVAL_SIZE_CHOSEN) = 1;
+    U32(st, CITY_ADDR(1) + CITY_GIFT_COST) = 0;
     U32(st, CITY_ADDR(1) + CITY_U4578) = 0;
     U32(st, CITY_ADDR(1) + CITY_U457C) = 0;
     city_records_init_9ee0(st);
@@ -372,7 +372,7 @@ void newgame_view_reset(game_state *st)
     U32(st, G_DEBUG_TILE) = 0;
     U32(st, G_DEBUG_FIGURE) = 0;
     ring_offsets_build(st);
-    U32(st, G_UE94E04) = 0;
+    U32(st, G_CITY_ORIENTATION) = 0;
     view_table_build(st, 0); /* pushed (0, 1); the callee reads one argument */
     /* @bin 0x00540B92 0x00F53F78 == 1 chooses the geometry */
     if (S32(st, G_SIDEBAR_COLLAPSED) == 1) {

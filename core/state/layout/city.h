@@ -26,7 +26,7 @@
 #define CITY_EXIT_X 0x2780u          /* u16: exit point */
 #define CITY_EXIT_Y 0x2782u          /* u16 */
 #define CITY_EXIT_OFFSET 0x2784u     /* u32: its grid offset */
-#define CITY_U28B6 0x28B6u           /* i16[36] per resource: != 0 tested by 0x00459240 (save.md: industry off, assumed) */
+#define CITY_INDUSTRY_OFF 0x28B6u    /* i16[36] per resource: != 0 tested by 0x00459240; toggled by the trade window's industry button (0x005598A0, core/command/trade.c); save.md: industry switched off (assumed) */
 #define CITY_U2988 0x2988u           /* i32: set when the Sphinx (type 0xD2) message is posted (0x0046F200) */
 /* labour categories (0x00458880, 0x00459100, 0x00459670): 10 records of CITY_LABOUR_STRIDE bytes */
 #define CITY_LABOUR_NEEDED 0x2B2Cu   /* i32: workers needed (0x00459670) */
@@ -43,7 +43,7 @@
 #define CITY_GOD_WRATH 0x43A4u       /* u8[5]: 0x32 wrath, >= 0x14 small wrath (0x004C47A0) */
 #define CITY_GOD_MONTHS 0x43E0u      /* i32[5]: months since the god's festival */
 #define CITY_GOD_BLESSING 0x4816u    /* u8[5]: 0x32 blessing, >= 0x14 small blessing (0x004C47A0) */
-#define CITY_U4478 0x4478u           /* i16: read by 0x004C38F0 */
+#define CITY_TEMPLE_COMPLEX 0x4478u  /* i16: read by 0x004C38F0; != 0: the city has a temple complex, CITY_TEMPLE_COMPLEX_ID (its add-ons tested by 0x00404232, 0x004042AF: core/command/menu.c) */
 #define CITY_FESTIVAL_SIZE 0x44F8u   /* i32: planned festival size (0x004EA000) */
 #define CITY_FESTIVAL_MONTHS 0x44FCu /* i32: months to the planned festival */
 #define CITY_FESTIVAL_GOD 0x4500u    /* i32 */
@@ -60,7 +60,7 @@
 #define CITY_U468B 0x468Bu           /* u8: toggled by every pass of 0x004E8840 */
 #define CITY_ROAD_NETWORKS 0x46ACu   /* u32 id, 8 bytes per entry, 10 entries: ranked by 0x00481210 */
 #define CITY_ROAD_NETWORK_TILES 0x46B0u /* i32: an entry's tile count, the ten largest kept (0x00468860) */
-#define CITY_U472C 0x472Cu           /* i32: a building, read by 0x004C38F0 */
+#define CITY_TEMPLE_COMPLEX_ID 0x472Cu /* i32: the temple complex building (read by 0x004C38F0; its type the god's: core/city/day_city.c) */
 #define CITY_U47B4 0x47B4u           /* i32: := 0xC by a wrath of god 1 (0x004C47A0) */
 #define CITY_U4984 0x4984u           /* i16: := 0xC by a small blessing of god 1 */
 #define CITY_U4986 0x4986u           /* i16: := 0xC by a wrath of god 1 */
@@ -160,9 +160,9 @@
 #define CITY_U2C48 0x2C48u           /* i32: tax accumulator */
 #define CITY_TAXES_THIS_YEAR 0x2C4Cu
 #define CITY_TAXES_LAST_YEAR 0x2C50u
-#define CITY_U2C54 0x2C54u           /* i32: tax due by class (save.md) */
+#define CITY_TAX_BASE_LOW 0x2C54u /* i32: tax base of the houses below level 0xE (0x00459D20); i32: tax due by class (save.md) */
 #define CITY_U2C58 0x2C58u
-#define CITY_U2C5C 0x2C5Cu
+#define CITY_TAX_BASE_HIGH 0x2C5Cu /* i32: tax base of the houses from level 0xE (0x00459D20) */
 #define CITY_U2C60 0x2C60u
 #define CITY_EXPORTS_THIS_YEAR 0x2C64u
 #define CITY_EXPORTS_LAST_YEAR 0x2C68u
@@ -228,7 +228,7 @@
 #define CITY_U4550 0x4550u
 #define CITY_U4554 0x4554u
 #define CITY_U455C 0x455Cu           /* i32: months, wraps at 12 (the kingdom rating) */
-#define CITY_U4560 0x4560u           /* i32: := 0 when CITY_U455C wraps */
+#define CITY_GIFTS 0x4560u /* i32: the gifts counter (0x0046EE10); i32: := 0 when CITY_U455C wraps */
 #define CITY_U4580 0x4580u           /* i32: CITY_SALARY_RANK - CITY_PLAYER_RANK (0x0046EC70) */
 #define CITY_U4584 0x4584u           /* i32: tested by 0x0046EC70 */
 #define CITY_U4588 0x4588u           /* i32: tested by 0x0046EC70, set by events */
@@ -251,12 +251,10 @@
 #define CITY_U4408 0x4408u           /* i32: a god (core/city/day_city.c) */
 #define CITY_U44C8 0x44C8u           /* i32: += 1 per venue of type 0xE2 with +0xA7 (0x004550E0) */
 #define CITY_U44CC 0x44CCu           /* i32: += 100 per venue of type 0xE2 without +0xA7 */
-#define CITY_U44F4 0x44F4u           /* i32: := 2 from 3 when CITY_U4514 is set */
-#define CITY_FESTIVAL_COST_1 0x4504u /* i32: festival cost (save.md: +0x4504..+0x450C), population / 20 + 10 */
-#define CITY_FESTIVAL_COST_2 0x4508u /* i32: population / 10 + 20 */
-#define CITY_FESTIVAL_COST_3 0x450Cu /* i32: population / 5 + 40 */
-#define CITY_U4510 0x4510u           /* i32: (population / 500 + 1) * 100 */
-#define CITY_U4514 0x4514u           /* i32: 1 when CITY_STORAGE_STOCK of resource 15 is below CITY_U4510 */
+#define CITY_FESTIVAL_SIZE_CHOSEN 0x44F4u /* i32: the festival window's size (0x0040AC80); i32: := 2 from 3 when CITY_U4514 is set */
+#define CITY_FESTIVAL_COST 0x4504u /* i32[3] by size: festival costs (save.md: +0x4504..+0x450C; 0x0040AB9D): population / 20 + 10, / 10 + 20, / 5 + 40 (core/city/day_city.c) */
+#define CITY_FESTIVAL_BEER 0x4510u /* i32: the beer a size-3 festival takes (0x0040AC0D); i32: (population / 500 + 1) * 100 */
+#define CITY_U4514 0x4514u           /* i32: 1 when CITY_STORAGE_STOCK of resource 15 is below CITY_FESTIVAL_BEER */
 #define CITY_U4518 0x4518u           /* i32: average house +0x83 (0x004550E0) */
 #define CITY_U451C 0x451Cu           /* i32: average house +0x81 */
 #define CITY_U4520 0x4520u           /* i32: average house +0x82 */
@@ -265,7 +263,7 @@
 #define CITY_HOUSES_DISEASED 0x4750u /* i32: houses at disease level 1000 (0x004E81D0) */
 
 /* the city's buildings and the rest */
-#define CITY_U4460 0x4460u           /* i16 per building found (core/city/day_buildings.c) */
+#define CITY_DOCKS 0x4460u /* @bin 0x00534610 i16[10]: the city's docks (core/building/day2_docks.c; "docks_list="); i16 per building found (core/city/day_buildings.c) */
 #define CITY_U447C 0x447Cu           /* i16: += 1 per land trading city (0x00444C20) */
 #define CITY_U447E 0x447Eu           /* i16: += 1 per sea trading city */
 #define CITY_U4480 0x4480u           /* i16: countdown, := 0x30 by events */
@@ -274,10 +272,10 @@
 #define CITY_U448C 0x448Cu           /* i16: rolled into CITY_U448E monthly (0x0045A560) */
 #define CITY_U448E 0x448Eu           /* i16 */
 #define CITY_RECRUITER 0x44ACu       /* i32: recruiter building (save.md: +0x44A4..+0x44AC), type 0x5F */
-#define CITY_U44D0 0x44D0u           /* i32: tested with CITY_U44D4 by the goals */
-#define CITY_U44D4 0x44D4u           /* i32: countdown */
+#define CITY_KEEP_GOVERNING 0x44D0u /* i32: := 1 by "keep governing" (0x004EA770); i32: tested with CITY_EXTRA_MONTHS by the goals */
+#define CITY_EXTRA_MONTHS 0x44D4u /* i32: += 24 / 60 by 0x004EA770; the salary is fixed while > 0; i32: countdown */
 #define CITY_U4630 0x4630u           /* i32: a building count (core/city/day_buildings.c) */
-#define CITY_U46A4 0x46A4u           /* i32: the kinds counted by 0x00559FC0 (0x00444C20) */
+#define CITY_WINE_SOURCES 0x46A4u /* @bin 0x00534610 i32: "wine sources" (core/city/day_city.c: the open routes); i32: the kinds counted by 0x00559FC0 (0x00444C20) */
 #define CITY_U4714 0x4714u           /* i32: := 1 once by the goals (0x004EA2C0) */
 #define CITY_U4718 0x4718u           /* i32: := 1 once by the won path of 0x004EA2C0 */
 #define CITY_MONUMENT_TYPES 0x4730u  /* i32[3]: the city's monuments' types (0x004F78A0) */
@@ -289,8 +287,160 @@
 #define CITY_U477C 0x477Cu           /* i32 (0x004474E0) */
 #define CITY_U4780 0x4780u           /* i32 (0x004474E0) */
 #define CITY_U4784 0x4784u           /* i32: := 0 by 0x0045A560 */
-#define CITY_U47A8 0x47A8u           /* i32: extends the goals' year limit, 0: 7 years, 1: 2 (0x004EA2C0; save.md: difficulty copy) */
+#define CITY_DIFFICULTY 0x47A8u /* @bin 0x00418301 i32: the difficulty copy (save.md §5), at most the one chosen; i32: extends the goals' year limit, 0: 7 years, 1: 2 (0x004EA2C0; save.md: difficulty copy) */
 #define CITY_U4980 0x4980u           /* i32: += 1 (core/city/month_mood.c) */
 #define CITY_U49A0 0x49A0u           /* i32: += 1 (core/city/events_troops.c) */
+
+/* ---- names merged from the packages' pending fragments (phase 10.4): each group keeps its
+ * package's heading (the package and its file in brackets) ---- */
+/* @bin fields of other records and tables, read by core/figure [p1_figure] */
+#define CITY_U42C4 0x42C4u /* i32 index tested in the empire city's flags (helpers_xb.c) */
+#define CITY_U42C8 0x42C8u /* i32 counter (helpers_xb.c) */
+#define CITY_U42E0 0x42E0u /* i32 += amount; at least 500 tested for a tutorial (0x0045FECD) */
+#define CITY_U4418 0x4418u /* i32 counter (0x004B14FD) */
+#define CITY_U447A 0x447Au /* i16 animals counted (actions_b4.c) */
+#define CITY_U4490 0x4490u /* i32 the good trade_good_open_13 rotates through (0x00EA5D00) */
+#define CITY_U4494 0x4494u /* i32 the good trade_good_open_24 rotates through (0x00EA5D04) */
+#define CITY_U4544 0x4544u /* i32 := 10 (actions_b6.c), <= 0 tested with G_ENEMY_FORMATIONS (actions_d.c) */
+#define CITY_U45A0 0x45A0u /* i32 x of a point (formation.c) */
+#define CITY_U45A4 0x45A4u /* i32 y of that point */
+#define CITY_U4665 0x4665u /* u8 formation counter (formations_rebuild) */
+#define CITY_U4666 0x4666u /* u8 formation counter (formations_rebuild) */
+#define CITY_U466A 0x466Au /* u8 formation counter (formations_rebuild) */
+#define CITY_U466B 0x466Bu /* u8 formation counter (formations_rebuild) */
+#define CITY_U466C 0x466Cu /* u8 formation counter (formations_rebuild) */
+#define CITY_U466D 0x466Du /* u8 formation counter (formations_rebuild) */
+#define CITY_U466F 0x466Fu /* u8 += a formation's FM_COUNT (formations_rebuild) */
+#define CITY_U467F 0x467Fu /* u8 counter by figure type (actions_b6.c) */
+#define CITY_U4680 0x4680u /* u8 counter for figure types 0x30, 0x34 (actions_b6.c) */
+#define CITY_U4694 0x4694u /* i32 += 1 when a figure of type 0x39 is deleted (0x004B49A0) */
+#define CITY_U4698 0x4698u /* formations of type 0xD counted from here (formations_count) */
+#define CITY_U4700 0x4700u /* i32 flag (actions_b1.c) */
+#define CITY_U4704 0x4704u /* i32 cleared by the figure update (figure.c) */
+#define CITY_U4728 0x4728u /* i32 counter (actions_b6.c), cleared by the figure update (figure.c) */
+#define CITY_U4760 0x4760u /* i32 counter (actions_b2.c) */
+#define CITY_U4764 0x4764u /* i32 += an amount (actions_b2.c) */
+/* city record fields (layout/city.h, P3) [p2_building] */
+#define CITY_U05 0x05u /* @bin 0x0046A400 u8: copied into a new building's BLD_U02 (save.md §5) */
+#define CITY_U28C8 0x28C8u /* @bin 0x00462763 i16: 0, a type 0x66 building sends a second cart (good 9) */
+#define CITY_U4414 0x4414u /* @bin 0x00468B70 i32: := 0 by the day's risks */
+#define CITY_U4990 0x4990u /* @bin 0x004C3420 i32: 10 for a complex of level 4, else 0 */
+/* city fields that 0x0046AC50 (building_release) resets when a building of a type goes [p2_building] */
+#define CITY_U4486 0x4486u /* i16: := 0 with them */
+#define CITY_U448A 0x448Au /* @bin 0x0046AC50 i16: types 0x41-0x45: := 0 */
+#define CITY_U44B0 0x44B0u /* i32: := 0 with them */
+#define CITY_U4814 0x4814u /* @bin 0x0046AC50, 0x0043FD00 i16: type 0xD1: := 0 */
+#define CITY_U49D4 0x49D4u /* @bin 0x0046AC50 i32: type 0xD2: := CITY_U433A */
+/* city counters of the houses (@bin 0x00454D70 clears them daily; 0x00453B40 counts the needs) [p2_building] */
+#define CITY_U42A4 0x42A4u /* i32: cleared daily */
+#define CITY_U42AC 0x42ACu /* i32: cleared daily */
+#define CITY_U42B4 0x42B4u /* i32: cleared daily */
+#define CITY_U42BC 0x42BCu /* i32: cleared daily */
+#define CITY_U4304 0x4304u /* i32: BLD_WATER_SUPPLY 0 where the level needs 2 */
+#define CITY_U4308 0x4308u /* i32: no water, no BLD_WELL_ACCESS where the level needs 1 */
+#define CITY_U430C 0x430Cu /* i32: BLD_ENTERTAINMENT below the need */
+#define CITY_U4310 0x4310u /* i32: BLD_EDUCATION below the need */
+#define CITY_U4314 0x4314u /* i32: BLD_EDUCATION 0 below the need */
+#define CITY_U4318 0x4318u /* i32: the level record +0xC is 1 or 2 */
+#define CITY_U431C 0x431Cu /* i32: the level record +0xC is 2 */
+#define CITY_U4320 0x4320u /* i32: cleared daily */
+#define CITY_U4324 0x4324u /* i32: BLD_ACCESS_DENTIST below the need */
+#define CITY_U4328 0x4328u /* i32: BLD_ACCESS_MAGISTRATE below the need */
+#define CITY_U432C 0x432Cu /* i32: too few kinds of goods held */
+#define CITY_U433C 0x433Cu /* i32: BLD_HEALTH below a need of 1 */
+#define CITY_U4340 0x4340u /* i32: BLD_HEALTH below a need of 2 or more */
+#define CITY_U4344 0x4344u /* i32: the BLD_ACCESS_DENTIST need is 1 */
+#define CITY_U4348 0x4348u /* i32: the magistrate need is 1 or 2 */
+#define CITY_U434C 0x434Cu /* i32: a BLD_HEALTH need met */
+#define CITY_U4350 0x4350u /* i32: BLD_RELIGION below a need of 1 */
+#define CITY_U4354 0x4354u /* i32: BLD_RELIGION below a need of 2 */
+#define CITY_U4358 0x4358u /* i32: BLD_RELIGION below a need of 3 */
+#define CITY_U435C 0x435Cu /* i32: a BLD_RELIGION need met */
+#define CITY_U4388 0x4388u /* i32: BLD_ENTERTAINMENT 0 below the need */
+#define CITY_U46FC 0x46FCu /* i32: += 1 then */
+#define CITY_U4748 0x4748u /* i32: the magistrate need is 2 */
+#define CITY_U474C 0x474Cu /* i32: BLD_ACCESS_MAGISTRATE 0 below the need */
+/* ---- city record fields (owner: city.h, P3). Evidence: docs/formats/save.md §5 "City data" and the
+ * core/command ports named on each line; a field whose meaning is not established is CITY_U<offset>.
+ * Notes for the merge: the ports also call CITY_TEMPLE_COMPLEX the temple complex (i16, command/menu.c),
+ * CITY_TEMPLE_COMPLEX_ID its building id and CITY_INDUSTRY_OFF the industry switch (command/trade.c). ---- [p4_command] */
+#define CITY_U2740 0x2740u             /* i32: 0, 1 or other, read by 0x004E2FB0 */
+#define CITY_STORAGE_CURSOR 0x2752u    /* i16: the storage yard the goods are taken after (0x0045B4D0, 1..3999) */
+#define CITY_PALACE_X 0x2788u          /* i16: palace x (save.md "unique buildings"; types 0xBB..0xBD, 0x00485AB7) */
+#define CITY_PALACE_Y 0x278Au          /* i16 */
+#define CITY_PALACE_OFFSET 0x278Cu     /* i32: its grid offset */
+#define CITY_TRADE_LIMIT 0x286Eu       /* i16[36] per resource: trade threshold (save.md; 0x00559AF0) */
+#define CITY_GRAVE_GOODS_RESOURCE 0x297Cu /* i32: the resource of the grave goods window (0x0040CD70) */
+#define CITY_GRAVE_GOODS_SENT 0x2980u  /* i32: the goal counter when the window opened (restored on cancel, 0x0040B380) */
+#define CITY_GRAVE_GOODS_AMOUNT 0x2984u /* i32: the amount chosen in the window (0x0040B3B0 .. 0x0040B4B0) */
+#define CITY_STOCKPILE 0x2A88u         /* i32[36] per resource: stockpiled (save.md, assumed; toggled by 0x00559D70) */
+/* the summary codes of 0x004E9500 (meanings assumed in the port: what the advisors show first) [p4_command] */
+#define CITY_U4410 0x4410u             /* i32: from CITY_SENTIMENT_LOW; also read by 0x004E2FB0 */
+#define CITY_U441C 0x441Cu             /* i32: 0..4, the largest of four counters */
+#define CITY_U4420 0x4420u             /* i32: 0..3 */
+#define CITY_U4424 0x4424u             /* i32: 0..3 */
+#define CITY_U4428 0x4428u             /* i32: 0..2 */
+#define CITY_DONATION 0x445Cu          /* i32: the amount to donate (0x0040AFF0, 0x0040B0B0) */
+#define CITY_U44A0 0x44A0u             /* i32: += 1 per cheat (0x0041D010), += 1000 by "Treasure Chest" */
+#define CITY_RECRUITER_X 0x44A4u       /* i16: recruiter (save.md; type 0x5F, 0x00485AB7) */
+#define CITY_RECRUITER_Y 0x44A6u       /* i16 */
+#define CITY_RECRUITER_OFFSET 0x44A8u  /* i32: its grid offset */
+#define CITY_EXTRA_MONTHS_GIVEN 0x44D8u /* i32: := the months given (0x004EA770) */
+#define CITY_FESTIVAL_GOD_CHOSEN 0x44F0u /* i32: the festival window's god (0x0040AC50) */
+#define CITY_GIFT_SIZE 0x4558u         /* i32: the gift's size 0..2 (0x0040B140) */
+#define CITY_GIFT_COUNTS 0x4568u       /* i32[3] per size, each reset at 4 (0x0046EED7) */
+#define CITY_GIFT_COST 0x4574u         /* i32[3] by size: gift costs (0x0040B140, 0x0046EDD0) */
+#define CITY_TAX_ESTIMATE 0x45ECu      /* i32: estimated tax (save.md; 0x00459E1A) */
+#define CITY_TYPE32_X 0x45F4u          /* i16: the type 0x32 building (save.md "unique buildings"; 0x00485AB7) */
+#define CITY_TYPE32_Y 0x45F6u          /* i16 */
+#define CITY_TYPE32_OFFSET 0x45F8u     /* i32: its grid offset */
+#define CITY_TYPE32_BUILT 0x4600u      /* i32: := 1 with it (0x00485AB7); the ghost tests it (0x004705E3) */
+#define CITY_TRANSPORTS 0x4664u        /* u8: the player's transport ships (type 0x4D, 0x004B8AA0) */
+#define CITY_WARSHIPS 0x4668u          /* u8: the player's warships (type 0x4E, 0x004B8AA0) */
+#define CITY_U4669 0x4669u             /* u8: warships with figure +0x02 set (0x004B8AA0) */
+#define CITY_WAGES_ESTIMATE 0x46A0u    /* i32: the year's estimated wages (0x0045A8C0) */
+#define CITY_FESTIVAL_SQUARE_X 0x47A0u /* i32: the festival square's x, -1 none (0x00440ED0) */
+#define CITY_FESTIVAL_SQUARE_Y 0x47A4u /* i32 */
+#define CITY_U49A4 0x49A4u             /* u8 per event +0x04: := 1 by the reply 0x0044EE30 */
+#define CITY_U49CC 0x49CCu             /* u8: := 0 when an advisor opens (0x0040A0E0) */
+#define CITY_ACADEMY_EXISTS 0x49D0u    /* i32: academy exists (save.md; type 0x5E) */
+/* city record fields (layout/city.h, package P3) [p5_map] */
+#define CITY_U2794 0x2794u  /* @bin 0x004E7E40 i16: decremented while > 0 every tick (record 1) */
+#define CITY_U471C 0x471Cu  /* @bin 0x00452370 i32: := 2 in months 0 and 6 */
+#define CITY_U4720 0x4720u  /* @bin 0x00452370 i32: := 1 once G_TUTORIAL_FLAGS[0] is set */
+#define CITY_U4724 0x4724u  /* @bin 0x00452370 i32: := 1 once G_TUTORIAL_FLAGS[6] is set (message 0x13E) */
+/* city record fields (CITY_ADDR(p) + ...) [city.h] [p6_scenario] */
+#define CITY_U03 0x03u      /* @bin 0x004E7E20 u8: G_UEA1820 := (it != 0); := 1 for record 1 by 0x00540A10 [city.h] */
+#define CITY_U2796 0x2796u  /* @bin 0x004D18B0 i16[30] of saves before version 123, widened to CITY_STORAGE_FREE [city.h] */
+#define CITY_U27DE 0x27DEu  /* @bin 0x004D18B0 i16[30] of saves before version 123, widened to CITY_STORAGE_STOCK [city.h] */
+#define CITY_U2900 0x2900u  /* @bin 0x004D1880 i32[7] of saves before version 122, copied to CITY_GRANARY_FOOD [city.h] */
+#define CITY_U291C 0x291Cu  /* @bin 0x004D1A70 i16[20] of saves before version 156, widened to CITY_U3C64 [city.h] */
+#define CITY_U2944 0x2944u  /* @bin 0x004D1A70 i16[20] of saves before version 156, widened to CITY_U3D04 [city.h] */
+#define CITY_U43C2 0x43C2u  /* @bin 0x004E9EE0 u8[5] per god: init 0 [city.h] */
+#define CITY_U43CC 0x43CCu  /* @bin 0x004E9EE0 u8[5] per god: init 0 [city.h] */
+#define CITY_U43D6 0x43D6u  /* @bin 0x004E9EE0 u8[5] per god: init 0 [city.h] */
+#define CITY_U4578 0x4578u  /* @bin 0x004E7D10 i32: init 0 [city.h] */
+#define CITY_U457C 0x457Cu  /* @bin 0x004E7D10 i32: init 0 [city.h] */
+/* ---- city record fields (owner: city.h, P3); evidence on each line ---- [p8a_ui_main] */
+#define CITY_NATIVES_RESTLESS 0x4594u  /* @bin 0x00534610 i32: "natives_are_restless" */
+#define CITY_MISSION_IN_PLACE 0x459Cu  /* @bin 0x00534610 i32: "mission_in_place" */
+#define CITY_EXPLAIN_PAGE 0x4768u      /* @bin 0x00538050 i32: the advisor page window 0x4F offers */
+#define CITY_U4820 0x4820u             /* @bin 0x0052BAF0 i32: 0 (with CITY_U4828 >= 12) picks a finished monument's text */
+#define CITY_U4828 0x4828u             /* @bin 0x0052BAF0 i32: compared with 12, see CITY_U4820 */
+#define CITY_TRADE_SCROLL 0x4834u      /* @bin 0x0040C760 i32: the trade advisor's first row (docs/commands.md) */
+/* [city.h] fields (save.md section 5) [p8b_ui_info] */
+#define CITY_PALACE_ID 0x2790u     /* @bin 0x00504C20 i32 the palace's building (save.md: unique buildings, palace x, y, offset, id) */
+#define CITY_U284C 0x284Cu         /* @bin 0x0050E4D9 i16 1 or 3: the entertainment kinds cleared */
+#define CITY_U28C4 0x28C4u         /* @bin 0x005036DD i16 (the fishing wharf's text 9) */
+/* ---- city record fields (owner: city.h, P3). Evidence: docs/formats/save.md §5 "City data" (the
+ * finance names: "text group 60 in 0x0052A250", the page that shows them, present/ui/advisors/f_pages.c)
+ * and the present/ui/advisors ports named on each line; CITY_U<offset> where the meaning is not
+ * established. Notes for the merge: the advisor ports also read CITY_POPULATION_HISTORY_INDEX / CITY_POPULATION_HISTORY_MONTHS (p6) as the
+ * population history's index and months (save.md, 0x004E9760), CITY_U4434.. as the rating
+ * explanations, CITY_GIFT_COST + 4 / + 8 where p6 has CITY_U4578 / CITY_U457C. ---- [p8c_ui_advisors] */
+#define CITY_U4368 0x4368u                /* @bin 0x00528B90 i32: row 2 */
+#define CITY_U4370 0x4370u                /* @bin 0x00528B90 i32: row 3 */
+#define CITY_RATING_SELECTED 0x4430u      /* @bin 0x004F7519 i32: the rating explained on page 5 (0 none, 1-4; := by 0x0040ACE0) */
+#define CITY_U4838 0x4838u                /* @bin 0x0055AD30 i32: := 1 by window 0x28 */
 
 #endif

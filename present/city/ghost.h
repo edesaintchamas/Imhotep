@@ -53,7 +53,7 @@ static inline int32_t g_treasury_low(game_state *st)
 /* a flood-plain tile whose record is not dry (+0x18 = 0) */
 static inline int g_flooded(game_state *st, int32_t off)
 {
-    uint32_t p = U32(st, G_UD05720 + 4u * (uint32_t) off);
+    uint32_t p = U32(st, G_FLOODPLAIN_MANAGER + 4u * (uint32_t) off);
     return p != 0 && P8(st, p + 0x18) == 0;
 }
 

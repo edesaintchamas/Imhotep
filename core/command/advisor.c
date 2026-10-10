@@ -17,15 +17,15 @@
 static void advisor_rating_flag(game_state *st)
 {
     /* @bin 0x00426B00 CITY+0x4434 := 0x00705738 */
-    S32(st, CURRENT_CITY(st) + CITY_RATING_EXPLANATION) = S32(st, G_RATING_LOWEST_INDEX);
+    S32(st, CURRENT_CITY(st) + CITY_RATING_CULTURE_REASON) = S32(st, G_RATING_LOWEST_INDEX);
 }
 
 void advisor_complex_level(game_state *st)
 {
     /* @bin 0x0045A930 with a temple complex (i16 CITY+0x4478), its level (0x004C5120, result not
      * kept); then CITY+0x2C7C := CITY+0x2C74 */
-    if (S16(st, CURRENT_CITY(st) + CITY_U4478) != 0) {
-        GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, CURRENT_CITY(st) + CITY_U472C));
+    if (S16(st, CURRENT_CITY(st) + CITY_TEMPLE_COMPLEX) != 0) {
+        GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, CURRENT_CITY(st) + CITY_TEMPLE_COMPLEX_ID));
     }
     uint32_t c = CURRENT_CITY(st);
     S32(st, c + CITY_INTEREST_THIS_YEAR) = S32(st, c + CITY_U2C74);

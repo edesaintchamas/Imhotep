@@ -41,4 +41,27 @@
 #define NOTICE_TEXT 0x12u    /* char[0x64] */
 #define NOTICE_TEXT_SIZE 0x64
 
+/* ---- names merged from the packages' pending fragments (phase 10.4): each group keeps its
+ * package's heading (the package and its file in brackets) ---- */
+/* ---- message record (owner: message.h, P3) ---- [p4_command] */
+#define MSG_REPLIES 0x26u              /* i16: the replies a message offers (0x004C5BF0 copies it to G_MESSAGE_WINDOW_REPLIES) */
+/* the pending names of package P7, on no heading of their own [p7_frame] */
+#define NOTICE_X 0x02u /* @bin 0x004E2720 i16: the notice's x centre (0x004E2AB0 sets it) [message.h] */
+#define NOTICE_Y 0x04u /* @bin 0x004E2720 i16: its y [message.h] */
+/* ---- message record fields (owner: message.h, P3): the post's data block (MSG_DATA), read by
+ * the keyword handlers (present/ui/messages/keywords.c); "phrase" fields are the reason phrase's own
+ * (read while G_MSG_NESTED is 1) ---- [p8a_ui_main] */
+#define MSG_CITY 0x16u                 /* @bin 0x00447890 i16: the empire city */
+#define MSG_AMOUNT 0x18u               /* @bin 0x00447910 i16: the amount */
+#define MSG_KIND 0x1Au                 /* @bin 0x00447910 i16: the amount's kind (resource) */
+#define MSG_TIME 0x1Cu                 /* @bin 0x00447A80 i16: the time allotted / travel time */
+#define MSG_ATTACK_TIME 0x1Eu          /* @bin 0x00447AE0 i16: the time until the attack */
+#define MSG_PHRASE 0x20u               /* @bin 0x00447B10 i16: the reason phrase */
+#define MSG_PHRASE_CITY 0x22u          /* @bin 0x00447890 i16: the phrase's city */
+#define MSG_AMOUNT_GRANTED 0x24u       /* @bin 0x004479B0 i16: the amount granted */
+#define MSG_PHRASE_AMOUNT 0x28u        /* @bin 0x00447910 i16: the phrase's amount */
+#define MSG_PHRASE_KIND 0x2Au          /* @bin 0x00447910 i16: the phrase's kind */
+#define MSG_GOD 0x2Cu                  /* @bin 0x00447BB0 u8: the god */
+#define MSG_PHRASE_GOD 0x2Du           /* @bin 0x00447BB0 u8: the phrase's god */
+
 #endif

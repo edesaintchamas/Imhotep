@@ -224,22 +224,22 @@ static void first_of(game_state *st, int32_t type, int32_t want, uint32_t count,
 
 void notice_4e3100(game_state *st, int32_t type)
 {
-    first_of(st, type, 0x47, G_TYPE_COUNT + 4u * 0x46u, 0x13); /* @bin 0x004E3100 */
+    first_of(st, type, 0x47, G_TYPE_COUNT_ACTIVE + 4u * 0x46u, 0x13); /* @bin 0x004E3100 */
 }
 
 void notice_4e3140(game_state *st, int32_t type)
 {
-    first_of(st, type, 0x1F, G_TYPE_COUNT + 4u * 0x24u, 0x2C); /* @bin 0x004E3140 */
+    first_of(st, type, 0x1F, G_TYPE_COUNT_ACTIVE + 4u * 0x24u, 0x2C); /* @bin 0x004E3140 */
 }
 
 void notice_4e3180(game_state *st, int32_t type)
 {
-    first_of(st, type, 0x1E, G_TYPE_COUNT + 4u * 0x22u, 0x2D); /* @bin 0x004E3180 */
+    first_of(st, type, 0x1E, G_TYPE_COUNT_ACTIVE + 4u * 0x22u, 0x2D); /* @bin 0x004E3180 */
 }
 
 void notice_4e31c0(game_state *st, int32_t type)
 {
-    first_of(st, type, 0x21, G_TYPE_COUNT + 4u * 0x23u, 0x2E); /* @bin 0x004E31C0 */
+    first_of(st, type, 0x21, G_TYPE_COUNT_ACTIVE + 4u * 0x23u, 0x2E); /* @bin 0x004E31C0 */
 }
 
 void notice_4e3200(game_state *st, int32_t type)
@@ -248,7 +248,7 @@ void notice_4e3200(game_state *st, int32_t type)
     if (editor(st) || posted(st) || !(type == 0x28 || type == 0x2C || type == 0x2D)) {
         return;
     }
-    if (S32(st, G_TYPE_COUNT + 4u * 0x5Fu) > 0) {
+    if (S32(st, G_TYPE_COUNT_ACTIVE + 4u * 0x5Fu) > 0) {
         return;
     }
     notice(st, 0x2A);
@@ -617,13 +617,13 @@ void notice_4e5070(game_state *st, int32_t type)
     if (editor(st) || !(type == 0x1F || type == 0x21 || type == 0x1E)) {
         return;
     }
-    if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0x24u) <= 0) {
+    if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0x24u) <= 0) {
         notice(st, 0xD0);
     }
-    if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0x22u) <= 0 && type != 0x1F) {
+    if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0x22u) <= 0 && type != 0x1F) {
         notice(st, 0xD1);
     }
-    if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0x23u) <= 0 && type == 0x21) {
+    if (S32(st, G_TYPE_COUNT_TOTAL + 4u * 0x23u) <= 0 && type == 0x21) {
         notice(st, 0xD2);
     }
 }

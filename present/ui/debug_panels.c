@@ -74,13 +74,13 @@ void debug_city_panel(game_state *st)
         text(st, G_STR_DBG_TOT_CAP, cursor(st) + 8, y0, WHITE);
         num(st, S32(st, rec), G_NUMBER_SUFFIX, cursor(st) + 8, y0, WHITE);
         text(st, G_STR_DBG_SPARE_CAP, cursor(st) + 8, y0, WHITE);
-        num(st, S32(st, rec + (CITY_HOUSE_ROOM_LEFT - CITY_HOUSE_CAPACITY)), G_NUMBER_SUFFIX, cursor(st) + 8, y0, WHITE);
+        num(st, S32(st, rec + (CITY_HOUSE_ROOM - CITY_HOUSE_CAPACITY)), G_NUMBER_SUFFIX, cursor(st) + 8, y0, WHITE);
         S32(st, G_TEXT_X) = 0;
         text(st, G_STR_DBG_BIRTHS, 8, y, WHITE);
         num(st, S32(st, rec + (CITY_BIRTHS - CITY_HOUSE_CAPACITY)), G_NUMBER_SUFFIX, cursor(st) + 8, y, WHITE);
         text(st, G_STR_DBG_DEATHS, cursor(st) + 8, y, WHITE);
         num(st, S32(st, rec + (CITY_DEATHS - CITY_HOUSE_CAPACITY)), G_NUMBER_SUFFIX, cursor(st) + 8, y, WHITE);
-        int32_t housed = GAME_CALL(st, FN_CITY_SUM_BUILDING_1C, S32(st, G_PLAYER));
+        int32_t housed = GAME_CALL(st, FN_CITY_SUM_BUILDING_1C, S32(st, CURRENT_PLAYER_ADDR));
         if (housed != S32(st, rec - (CITY_HOUSE_CAPACITY - CITY_POPULATION))) {
             colour = RED;
         }
@@ -92,10 +92,10 @@ void debug_city_panel(game_state *st)
         num(st, S32(st, G_DOCK_COUNT), G_STR_DBG_SPACES, cursor(st) + 8, y1, WHITE);
         text(st, G_STR_DBG_DOCKS_LIST, cursor(st) + 8, y1, WHITE);
         for (int32_t k = 0; k < 10; k++) {
-            int32_t i = S32(st, G_PLAYER) * 0x24EC + k;
+            int32_t i = S32(st, CURRENT_PLAYER_ADDR) * 0x24EC + k;
             num(st, S16(st, CITY_BASE + CITY_DOCKS + 2u * (uint32_t) i), G_STR_DBG_COMMA, cursor(st) + 4, y1, WHITE);
         }
-        uint32_t player = (uint32_t) S32(st, G_PLAYER) * 0x49D8u;
+        uint32_t player = (uint32_t) S32(st, CURRENT_PLAYER_ADDR) * 0x49D8u;
         S32(st, G_TEXT_X) = 0;
         text(st, G_STR_DBG_WINE_SOURCES, 8, y + 0x1C, WHITE);
         num(st, S32(st, CITY_BASE + CITY_WINE_SOURCES + player), G_STR_DBG_SPACES, cursor(st) + 8, y + 0x1C, WHITE);
@@ -104,9 +104,9 @@ void debug_city_panel(game_state *st)
         S32(st, G_TEXT_X) = 0;
         num(st, S32(st, G_OVERLAY), G_STR_DBG_MAP_STYLE, 8, y + 0x38, WHITE);
         S32(st, G_TEXT_X) = 0;
-        player = (uint32_t) S32(st, G_PLAYER) * 0x49D8u;
+        player = (uint32_t) S32(st, CURRENT_PLAYER_ADDR) * 0x49D8u;
         num(st, S32(st, CITY_BASE + CITY_NATIVES_RESTLESS + player), G_STR_DBG_NATIVES_RESTLESS, 8, y + 0x46, WHITE);
-        player = (uint32_t) S32(st, G_PLAYER) * 0x49D8u;
+        player = (uint32_t) S32(st, CURRENT_PLAYER_ADDR) * 0x49D8u;
         num(st, S32(st, CITY_BASE + CITY_MISSION_IN_PLACE + player), G_STR_DBG_MISSION_IN_PLACE, cursor(st) + 0x6C, y + 0x46, WHITE);
         S32(st, G_TEXT_X) = 0;
         num(st, S32(st, G_WAS_IN_INT), G_STR_DBG_WAS_IN_INT, 8, y + 0x54, WHITE);
@@ -334,8 +334,8 @@ void debug_figure_panel(game_state *st)
     S32(st, G_MOUSE_OFFSET) = tile;
     if (tile == 0) {
         S32(st, G_DEBUG_WATCHED_FIGURE) = 0;
-    } else if (S16(st, G_FIGURE_GRID + 2u * (uint32_t) tile) != 0) {
-        S32(st, G_DEBUG_WATCHED_FIGURE) = S16(st, G_FIGURE_GRID + 2u * (uint32_t) tile);
+    } else if (S16(st, G_GRID_FIGURE + 2u * (uint32_t) tile) != 0) {
+        S32(st, G_DEBUG_WATCHED_FIGURE) = S16(st, G_GRID_FIGURE + 2u * (uint32_t) tile);
     }
     title(st, G_STR_DBG_FIGURE_INFO, y + 6, G_FONT_LARGE, WHITE);
     if (S32(st, G_DEBUG_WATCHED_FIGURE) == 0) {
@@ -367,7 +367,7 @@ void debug_figure_panel(game_state *st)
     num(st, U8(st, F(FIGURE_BASE + FIG_INVISIBLE)), G_STR_DBG_GHOST, cursor(st) + 8, y + 0x60, GREEN);
 #undef F
     int32_t dockers = 0;
-    for (uint32_t a = FIGURE_ADDR(1) + FIG_TYPE; a < G_FIGURES_END; a += 0x184u) {
+    for (uint32_t a = FIGURE_ADDR(1) + FIG_TYPE; a < FIGURE_ADDR(FIGURE_COUNT) + FIG_TYPE; a += 0x184u) {
         if (U8(st, a + 4) == 1 && U8(st, a) == 0x26) {
             dockers++;
         }

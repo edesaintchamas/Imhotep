@@ -141,7 +141,7 @@ static int flood_object_blocks(game_state *st, int32_t t, uint8_t floodable)
     if (floodable == 0) {
         return 1;
     }
-    uint32_t obj = U32(st, G_UD05720 + 4u * (uint32_t) t);
+    uint32_t obj = U32(st, G_FLOODPLAIN_MANAGER + 4u * (uint32_t) t);
     return obj == 0 || P8(st, obj + 0x18) != 0;
 }
 
@@ -177,7 +177,7 @@ int32_t shore_fit(game_state *st, int32_t x, int32_t y, int32_t size, int32_t fl
             int32_t c = S32(st, G_U5CCCC8 + 4u * j) + base;
             uint32_t d = U32(st, G_GRID_TERRAIN + 4u * (uint32_t) c);
             if (S32(st, G_U5DBDA8 + 16u * (uint32_t) k + 4u * j) != 0) {
-                uint32_t obj = U32(st, G_UD05720 + 4u * (uint32_t) c);
+                uint32_t obj = U32(st, G_FLOODPLAIN_MANAGER + 4u * (uint32_t) c);
                 int dry = 0;
                 if (obj != 0 && P8(st, obj + 0x18) == 0 && state != 2) {
                     state = 1;

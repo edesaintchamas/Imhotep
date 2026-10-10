@@ -16,7 +16,7 @@
 /* the current city record's field at `base` */
 static uint32_t city(game_state *st, uint32_t base)
 {
-    return base + (uint32_t) S32(st, G_PLAYER) * CITY_REC_SIZE;
+    return base + (uint32_t) S32(st, CURRENT_PLAYER_ADDR) * CITY_REC_SIZE;
 }
 
 static int32_t px(game_state *st, int32_t dx)
@@ -107,8 +107,8 @@ void advisors_draw_page12(game_state *st)
 {
     /* @bin 0x0052A250 advisor page 12: text group 0x3C, the city record's values */
     int32_t v = S32(st, G_INTEREST_RATE);
-    if (U16(st, city(st, CITY_BASE + CITY_U4478)) != 0
-        && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, city(st, CITY_BASE + CITY_U472C))) == 1) {
+    if (U16(st, city(st, CITY_BASE + CITY_TEMPLE_COMPLEX)) != 0
+        && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, city(st, CITY_BASE + CITY_TEMPLE_COMPLEX_ID))) == 1) {
         v -= 5; /* @bin 0x0052A283 less 5, not below 0 */
         if (v < 0) {
             v = 0;
@@ -247,17 +247,17 @@ void advisors_draw_page13(game_state *st)
     {
         int32_t font = S32(st, G_FONT_ROW);
         int32_t index;
-        uint32_t c = (uint32_t) S32(st, G_PLAYER) * CITY_REC_SIZE;
+        uint32_t c = (uint32_t) S32(st, CURRENT_PLAYER_ADDR) * CITY_REC_SIZE;
         S32(st, G_TEXT_X) = 0;
         int32_t mode = S32(st, c + CITY_BASE + CITY_U2740);
         if (mode == 0) {
             if (S32(st, c + CITY_BASE + CITY_U4644) + S32(st, c + CITY_BASE + CITY_U4634) > 3) {
                 font = S32(st, G_FONT_RED);
                 index = 0x2B;
-            } else if (S32(st, c + CITY_BASE + CITY_IMMIGRANTS_MONTH) >= 5) {
+            } else if (S32(st, c + CITY_BASE + CITY_IMMIGRANTS_THIS_MONTH) >= 5) {
                 index = 0x2C;
-            } else if (S32(st, c + CITY_BASE + CITY_U2728) == 0 && S32(st, c + CITY_BASE + CITY_HOUSE_ROOM_LEFT) > 0) {
-                if (S32(st, c + CITY_BASE + CITY_MIGRATION_PERCENT) >= 0x50) {
+            } else if (S32(st, c + CITY_BASE + CITY_U2728) == 0 && S32(st, c + CITY_BASE + CITY_HOUSE_ROOM) > 0) {
+                if (S32(st, c + CITY_BASE + CITY_MIGRATION_PCT) >= 0x50) {
                     index = 0x2C;
                 } else {
                     index = S32(st, c + CITY_BASE + CITY_U4410) + 0x2E;
@@ -269,7 +269,7 @@ void advisors_draw_page13(game_state *st)
             }
         } else if (mode == 1) {
             font = S32(st, G_FONT_RED);
-            if (S32(st, c + CITY_BASE + CITY_U2728) == 0 && S32(st, c + CITY_BASE + CITY_HOUSE_ROOM_LEFT) > 0) {
+            if (S32(st, c + CITY_BASE + CITY_U2728) == 0 && S32(st, c + CITY_BASE + CITY_HOUSE_ROOM) > 0) {
                 index = S32(st, c + CITY_BASE + CITY_U4410) + 0x35;
             } else {
                 index = 0x34;
@@ -443,7 +443,7 @@ void advisors_draw_page13(game_state *st)
         int32_t font = S32(st, G_FONT_ROW);
         int32_t value = -1;
         int32_t index;
-        uint32_t c = (uint32_t) S32(st, G_PLAYER) * CITY_REC_SIZE;
+        uint32_t c = (uint32_t) S32(st, CURRENT_PLAYER_ADDR) * CITY_REC_SIZE;
         int32_t sum = S32(st, c + CITY_BASE + CITY_U2C48) + S32(st, c + CITY_BASE + CITY_U2C44);
         S32(st, G_TEXT_X) = 0;
         if (sum != 0 && (S32(st, c + CITY_BASE + CITY_U2C40) + S32(st, c + CITY_BASE + CITY_U2C3C)) / sum < 1) {
@@ -475,7 +475,7 @@ void advisors_draw_page13(game_state *st)
         int32_t font = S32(st, G_FONT_ROW);
         int32_t value = -1;
         int32_t index;
-        uint32_t c = (uint32_t) S32(st, G_PLAYER) * CITY_REC_SIZE;
+        uint32_t c = (uint32_t) S32(st, CURRENT_PLAYER_ADDR) * CITY_REC_SIZE;
         int32_t n = S32(st, c + CITY_BASE + CITY_U4760);
         S32(st, G_TEXT_X) = 0;
         if (n >= 10) {
@@ -570,7 +570,7 @@ void advisors_draw_page13(game_state *st)
     title61(st, 0x0C, G_PAGE13_RECTS + 11u * 0x1Cu);
     S32(st, G_TEXT_X) = 0;
     {
-        int32_t f = (GAME_CALLT0(st, G_FLOODPLAIN, FN_FLOOD_0X4BD590) + 0x13) / 0x14; /* @bin 0x0052D40A signed /20 */
+        int32_t f = (GAME_CALLT0(st, G_FLOODPLAIN_SETTINGS, FN_FLOOD_0X4BD590) + 0x13) / 0x14; /* @bin 0x0052D40A signed /20 */
         int32_t font;
         if (f == 0) {
             font = S32(st, G_FONT_RED);
@@ -583,7 +583,7 @@ void advisors_draw_page13(game_state *st)
         line61(st, 0x3D, f + 0xC0, G_PAGE13_RECTS + 11u * 0x1Cu, font, 0x8C);
         if (f != 0) {
             /* @bin 0x0052D483 ([0x00D38360] % 30) / 15 + 0xC2 + 2 [0x00D386D0], signed */
-            int32_t index = S32(st, G_FLOODPLAIN) % 0x1E / 0x0F + 0xC2 + S32(st, G_FLOOD_MONTH) * 2;
+            int32_t index = S32(st, G_FLOODPLAIN_SETTINGS) % 0x1E / 0x0F + 0xC2 + S32(st, G_FLOOD_MONTH) * 2;
             line61(st, 0x3D, index, G_PAGE13_RECTS + 12u * 0x1Cu, S32(st, G_FONT_ROW), 0x8C);
         }
     }

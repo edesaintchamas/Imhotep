@@ -110,8 +110,8 @@ void month_0x004EA740(game_state *st)
 {
     /* @bin 0x004EA740 city +0x44D4 counts down while +0x44D0 is set */
     uint32_t c = CITY(st);
-    if (S32(st, c + CITY_U44D0) != 0) {
-        S32(st, c + CITY_U44D4) -= 1;
+    if (S32(st, c + CITY_KEEP_GOVERNING) != 0) {
+        S32(st, c + CITY_EXTRA_MONTHS) -= 1;
     }
 }
 
@@ -171,7 +171,7 @@ void month_0x004C5300(game_state *st)
 {
     /* @bin 0x004C5300 when city +0x4478 (i16) is set and building +0x472C is of level 1 */
     uint32_t c = CITY(st);
-    if (S16(st, c + CITY_U4478) != 0 && building_type_level(st, S32(st, c + CITY_U472C)) == 1) {
+    if (S16(st, c + CITY_TEMPLE_COMPLEX) != 0 && building_type_level(st, S32(st, c + CITY_TEMPLE_COMPLEX_ID)) == 1) {
         city_add_0x42d8(st, 1);
     }
 }
@@ -265,7 +265,7 @@ void month_0x0045A350(game_state *st)
      * added to +0x2C74 */
     uint32_t rate = U32(st, G_INTEREST_RATE);
     uint32_t c = CITY(st);
-    if (S16(st, c + CITY_U4478) != 0 && building_type_level(st, S32(st, c + CITY_U472C)) == 1) {
+    if (S16(st, c + CITY_TEMPLE_COMPLEX) != 0 && building_type_level(st, S32(st, c + CITY_TEMPLE_COMPLEX_ID)) == 1) {
         int32_t r = (int32_t) (rate - 5);
         rate = r < 0 ? 0 : (uint32_t) r;
     }
@@ -378,8 +378,8 @@ void month_0x004E8DB0(game_state *st)
     uint32_t c = CITY(st);
     int32_t d = (0x50 - S32(st, c + CITY_SENTIMENT)) / 5;
     int32_t extra = 0;
-    if (S16(st, c + CITY_U4478) != 0 && building_type_level(st, S32(st, c + CITY_U472C)) == 1 &&
-        building_0xa9_is(st, S32(st, CURRENT_CITY(st) + CITY_U472C), 1)) {
+    if (S16(st, c + CITY_TEMPLE_COMPLEX) != 0 && building_type_level(st, S32(st, c + CITY_TEMPLE_COMPLEX_ID)) == 1 &&
+        building_0xa9_is(st, S32(st, CURRENT_CITY(st) + CITY_TEMPLE_COMPLEX_ID), 1)) {
         extra = -2;
     }
     for (uint32_t p = BUILDING_ADDR(1) + BLD_CRIME_RISK; p < BUILDING_ADDR(BUILDING_COUNT) + BLD_CRIME_RISK; p += BUILDING_REC_SIZE) {
@@ -776,9 +776,9 @@ void month_0x004599D0(game_state *st)
     S32(st, c + CITY_U2C28) = 0;
     S32(st, c + CITY_U2C2C) = 0;
     S32(st, c + CITY_U2C58) = 0;
-    S32(st, c + CITY_U2C54) = 0;
+    S32(st, c + CITY_TAX_BASE_LOW) = 0;
     S32(st, c + CITY_U2C60) = 0;
-    S32(st, c + CITY_U2C5C) = 0;
+    S32(st, c + CITY_TAX_BASE_HIGH) = 0;
     for (uint32_t k = 0; k < 0x14; k++) {
         S32(st, c + CITY_POPULATION_BY_HOUSE + 4 * k) = 0;
     }
@@ -802,7 +802,7 @@ void month_0x004599D0(game_state *st)
             S32(st, c + (high ? CITY_U2C24 : CITY_U2C20)) += pop;
             uint32_t m = U32(st, diff_pct + 4u * U32(st, G_DIFFICULTY)) * U32(st, c + CITY_TAX_RATE) * due;
             U32(st, b + BLD_U8C) += m;
-            U32(st, c + (high ? CITY_U2C5C : CITY_U2C54)) += due;
+            U32(st, c + (high ? CITY_TAX_BASE_HIGH : CITY_TAX_BASE_LOW)) += due;
         } else {
             S32(st, c + (high ? CITY_U2C2C : CITY_U2C28)) += pop;
             U32(st, c + (high ? CITY_U2C60 : CITY_U2C58)) += due;
@@ -812,10 +812,10 @@ void month_0x004599D0(game_state *st)
     int32_t dp;
     c = CITY(st);
     dp = S32(st, diff_pct + 4u * U32(st, G_DIFFICULTY));
-    int32_t a = calc_percentage(calc_percentage(S32(st, c + CITY_U2C5C), S32(st, c + CITY_TAX_RATE)), dp);
+    int32_t a = calc_percentage(calc_percentage(S32(st, c + CITY_TAX_BASE_HIGH), S32(st, c + CITY_TAX_RATE)), dp);
     S32(st, c + CITY_U2C40) += a;
     dp = S32(st, diff_pct + 4u * U32(st, G_DIFFICULTY));
-    int32_t b2 = calc_percentage(calc_percentage(S32(st, c + CITY_U2C54), S32(st, c + CITY_TAX_RATE)), dp);
+    int32_t b2 = calc_percentage(calc_percentage(S32(st, c + CITY_TAX_BASE_LOW), S32(st, c + CITY_TAX_RATE)), dp);
     S32(st, c + CITY_U2C3C) += b2;
     dp = S32(st, diff_pct + 4u * U32(st, G_DIFFICULTY));
     S32(st, c + CITY_U2C48) += calc_percentage(calc_percentage(S32(st, c + CITY_U2C60), S32(st, c + CITY_TAX_RATE)), dp);
@@ -919,8 +919,8 @@ void month_0x004E7700(game_state *st)
     if (S32(st, G_LOCUST_TIMER) != -1) {
         return;
     }
-    if (GAME_CALLT0(st, G_UD05720, FN_FLOOD_MONTH_BEFORE) != S32(st, G_MONTH) + 2 &&
-        GAME_CALLT0(st, G_UD05720, FN_FLOOD_MONTH_BEFORE) != S32(st, G_MONTH) - 10) {
+    if (GAME_CALLT0(st, G_FLOODPLAIN_MANAGER, FN_FLOOD_MONTH_BEFORE) != S32(st, G_MONTH) + 2 &&
+        GAME_CALLT0(st, G_FLOODPLAIN_MANAGER, FN_FLOOD_MONTH_BEFORE) != S32(st, G_MONTH) - 10) {
         return;
     }
     S32(st, G_LOCUST_TIMER) = 0xA48;
@@ -932,7 +932,7 @@ void month_0x004E7700(game_state *st)
         for (int32_t k = 0; k < 9; k++) {
             random_next_state(st);
             int32_t w = S32(st, G_MAP_WIDTH);
-            int32_t r = (int32_t) U32(st, G_R_1_15) % (w / 4);
+            int32_t r = (int32_t) U32(st, G_RANDOM_R1_15BIT) % (w / 4);
             int32_t x = (int32_t) ((uint32_t) w * 7u) / 8 - r;
             int32_t y = (int32_t) ((uint32_t) w * 3u) / 8 - r;
             int32_t fid = GAME_CALL(st, FN_FIGURE_CREATE, S32(st, CURRENT_PLAYER_ADDR), 0x6B, x, y, 0);
@@ -941,7 +941,7 @@ void month_0x004E7700(game_state *st)
             U8(st, f + FIG_ACTION) = 8;
             S16(st, f + FIG_TARGET_HOUSE) = (int16_t) id;
             random_next_state(st);
-            S16(st, f + FIG_WAIT_TICKS) = (int16_t) ((int32_t) U32(st, G_R_1_15) % 300);
+            S16(st, f + FIG_WAIT_TICKS) = (int16_t) ((int32_t) U32(st, G_RANDOM_R1_15BIT) % 300);
             U8(st, f + FIG_MIGRANT_PEOPLE) = 0;
             U8(st, f + FIG_TERRAIN_USAGE) = 0xB;
             S16(st, f + FIG_DEST_X) = (int16_t) (k / 3 + S16(st, b + BLD_X));
@@ -991,7 +991,7 @@ void tutorial_menu_flags(game_state *st)
         if (S32(st, r + MISSIONLIST_MISSION) != mission || n <= 0) {
             continue;
         }
-        uint8_t on = U8(st, G_MISSION_LIST_FLAGS + k) != 0;
+        uint8_t on = U8(st, G_TUTORIAL_FLAGS + k) != 0;
         uint32_t list = U32(st, r + MISSIONLIST_INDEXES);
         for (; n != 0; n--, list += 4) {
             U8(st, G_ADVISOR_AVAILABLE + U32(st, list)) = on;
@@ -1004,7 +1004,7 @@ void tutorial_step(game_state *st, int32_t step)
     /* @bin 0x00417AE0 the step's flag 0x007027B8[step] := 1, the building menus rebuilt
      * (0x00417A70, 0x00404350, 0x004051A0, 0x00417AA0), the step's flags, the side panel when the
      * city is shown (0x0051E990), and the step's message (0x005794C4, stride 0x1C) */
-    U8(st, G_MISSION_LIST_FLAGS + (uint32_t) step) = 1;
+    U8(st, G_TUTORIAL_FLAGS + (uint32_t) step) = 1;
     GAME_CALL0(st, FN_PLAY_BUILD_COUNTS_KEEP);
     GAME_CALL0(st, FN_BUILD_MENU_UPDATE);
     GAME_CALL0(st, FN_BUILD_BUTTONS_UPDATE);
@@ -1084,7 +1084,7 @@ static int32_t run_0xa9_is(game_state *st, const int32_t *a)
 static int32_t run_4be640(game_state *st, const int32_t *a)
 {
     (void) a;
-    month_0x004BE640(st, G_UD05720);
+    month_0x004BE640(st, G_FLOODPLAIN_MANAGER);
     return 0;
 }
 
@@ -1157,7 +1157,7 @@ const ported_function month_ports[] = {
     {0x004B7960u, "month_0x004B7960", 0, 0, 0, run_4b7960, 0},
     {0x004C52D0u, "building_0xa9_is", 2, 8, 0, run_0xa9_is, 0},
     {0x004E8DB0u, "month_0x004E8DB0", 0, 0, 0, run_4e8db0, 0},
-    {0x004BE640u, "month_0x004BE640", 0, 0, G_UD05720, run_4be640, 0},
+    {0x004BE640u, "month_0x004BE640", 0, 0, G_FLOODPLAIN_MANAGER, run_4be640, 0},
     {0x0046E180u, "month_0x0046E180", 1, 0, 0, run_46e180, 0},
     {0x0044BB90u, "events_next", 2, 32, G_EVENTS, run_events_next, 0},
     {0x004464F0u, "month_0x004464F0", 0, 0, 0, run_4464f0, 0},

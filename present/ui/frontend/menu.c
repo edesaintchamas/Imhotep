@@ -110,7 +110,7 @@ void main_menu_click(game_state *st)
         /* @bin 0x00418051 the scenario editor: campaign kind 2, editor mode, no pause, the map list */
         S32(st, G_CUSTOM) = 2;
         S32(st, G_EDITOR) = 1;
-        U8(st, G_GATE) = 0;
+        U8(st, G_PAUSED) = 0;
         S32(st, G_SIDEBAR_COLLAPSED) = 0;
         S32(st, G_SCENARIO_LIST_MODE) = 0;
         S32(st, G_SCENARIO_KIND) = 3;

@@ -163,7 +163,7 @@ static void action_51_wait(game_state *st)
     }
     if (S8(st, f + FIG_DIRECTION) > 7) {
         random_next_state(st); /* @bin 0x004A8FD1 the generator step 0x004D7090, inlined */
-        U8(st, f + FIG_DIRECTION) = (uint8_t) (U32(st, G_R_1_15) & 7);
+        U8(st, f + FIG_DIRECTION) = (uint8_t) (U32(st, G_RANDOM_R1_15BIT) & 7);
     }
     uint32_t t = BUILDING_ADDR(target);
     switch (S16(st, t + BLD_TYPE)) {
@@ -253,7 +253,7 @@ void figure_action_51(game_state *st)
         S16(st, f + FIG_WAIT_TICKS) += 1;
         random_next_state(st); /* @bin 0x004A89C3 the generator step 0x004D7090, inlined */
         /* @bin 0x004A8A8D idle for 30 + random 15-bit % 30 ticks */
-        if (S16(st, f + FIG_WAIT_TICKS) > (int32_t) (U32(st, G_R_1_15) % 30u) + 30) {
+        if (S16(st, f + FIG_WAIT_TICKS) > (int32_t) (U32(st, G_RANDOM_R1_15BIT) % 30u) + 30) {
             if (monument_effect_at(st, S16(st, f + FIG_X), S16(st, f + FIG_Y), id) != 0) {
                 U8(st, fig(st) + FIG_ACTION) = 9;
                 GAME_CALL(st, FN_FIGURE_ROUTE_RELEASE, cur(st));
@@ -489,7 +489,7 @@ void sledge_follow(game_state *st, int32_t id, int32_t prev, int32_t step, int32
                 U8(st, f + FIG_ON_ROAD) = 1;
                 if (t & 4u) {
                     U8(st, f + FIG_HEIGHT_TICKS) = 0x12;
-                    uint8_t g = U8(st, G_SPRITE + tile);
+                    uint8_t g = U8(st, G_GRID_SPRITE + tile);
                     uint8_t slow;
                     switch (g) { /* @bin 0x004B2669, jump table 0x004B27BC */
                     case 1: case 4: slow = 0x0F; break;
@@ -1062,7 +1062,7 @@ void figure_action_5A(game_state *st)
              * (figure grid 0x00B350DC) */
             int ok = U8(st, G_GRID_VEGETATION + t) >= 0xFF;
             if (ok) {
-                int16_t o = S16(st, G_FIGURE_GRID + 2u * t);
+                int16_t o = S16(st, G_GRID_FIGURE + 2u * t);
                 if (o != 0 && U8(st, FIGURE_ADDR(o) + FIG_ACTION) == 0x0A) {
                     ok = 0;
                 }
@@ -1161,13 +1161,13 @@ void figure_action_5B(game_state *st)
     case 8:
         U8(st, f + FIG_TERRAIN_USAGE) = 1;
         S32(st, f + FIG_U164) = 10;
-        S16(st, f + FIG_DEST_X) = (int16_t) (S16(st, c + CITY_U47A0) + 2);
-        S16(st, f + FIG_DEST_Y) = (int16_t) (S16(st, c + CITY_U47A4) + 2);
+        S16(st, f + FIG_DEST_X) = (int16_t) (S16(st, c + CITY_FESTIVAL_SQUARE_X) + 2);
+        S16(st, f + FIG_DEST_Y) = (int16_t) (S16(st, c + CITY_FESTIVAL_SQUARE_Y) + 2);
         U8(st, f + FIG_ACTION) = 0x0A;
         break;
     case 9: {
         U8(st, f + FIG_TERRAIN_USAGE) = 0;
-        if (S32(st, c + CITY_U47A0) == -1 || S32(st, c + CITY_U47A4) == -1) {
+        if (S32(st, c + CITY_FESTIVAL_SQUARE_X) == -1 || S32(st, c + CITY_FESTIVAL_SQUARE_Y) == -1) {
             U8(st, f + FIG_STATE) = 2;
             S32(st, f + FIG_U04) = 0;
             return;
@@ -1625,7 +1625,7 @@ static int32_t run_sprintf(game_state *st, const int32_t *a)
 
 static int32_t run_labor_assign(game_state *st, const int32_t *a)
 {
-    labor_assign(st, G_UD05720, a[0]);
+    labor_assign(st, G_FLOODPLAIN_MANAGER, a[0]);
     return 0;
 }
 
@@ -1638,7 +1638,7 @@ static int32_t run_labor_arrived(game_state *st, const int32_t *a)
 static int32_t run_labor_wanted(game_state *st, const int32_t *a)
 {
     (void) a;
-    return labor_wanted_anywhere(st, G_UD05720);
+    return labor_wanted_anywhere(st, G_FLOODPLAIN_MANAGER);
 }
 
 static int32_t run_find_enemy(game_state *st, const int32_t *a)
@@ -1696,9 +1696,9 @@ const ported_function figd_ports[] = {
     {0x004BC1E0u, "monument_effect_at", 3, 32, 0, run_effect_at, 0},
     {0x004BC2E0u, "monument_work_phase (2)", 3, 32, 0, run_phase2, 0},
     {0x004BC3B0u, "monument_work_phase (3)", 3, 32, 0, run_phase3, 0},
-    {0x004BEEB0u, "labor_assign", 1, 0, G_UD05720, run_labor_assign, 0},
-    {0x004BF920u, "labor_arrived", 1, 0, G_UD05720, run_labor_arrived, 0},
-    {0x004BF9D0u, "labor_wanted_anywhere", 0, 8, G_UD05720, run_labor_wanted, 0},
+    {0x004BEEB0u, "labor_assign", 1, 0, G_FLOODPLAIN_MANAGER, run_labor_assign, 0},
+    {0x004BF920u, "labor_arrived", 1, 0, G_FLOODPLAIN_MANAGER, run_labor_arrived, 0},
+    {0x004BF9D0u, "labor_wanted_anywhere", 0, 8, G_FLOODPLAIN_MANAGER, run_labor_wanted, 0},
     {0x004F3360u, "pyramid_level_next", 1, 32, 0, run_level_next, 0},
     /* 0x004F3370 returns the slot through two pointers: ported for its callers only */
     {0x004F3370u, "pyramid_block_slot", 4, 8, 0, NULL, 0},

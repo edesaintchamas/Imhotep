@@ -30,6 +30,18 @@
 #define G_GRID_MOISTURE 0x00A509BCu     /* @bin 0x00477500 u8 per tile: moisture (chunk 170) */
 #define G_GRID_DAMAGE 0x00A9CC1Cu       /* @bin 0x004690F0 i16 per tile: damage counter (chunk 18) */
 #define G_GRID_RUBBLE 0x00A9010Cu       /* @bin 0x0047C480 u8 per tile: rubble building type (chunk 168) */
+#define G_GRID_DESIRABILITY 0x00AC2D4Cu /* i8 per tile (save.md chunk 16, desirability.md) */
+#define G_GRID_RANDOM 0x00ACF85Cu       /* u8 per tile (chunk 15); 0x0046A400 BLD_RANDOM */
+#define G_GRID_BITFIELDS 0x00B285CCu    /* u8 per tile: the bitfields grid (chunk 13) */
+#define G_GRID_BUILDING 0x00B4E6FCu     /* i16 per tile: the building id (chunk 9) */
+#define G_GRID_EDGE 0x00B67D1Cu         /* u8 per tile: the edge grid (chunk 8) */
+#define G_GRID_IMAGE 0x00B7482Cu        /* i32 per tile: the image grid (chunk 7) */
+#define G_GRID_FERTILITY 0x00A5D4CCu /* @bin 0x00489050 u8 per tile: fertility (core/io/map_file.h chunk 15) */
+#define G_GRID_ELEVATION 0x00AB623Cu /* core/command/construction_ui.c: u8 per tile */
+#define G_GRID_VEGETATION 0x00A43EACu /* u8 per tile: vegetation grid (save.md chunk 144); 0xFF tested by the wood cutters (0x00486810) */
+#define G_GRID_FIGURE 0x00B350DCu /* i16 per tile: first figure (save.md chunk 12; core/city/day2_flood.c) */
+#define G_GRID_ROUTING_WATER 0x00ED4140u /* core/figure/actions_c2.c: i8 per tile: routing (water) */
+#define G_GRID_SPRITE 0x00ADC36Cu /* u8 per tile: the sprite overlay (save.md chunk 14, @bin 0x00436B60, 0x0040F2C0); core/city/day2_farm.c and day2_flood.c read and clear it as the flood depth */
 
 /* @bin 0x00517A40 the breadth-first road search */
 #define G_ROUTE_QUEUE 0x00F203A0u      /* i32[GRID_TILES] tiles, a ring */
@@ -113,7 +125,7 @@
 #define G_EXIT_FLAG_TILE 0x00BC96C0u  /* @bin 0x0047D870 i32: the exit signpost's grid offset */
 
 /* the floodplain objects (@bin 0x004BD610, 0x1C bytes on the heap, one per floodplain tile: the pointer
- * grid of the manager G_UD05720; map.md "Floodplain build"); +0: the list */
+ * grid of the manager G_FLOODPLAIN_MANAGER; map.md "Floodplain build"); +0: the list */
 #define FLOODOBJ_NODE 0x04u  /* u32: its node in the list */
 #define FLOODOBJ_TILE 0x08u  /* i32: the grid offset */
 #define FLOODOBJ_X 0x0Cu     /* i32 */
@@ -124,9 +136,12 @@
 /* @bin 0x00451C50 i32: 3 with the city record's CITY_U4998 == 2 resets it (tick); the flood state per
  * core/building/building_extra.c, the game mode per core/figure/actions_a.c: not settled */
 
-/* --- harvested: names the ports gave these addresses in local #defines (tools/naming/harvest.py).
- * @bin evidence: the defining port (file) and its comment. A package agent checks each name it
- * uses, and moves it above this block once checked. --- */
-/* --- end harvested --- */
+/* ---- names merged from the packages' pending fragments (phase 10.4): each group keeps its
+ * package's heading (the package and its file in brackets) ---- */
+/* @bin globals of other areas used by core/figure; the function or chunk on each line [p1_figure] */
+#define G_U978D70 0x00978D70u /* i32: 1: houses do not evolve, collapse not counted (0x004539A0) */
+#define G_TILE_VISITS 0x00978D9Cu /* u32 per tile: ten 3-bit walker visit counters (chunk 148) */
+/* ---- globals of other areas (core or another present package uses them) ---- [p8a_ui_main] */
+#define G_IMG_4100 0x00F56B8Cu /* @bin 0x00434AA0 i32 the image of terrain kinds 0x4100, + variant 0..7 (present/city/overlay_tiles.c) */
 
 #endif

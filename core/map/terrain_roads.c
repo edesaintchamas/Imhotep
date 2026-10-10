@@ -164,7 +164,7 @@ static void road_tile(game_state *st)
             IMG(S32(st, G_TILE_CURSOR)) = img;
         }
     } else {
-        uint32_t obj = U32(st, G_UD05720 + 4u * (uint32_t) c);
+        uint32_t obj = U32(st, G_FLOODPLAIN_MANAGER + 4u * (uint32_t) c);
         if (!(TER(c) & 0x10000) && (obj == 0 || P8(st, obj + FLOODOBJ_FLAG) != 0)) {
             if (road_paved_at(st)) {
                 land_pattern_match(st, G_PATTERN_PAVED_ROADS, 0x30, -1, 0);

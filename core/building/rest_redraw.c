@@ -144,7 +144,7 @@ void building_redraw_47d1f0(game_state *st, int32_t b, int32_t x, int32_t y, int
 {
     /* @bin 0x0047D1F0 a 3 x 3 footprint from (x, y) set by hand (offsets 0x005CC8C0, edge bytes
      * of the table), the corner of the view (0x00E94E04) marked 0x40 */
-    int32_t o = S32(st, G_UE94E04);
+    int32_t o = S32(st, G_CITY_ORIENTATION);
     int32_t cx, cy;
     if (o == 0) {
         cx = 0, cy = 2;
@@ -322,7 +322,7 @@ void tile_redraw_4c0860(game_state *st, int32_t x, int32_t y, int32_t group, int
     U8(st, G_GRID_EDGE + (uint32_t) t) |= 0x40;
     U8(st, G_CANAL + (uint32_t) t) = 0;
     U8(st, G_GRID_BITFIELDS + (uint32_t) t) &= 0xF0;
-    S16(st, G_GRID_BUILDING + 2u * (uint32_t) t) = S16(st, CURRENT_CITY(st) + CITY_U472C);
+    S16(st, G_GRID_BUILDING + 2u * (uint32_t) t) = S16(st, CURRENT_CITY(st) + CITY_TEMPLE_COMPLEX_ID);
     U32(st, G_GRID_TERRAIN + 4u * (uint32_t) t) |= 8;
 }
 
@@ -413,13 +413,13 @@ void building_redraw_4c0d50(game_state *st, int32_t b, int32_t add)
             int32_t g = S32(st, G_COMPLEX_PART_GROUPS + 4u * (uint32_t) (idx * 3 + part));
             int32_t img;
             if (g == 0x23B) {
-                if ((uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_U472C), 1) != 0) {
+                if ((uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_TEMPLE_COMPLEX_ID), 1) != 0) {
                     img = S32(st, G_IMAGE_GROUPS + 8 * 575) + 2 + (turn != 0);
                 } else {
                     img = S32(st, G_IMAGE_GROUPS + 8 * 571) + turn + add;
                 }
             } else if (g == 0x23A) {
-                if ((uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_U472C), 2) != 0) {
+                if ((uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_TEMPLE_COMPLEX_ID), 2) != 0) {
                     img = S32(st, G_IMAGE_GROUPS + 8 * 575) + (turn != 0);
                 } else {
                     img = S32(st, G_IMAGE_GROUPS + 8 * 570) + turn + add;

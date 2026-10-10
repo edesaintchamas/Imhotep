@@ -35,7 +35,7 @@ int32_t share_by_weight(game_state *st, int32_t amount, int32_t group, uint32_t 
         uint32_t t = table + 0x1Cu * g;
         sums[g] = 0;
         for (int32_t k = 0, n = S32(st, t); k < n; k++) {
-            sums[g] += S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * U32(st, t + 4 + 4u * (uint32_t) k));
+            sums[g] += S32(st, G_TYPE_COUNT_TOTAL + 4u * U32(st, t + 4 + 4u * (uint32_t) k));
         }
     }
     int32_t total = (int32_t) ((uint32_t) S32(st, table + 0x50) * (uint32_t) sums[2] +
@@ -118,7 +118,7 @@ int32_t area_fertility_489050(game_state *st, int32_t x, int32_t y, int32_t widt
         uint32_t row = G_FOOTPRINT_OFFSETS + 0x30u * (uint32_t) i;
         for (int32_t j = 0; j < width; j++) {
             count = x87_add(count, one);
-            sum += U8(st, G_FERTILITY_GRID + (uint32_t) (base + S32(st, row + 8u * (uint32_t) j))) + 1;
+            sum += U8(st, G_GRID_FERTILITY + (uint32_t) (base + S32(st, row + 8u * (uint32_t) j))) + 1;
         }
     }
     /* sum / 0.0 (no tiles): the indefinite integer, low half 0, then + 1 */
@@ -149,12 +149,12 @@ int32_t trade_tax_4c5340(game_state *st, int32_t player)
     /* @bin 0x004C5340 20 with the kingdom building of level 4, or of level 0 that is 0x004C52D0
      * of kind 1; else 25 */
     uint32_t c = CITY_ADDR(player);
-    if (S16(st, c + CITY_U4478) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_U472C)) == 4) {
+    if (S16(st, c + CITY_TEMPLE_COMPLEX) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_TEMPLE_COMPLEX_ID)) == 4) {
         return 0x14;
     }
     c = CURRENT_CITY(st);
-    if (S16(st, c + CITY_U4478) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_U472C)) == 0 &&
-        (int8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_U472C), 1) != 0) {
+    if (S16(st, c + CITY_TEMPLE_COMPLEX) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_TEMPLE_COMPLEX_ID)) == 0 &&
+        (int8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_TEMPLE_COMPLEX_ID), 1) != 0) {
         return 0x14;
     }
     return 0x19;
@@ -223,14 +223,14 @@ void day_totals_45d630(game_state *st, int32_t player)
             continue;
         }
         /* @bin 0x0045D856 two one-time messages of the scenario 0x00E38EA8 */
-        if ((int32_t) S8(st, G_MISSION) == S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 2) && U8(st, G_MISSION_LIST_FLAGS + 2) == 0 &&
-            U8(st, G_MISSION_LIST_FLAGS + 1) != 0 && sum_66 >= 400) {
+        if ((int32_t) S8(st, G_MISSION) == S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 2) && U8(st, G_TUTORIAL_FLAGS + 2) == 0 &&
+            U8(st, G_TUTORIAL_FLAGS + 1) != 0 && sum_66 >= 400) {
             GAME_CALL(st, FN_TUTORIAL_STEP, 2);
             if (S32(st, G_CUSTOM) != 0) {
                 continue;
             }
         }
-        if ((int32_t) S8(st, G_MISSION) == S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 7) && U8(st, G_MISSION_LIST_FLAGS + 7) == 0 && sum_62 >= 800) {
+        if ((int32_t) S8(st, G_MISSION) == S32(st, G_MISSION_LISTS + G_MISSION_LIST_STRIDE * 7) && U8(st, G_TUTORIAL_FLAGS + 7) == 0 && sum_62 >= 800) {
             GAME_CALL(st, FN_TUTORIAL_STEP, 7);
         }
     }
@@ -530,7 +530,7 @@ void buildings_water_level(game_state *st)
         if (U8(st, b + BLD_NEAR_WATER) != 0) {
             U8(st, b + BLD_DESIRABILITY) += 10;
         }
-        uint32_t k = U8(st, G_ELEVATION_GRID + (uint32_t) tile);
+        uint32_t k = U8(st, G_GRID_ELEVATION + (uint32_t) tile);
         if (k == 1) {
             U8(st, b + BLD_DESIRABILITY) += 10;
         } else if (k == 2) {
@@ -857,13 +857,13 @@ void day_production_455900(game_state *st)
         switch (type) {
         case 0x4A: case 0x6D: case 0x6F: case 0x71: case 0xA1: case 0xA2: case 0xD9: {
             uint32_t c = CURRENT_CITY(st);
-            bonus = S16(st, c + CITY_U4478) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_U472C)) == 2;
+            bonus = S16(st, c + CITY_TEMPLE_COMPLEX) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_TEMPLE_COMPLEX_ID)) == 2;
             break;
         }
         case 0x6A: case 0x6B: case 0xB1: case 0xB2: case 0xB3: case 0xCC: case 0xD8: case 0xDD: case 0xE7: {
             uint32_t c = CURRENT_CITY(st);
-            bonus = S16(st, c + CITY_U4478) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_U472C)) == 2 &&
-                    (int8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_U472C), 1) != 0;
+            bonus = S16(st, c + CITY_TEMPLE_COMPLEX) != 0 && GAME_CALL(st, FN_BUILDING_TYPE_LEVEL, S32(st, c + CITY_TEMPLE_COMPLEX_ID)) == 2 &&
+                    (int8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, CURRENT_CITY(st) + CITY_TEMPLE_COMPLEX_ID), 1) != 0;
             break;
         }
         default:
@@ -912,14 +912,14 @@ void buildings_count_4677c0(game_state *st)
     S16(st, c0 + CITY_U4488) = 0;
     S32(st, c0 + CITY_U4630) = 0;
     for (uint32_t k = 0; k < 5; k++) {
-        S32(st, c0 + CITY_U4460 + 4 * k) = 0;
+        S32(st, c0 + CITY_DOCKS + 4 * k) = 0;
     }
     S32(st, c0 + CITY_U1C) = 0;
     for (uint32_t k = 0; k < 0xED; k++) {
-        S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4 * k) = 0;
+        S32(st, G_TYPE_COUNT_TOTAL + 4 * k) = 0;
     }
     for (uint32_t k = 0; k < 0xED; k++) {
-        S32(st, G_TYPE_COUNT + 4 * k) = 0;
+        S32(st, G_TYPE_COUNT_ACTIVE + 4 * k) = 0;
     }
     for (int32_t id = 1; id <= S32(st, G_BUILDING_HIGHEST); id++) {
         int32_t player = S32(st, CURRENT_PLAYER_ADDR);
@@ -932,9 +932,9 @@ void buildings_count_4677c0(game_state *st)
         int16_t type = S16(st, b + BLD_TYPE);
         uint32_t t4 = 4u * (uint32_t) (int32_t) type;
         if (U8(st, b + BLD_HOUSE_SIZE) != 0) {
-            S32(st, G_DAY_BUILDINGS_TYPE_COUNT + t4) += 1;
+            S32(st, G_TYPE_COUNT_TOTAL + t4) += 1;
             if (S16(st, b + BLD_POPULATION) != 0) {
-                S32(st, G_TYPE_COUNT + t4) += 1;
+                S32(st, G_TYPE_COUNT_ACTIVE + t4) += 1;
             }
             continue;
         }
@@ -947,9 +947,9 @@ void buildings_count_4677c0(game_state *st)
             }
         }
         if (type == 0x5A || type == 0x5C || type == 0xB4) {
-            S32(st, G_DAY_BUILDINGS_TYPE_COUNT + t4) += 1;
+            S32(st, G_TYPE_COUNT_TOTAL + t4) += 1;
             if (U8(st, b + BLD_WATER_SUPPLY) > 0 && (type == 0x5C || working)) {
-                S32(st, G_TYPE_COUNT + t4) += 1;
+                S32(st, G_TYPE_COUNT_ACTIVE + t4) += 1;
             }
         } else if (k < sizeof(services) / sizeof(services[0])) {
             S32(st, services[k][1]) += 1;
@@ -970,24 +970,24 @@ void buildings_count_4677c0(game_state *st)
             int32_t n = S32(st, G_DOCK_COUNT);
             if (n < 10) {
                 if (working && U8(st, b + BLD_WATER_SUPPLY) != 0) {
-                    S16(st, c + CITY_U4460 + 2u * (uint32_t) n) = (int16_t) id;
+                    S16(st, c + CITY_DOCKS + 2u * (uint32_t) n) = (int16_t) id;
                 }
                 S32(st, G_DOCK_COUNT) = n + 1;
             }
         } else if ((type >= 0x41 && type <= 0x45) || (type >= 0x9C && type <= 0xA0)) {
             if (building_main_part(st, id) == id) {
-                S32(st, G_DAY_BUILDINGS_TYPE_COUNT + t4) += 1;
+                S32(st, G_TYPE_COUNT_TOTAL + t4) += 1;
                 if (working) {
-                    S32(st, G_TYPE_COUNT + t4) += 1;
+                    S32(st, G_TYPE_COUNT_ACTIVE + t4) += 1;
                 }
             }
         } else if (type >= 0x8C && type <= 0x95) {
-            S32(st, G_DAY_BUILDINGS_TYPE_COUNT + t4) += 1;
+            S32(st, G_TYPE_COUNT_TOTAL + t4) += 1;
             if (road_next_to_4802c0(st, S16(st, b + BLD_X), S16(st, b + BLD_Y)) != 0) {
-                S32(st, G_TYPE_COUNT + 4u * (uint32_t) (int32_t) S16(st, b + BLD_TYPE)) += 1;
+                S32(st, G_TYPE_COUNT_ACTIVE + 4u * (uint32_t) (int32_t) S16(st, b + BLD_TYPE)) += 1;
             }
         } else {
-            S32(st, G_DAY_BUILDINGS_TYPE_COUNT + t4) += 1;
+            S32(st, G_TYPE_COUNT_TOTAL + t4) += 1;
             if (type == 0x1F) {
                 int32_t main = building_main_part(st, id);
                 if (main != id) {
@@ -1027,7 +1027,7 @@ void buildings_count_4677c0(game_state *st)
                     S32(st, c + CITY_RECRUITER) = id;
                 }
                 if (working) {
-                    S32(st, G_TYPE_COUNT + t4) += 1;
+                    S32(st, G_TYPE_COUNT_ACTIVE + t4) += 1;
                 }
             }
         }

@@ -236,7 +236,7 @@ void cmd_trade_industry(game_state *st)
     if (S32(st, G_U78D6DC + 4u * (uint32_t) k) <= 0) {
         return;
     }
-    uint32_t f = CURRENT_CITY(st) + CITY_U28B6 + 2u * (uint32_t) res;
+    uint32_t f = CURRENT_CITY(st) + CITY_INDUSTRY_OFF + 2u * (uint32_t) res;
     S16(st, f) = S16(st, f) == 0;
 }
 

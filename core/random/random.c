@@ -1,6 +1,7 @@
 /* Imhotep - the game's random number generator (Pharaoh.exe 0x004D7090).
  * Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0. */
 #include "random/random.h"
+#include "state/layout.h"
 
 void random_next(random_state *r)
 {
@@ -34,33 +35,33 @@ void random_next(random_state *r)
 
 void random_from_state(const game_state *st, random_state *r)
 {
-    r->iv1 = U32(st, 0x00D3B384u);
-    r->iv2 = U32(st, 0x00D3B380u);
-    r->r1_15bit = U32(st, 0x00D3B370u);
-    r->r1_7bit = U32(st, 0x00D3B374u);
-    r->r1_3bit = U32(st, 0x00D3B378u);
-    r->r2_15bit = U32(st, 0x00D3B364u);
-    r->r2_7bit = U32(st, 0x00D3B368u);
-    r->r2_3bit = U32(st, 0x00D3B36Cu);
-    r->pool_index = S32(st, 0x00D3B1C4u);
+    r->iv1 = U32(st, G_RANDOM_IV1);
+    r->iv2 = U32(st, G_RANDOM_IV2);
+    r->r1_15bit = U32(st, G_RANDOM_R1_15BIT);
+    r->r1_7bit = U32(st, G_RANDOM_R1_7BIT);
+    r->r1_3bit = U32(st, G_RANDOM_R1_3BIT);
+    r->r2_15bit = U32(st, G_RANDOM_R2_15BIT);
+    r->r2_7bit = U32(st, G_RANDOM_R2_7BIT);
+    r->r2_3bit = U32(st, G_RANDOM_R2_3BIT);
+    r->pool_index = S32(st, G_RANDOM_POOL_INDEX);
     for (int i = 0; i < RANDOM_POOL_SIZE; i++) {
-        r->pool[i] = U32(st, 0x00D3B1C8u + 4u * (uint32_t) i);
+        r->pool[i] = U32(st, G_RANDOM_POOL + 4u * (uint32_t) i);
     }
 }
 
 void random_to_state(game_state *st, const random_state *r)
 {
-    U32(st, 0x00D3B384u) = r->iv1;
-    U32(st, 0x00D3B380u) = r->iv2;
-    U32(st, 0x00D3B370u) = r->r1_15bit;
-    U32(st, 0x00D3B374u) = r->r1_7bit;
-    U32(st, 0x00D3B378u) = r->r1_3bit;
-    U32(st, 0x00D3B364u) = r->r2_15bit;
-    U32(st, 0x00D3B368u) = r->r2_7bit;
-    U32(st, 0x00D3B36Cu) = r->r2_3bit;
-    S32(st, 0x00D3B1C4u) = r->pool_index;
+    U32(st, G_RANDOM_IV1) = r->iv1;
+    U32(st, G_RANDOM_IV2) = r->iv2;
+    U32(st, G_RANDOM_R1_15BIT) = r->r1_15bit;
+    U32(st, G_RANDOM_R1_7BIT) = r->r1_7bit;
+    U32(st, G_RANDOM_R1_3BIT) = r->r1_3bit;
+    U32(st, G_RANDOM_R2_15BIT) = r->r2_15bit;
+    U32(st, G_RANDOM_R2_7BIT) = r->r2_7bit;
+    U32(st, G_RANDOM_R2_3BIT) = r->r2_3bit;
+    S32(st, G_RANDOM_POOL_INDEX) = r->pool_index;
     for (int i = 0; i < RANDOM_POOL_SIZE; i++) {
-        U32(st, 0x00D3B1C8u + 4u * (uint32_t) i) = r->pool[i];
+        U32(st, G_RANDOM_POOL + 4u * (uint32_t) i) = r->pool[i];
     }
 }
 

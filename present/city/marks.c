@@ -42,7 +42,7 @@ void city_figures_on_top(game_state *st, int32_t param)
                     int32_t tile = S32(st, G_VIEW_TABLE + 4u * (uint32_t) (S32(st, G_VIEW_ROW) * 0xE7 + vx));
                     S32(st, G_VIEW_TILE) = tile;
                     if (tile < 0xFFF0000) {
-                        for (int32_t f = S16(st, G_FIGURE_GRID + 2u * (uint32_t) tile); f > 0;
+                        for (int32_t f = S16(st, G_GRID_FIGURE + 2u * (uint32_t) tile); f > 0;
                              f = S16(st, FIGURE_ADDR(f) + FIG_NEXT_ON_TILE)) {
                             if (U8(st, FIGURE_ADDR(f) + FIG_HEIGHT_TICKS) != 0) {
                                 GAME_CALL(st, FN_FIGURE_DRAW, f, x, y, param);
@@ -80,7 +80,7 @@ int32_t tile_figure_count(game_state *st, int32_t tile)
 {
     /* @bin 0x004B54F0 the figures on a tile (its chain, to the first 0) */
     int32_t n = 0;
-    for (int32_t f = S16(st, G_FIGURE_GRID + 2u * (uint32_t) tile); f != 0; f = S16(st, FIGURE_ADDR(f) + FIG_NEXT_ON_TILE)) {
+    for (int32_t f = S16(st, G_GRID_FIGURE + 2u * (uint32_t) tile); f != 0; f = S16(st, FIGURE_ADDR(f) + FIG_NEXT_ON_TILE)) {
         n++;
     }
     return n;
@@ -101,8 +101,8 @@ static void debug_value(game_state *st, int32_t x, int32_t y)
     case 4: v = U8(st, G_GRID_EDGE + (uint32_t) t); break;
     case 5: v = U8(st, G_CANAL + (uint32_t) t); break;
     case 6: v = U8(st, G_GRID_RANDOM + (uint32_t) t); break;
-    case 7: v = S16(st, G_FIGURE_GRID + 2u * (uint32_t) t); break;
-    case 8: v = U8(st, G_SPRITE + (uint32_t) t); break;
+    case 7: v = S16(st, G_GRID_FIGURE + 2u * (uint32_t) t); break;
+    case 8: v = U8(st, G_GRID_SPRITE + (uint32_t) t); break;
     case 9: v = S8(st, G_GRID_ROUTING + (uint32_t) t); break;
     case 0xA: v = S32(st, G_GRID_ROAD_DISTANCE + 4u * (uint32_t) t); break;
     case 0xB: v = U8(st, BUILDING_ADDR(b) + BLD_WATER_SUPPLY); break;
@@ -111,7 +111,7 @@ static void debug_value(game_state *st, int32_t x, int32_t y)
     case 0xE: v = S16(st, BUILDING_ADDR(b) + BLD_COLLAPSE_RISK); break;
     case 0xF: v = S16(st, BUILDING_ADDR(b) + BLD_POPULATION); break;
     case 0x10: v = S8(st, G_GRID_DESIRABILITY + (uint32_t) t); break;
-    case 0x11: v = U8(st, G_ELEVATION_GRID + (uint32_t) t); break;
+    case 0x11: v = U8(st, G_GRID_ELEVATION + (uint32_t) t); break;
     case 0x12: v = S8(st, G_GRID_ROUTING_WATER + (uint32_t) t); break;
     case 0x13: v = S8(st, G_EC7630 + (uint32_t) t); break;
     case 0x14: v = S16(st, G_GRID_DAMAGE + 2u * (uint32_t) t); break;

@@ -214,7 +214,7 @@ static void add_candidate(game_state *st, int32_t idx, int32_t sid)
 /* @bin 0x004571AA, 0x00457527 a good the city may not trade (0x00EA42F8, i32 per good) */
 static int good_blocked(game_state *st, int32_t good)
 {
-    return S32(st, CITY_BASE + CITY_U2A88 + 4u * (U32(st, CURRENT_PLAYER_ADDR) * 0x1276u + (uint32_t) good)) != 0;
+    return S32(st, CITY_BASE + CITY_STOCKPILE + 4u * (U32(st, CURRENT_PLAYER_ADDR) * 0x1276u + (uint32_t) good)) != 0;
 }
 
 int32_t market_find_source(game_state *st, int32_t id, int kind, int32_t *goods, uint8_t *flood)
@@ -266,7 +266,7 @@ int32_t market_find_source(game_state *st, int32_t id, int kind, int32_t *goods,
                     continue;
                 }
                 /* @bin 0x00457210 the city's setting for the good (0x00EA4096, i16) is 1 or 3 */
-                int16_t v = S16(st, CITY_BASE + CITY_U2826 + 2u * (U32(st, CURRENT_PLAYER_ADDR) * 0x24ECu + (uint32_t) good));
+                int16_t v = S16(st, CITY_BASE + CITY_TRADE_STATUS + 2u * (U32(st, CURRENT_PLAYER_ADDR) * 0x24ECu + (uint32_t) good));
                 if (v != 1 && v != 3) {
                     continue;
                 }

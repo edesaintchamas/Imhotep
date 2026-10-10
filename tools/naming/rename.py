@@ -17,8 +17,10 @@ code (not comments, strings or the port tables' address column):
   - an address literal with a global name or a function name becomes the name;
   - a local `#define NAME 0x...` whose value has a global name is removed, NAME becomes the global;
   - `REC_ADDR(...) + off` and `var + off`, where var holds REC_ADDR(...) / CURRENT_CITY(st) in the same
-    function (all its assignments of one record kind), become `... + FIELD` when exactly one field
-    name has that offset (an offset with several names is left for review: each is a meaning).
+    function (every assignment exactly that record address, nothing added: a variable assigned
+    REC_ADDR(...) + FIELD points at a field and is left alone), become `... + FIELD` when exactly one
+    field name has that offset (an offset with several names is left for review: each is a meaning);
+    the field at offset 0 is added (`S16(st, b)` -> `S16(st, b + BLD_STATE)`) on those only.
 Whether the result compiles to the same code is for tools/check_same_code.py; whether a name fits
 its use is for review.
 """
@@ -38,6 +40,9 @@ RECORDS = {  # header -> (field prefix, address expressions of a record)
 NOT_FIELD = re.compile(r'_(STRIDE|REC_SIZE|DATA_SIZE|TEXT_SIZE|COUNT|BASE)$')
 DEFINE = re.compile(r'^[ \t]*#define\s+([A-Za-z_]\w*)\s+(0x[0-9A-Fa-f]+)u?\b', re.M)
 HEX = re.compile(r'\b0x([0-9A-Fa-f]+)[uU]?\b')
+# a port table's address column: `{0x00XXXXXXu, "name", ...}` rows, and rows made by a macro
+# (`LAY_ENTRY(n, 0x00XXXXXXu)`, core/building/tomb_stones.c): the entry's evidence, kept raw
+PORT_ROW = r'\{\s*(0x[0-9A-Fa-f]{8}u?),\s*"|\b[A-Z][A-Z0-9_]*_ENTRY\(\s*\w+\s*,\s*(0x[0-9A-Fa-f]{8}u?)\)'
 STATE_BASE = 0x0056F000
 CODE_LOW = 0x00401000
 
@@ -87,6 +92,8 @@ def load_names():
                     if name in where and where[name][0] != v:
                         problems.append('one name for two addresses: %s (0x%08X in %s, 0x%08X in %s)'
                                         % (name, where[name][0], where[name][1], v, f))
+                    elif name in where:
+                        problems.append('one name defined twice: %s (%s, %s)' % (name, where[name][1], f))
                     where.setdefault(name, (v, f))
                     glob.setdefault(v, name)
                 elif f in RECORDS and name.startswith(RECORDS[f][0]) and not NOT_FIELD.search(name):
@@ -130,6 +137,17 @@ def balanced_end(s, i):
     return -1
 
 
+def is_record_base(rhs, rec):
+    """rhs is exactly a record address: REC(...) (an optional (uint32_t) cast), nothing after it"""
+    rhs = re.sub(r'^\(uint32_t\)\s*', '', rhs.strip())
+    m = re.match(rec, rhs)
+    if not m:
+        return False
+    if rhs[m.end() - 1] != '(':
+        return m.end() == len(rhs)
+    return balanced_end(rhs, m.end() - 1) == len(rhs)
+
+
 KIND_HEADER = {'BUILDING': 'building.h', 'FIGURE': 'figure.h', 'CITY': 'city.h', 'MESSAGE': 'message.h'}
 
 
@@ -156,7 +174,7 @@ def rewrite(path, glob, fields, fns, dry, given=None):
     def inside_removed(i):
         return any(a <= i < b for a, b in removed)
 
-    table_rows = [m.span(1) for m in re.finditer(r'\{\s*(0x[0-9A-Fa-f]{8}u?),\s*"', mask)]
+    table_rows = [m.span(m.lastindex) for m in re.finditer(PORT_ROW, mask)]
     for m in HEX.finditer(mask):
         if inside_removed(m.start()) or any(a == m.start() for a, b in table_rows):
             continue
@@ -192,13 +210,20 @@ def rewrite(path, glob, fields, fns, dry, given=None):
         for fs, fe in functions(mask):
             body = mask[fs:fe]
             # header of the function too (parameters are not tracked: review)
-            kinds = {}
+            bases = {}
             for m in re.finditer(r'\b(\w+)\s*(?<![=!<>+\-*/&|^%])=(?!=)\s*([^;]*)', body):
-                kinds.setdefault(m.group(1), []).append(bool(re.match(rec, m.group(2).strip())))
-            vars_ = [v for v, k in kinds.items() if all(k)]
-            vars_ += [v for v, kind in given.items() if KIND_HEADER.get(kind) == f and v not in kinds
-                      and re.search(r'\b%s\b' % re.escape(v), body)]
+                rhs = m.group(2).strip()
+                bases.setdefault(m.group(1), []).append(is_record_base(rhs, rec))
+            # a variable holds a record address when every assignment is exactly X_ADDR(...): one
+            # assigned X_ADDR(...) + FIELD points at a field, its offsets are not the record's
+            vars_ = [v for v, k in bases.items() if all(k)]
+            given_vars = [v for v, kind in given.items() if KIND_HEADER.get(kind) == f and v not in bases
+                          and re.search(r'\b%s\b' % re.escape(v), body)]
+            vars_ += given_vars
             pats = [r'\b%s\b' % re.escape(v) for v in vars_]
+            # the field at offset 0 is named only on a record base (such a variable, a --vars parameter
+            # or the record expression itself), never on a pointer that already points at a field
+            zero_pats = list(pats)
             for m in re.finditer(rec, body):
                 st = fs + m.start()
                 if mask[fs + m.end() - 1] == '(':
@@ -206,13 +231,15 @@ def rewrite(path, glob, fields, fns, dry, given=None):
                 else:
                     e = fs + m.end()
                 pats.append(re.escape(mask[st:e]))
+                zero_pats.append(re.escape(mask[st:e]))
             if not pats:
                 continue
             zero = table.get(0, [])
-            for p in set(pats):
-                if len(zero) == 1:  # the field at offset 0, accessed without an offset
+            if len(zero) == 1:  # the field at offset 0, accessed without an offset
+                for p in set(zero_pats):
                     for m in re.finditer(r'\b[SUP](?:8|16|32)\(st, (%s)\)' % p, mask[fs:fe]):
                         edits.append((fs + m.end(1), fs + m.end(1), ' + ' + zero[0]))
+            for p in set(pats):
                 for m in re.finditer(r'(%s)\s*\+\s*(0x[0-9A-Fa-f]+|\d+)[uU]?\b' % p, mask[fs:fe]):
                     a, b = fs + m.start(2), fs + m.end()
                     if mask[b:b + 1] == '*' or re.match(r'\s*\*', mask[b:]):
@@ -264,7 +291,7 @@ def add_include(s, inc='state/layout.h'):
 
 def leftovers(path, text):
     mask = code_mask(text)
-    rows = [m.start(1) for m in re.finditer(r'\{\s*(0x[0-9A-Fa-f]{8}u?),\s*"', mask)]
+    rows = [m.start(m.lastindex) for m in re.finditer(PORT_ROW, mask)]
     out = []
     for m in HEX.finditer(mask):
         v = int(m.group(1), 16)

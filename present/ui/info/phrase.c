@@ -200,7 +200,7 @@ static int32_t phrase_mood_pick(game_state *st)
     for (int32_t i = 0; i < 8; i++) {
         all += (int32_t) U8(st, G_MOOD + (uint32_t) i) * 100 / total;
     }
-    int32_t pick = S32(st, G_R_1_7) & all;
+    int32_t pick = S32(st, G_RANDOM_R1_7BIT) & all;
     if (ok) {
         return 9;
     }
@@ -334,7 +334,7 @@ static void figure_phrase(game_state *st, int32_t f)
         }
     case 0x55: { /* @bin 0x0053C35E actions 0xF..0x17, 0x1A, 0x1E (table 0x0053D010) */
         int busy = (act >= 0xF && act <= 0x17) || act == 0x1A || act == 0x1E;
-        if ((uint8_t) GAME_CALLT0(st, G_UD05720, FN_LABOR_WANTED_ANYWHERE) != 0) {
+        if ((uint8_t) GAME_CALLT0(st, G_FLOODPLAIN_MANAGER, FN_LABOR_WANTED_ANYWHERE) != 0) {
             v = 0xB;
             goto set;
         }

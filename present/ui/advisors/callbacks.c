@@ -174,8 +174,8 @@ void advisor_donation_open(game_state *st)
      * savings CITY+0x4450 */
     uint32_t c = city(st);
     U8(st, G_WINDOW) = 0x2D;
-    if (S32(st, c + CITY_DONATION) > S32(st, c + CITY_PERSONAL_SAVINGS)) {
-        S32(st, c + CITY_DONATION) = S32(st, c + CITY_PERSONAL_SAVINGS);
+    if (S32(st, c + CITY_DONATION) > S32(st, c + CITY_SAVINGS)) {
+        S32(st, c + CITY_DONATION) = S32(st, c + CITY_SAVINGS);
     }
     U8(st, G_REDRAW) = 1;
 }
@@ -203,10 +203,10 @@ void advisor_gift_open(game_state *st)
      * cost (+0x457C large, +0x4578 medium) exceeds the savings CITY+0x4450 */
     uint32_t c = city(st);
     U8(st, G_WINDOW) = 0x2E;
-    if (S32(st, c + CITY_GIFT_SIZE) == 2 && S32(st, c + CITY_GIFT_COST + 8u) > S32(st, c + CITY_PERSONAL_SAVINGS)) {
+    if (S32(st, c + CITY_GIFT_SIZE) == 2 && S32(st, c + CITY_GIFT_COST + 8u) > S32(st, c + CITY_SAVINGS)) {
         S32(st, c + CITY_GIFT_SIZE) = 1;
     }
-    if (S32(st, c + CITY_GIFT_SIZE) == 1 && S32(st, c + CITY_GIFT_COST + 4u) > S32(st, c + CITY_PERSONAL_SAVINGS)) {
+    if (S32(st, c + CITY_GIFT_SIZE) == 1 && S32(st, c + CITY_GIFT_COST + 4u) > S32(st, c + CITY_SAVINGS)) {
         S32(st, c + CITY_GIFT_SIZE) = 0;
     }
     U8(st, G_REDRAW) = 1;
@@ -300,7 +300,7 @@ void advisor_monument_go_to(game_state *st)
     /* @bin 0x0040CF20 a monument row (p1 = row of CITY+0x473C): the camera on an unfinished
      * monument (progress < 100 by its type: jump tables 0x0040D0B8 / 0x0040D0F0), back to the city
      * view. The same tests as 0x004F50F0 (core/command/menu.c) */
-    int32_t id = S32(st, city(st) + CITY_MONUMENT_ID + 4u * (uint32_t) S32(st, G_PARAM1));
+    int32_t id = S32(st, city(st) + CITY_MONUMENTS + 4u * (uint32_t) S32(st, G_PARAM1));
     uint32_t b = BUILDING_ADDR(id);
     int32_t done;
     switch (S16(st, b + BLD_TYPE)) {

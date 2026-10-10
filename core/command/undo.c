@@ -187,9 +187,9 @@ void undo_building_readd(game_state *st, int32_t id)
         break;
     default:
         if (t >= 0x41 && t <= 0x45) {
-            S16(st, city + CITY_U4478) = 1;
+            S16(st, city + CITY_TEMPLE_COMPLEX) = 1;
             S16(st, city + CITY_U448A) = 2;
-            S32(st, city + CITY_U472C) = id;
+            S32(st, city + CITY_TEMPLE_COMPLEX_ID) = id;
         }
         break;
     }
@@ -361,7 +361,7 @@ void undo_restore(game_state *st)
         }
         restore_grid(st, G_TERRAIN_BACKUP, G_GRID_TERRAIN, 0x32C40);
         restore_grid(st, G_CANAL_BACKUP, G_CANAL, 0xCB10);
-        restore_grid(st, G_SPRITE_BACKUP, G_SPRITE, 0xCB10);
+        restore_grid(st, G_SPRITE_BACKUP, G_GRID_SPRITE, 0xCB10);
         restore_grid(st, G_IMAGE_BACKUP, G_GRID_IMAGE, 0x32C40);
         restore_grid(st, G_BITS_BACKUP, G_GRID_BITFIELDS, 0xCB10);
         restore_grid(st, G_EDGE_BACKUP, G_GRID_EDGE, 0xCB10);
@@ -378,7 +378,7 @@ void undo_restore(game_state *st)
     } else if (type == 0x52 || type == 0x53) {
         /* @bin 0x00485793 bridges: terrain and sprite grids */
         restore_grid(st, G_TERRAIN_BACKUP, G_GRID_TERRAIN, 0x32C40);
-        restore_grid(st, G_SPRITE_BACKUP, G_SPRITE, 0xCB10);
+        restore_grid(st, G_SPRITE_BACKUP, G_GRID_SPRITE, 0xCB10);
         undo_restore_images(st, 0);
     } else if (type == 0x26 || type == 0x27) {
         /* @bin 0x00485738 plaza, gardens: terrain, canal, bitfields, edge */

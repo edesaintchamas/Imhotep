@@ -383,7 +383,7 @@ int32_t figb_water_point(game_state *st, int32_t id)
 static int32_t ring_figure(game_state *st, int32_t ntypes, uint32_t types, int32_t except, uint32_t action)
 {
     for (int32_t k = 0; k < ntypes; k++) {
-        int32_t f = S16(st, G_FIGURE_GRID + 2u * U32(st, G_TILE_CURSOR));
+        int32_t f = S16(st, G_GRID_FIGURE + 2u * U32(st, G_TILE_CURSOR));
         uint32_t want = U32(st, types + 4u * (uint32_t) k);
         while (f != 0) {
             uint32_t fa = FIGURE_ADDR(f);
@@ -540,16 +540,16 @@ int32_t figb_animal_flee(game_state *st, int32_t id)
         U8(st, f + FIG_ACTION) = 0x10;
         uint32_t rf = FIGURE_ADDR(r);
         random_next_state(st);
-        U16(st, f + FIG_DEST_X) = (uint16_t) (U16(st, rf + FIG_DEST_X) + (U32(st, G_R_IV1) & 3) - 2);
+        U16(st, f + FIG_DEST_X) = (uint16_t) (U16(st, rf + FIG_DEST_X) + (U32(st, G_RANDOM_IV1) & 3) - 2);
         random_next_state(st);
-        U16(st, f + FIG_DEST_Y) = (uint16_t) (U16(st, rf + FIG_DEST_Y) + (U32(st, G_R_IV1) & 3) - 2);
+        U16(st, f + FIG_DEST_Y) = (uint16_t) (U16(st, rf + FIG_DEST_Y) + (U32(st, G_RANDOM_IV1) & 3) - 2);
         return 1;
     }
     if (U8(st, f + FIG_ACTION) == 0x0E) {
         r = map_search_rings(st, S16(st, f + FIG_X), S16(st, f + FIG_Y), 4, G_U5E4DD0, 0, &ox, &oy, 2, id);
         if (r != 0) {
             random_next_state(st);
-            if ((U32(st, G_R_IV1) & 3) == 0) {
+            if ((U32(st, G_RANDOM_IV1) & 3) == 0) {
                 uint32_t rf = FIGURE_ADDR(r);
                 int32_t tx, ty;
                 if ((int8_t) figb_flee_tile(st, S16(st, f + FIG_X), S16(st, f + FIG_Y), S16(st, rf + FIG_X),
@@ -593,7 +593,7 @@ int32_t figb_find_target_building(game_state *st, int32_t id)
      * +0x4450, 0x00459EF0 only with +0x0C) with +0xB8 > 0 are listed (count 0x0096E6B0, tiles from
      * 0x0096E6B4, ids from 0x00972534); the route search 0x004B28F0 picks one */
     uint32_t c = CURRENT_CITY(st);
-    int has_a = S32(st, c + CITY_U4450) > 0;
+    int has_a = S32(st, c + CITY_SAVINGS) > 0;
     S32(st, G_CANDIDATES) = 0;
     int has_b = S32(st, c + CITY_TREASURY) > 0;
     if (!has_a && !has_b) {

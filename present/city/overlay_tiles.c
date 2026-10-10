@@ -482,7 +482,7 @@ static void level_tile(game_state *st, int32_t x, int32_t y, uint32_t draw)
      * (u8): 0x00F56CA4 + value / 10 + 1 (at most + 9); else the terrain 0x26341677 without 8: the
      * footprint from its corner (TILE_DRAW 0x40; past 5: nothing), else the tile's image */
     int32_t tile = S32(st, G_VIEW_TILE);
-    uint32_t v = U8(st, G_FERTILITY_GRID + (uint32_t) tile);
+    uint32_t v = U8(st, G_GRID_FERTILITY + (uint32_t) tile);
     uint32_t t = U32(st, G_GRID_TERRAIN + 4u * (uint32_t) tile);
     if (v != 0) {
         int32_t k = (int32_t) (v / 10 + 1);

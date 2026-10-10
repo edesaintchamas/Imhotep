@@ -11,7 +11,7 @@
 #include "state/ported.h"
 
 #define TERRAIN(i) (G_GRID_TERRAIN + 4u * (uint32_t) (int32_t) (i))
-#define ON_TILE(i) (G_FIGURE_GRID + 2u * (uint32_t) (int32_t) (i))
+#define ON_TILE(i) (G_GRID_FIGURE + 2u * (uint32_t) (int32_t) (i))
 
 int32_t goods_amount_45aac0(game_state *st, int32_t player, int32_t good)
 {

@@ -155,17 +155,17 @@ static void menu_mouse_help(game_state *st)
 {
     /* @bin 0x00403410 Help 2: the mouse help level 0x00E38EAC (i32) 2 -> 0 -> 1 -> 2; the item's
      * text (words 0x005C9022 and 0x005C9062) 2, 3, 4 for 0, 1, 2; the menu redrawn */
-    int32_t v = S32(st, G_TIPS_ON);
+    int32_t v = S32(st, G_MOUSE_HELP);
     if (v == 2) {
-        S32(st, G_TIPS_ON) = 0;
+        S32(st, G_MOUSE_HELP) = 0;
         U16(st, G_MENU_TEXT_TIPS) = 2;
         U16(st, G_MENU_TEXT_TIPS2) = 2;
     } else if (v == 0) {
-        S32(st, G_TIPS_ON) = 1;
+        S32(st, G_MOUSE_HELP) = 1;
         U16(st, G_MENU_TEXT_TIPS) = 3;
         U16(st, G_MENU_TEXT_TIPS2) = 3;
     } else {
-        S32(st, G_TIPS_ON) = 2;
+        S32(st, G_MOUSE_HELP) = 2;
         U16(st, G_MENU_TEXT_TIPS) = 4;
         U16(st, G_MENU_TEXT_TIPS2) = 4;
     }

@@ -22,15 +22,16 @@
 #define G_ANIM_COUNTER_4 0x00D3B430u
 
 /* timers counted down by the tick (0x00451C50; save.md chunks 40, 46, 105-107, 131) */
-#define G_LOCUST_TIMER 0x0078D79Cu /* @bin 0x004E6EB0 i32: locust plague (-1 armed) */
+#define G_LOCUST_TIMER 0x0078D79Cu /* @bin 0x004E6EB0 i32: locust plague timer, -1 armed (save.md §3 chunk 40) */
 #define G_HAIL_TIMER 0x0078D7A0u   /* @bin 0x004E6ED0 i32: hailstorm (408 ticks; counted in window 1 only) */
-#define G_BLOOD_RIVER_DURATION 0x0078D7ACu /* @bin 0x004E7200 i32: river of blood duration */
+#define G_BLOOD_RIVER_DURATION 0x0078D7ACu /* @bin 0x004E7200 i32: river of blood duration (chunk 107) */
 #define G_BLOOD_RIVER_LEFT 0x0078D7B0u /* @bin 0x0045203E i32: counts down from G_BLOOD_RIVER_DURATION, the
                                         * water redrawn column by column (chunk 131) */
+#define G_FROGS_COUNTDOWN 0x0078D7A8u /* @bin 0x004E70B0 i32 chunk 105: Plague of Frogs countdown */
+#define G_PYRAMID_CURSE_COUNTDOWN 0x0078D7A4u /* @bin 0x004F3AA0 i32 chunk 106: god-curse countdown from Pyramid progress (flag G_GOD_CURSE_ON) */
 #define G_GOD_CURSE_ON 0x00EAAF5Cu /* @bin 0x004D41E0 u8 := G_PYRAMID_CURSE_COUNTDOWN > 0 (not saved); 0x004F3890 runs
                                     * every tick while set */
-#define G_UF55B94 0x00F55B94u      /* @bin 0x00451FCC i32 := 0 when a timer stops the sound stream of channel 2
-                                    * (:= 1 when the ambient track starts: core/city/events_actions.c) */
+#define G_UF55B94 0x00F55B94u /* @bin 0x00451FCC i32 := 0 when a timer stops the sound stream of channel 2 (:= 1 when the ambient track starts: core/city/events_actions.c); also: @bin 0x004E6EB0 i32 := 1 with an ambient track (core/sim/tick.c) */
 
 /* the month's autosave (0x00452370) */
 #define G_AUTOSAVE_OPTION 0x00E38EC2u /* @bin 0x00452370 u8: 1 = "last.sav" written each month */
@@ -60,12 +61,8 @@
 #define G_CITY_PLAYER_NAME 0x00EA184Cu /* @bin 0x004D5100 char[32]: player 1's name (chunk 30), := 0x00E38E74 */
 #define G_SAVE_LOADED 0x00D3B1B8u    /* @bin 0x004D5100 u8: := 0 before a save file is read, 1 after */
 #define G_PKWARE_DICTIONARY 0x00603650u /* @bin 0x0055BC50 i32: the compressor's dictionary size */
-#define G_STR_MAPS 0x005E17CCu       /* @bin 0x004D4E20 "MAPS" */
 /* written by the scenario start 0x004D52A0, meaning open */
 #define G_U7027A8 0x007027A8u        /* @bin 0x00417E70 i32 := 1 */
-#define G_UEAAC2C 0x00EAAC2Cu        /* @bin 0x004D52A0 u8 := 1 */
-#define G_U78D828 0x0078D828u        /* @bin 0x004D52A0 i32 := 0 for a custom map (chunk 100: set by campaign missions
-                                      * 0-4, blocks screen 0x14) */
 
 /* the platform calls of core/sim/platform.c */
 #define G_VIDEO_PLAYING 0x00F54054u  /* @bin 0x00539170 i32: != 0 while a video plays (set by the player's start) */
@@ -90,10 +87,24 @@
 #define G_UF535BC 0x00F535BCu        /* @bin 0x00516F90 i32: += 1 for each building flag cleared without a building
                                       * (also read by core/frame/display.c, present/ui/debug_panels.c) */
 
-/* --- harvested: names the ports gave these addresses in local #defines (tools/naming/harvest.py).
- * @bin evidence: the defining port (file) and its comment. A package agent checks each name it
- * uses, and moves it above this block once checked. --- */
+/* the game's random number generator (core/random/random.c; @bin 0x004D7090; save.md chunks 41, 42): two
+ * 31-bit shift registers, the values derived from them after each step and a pool of the previous
+ * 7-bit values, u32 each */
+#define G_RANDOM_POOL_INDEX 0x00D3B1C4u /* @bin 0x004D7090 i32: the next slot of G_RANDOM_POOL, wraps at 100 */
+#define G_RANDOM_POOL 0x00D3B1C8u       /* @bin 0x004D7090 u32[100]: the previous G_RANDOM_R1_7BIT values */
+#define G_RANDOM_R2_15BIT 0x00D3B364u   /* @bin 0x004D7090 iv2 & 0x7FFF */
+#define G_RANDOM_R2_7BIT 0x00D3B368u    /* @bin 0x004D7090 iv2 & 0x7F */
+#define G_RANDOM_R2_3BIT 0x00D3B36Cu    /* @bin 0x004D7090 iv2 & 7 */
+#define G_RANDOM_R1_15BIT 0x00D3B370u   /* @bin 0x004D7090 iv1 & 0x7FFF */
+#define G_RANDOM_R1_7BIT 0x00D3B374u    /* @bin 0x004D7090 iv1 & 0x7F */
+#define G_RANDOM_R1_3BIT 0x00D3B378u    /* @bin 0x004D7090 iv1 & 7 */
+#define G_RANDOM_IV2 0x00D3B380u        /* @bin 0x004D7090 the second shift register (chunk 42) */
+#define G_RANDOM_IV1 0x00D3B384u        /* @bin 0x004D7090 the first shift register (chunk 41) */
+/* the C runtime's rand() (core/random/crt_rand.c), statically linked: its state, not saved */
+#define G_CRT_RAND_STATE 0x00604950u /* @bin 0x00562348 u32: s = s * 214013 + 2531011 */
+
+/* named after the ports' local #defines (phase 10 wave 0, tools/naming/candidates.tsv); evidence: the
+ * defining port in each comment */
 #define G_IMGS_H 0x010D6A0Eu /* present/ui/messages/richtext.c */
-/* --- end harvested --- */
 
 #endif

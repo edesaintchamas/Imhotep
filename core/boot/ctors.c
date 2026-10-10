@@ -99,11 +99,11 @@ static void elem_448960(game_state *st, uint32_t p)
 /* @bin 0x005404E0 (0xCC3C-byte graphics slots of 0x00F55BB0) */
 static void elem_5404e0(game_state *st, uint32_t p)
 {
-    U32(st, p + 0xCC24) = 0;
+    U32(st, p + GFXSLOT_PIXELS) = 0;
     U8(st, p) = 0;
-    U32(st, p + 0xCC28) = 0;
-    U32(st, p + 0xCC2C) = 0;
-    U32(st, p + 0xCC30) = 0;
+    U32(st, p + GFXSLOT_PIXEL_BYTES) = 0;
+    U32(st, p + GFXSLOT_IMAGES) = 0;
+    U32(st, p + GFXSLOT_GROUPS) = 0;
 }
 
 /* @bin 0x0041C6D0 a file list (core/newgame/flow2.h): vtable 0x0056F548, the rest 0 */
@@ -126,8 +126,8 @@ static void graphics_reset(game_state *st, uint32_t self)
     static const int32_t ids[30] = {0x27,  0xFD,  0x10E, 0x1F2, 0x234, 0x235, 0x236, 0x237, 0x238, 0x239,
                                     0x240, 0x241, 0x27A, 0x282, 0x293, 0x2C7, 0x2F0, 0x2FC, 0x2FD, 0x2FE,
                                     0x2FF, 0x300, 0x301, 0x312, 0x317, 0x32C, 0x33C, 0x353, 0x370, 0x393};
-    GAME_CALL(st, FN_EXTERNAL_BUFFER_FREE, (int32_t) (self + 0x30F5C4u), 0);
-    GAME_CALL(st, FN_EXTERNAL_BUFFER_FREE, (int32_t) (self + 0x30F5C0u), 0);
+    GAME_CALL(st, FN_EXTERNAL_BUFFER_FREE, (int32_t) (self + GFX_EXTERNAL_BUF2), 0);
+    GAME_CALL(st, FN_EXTERNAL_BUFFER_FREE, (int32_t) (self + GFX_EXTERNAL_BUF), 0);
     for (uint32_t k = 0; k < 30; k++) {
         uint32_t buf = self + 0xEB64u + 0xCC3Cu * k;
         if (U32(st, buf) != 0) {
@@ -464,8 +464,8 @@ void boot_ctor(game_state *st, const boot_host *host, uint32_t fn)
     }
     case FN_CTOR_SCENARIO_LIST_0X00704C00_41E050:
         /* @bin 0x0041E0A0 the scenario list 0x00704C00: a file list, vtable 0x0056F54C */
-        file_list_ctor(st, G_LIST_OBJECT);
-        U32(st, G_LIST_OBJECT) = G_VTBL_SCENARIO_LIST;
+        file_list_ctor(st, G_SCENARIO_LIST);
+        U32(st, G_SCENARIO_LIST) = G_VTBL_SCENARIO_LIST;
         break;
     case FN_CTOR_RECORDS_0X00776FB0_4424A0:
         vector_ctor(st, G_ROUTES, 0x144, 0x32, elem_445460); /* @bin 0x004424B0 */
@@ -532,8 +532,8 @@ void boot_ctor(game_state *st, const boot_host *host, uint32_t fn)
     case FN_CTOR_FLOODPLAIN_OBJECT_0X00D05720:
         /* @bin 0x004BD2D0 the floodplain object 0x00D05720: its settings (+0x32C40, 0x004BD330), 0x1E
          * records of 0x1C at +0x32C64 (0x004BD650) */
-        GAME_CALLT0(st, G_UD05720 + 0x32C40u, FN_FLOODPLAIN_SETTINGS_RESET);
-        vector_ctor(st, G_UD05720 + 0x32C64u, 0x1C, 0x1E, elem_4bd650);
+        GAME_CALLT0(st, G_FLOODPLAIN_MANAGER + 0x32C40u, FN_FLOODPLAIN_SETTINGS_RESET);
+        vector_ctor(st, G_FLOODPLAIN_MANAGER + 0x32C64u, 0x1C, 0x1E, elem_4bd650);
         break;
     case FN_CTOR_0X00D05718_4BD300: {
         /* @bin 0x004BD310 the double 0x0056F680 / 0x0056F678 (fdiv, 53 bits) into 0x00D05718 */
@@ -565,7 +565,7 @@ void boot_ctor(game_state *st, const boot_host *host, uint32_t fn)
         /* @bin 0x0053DA90 the graphics object 0x00F55BB0: 0x1E slots of 0xCC3C at +0x1F40
          * (0x005404E0), the external buffers +0x30F5C4 / +0x30F5C0 0, then 0x0053DB60 */
         uint32_t self = G_GRAPHICS_GFX;
-        vector_ctor(st, self + 0x1F40, 0xCC3C, 0x1E, elem_5404e0);
+        vector_ctor(st, self + GFX_SLOTS, GFX_SLOT_SIZE, 0x1E, elem_5404e0);
         U32(st, self + 0x30F5C4u) = 0;
         U32(st, self + 0x30F5C0u) = 0;
         graphics_reset(st, self);
