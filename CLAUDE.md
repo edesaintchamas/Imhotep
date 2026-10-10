@@ -89,6 +89,7 @@ docs/roadmap.md       phases and items, in order, with their acceptance tests
 docs/source-fingerprint.json   SHA-256 of the reference game files
 tools/                fingerprinting, provenance and file checks, Ghidra scripts, loop
 tools/oracle/         Pharaoh.exe run headless in a CPU emulator (reference runs, saves, functions)
+tools/release/        release packages (macOS app, Windows zip, Linux tar.gz / AppImage), docs/release.md
 prompts/              standing prompts for headless runs
 tests/differential/   differential test harness (reference saves stay outside the repo)
 refs/                 Julius, Augustus, Akhenaten clones (git-ignored, read-only)

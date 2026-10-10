@@ -77,10 +77,20 @@ media *media_open(const char *path, int video)
         return NULL;
     }
     if (m->audio) {
+#if LIBSWRESAMPLE_VERSION_INT >= AV_VERSION_INT(4, 5, 100)
         AVChannelLayout stereo = AV_CHANNEL_LAYOUT_STEREO;
         if (swr_alloc_set_opts2(&m->swr, &stereo, AV_SAMPLE_FMT_S16, MEDIA_RATE, &m->audio->ch_layout,
                                 m->audio->sample_fmt, m->audio->sample_rate, 0, NULL) < 0 ||
             swr_init(m->swr) < 0) {
+#else
+        /* FFmpeg before 5.1 (Ubuntu 22.04's 4.4, which the Linux release is built against): the
+         * channel layout as a mask */
+        int64_t layout = m->audio->channel_layout ? (int64_t) m->audio->channel_layout
+                                                  : av_get_default_channel_layout(m->audio->channels);
+        m->swr = swr_alloc_set_opts(NULL, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, MEDIA_RATE, layout,
+                                    m->audio->sample_fmt, m->audio->sample_rate, 0, NULL);
+        if (!m->swr || swr_init(m->swr) < 0) {
+#endif
             media_close(m);
             return NULL;
         }

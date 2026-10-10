@@ -130,12 +130,18 @@ $(BUILD)/state_replay$(EXE): tools/oracle/state_replay.c $(BUILD)/libimhotep_pre
 # ---- build/imhotep: the game (SDL2 window, input, sound; FFmpeg for MP3 and Bink), make game ----
 GAME_SRC := platform/main.c platform/memory.c platform/files.c platform/audio.c platform/media.c \
 	platform/video.c platform/cursors.c platform/fingerprint.c platform/install.c $(PLATFORM_SRC)
-GAME_LIBS_CFLAGS := $(shell pkg-config --cflags sdl2 libavformat libavcodec libswresample libswscale libavutil 2>/dev/null)
-GAME_LIBS := $(shell pkg-config --libs sdl2 libavformat libavcodec libswresample libswscale libavutil 2>/dev/null)
+# PKG_CONFIG="pkg-config --static": SDL2 and FFmpeg linked statically (the release packages,
+# tools/release/build_deps.sh)
+PKG_CONFIG ?= pkg-config
+GAME_LIBS_CFLAGS := $(shell $(PKG_CONFIG) --cflags sdl2 libavformat libavcodec libswresample libswscale libavutil 2>/dev/null)
+GAME_LIBS := $(shell $(PKG_CONFIG) --libs sdl2 libavformat libavcodec libswresample libswscale libavutil 2>/dev/null)
+# IMHOTEP_VERSION=X.Y.Z: the version `imhotep --version` prints (the release workflow sets it from the
+# tag); unset, platform/install.h's default
+GAME_VERSION_DEF := $(if $(IMHOTEP_VERSION),-DIMHOTEP_VERSION='"$(IMHOTEP_VERSION)"')
 
 $(BUILD)/imhotep$(EXE): $(GAME_SRC) $(wildcard platform/*.h) $(BUILD)/libimhotep_present.a $(BUILD)/libimhotep_core.a
 	@test -n "$(GAME_LIBS)" || (echo "make game needs SDL2 and FFmpeg (pkg-config sdl2 libavformat ...)" && exit 1)
-	$(CC) $(TOOL_CFLAGS) -Ipresent -Wno-error=deprecated-declarations $(GAME_LIBS_CFLAGS) $(GAME_SRC) \
+	$(CC) $(TOOL_CFLAGS) -Ipresent -Wno-error=deprecated-declarations $(GAME_VERSION_DEF) $(GAME_LIBS_CFLAGS) $(GAME_SRC) \
 		$(BUILD)/libimhotep_present.a $(BUILD)/libimhotep_core.a $(GAME_LIBS) -o $@
 
 game: $(BUILD)/imhotep$(EXE) ## Build the game, build/imhotep (needs SDL2 and FFmpeg, and the game files in IMHOTEP_GAME_DIR)

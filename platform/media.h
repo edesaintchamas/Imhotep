@@ -1,5 +1,5 @@
 /* Imhotep - MP3 and Bink decoding for build/imhotep, through FFmpeg (libavformat, libavcodec,
- * libswresample, libswscale; dynamically linked).
+ * libswresample, libswscale; linked dynamically, or statically in the release packages).
  * Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0.
  *
  * The original plays MP3 streams through Miles (MP3DEC.ASI) and Bink videos through BINKW32.DLL;

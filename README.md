@@ -13,9 +13,33 @@ aiming at faithful simulation and compatibility with original save files.
 Imhotep does not include any game content. You need a legitimate copy of
 **Pharaoh + Cleopatra** (the GOG release, version 2.1, is the reference version).
 
+## Download
+
+Ready-made builds are on the [Releases page](https://github.com/edesaintchamas/Imhotep/releases).
+None of them contains anything from the game: you still need your own installation (see below).
+
+- **macOS** (Apple silicon, macOS 11 or later): `imhotep-VERSION-macos-arm64.zip` holds
+  `Imhotep.app`; move it to Applications. The app is not signed with an Apple Developer ID, so the
+  first time Gatekeeper refuses to open it: right-click (or Control-click) `Imhotep.app` > Open, then
+  Open in the dialog (or System Settings > Privacy & Security > Open Anyway). Later starts open it
+  normally.
+- **Windows** (64-bit): unzip `imhotep-VERSION-windows-x64.zip` anywhere and run `imhotep.exe`
+  (`SDL2.dll` must stay next to it). The executable is not signed: if SmartScreen says "Windows
+  protected your PC", click More info > Run anyway.
+- **Linux** (x86-64, glibc 2.35 or later: Ubuntu 22.04, Debian 12, Fedora 36 and later): either
+  `Imhotep-VERSION-x86_64.AppImage` (`chmod +x` it and run it; it needs FUSE, else run it with
+  `--appimage-extract-and-run`), or `imhotep-VERSION-linux-x86_64.tar.gz` (unpack it and run
+  `./imhotep`). SDL2 and FFmpeg are built in; the system provides the graphics drivers, X11 or
+  Wayland and the sound server (ALSA, PulseAudio or PipeWire), as on any desktop.
+
+Imhotep finds a GOG installation in the usual places by itself. Otherwise start it once with the
+game folder, the one holding `Pharaoh.exe` (it remembers it afterwards):
+`imhotep --game "FOLDER"`; on macOS, from Terminal,
+`/Applications/Imhotep.app/Contents/MacOS/imhotep --game "FOLDER"`.
+
 ## Playing
 
-You need a C compiler, `make`, `pkg-config`, SDL2 and FFmpeg (for the videos):
+To build from source, you need a C compiler, `make`, `pkg-config`, SDL2 and FFmpeg (for the videos):
 
 - macOS: `brew install sdl2 ffmpeg pkg-config`
 - Debian / Ubuntu: `sudo apt install build-essential pkg-config libsdl2-dev libavformat-dev libavcodec-dev libswresample-dev libswscale-dev libavutil-dev`
