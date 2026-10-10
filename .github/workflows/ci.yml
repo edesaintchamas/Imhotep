@@ -13,10 +13,10 @@ jobs:
   checks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: No game content
@@ -61,7 +61,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: git config --global core.autocrlf false
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Dependencies (Linux)
         if: runner.os == 'Linux'

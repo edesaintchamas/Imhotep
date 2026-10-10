@@ -108,6 +108,7 @@ make differential  # differential tests (terrain, save, desirability), needs the
 make oracle-env    # local/venv with Unicorn + Capstone, for tools/oracle
 make corpus        # reference save corpus: player saves advanced 12 months by the original
 make check-files   # fail if game files are tracked by git
+make build-all     # what CI builds on Linux (gcc, clang), macOS and Windows (MSYS2): core, present, tools, game
 make test          # all checks + unit tests + differential tests (when available)
 make game          # the game, build/imhotep (SDL2 + FFmpeg; needs only the game files)
 make present-check # the presentation port's full per-package matrices against the original (long)
