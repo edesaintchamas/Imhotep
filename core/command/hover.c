@@ -20,35 +20,14 @@
 #include "city/day2_misc.h"
 #include "command/construction_checks.h"
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define TERRAIN 0x00AF598Cu  /* u32 per tile */
-#define SPRITE 0x00ADC36Cu   /* u8 per tile */
-#define BUILDING_GRID 0x00B4E6FCu /* i16 per tile */
-#define MAP_START 0x00BCA2D8u
-#define HOVER_OFFSET 0x00BCA300u
-#define HOVER_X 0x00BCA304u
-#define HOVER_Y 0x00BCA308u
-#define FERRY_STATE 0x00BCA310u
-#define FERRY_VALID 0x00BCA314u /* u8 */
-#define FERRY_BUILDING 0x00BC9800u
-#define REACH_DIR 0x00BC96E0u
-#define REACH_LEN 0x00BC96E4u
-#define REACH_END 0x00BC96E8u
-#define REACH_STEP 0x00BC96ECu
-#define REACH_START 0x00BC96F0u
-#define BRIDGE_DIR 0x00BC96F4u
-#define BRIDGE_LEN 0x00BC96F8u
-#define BRIDGE_END 0x00BC96FCu
-#define BRIDGE_STEP 0x00BC9700u
-#define BRIDGE_START 0x00BC9704u
-#define NEAR_GRID 0x00EE0C50u   /* u8 per tile, read with the 8 neighbour offsets 0x005F80FC */
-#define NEIGHBOURS 0x005F80FCu  /* i32[8] */
 
 static uint32_t terrain(game_state *st, int32_t off)
 {
-    return U32(st, TERRAIN + 4u * (uint32_t) off);
+    return U32(st, G_GRID_TERRAIN + 4u * (uint32_t) off);
 }
 
 int32_t edge_neighbours_with(game_state *st, int32_t off, uint32_t mask)
@@ -79,47 +58,47 @@ int32_t ferry_reach(game_state *st, int32_t x, int32_t y)
      * direction 0x00BC96E0 and grid step 0x00BC96EC; then the water tiles in front, up to 40:
      * 0x00BC96E4 the count reached (+1), 0x00BC96E8 the tile before the first dry one (and
      * 0x00BC96E4 := 40 then). Returns eax: the step (or twice the pattern when none fits). */
-    S32(st, REACH_END) = 0;
-    S32(st, REACH_LEN) = 0;
-    S32(st, REACH_STEP) = 0;
-    S32(st, REACH_DIR) = 0;
-    int32_t off = S32(st, MAP_START) + y * 0xE4 + x;
-    S32(st, REACH_START) = off;
+    S32(st, G_REACH_END) = 0;
+    S32(st, G_REACH_LEN) = 0;
+    S32(st, G_REACH_STEP) = 0;
+    S32(st, G_REACH_DIR) = 0;
+    int32_t off = S32(st, G_MAP_START) + y * 0xE4 + x;
+    S32(st, G_REACH_START) = off;
     int32_t k = tile_bit4_pattern(st, x, y) * 2;
     int32_t step;
     /* @bin 0x0047F431 jump table 0x0047F50C on twice the pattern (0..6) */
     switch ((uint32_t) k) {
-    case 0: S32(st, REACH_DIR) = 0; step = -0xE4; break;
-    case 2: S32(st, REACH_DIR) = 2; step = 1; break;
-    case 4: S32(st, REACH_DIR) = 4; step = 0xE4; break;
-    case 6: S32(st, REACH_DIR) = 6; step = -1; break;
+    case 0: S32(st, G_REACH_DIR) = 0; step = -0xE4; break;
+    case 2: S32(st, G_REACH_DIR) = 2; step = 1; break;
+    case 4: S32(st, G_REACH_DIR) = 4; step = 0xE4; break;
+    case 6: S32(st, G_REACH_DIR) = 6; step = -1; break;
     default: return k;
     }
-    S32(st, REACH_STEP) = step;
+    S32(st, G_REACH_STEP) = step;
     int32_t n = 1;
     for (int32_t count = 0;;) {
         /* @bin 0x0047F4AC the tile two steps on, the cursor one step on */
         uint8_t t = (uint8_t) terrain(st, off + 2 * step);
         off += step;
         n++;
-        if ((t & 1) || U8(st, SPRITE + (uint32_t) (off + step)) != 0) {
+        if ((t & 1) || U8(st, G_SPRITE + (uint32_t) (off + step)) != 0) {
             break;
         }
         if (!(t & 4)) {
             /* @bin 0x0047F4EF dry land: the end tile, the length set to 40 */
-            S32(st, REACH_LEN) = n;
-            S32(st, REACH_END) = off;
-            S32(st, REACH_LEN) = 0x28;
+            S32(st, G_REACH_LEN) = n;
+            S32(st, G_REACH_END) = off;
+            S32(st, G_REACH_LEN) = 0x28;
             return step;
         }
-        if (S32(st, FERRY_STATE) != 0 && (t & 0x48)) {
+        if (S32(st, G_FERRY_STATE) != 0 && (t & 0x48)) {
             break;
         }
         if (++count >= 0x28) {
             break;
         }
     }
-    S32(st, REACH_LEN) = n;
+    S32(st, G_REACH_LEN) = n;
     return step;
 }
 
@@ -131,12 +110,12 @@ int32_t bridge_measure(game_state *st, int32_t x, int32_t y)
      * at most 4 more that each have their 4 corners in water: 0x00BC96F8 the length, 0x00BC96FC
      * the far end when the bridge lands on a tile of the other shore with the same conditions
      * (else 0) */
-    S32(st, BRIDGE_END) = 0;
-    S32(st, BRIDGE_LEN) = 0;
-    S32(st, BRIDGE_STEP) = 0;
-    S32(st, BRIDGE_DIR) = 0;
-    int32_t off = S32(st, MAP_START) + y * 0xE4 + x;
-    S32(st, BRIDGE_START) = off;
+    S32(st, G_BRIDGE_END) = 0;
+    S32(st, G_BRIDGE_LENGTH) = 0;
+    S32(st, G_BRIDGE_STEP) = 0;
+    S32(st, G_BRIDGE_DIR) = 0;
+    int32_t off = S32(st, G_MAP_START) + y * 0xE4 + x;
+    S32(st, G_BRIDGE_START) = off;
     uint8_t t = (uint8_t) terrain(st, off);
     if (!(t & 4) || (t & 0x48)) {
         return 0;
@@ -147,24 +126,24 @@ int32_t bridge_measure(game_state *st, int32_t x, int32_t y)
     int32_t step;
     if (!((uint8_t) terrain(st, off - 0xE4) & 4)) {
         step = 0xE4;
-        S32(st, BRIDGE_DIR) = 4;
+        S32(st, G_BRIDGE_DIR) = 4;
     } else if (!((uint8_t) terrain(st, off + 1) & 4)) {
         step = -1;
-        S32(st, BRIDGE_DIR) = 6;
+        S32(st, G_BRIDGE_DIR) = 6;
     } else if (!((uint8_t) terrain(st, off + 0xE4) & 4)) {
         step = -0xE4;
-        S32(st, BRIDGE_DIR) = 0;
+        S32(st, G_BRIDGE_DIR) = 0;
     } else if (!((uint8_t) terrain(st, off - 1) & 4)) {
         step = 1;
-        S32(st, BRIDGE_DIR) = 2;
+        S32(st, G_BRIDGE_DIR) = 2;
     } else {
         return 0;
     }
-    S32(st, BRIDGE_STEP) = step;
-    S32(st, BRIDGE_LEN) = 1;
+    S32(st, G_BRIDGE_STEP) = step;
+    S32(st, G_BRIDGE_LENGTH) = 1;
     for (int32_t i = 0;;) {
         off += step;
-        S32(st, BRIDGE_LEN) = S32(st, BRIDGE_LEN) + 1;
+        S32(st, G_BRIDGE_LENGTH) = S32(st, G_BRIDGE_LENGTH) + 1;
         uint8_t next = (uint8_t) terrain(st, off + step);
         if (next & 1) {
             return 0;
@@ -175,18 +154,18 @@ int32_t bridge_measure(game_state *st, int32_t x, int32_t y)
         }
         /* @bin 0x0047F35D the 8 neighbours in the grid 0x00EE0C50: none 1 or 3 */
         for (uint32_t k = 0; k < 8; k++) {
-            uint8_t v = U8(st, NEAR_GRID + (uint32_t) (off + S32(st, NEIGHBOURS + 4u * k)));
+            uint8_t v = U8(st, G_GRID_ROUTING + (uint32_t) (off + S32(st, G_DIRECTION_OFFSETS + 4u * k)));
             if (v == 1 || v == 3) {
                 return 0;
             }
         }
         if (!(next & 4)) {
             /* @bin 0x0047F39F the next tile is dry: this one is the far end */
-            S32(st, BRIDGE_END) = off;
+            S32(st, G_BRIDGE_END) = off;
             if (edge_neighbours_with(st, off, 4) == 3 && edge_neighbours_with(st, off, 0x10000) == 0) {
                 return 0;
             }
-            S32(st, BRIDGE_END) = 0;
+            S32(st, G_BRIDGE_END) = 0;
             return 0;
         }
         if (next & 0x48) {
@@ -235,18 +214,18 @@ static int ferry_scan(game_state *st, int32_t d, int32_t x, int32_t y, int32_t r
             }
             int32_t tx = x + dx, ty = y + dy;
             int32_t fit = shore_fit(st, tx, ty, 1, 0); /* @bin 0x0043D14C */
-            int32_t origin = S32(st, MAP_START) + y * 0xE4 + x;
-            int32_t off = S32(st, MAP_START) + ty * 0xE4 + tx;
-            int32_t b = S16(st, BUILDING_GRID + 2u * (uint32_t) off);
+            int32_t origin = S32(st, G_MAP_START) + y * 0xE4 + x;
+            int32_t off = S32(st, G_MAP_START) + ty * 0xE4 + tx;
+            int32_t b = S16(st, G_BUILDING_GRID + 2u * (uint32_t) off);
             /* @bin 0x0043D15E another landing, not linked */
-            if (ferry_landing_at_offset(st, off) != 0 && S32(st, BUILDING_ADDR(b) + 0xC4) == -1 && off != origin &&
-                S16(st, BUILDING_GRID + 2u * (uint32_t) off) != S16(st, BUILDING_GRID + 2u * (uint32_t) origin)) {
+            if (ferry_landing_at_offset(st, off) != 0 && S32(st, BUILDING_ADDR(b) + BLD_FERRY_PARTNER) == -1 && off != origin &&
+                S16(st, G_BUILDING_GRID + 2u * (uint32_t) off) != S16(st, G_BUILDING_GRID + 2u * (uint32_t) origin)) {
                 found = 1;
             }
             int32_t k = tile_bit4_pattern(st, tx, ty) * 2; /* @bin 0x0043D221 */
             if (k == opp && fit == 0) {
                 /* @bin 0x0043D24E mode 0 and the length into a local of the draw: not kept */
-                if (GAME_CALL(st, 0x00486A30u, tx, ty, x, y, 2, k, opp, 0, 0) != 0) {
+                if (GAME_CALL(st, FN_FERRY_LANDINGS_JOINED, tx, ty, x, y, 2, k, opp, 0, 0) != 0) {
                     found = 1;
                 }
             }
@@ -263,16 +242,16 @@ static int ferry_scan(game_state *st, int32_t d, int32_t x, int32_t y, int32_t r
  * image is one of the water-lift group 0x00F56CCC .. + 0xB the flag 0x00BCA32C */
 static void ferry_ghost(game_state *st, int32_t floodable)
 {
-    int32_t x = S32(st, HOVER_X), y = S32(st, HOVER_Y);
-    uint32_t type = U32(st, 0x006059E8u);
-    int32_t img = S32(st, 0x00F55BB4u + 8u * U32(st, 0x005D06E4u + 20u * type)) + S32(st, 0x005D06E8u + 20u * type);
+    int32_t x = S32(st, G_HOVER_X), y = S32(st, G_HOVER_Y);
+    uint32_t type = U32(st, G_CONSTRUCTION_UI_TYPE);
+    int32_t img = S32(st, G_DAY2_REDRAW_GROUPS + 8u * U32(st, G_MODELS + MODELS_IMAGE_GROUP + 20u * type)) + S32(st, G_MODELS + MODELS_IMAGE_OFFSET + 20u * type);
     int32_t fit = shore_fit(st, x, y, 1, floodable);
-    if (S32(st, CURRENT_CITY(st) + 0xC) <= -5000 || fit != 0) {
+    if (S32(st, CURRENT_CITY(st) + CITY_TREASURY) <= -5000 || fit != 0) {
         return; /* @bin 0x0043DDEC / 0x0043DE3C the red ghost */
     }
-    int32_t base = S32(st, 0x00F56CCCu);
+    int32_t base = S32(st, G_DAY2_REDRAW_GROUPS + 8u * 547u);
     if (img >= base && img <= base + 0xB) {
-        U8(st, 0x00BCA32Cu) = (uint8_t) map_area_test(st, x, y, 2, 2, 0x10000); /* @bin 0x0043DE6A */
+        U8(st, G_UBCA32C) = (uint8_t) map_area_test(st, x, y, 2, 2, 0x10000); /* @bin 0x0043DE6A */
         /* 0x00487D30 (the image) writes nothing */
     }
 }
@@ -280,26 +259,26 @@ static void ferry_ghost(game_state *st, int32_t floodable)
 void ferry_hover(game_state *st)
 {
     /* @bin 0x0043D300 the rule part of the ferry ghost draw: 0x00BCA314 := 0 (0x0043D321) */
-    U8(st, FERRY_VALID) = 0;
-    int32_t x = S32(st, HOVER_X), y = S32(st, HOVER_Y);
-    if (S32(st, FERRY_STATE) == 0) {
+    U8(st, G_FERRY_VALID) = 0;
+    int32_t x = S32(st, G_HOVER_X), y = S32(st, G_HOVER_Y);
+    if (S32(st, G_FERRY_STATE) == 0) {
         /* first landing */
         ferry_reach(st, x, y); /* @bin 0x0043D361 */
-        int32_t d = S32(st, REACH_DIR);
+        int32_t d = S32(st, G_REACH_DIR);
         if (d < 0) {
             d += 8;
         }
         int32_t fit = shore_fit(st, x, y, 1, 0); /* @bin 0x0043D3A2 */
-        int32_t hov = S32(st, HOVER_OFFSET);
-        int32_t b = S16(st, BUILDING_GRID + 2u * (uint32_t) hov);
+        int32_t hov = S32(st, G_HOVER_TILE);
+        int32_t b = S16(st, G_BUILDING_GRID + 2u * (uint32_t) hov);
         int existing = 0;
-        if (ferry_landing_at_offset(st, hov) != 0 && S32(st, BUILDING_ADDR(b) + 0xC4) == -1) {
+        if (ferry_landing_at_offset(st, hov) != 0 && S32(st, BUILDING_ADDR(b) + BLD_FERRY_PARTNER) == -1) {
             /* @bin 0x0043D3F5 a landing not linked under the mouse: its routes drawn */
             existing = 1;
-            ferry_scan(st, d, x, y, S32(st, REACH_LEN));
+            ferry_scan(st, d, x, y, S32(st, G_REACH_LEN));
         }
-        if (fit == 0 && ferry_scan(st, d, S32(st, HOVER_X), S32(st, HOVER_Y), S32(st, REACH_LEN))) {
-            U8(st, FERRY_VALID) = 1; /* @bin 0x0043D498 */
+        if (fit == 0 && ferry_scan(st, d, S32(st, G_HOVER_X), S32(st, G_HOVER_Y), S32(st, G_REACH_LEN))) {
+            U8(st, G_FERRY_VALID) = 1; /* @bin 0x0043D498 */
             ferry_ghost(st, 0);
             return;
         }
@@ -308,22 +287,22 @@ void ferry_hover(game_state *st)
     }
     /* second landing: joined to the first one 0x00BC9800 */
     int32_t k = tile_bit4_pattern(st, x, y); /* @bin 0x0043D537 */
-    uint32_t first = BUILDING_ADDR(S32(st, FERRY_BUILDING));
-    int32_t size = U8(st, first + 3);
-    int32_t rot = (int32_t) U8(st, first + 0xAA) * 2;
-    int32_t fx = S16(st, first + 6), fy = S16(st, first + 8);
-    int32_t hov = S32(st, HOVER_OFFSET);
+    uint32_t first = BUILDING_ADDR(S32(st, G_FERRY_BUILDING));
+    int32_t size = U8(st, first + BLD_SIZE);
+    int32_t rot = (int32_t) U8(st, first + BLD_ORIENTATION) * 2;
+    int32_t fx = S16(st, first + BLD_X), fy = S16(st, first + BLD_Y);
+    int32_t hov = S32(st, G_HOVER_TILE);
     if (ferry_landing_at_offset(st, hov) != 0) {
-        int32_t b = S16(st, BUILDING_GRID + 2u * (uint32_t) S32(st, HOVER_OFFSET));
-        if (b != S32(st, FERRY_BUILDING) && S32(st, BUILDING_ADDR(b) + 0xC4) == -1) {
+        int32_t b = S16(st, G_BUILDING_GRID + 2u * (uint32_t) S32(st, G_HOVER_TILE));
+        if (b != S32(st, G_FERRY_BUILDING) && S32(st, BUILDING_ADDR(b) + BLD_FERRY_PARTNER) == -1) {
             return; /* @bin 0x0043D5BF another landing under the mouse: drawn, not valid */
         }
     }
-    ferry_scan(st, rot, fx, fy, S32(st, REACH_LEN)); /* @bin 0x0043D65E the first landing's routes */
+    ferry_scan(st, rot, fx, fy, S32(st, G_REACH_LEN)); /* @bin 0x0043D65E the first landing's routes */
     int32_t opp = (rot + 4) % 8;
     /* @bin 0x0043D696 the route buffer and the length are locals of the draw (mode != 1) */
-    if (GAME_CALL(st, 0x00486A30u, x, y, fx, fy, size, k * 2, opp, 0, 0) == 1) {
-        U8(st, FERRY_VALID) = 1; /* @bin 0x0043D6A7 */
+    if (GAME_CALL(st, FN_FERRY_LANDINGS_JOINED, x, y, fx, fy, size, k * 2, opp, 0, 0) == 1) {
+        U8(st, G_FERRY_VALID) = 1; /* @bin 0x0043D6A7 */
         ferry_ghost(st, 0);
     }
 }

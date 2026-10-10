@@ -8,25 +8,11 @@
 #include "command/construction_checks.h"
 
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define MAP_W 0x00BCA2D0u
-#define MAP_H 0x00BCA2D4u
-#define MAP_START 0x00BCA2D8u
-#define VIEW_ORIENTATION 0x00BCA2E0u
-#define SCAN_Y 0x00D3B4E0u
-#define SCAN_X 0x00D3B4E4u
-#define TER(o) U32(st, 0x00AF598Cu + 4u * (uint32_t) (o))
-#define BITFIELDS 0x00B285CCu
-#define BUILDING_GRID 0x00B4E6FCu
-#define FIGURE_GRID 0x00B350DCu   /* i16 per tile, read by 0x0047D360 */
-#define OBJECT_GRID 0x00D05720u   /* u32 pointer per tile, read by 0x0047D530 */
-#define SQUARE 0x005CC8C0u        /* @bin i32 offsets: row r at + 0x30 r, column c at + 8 c */
-#define FOOT_ROWS 0x00BC9738u
-#define FOOT_COLS 0x00BC973Cu
-#define CURSOR 0x00BC9768u
-#define NO_ROOM 0x00605994u
+#define TER(o) U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (o))
 #define GRID_W 228
 
 /* the n x n square at (x, y) grown by d, clipped to the map: [*xa, *xb] x [*ya, *yb] */
@@ -43,11 +29,11 @@ static void square(game_state *st, int32_t x, int32_t y, int32_t n, int32_t d, i
     if (*ya < 0) {
         *ya = 0;
     }
-    if (*xb >= S32(st, MAP_W)) {
-        *xb = S32(st, MAP_W) - 1;
+    if (*xb >= S32(st, G_MAP_WIDTH)) {
+        *xb = S32(st, G_MAP_WIDTH) - 1;
     }
-    if (*yb >= S32(st, MAP_H)) {
-        *yb = S32(st, MAP_H) - 1;
+    if (*yb >= S32(st, G_MAP_HEIGHT)) {
+        *yb = S32(st, G_MAP_HEIGHT) - 1;
     }
 }
 
@@ -57,17 +43,17 @@ int32_t terrain_scan_predicate(game_state *st, int32_t x, int32_t y, int32_t n, 
      * tile of the square */
     int32_t xa, xb, ya, yb;
     square(st, x, y, n, d, &xa, &xb, &ya, &yb);
-    S32(st, SCAN_Y) = ya;
-    int32_t o = S32(st, MAP_START) + ya * GRID_W + xa;
-    for (int32_t r = ya; r <= yb; r = ++S32(st, SCAN_Y)) {
-        S32(st, SCAN_X) = xa;
-        for (int32_t i = xa; i <= xb; i = S32(st, SCAN_X)) {
+    S32(st, G_ROAD_ACCESS_Y) = ya;
+    int32_t o = S32(st, G_MAP_START) + ya * GRID_W + xa;
+    for (int32_t r = ya; r <= yb; r = ++S32(st, G_ROAD_ACCESS_Y)) {
+        S32(st, G_ROAD_ACCESS_X) = xa;
+        for (int32_t i = xa; i <= xb; i = S32(st, G_ROAD_ACCESS_X)) {
             int32_t t = (int32_t) TER(o);
             if ((uint8_t) sim_call(st, NULL, predicate, &t, 1, 0) != 0) {
                 return 1;
             }
             o++;
-            S32(st, SCAN_X) = i + 1;
+            S32(st, G_ROAD_ACCESS_X) = i + 1;
         }
         o += xa - xb + 0xE3;
     }
@@ -79,16 +65,16 @@ int32_t terrain_all_mask(game_state *st, int32_t x, int32_t y, int32_t n, int32_
     /* @bin 0x004828E0 1 when every tile of the square has terrain & mask */
     int32_t xa, xb, ya, yb;
     square(st, x, y, n, d, &xa, &xb, &ya, &yb);
-    S32(st, SCAN_Y) = ya;
-    int32_t o = S32(st, MAP_START) + ya * GRID_W + xa;
-    for (int32_t r = ya; r <= yb; r = ++S32(st, SCAN_Y)) {
-        S32(st, SCAN_X) = xa;
+    S32(st, G_ROAD_ACCESS_Y) = ya;
+    int32_t o = S32(st, G_MAP_START) + ya * GRID_W + xa;
+    for (int32_t r = ya; r <= yb; r = ++S32(st, G_ROAD_ACCESS_Y)) {
+        S32(st, G_ROAD_ACCESS_X) = xa;
         for (int32_t i = xa; i <= xb; i++) {
             if ((TER(o) & mask) == 0) {
                 return 0;
             }
             o++;
-            S32(st, SCAN_X) = i + 1;
+            S32(st, G_ROAD_ACCESS_X) = i + 1;
         }
         o += xa - xb + 0xE3;
     }
@@ -101,18 +87,18 @@ int32_t terrain_count_mask(game_state *st, int32_t x, int32_t y, int32_t n, int3
      * counters are set to their end values first */
     int32_t xa, xb, ya, yb;
     square(st, x, y, n, d, &xa, &xb, &ya, &yb);
-    S32(st, SCAN_Y) = ya;
-    int32_t o = S32(st, MAP_START) + ya * GRID_W + xa;
+    S32(st, G_ROAD_ACCESS_Y) = ya;
+    int32_t o = S32(st, G_MAP_START) + ya * GRID_W + xa;
     if (ya <= yb) {
         int32_t rows = yb - ya + 1;
-        S32(st, SCAN_Y) = rows + ya;
+        S32(st, G_ROAD_ACCESS_Y) = rows + ya;
         for (; rows != 0; rows--) {
-            S32(st, SCAN_X) = xa;
+            S32(st, G_ROAD_ACCESS_X) = xa;
             if (xa <= xb) {
                 int32_t k = xb - xa + 1;
                 int32_t p = o;
                 o += k;
-                S32(st, SCAN_X) = k + xa;
+                S32(st, G_ROAD_ACCESS_X) = k + xa;
                 for (; k != 0; k--, p++) {
                     if (TER(p) & mask) {
                         count--;
@@ -129,7 +115,7 @@ int32_t terrain_count_mask(game_state *st, int32_t x, int32_t y, int32_t n, int3
  * footprint of n tiles: 6 y, 4 x and y, 2 x by 1 - n */
 static void anchor(game_state *st, int32_t n, int32_t *x, int32_t *y)
 {
-    int32_t o = S32(st, VIEW_ORIENTATION);
+    int32_t o = S32(st, G_VIEW_ORIENTATION);
     if (o == 6) {
         *y += 1 - n;
     } else if (o == 4) {
@@ -144,13 +130,13 @@ void ghost_mark(game_state *st)
 {
     /* @bin 0x0047D4D0 bitfield 0x10 over the footprint at the cursor (0x00BC9738 rows of
      * 0x00BC973C tiles); 0x00605994 := 1 */
-    int32_t rows = S32(st, FOOT_ROWS);
-    int32_t c = S32(st, CURSOR), cols = S32(st, FOOT_COLS);
-    S32(st, NO_ROOM) = 1;
+    int32_t rows = S32(st, G_FOOTPRINT_ROWS);
+    int32_t c = S32(st, G_TILE_CURSOR), cols = S32(st, G_FOOTPRINT_COLS);
+    S32(st, G_NO_ROOM) = 1;
     for (int32_t r = 0; r < rows; r++) {
         for (int32_t i = 0; i < cols; i++) {
-            int32_t t = c + S32(st, SQUARE + 0x30u * (uint32_t) r + 8u * (uint32_t) i);
-            U8(st, BITFIELDS + (uint32_t) t) |= 0x10;
+            int32_t t = c + S32(st, G_FOOTPRINT_OFFSETS + 0x30u * (uint32_t) r + 8u * (uint32_t) i);
+            U8(st, G_DAY2_DESTROY_BITS + (uint32_t) t) |= 0x10;
         }
     }
 }
@@ -162,20 +148,20 @@ void ghost_footprint(game_state *st, int32_t n, int32_t x, int32_t y, uint32_t m
      * when it lies 3 tiles inside the map, its tiles are all floodplain (terrain 0x10000) or all
      * not (floodplain only when `floodable`, low byte), none has terrain & mask & 0xEEFED77F and
      * none has a figure (0x00B350DC) */
-    S32(st, FOOT_ROWS) = n;
-    S32(st, FOOT_COLS) = n;
-    if (no_anchor == 0 && S32(st, VIEW_ORIENTATION) != 0) {
+    S32(st, G_FOOTPRINT_ROWS) = n;
+    S32(st, G_FOOTPRINT_COLS) = n;
+    if (no_anchor == 0 && S32(st, G_VIEW_ORIENTATION) != 0) {
         anchor(st, n, &x, &y);
     }
-    if (x < 3 || y < 3 || n - 1 + x >= S32(st, MAP_W) - 3 || n - 1 + y >= S32(st, MAP_H) - 3) {
+    if (x < 3 || y < 3 || n - 1 + x >= S32(st, G_MAP_WIDTH) - 3 || n - 1 + y >= S32(st, G_MAP_HEIGHT) - 3) {
         return;
     }
     int flood = 0, dry = 0;
-    int32_t c = S32(st, MAP_START) + y * GRID_W + x;
-    S32(st, CURSOR) = c;
+    int32_t c = S32(st, G_MAP_START) + y * GRID_W + x;
+    S32(st, G_TILE_CURSOR) = c;
     for (int32_t r = 0; r < n; r++) {
         for (int32_t i = 0; i < n; i++) {
-            int32_t t = S32(st, SQUARE + 0x30u * (uint32_t) r + 8u * (uint32_t) i) + c;
+            int32_t t = S32(st, G_FOOTPRINT_OFFSETS + 0x30u * (uint32_t) r + 8u * (uint32_t) i) + c;
             uint32_t ter = TER(t);
             if (ter & 0x10000u) {
                 if ((uint8_t) floodable == 0 || dry) {
@@ -191,7 +177,7 @@ void ghost_footprint(game_state *st, int32_t n, int32_t x, int32_t y, uint32_t m
             if (ter & mask & 0xEEFED77Fu) {
                 return;
             }
-            if (S16(st, FIGURE_GRID + 2u * (uint32_t) t) != 0) {
+            if (S16(st, G_FIGURE_GRID + 2u * (uint32_t) t) != 0) {
                 return;
             }
         }
@@ -205,22 +191,22 @@ int32_t footprint_fits(game_state *st, int32_t n, int32_t x, int32_t y, uint32_t
      * near the edge (0x0046F9A0(x, y, 3)), floodplain (terrain & mask & 0x10000) only when
      * `floodable` (low byte), no terrain & mask & 0xEEFED77F, and the tile's object (0x00D05720)
      * is absent or has +0x18 set */
-    S32(st, FOOT_ROWS) = n;
-    S32(st, FOOT_COLS) = n;
-    if (S32(st, VIEW_ORIENTATION) != 0) {
+    S32(st, G_FOOTPRINT_ROWS) = n;
+    S32(st, G_FOOTPRINT_COLS) = n;
+    if (S32(st, G_VIEW_ORIENTATION) != 0) {
         anchor(st, n, &x, &y);
     }
-    if (x < 0 || y < 0 || n - 1 + x >= S32(st, MAP_W) || n - 1 + y >= S32(st, MAP_H)) {
+    if (x < 0 || y < 0 || n - 1 + x >= S32(st, G_MAP_WIDTH) || n - 1 + y >= S32(st, G_MAP_HEIGHT)) {
         return 0;
     }
-    S32(st, CURSOR) = S32(st, MAP_START) + y * GRID_W + x;
-    for (int32_t r = 0; r < S32(st, FOOT_ROWS); r++) {
-        for (int32_t i = 0; i < S32(st, FOOT_COLS); i++) {
-            int32_t t = S32(st, SQUARE + 0x30u * (uint32_t) r + 8u * (uint32_t) i) + S32(st, CURSOR);
-            if ((uint8_t) GAME_CALL(st, 0x0046F9A0u, t % GRID_W, t / GRID_W, 3) != 0) {
+    S32(st, G_TILE_CURSOR) = S32(st, G_MAP_START) + y * GRID_W + x;
+    for (int32_t r = 0; r < S32(st, G_FOOTPRINT_ROWS); r++) {
+        for (int32_t i = 0; i < S32(st, G_FOOTPRINT_COLS); i++) {
+            int32_t t = S32(st, G_FOOTPRINT_OFFSETS + 0x30u * (uint32_t) r + 8u * (uint32_t) i) + S32(st, G_TILE_CURSOR);
+            if ((uint8_t) GAME_CALL(st, FN_MAP_NEAR_EDGE, t % GRID_W, t / GRID_W, 3) != 0) {
                 return 0;
             }
-            uint32_t obj = U32(st, OBJECT_GRID + 4u * (uint32_t) t);
+            uint32_t obj = U32(st, G_UD05720 + 4u * (uint32_t) t);
             uint32_t ter = TER(t) & mask;
             if ((ter & 0x10000u) && (uint8_t) floodable == 0) {
                 return 0;
@@ -241,8 +227,8 @@ void gatehouse_ghost(game_state *st, int32_t x, int32_t y, int32_t rotation)
     /* @bin 0x004BFA50 the four parts of a gatehouse: part ids 0x005DF78C[rotation] (4 dwords),
      * part records 0x005DF814 (16 bytes: +0 size, +4 dy / dx, +8 dx / dy by rotation 0 / 1) */
     for (uint32_t k = 0; k < 4; k++) {
-        int32_t p = S32(st, 0x005DF78Cu + 16u * (uint32_t) rotation + 4u * k);
-        uint32_t rec = 0x005DF814u + 16u * (uint32_t) p;
+        int32_t p = S32(st, G_GATEHOUSE_PART_IDS + 16u * (uint32_t) rotation + 4u * k);
+        uint32_t rec = G_GATEHOUSE_PARTS + 16u * (uint32_t) p;
         int32_t px, py;
         if (rotation == 0) {
             px = S32(st, rec + 8) + x;
@@ -254,7 +240,7 @@ void gatehouse_ghost(game_state *st, int32_t x, int32_t y, int32_t rotation)
             px = x;
             py = y;
         }
-        int32_t o = S32(st, VIEW_ORIENTATION);
+        int32_t o = S32(st, G_VIEW_ORIENTATION);
         if (o != 0) {
             int32_t s = S32(st, rec);
             if (o == 2) {
@@ -274,7 +260,7 @@ int32_t ferry_landing_at(game_state *st, int32_t x, int32_t y)
 {
     /* @bin 0x00486BF0 999 off the map; 1 when the tile is the anchor of a whole type-0x88 building
      * (its 2 x 2 tiles, 0x005CC8C0, carry the same building), else 0 */
-    int32_t o = S32(st, VIEW_ORIENTATION);
+    int32_t o = S32(st, G_VIEW_ORIENTATION);
     if (o == 6) {
         y--;
     } else if (o == 4) {
@@ -283,18 +269,18 @@ int32_t ferry_landing_at(game_state *st, int32_t x, int32_t y)
     } else if (o == 2) {
         x--;
     }
-    if (x < 0 || y < 0 || x + 1 >= S32(st, MAP_W) || y + 1 >= S32(st, MAP_H)) {
+    if (x < 0 || y < 0 || x + 1 >= S32(st, G_MAP_WIDTH) || y + 1 >= S32(st, G_MAP_HEIGHT)) {
         return 999;
     }
-    int32_t t = S32(st, MAP_START) + y * GRID_W + x;
-    int32_t b = S16(st, BUILDING_GRID + 2u * (uint32_t) t);
-    if (b == 0 || S16(st, BUILDING_ADDR(b) + 0x10) != 0x88) {
+    int32_t t = S32(st, G_MAP_START) + y * GRID_W + x;
+    int32_t b = S16(st, G_BUILDING_GRID + 2u * (uint32_t) t);
+    if (b == 0 || S16(st, BUILDING_ADDR(b) + BLD_TYPE) != 0x88) {
         return 0;
     }
     for (uint32_t r = 0; r < 2; r++) {
         for (uint32_t i = 0; i < 2; i++) {
-            int32_t u = S32(st, SQUARE + 0x30u * r + 8u * i) + t;
-            if (b != S16(st, BUILDING_GRID + 2u * (uint32_t) u)) {
+            int32_t u = S32(st, G_FOOTPRINT_OFFSETS + 0x30u * r + 8u * i) + t;
+            if (b != S16(st, G_BUILDING_GRID + 2u * (uint32_t) u)) {
                 return 0;
             }
         }
@@ -305,7 +291,7 @@ int32_t ferry_landing_at(game_state *st, int32_t x, int32_t y)
 int32_t ferry_landing_at_offset(game_state *st, int32_t offset)
 {
     /* @bin 0x00486CF0 */
-    int32_t r = offset - S32(st, MAP_START);
+    int32_t r = offset - S32(st, G_MAP_START);
     return ferry_landing_at(st, r % GRID_W, r / GRID_W);
 }
 

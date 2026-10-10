@@ -6,17 +6,11 @@
 
 #include "random/random.h"
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define CHEAT_TABLE 0x0057C3C8u  /* 12-byte entries; +4 the function */
 #define CHEAT_COUNT 0x22
-#define MESSAGE_FORCED 0x00E950DCu
-#define MOUSE_X 0x00BCA2C8u
-#define MOUSE_Y 0x00BCA2CCu
-#define MAP_START 0x00BCA2D8u
-#define TERRAIN_GRID 0x00AF598Cu
-#define DIRECTIONS 0x005CD978u   /* 8 (dx, dy) pairs of i32 */
 
 int32_t cheat_run(game_state *st, int32_t index)
 {
@@ -24,46 +18,46 @@ int32_t cheat_run(game_state *st, int32_t index)
     if (index < 0 || index >= CHEAT_COUNT) {
         return 0;
     }
-    U32(st, CURRENT_CITY(st) + 0x44A0) += 1u;
-    GAME_CALL0(st, U32(st, CHEAT_TABLE + 4 + 12u * (uint32_t) index));
+    U32(st, CURRENT_CITY(st) + CITY_U44A0) += 1u;
+    GAME_CALL0(st, U32(st, G_CHEAT_TABLE + 4 + 12u * (uint32_t) index));
     return 1;
 }
 
 static void cheat_tomb(game_state *st)
 {
     /* @bin 0x0041CFC0 "Pharaohs Tomb" */
-    U8(st, 0x00E38DD8u) = 1;
-    U8(st, 0x00E38DD7u) = 1;
+    U8(st, G_UE38DD8) = 1;
+    U8(st, G_CHEATED) = 1;
 }
 
 static void cheat_treasure(game_state *st)
 {
     /* @bin 0x0041CFD0 "Treasure Chest": below 15000, treasury and +0x44A0 += 1000 */
     uint32_t c = CURRENT_CITY(st);
-    if (S32(st, c + 0x0C) < 0x3A98) {
-        U32(st, c + 0x0C) += 0x3E8u;
-        U32(st, c + 0x44A0) += 0x3E8u;
+    if (S32(st, c + CITY_TREASURY) < 0x3A98) {
+        U32(st, c + CITY_TREASURY) += 0x3E8u;
+        U32(st, c + CITY_U44A0) += 0x3E8u;
     }
 }
 
 static void cheat_side_show(game_state *st)
 {
     /* @bin 0x0041CCF0 "Side Show": u8 0x007027E1 toggled */
-    U8(st, 0x007027E1u) = U8(st, 0x007027E1u) == 0;
+    U8(st, G_SIDE_SHOW) = U8(st, G_SIDE_SHOW) == 0;
 }
 
 static void cheat_hippo_stomp(game_state *st)
 {
     /* @bin 0x0041CD00 "Hippo Stomp", in the city view (window 1): a herd formation (type 0x54) at
      * the tile under the mouse and 8 animals around it */
-    if (U8(st, UI_WINDOW) != 1) {
+    if (U8(st, G_WINDOW) != 1) {
         return;
     }
-    int32_t f = GAME_CALL(st, 0x004B6FF0u, 0x54, 5, 0, S32(st, MOUSE_X), S32(st, MOUSE_Y));
+    int32_t f = GAME_CALL(st, FN_FORMATION_CREATE_0X4B6FF0, 0x54, 5, 0, S32(st, G_MOUSE_TILE_X), S32(st, G_MOUSE_TILE_Y));
     if (f <= 0) {
         return;
     }
-    uint32_t fo = 0x00BCB9C8u + 0x90u * (uint32_t) f;
+    uint32_t fo = G_FORMATION_BASE + 0x90u * (uint32_t) f;
     U8(st, fo + 0x69) = 1;
     S16(st, fo + 0x4E) = 0x18;
     U8(st, fo + 0x29) = 8;
@@ -74,26 +68,26 @@ static void cheat_hippo_stomp(game_state *st)
          * the mouse x and y (0x00BCA2C8, 0x00BCA2CC) both unscaled, as the original does */
         int32_t dir = k;
         for (int tries = 0; tries < 8; tries++) {
-            int32_t dx = S32(st, DIRECTIONS + 8u * (uint32_t) dir);
-            int32_t dy = S32(st, DIRECTIONS + 4 + 8u * (uint32_t) dir);
-            uint32_t off = (uint32_t) (dx + dy * 0xE4) + U32(st, MAP_START) + U32(st, MOUSE_X) + U32(st, MOUSE_Y);
-            uint8_t ok = (uint8_t) GAME_CALL(st, 0x004EC410u, (int32_t) U32(st, TERRAIN_GRID + 4u * off), 0);
+            int32_t dx = S32(st, G_DIRECTIONS + 8u * (uint32_t) dir);
+            int32_t dy = S32(st, G_DIRECTIONS + 4 + 8u * (uint32_t) dir);
+            uint32_t off = (uint32_t) (dx + dy * 0xE4) + U32(st, G_MAP_START) + U32(st, G_MOUSE_TILE_X) + U32(st, G_MOUSE_TILE_Y);
+            uint8_t ok = (uint8_t) GAME_CALL(st, FN_INVADER_TILE_OK, (int32_t) U32(st, G_GRID_TERRAIN + 4u * off), 0);
             dir = dir + 1 >= 8 ? 0 : dir + 1;
             if (ok == 0) {
                 break;
             }
         }
         random_next_state(st);
-        int32_t x = S32(st, DIRECTIONS + 8u * (uint32_t) dir) + S32(st, MOUSE_X);
-        int32_t y = S32(st, DIRECTIONS + 4 + 8u * (uint32_t) dir) + S32(st, MOUSE_Y);
-        int32_t fig = GAME_CALL(st, 0x004B4800u, 1, 0x54, x, y, (int32_t) (U32(st, 0x00D3B384u) & 7));
+        int32_t x = S32(st, G_DIRECTIONS + 8u * (uint32_t) dir) + S32(st, G_MOUSE_TILE_X);
+        int32_t y = S32(st, G_DIRECTIONS + 4 + 8u * (uint32_t) dir) + S32(st, G_MOUSE_TILE_Y);
+        int32_t fig = GAME_CALL(st, FN_FIGURE_CREATE, 1, 0x54, x, y, (int32_t) (U32(st, G_R_IV1) & 7));
         uint32_t p = FIGURE_ADDR(fig);
-        U8(st, p + 0x38) = 0x19;
-        S16(st, p + 0x60) = (int16_t) f;
-        S16(st, p + 0x36) = 0x3E8;
-        U8(st, p + 0x62) = (uint8_t) k;
-        S32(st, p + 0x144) = 7;
-        GAME_CALL(st, 0x004EC990u, fig);
+        U8(st, p + FIG_ACTION) = 0x19;
+        S16(st, p + FIG_FORMATION) = (int16_t) f;
+        S16(st, p + FIG_WAIT_TICKS) = 0x3E8;
+        U8(st, p + FIG_U62) = (uint8_t) k;
+        S32(st, p + FIG_FRAME_PERIOD) = 7;
+        GAME_CALL(st, FN_ANIMAL_SEEK_TARGET, fig);
     }
 }
 
@@ -101,13 +95,13 @@ static void cheat_hippo_stomp(game_state *st)
  * (0x7A, or 0x139 from scenario kind 12) */
 static void mock_attack(game_state *st, int32_t a, int32_t b)
 {
-    int32_t r = GAME_CALL(st, 0x00446A30u, S16(st, 0x007848FCu), a, b, 0, 0x8C);
+    int32_t r = GAME_CALL(st, FN_EVENT_TROOPS, S16(st, G_SCENARIO_ENEMY), a, b, 0, 0x8C);
     if (r == 0) {
         return;
     }
-    S32(st, MESSAGE_FORCED) = 1;
-    int32_t kind = S16(st, 0x007848FCu) < 0xC ? 0x7A : 0x139;
-    GAME_CALL(st, 0x004E0CF0u, kind, S16(st, 0x00775900u), r, 0, 0);
+    S32(st, G_MESSAGE_POPUP) = 1;
+    int32_t kind = S16(st, G_SCENARIO_ENEMY) < 0xC ? 0x7A : 0x139;
+    GAME_CALL(st, FN_MESSAGE_POST, kind, S16(st, G_INVASION_COUNTER), r, 0, 0);
 }
 
 static void cheat_mock_attack_1(game_state *st) { mock_attack(st, 0xF, 8); }
@@ -116,57 +110,57 @@ static void cheat_mock_attack_2(game_state *st) { mock_attack(st, 0x10, 9); }
 /* @bin 0x0041CBC0 .. 0x0041CC50 a message (forced) then a plague */
 static void plague_message(game_state *st, int32_t text)
 {
-    S32(st, MESSAGE_FORCED) = 1;
-    GAME_CALL(st, 0x004E0CF0u, text, 0, 0, 0, 0);
+    S32(st, G_MESSAGE_POPUP) = 1;
+    GAME_CALL(st, FN_MESSAGE_POST, text, 0, 0, 0, 0);
 }
 
 static void cheat_crop_busters(game_state *st)
 {
     plague_message(st, 0x1E3);
-    GAME_CALL0(st, 0x004E6EB0u);
+    GAME_CALL0(st, FN_PLAGUE_FROGS_END);
 }
 
 static void cheat_amphibious(game_state *st)
 {
     plague_message(st, 0x1E4);
-    GAME_CALL(st, 0x004E70B0u, 6);
+    GAME_CALL(st, FN_PLAGUE_FROGS, 6);
 }
 
 static void cheat_hail(game_state *st)
 {
     plague_message(st, 0x1E5);
-    GAME_CALL0(st, 0x004E6ED0u);
+    GAME_CALL0(st, FN_PLAGUE_HAIL);
 }
 
 static void cheat_crimson_tide(game_state *st)
 {
     plague_message(st, 0x1E6);
-    GAME_CALL(st, 0x004E7200u, 5);
+    GAME_CALL(st, FN_PLAGUE_FLIES, 5);
 }
 
 static void cheat_astronauts(game_state *st)
 {
     /* @bin 0x0041CC80 "Ancient Astronauts" */
-    if (GAME_CALL0(st, 0x004F5340u) != 0) {
-        GAME_CALL(st, 0x004F3AA0u, 2);
+    if (GAME_CALL0(st, FN_PYRAMID_PROGRESS_4F5340) != 0) {
+        GAME_CALL(st, FN_PYRAMID_SPEEDUP_4F3AA0, 2);
     }
 }
 
 static void cheat_jail_break(game_state *st)
 {
     /* @bin 0x0041CCA0 "Jail Break" */
-    GAME_CALL(st, 0x00469C60u, 3);
+    GAME_CALL(st, FN_PLAGUE_FIRE, 3);
 }
 
 static void cheat_mummys_revenge(game_state *st)
 {
     /* @bin 0x0041CCB0 "Mummys Revenge": outside the editor (0x00605A3C) message 0x1F0 and
      * 0x004E7AC0(10); u8 0x00EA137C := 1 */
-    if (S32(st, 0x00605A3Cu) != 1) {
+    if (S32(st, G_EDITOR) != 1) {
         plague_message(st, 0x1F0);
-        GAME_CALL(st, 0x004E7AC0u, 0xA);
+        GAME_CALL(st, FN_PLAGUE_TOMB_ROBBERS, 0xA);
     }
-    U8(st, 0x00EA137Cu) = 1;
+    U8(st, G_UEA137C) = 1;
 }
 
 /* @bin 0x0041CA80 .. 0x0041CBB0 entries 7..26: god_act(god, 1, kind) for gods 0..4, kinds 1..4 */
@@ -174,7 +168,7 @@ static void cheat_mummys_revenge(game_state *st)
     static int32_t run_god_##n(game_state *st, const int32_t *a) \
     { \
         (void) a; \
-        GAME_CALL(st, 0x004C47A0u, god, 1, kind); \
+        GAME_CALL(st, FN_GOD_ACT, god, 1, kind); \
         return 0; \
     }
 GOD(7, 0, 1) GOD(8, 0, 2) GOD(9, 0, 3) GOD(10, 0, 4)

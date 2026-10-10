@@ -8,17 +8,10 @@
 #include "command/place.h"
 
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define COST 0x00BC9728u          /* @bin 0x004728C6 the construction's cost */
-#define REFUND 0x00BC9718u        /* @bin 0x004728CC subtracted from the cost */
-#define DRAG_COUNT 0x00BC971Cu    /* @bin 0x00472AF2 items placed by a drag type */
-#define BRIDGE_LENGTH 0x00BC96F8u /* @bin 0x00472E5D */
-#define SIZE 0x00BC96D0u          /* @bin 0x00472EEF the type's size */
-#define MAP_START 0x00BCA2D8u
-#define HOVER 0x00BCA300u
-#define BITFIELDS 0x00B285CCu
 
 /* imul: 32-bit wrap */
 static int32_t mul32(int32_t a, int32_t b)
@@ -38,13 +31,13 @@ static int32_t player_now(game_state *st)
 
 static void notice(game_state *st, int32_t id)
 {
-    GAME_CALL(st, 0x004E2970u, id, 0, 0);
+    GAME_CALL(st, FN_NOTICE_ADD_4E2970, id, 0, 0);
 }
 
 /* @bin 0x00472900 the bitfields grid: bits 0x50 cleared (AND 0xAF) */
 static void restore_bits(game_state *st)
 {
-    place_and_bytes(st, BITFIELDS, 0xCB10, 0xAF);
+    place_and_bytes(st, G_DAY2_DESTROY_BITS, 0xCB10, 0xAF);
 }
 
 /* @bin 0x00473E4D notice, then the bitfields restored */
@@ -56,14 +49,14 @@ static void fail(game_state *st, int32_t id)
 
 static int32_t offset_of(game_state *st, int32_t x, int32_t y)
 {
-    return S32(st, MAP_START) + y * GRID_SIZE + x;
+    return S32(st, G_MAP_START) + y * GRID_SIZE + x;
 }
 
 /* @bin 0x00472A4A / 0x004729DA grids restored from the backups of 0x00484F60 */
 static void restore_terrain_canals(game_state *st)
 {
-    GAME_CALL(st, 0x0040F860u, 0x009DE62C, 0x00AF598C, 0x32C40);
-    GAME_CALL(st, 0x0040F860u, 0x009D1B1C, 0x00AE8E7C, 0xCB10);
+    GAME_CALL(st, FN_COPY_BYTES, G_TERRAIN_BACKUP, G_GRID_TERRAIN, 0x32C40);
+    GAME_CALL(st, FN_COPY_BYTES, G_CANAL_BACKUP, G_CANAL, 0xCB10);
 }
 
 void place_construction(game_state *st, int32_t player, int32_t orientation, int32_t x1, int32_t y1, int32_t x2,
@@ -71,14 +64,14 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
 {
     int32_t building = 0; /* @bin 0x004728AE */
     uint8_t roads = place_type_on_roads(type);
-    S32(st, 0x00E94E20u) = 0;
-    S32(st, COST) = 0;
-    S32(st, REFUND) = 0;
+    S32(st, G_NOTICE_POSTED) = 0;
+    S32(st, G_PLACE_COST) = 0;
+    S32(st, G_REFUND) = 0;
     if (type == 0) {
         return;
     }
     /* @bin 0x004728E5 treasury below -4999 */
-    if (S32(st, (uint32_t) city(st) + 0xC) <= -5000) {
+    if (S32(st, (uint32_t) city(st) + CITY_TREASURY) <= -5000) {
         restore_bits(st);
         notice(st, 3);
         return;
@@ -88,16 +81,16 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
         /* @bin 0x00472946 */
         if (type == 6 || type == 0xA8 || type == 0xA9 || type == 5 || type == 8) {
             restore_terrain_canals(st);
-            GAME_CALL(st, 0x00485830u, 0);
+            GAME_CALL(st, FN_UNDO_RESTORE_IMAGES, 0);
             notice(st, 0x32);
         } else if (type == 0x26 || type == 0x27) {
             restore_terrain_canals(st);
-            GAME_CALL(st, 0x0040F860u, 0x009B84FC, 0x00B285CC, 0xCB10);
-            GAME_CALL(st, 0x0040F860u, 0x009AB9EC, 0x00B67D1C, 0xCB10);
-            GAME_CALL(st, 0x00485830u, 0);
+            GAME_CALL(st, FN_COPY_BYTES, G_BITS_BACKUP, G_DAY2_DESTROY_BITS, 0xCB10);
+            GAME_CALL(st, FN_COPY_BYTES, G_EDGE_BACKUP, G_EDGE, 0xCB10);
+            GAME_CALL(st, FN_UNDO_RESTORE_IMAGES, 0);
             notice(st, 0x32);
         } else if (type == 0x52 || type == 0x53) {
-            S32(st, BRIDGE_LENGTH) = 0;
+            S32(st, G_BRIDGE_LENGTH) = 0;
             notice(st, 0x32);
         } else {
             restore_bits(st);
@@ -106,17 +99,17 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
         return;
     }
     /* @bin 0x00472A97 obelisks: 0x004E59C0 > 0 */
-    if ((type == 0xCF || type == 0xD0) && GAME_CALL0(st, 0x004E59C0u) > 0) {
+    if ((type == 0xCF || type == 0xD0) && GAME_CALL0(st, FN_MONUMENT_4E59C0) > 0) {
         fail(st, 0x58);
         return;
     }
-    S32(st, 0x00BC9720u) = 0;
-    S32(st, COST) = S32(st, 0x00705EA4u + 0x28u * (uint32_t) type); /* @bin 0x00472AD1 model cost */
+    S32(st, G_UBC9720) = 0;
+    S32(st, G_PLACE_COST) = S32(st, G_MODEL_BUILDING + 0x28u * (uint32_t) type); /* @bin 0x00472AD1 model cost */
 
     int drag = 1; /* the cost is multiplied by the drag count */
     switch (type) {
     case 9: /* @bin 0x00472AE0 */
-        GAME_CALL(st, 0x004743F0u, 0, x1, y1, x2, y2);
+        GAME_CALL(st, FN_CLEAR_LAND, 0, x1, y1, x2, y2);
         break;
     case 6:
     case 0xA8:
@@ -126,7 +119,7 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
             return;
         }
         int32_t flag = type == 6 ? 0x4000 : type == 0xA8 ? 0x404000 : 0x804000;
-        GAME_CALL(st, 0x00475220u, 0, x1, y1, x2, y2, flag);
+        GAME_CALL(st, FN_PLACE_WALLS, 0, x1, y1, x2, y2, flag);
         break;
     }
     case 5: /* @bin 0x00472BAB */
@@ -134,10 +127,10 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
             fail(st, 0x3D);
             return;
         }
-        GAME_CALL(st, 0x00474F50u, 0, x1, y1, x2, y2);
+        GAME_CALL(st, FN_PLACE_ROAD, 0, x1, y1, x2, y2);
         break;
     case 0x26: /* @bin 0x00472BE3 */
-        GAME_CALL(st, 0x004754A0u, 0, x1, y1, x2, y2);
+        GAME_CALL(st, FN_PLACE_PLAZA, 0, x1, y1, x2, y2);
         break;
     case 0x1F:
     case 0x1E:
@@ -147,7 +140,7 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
             fail(st, 0x3D);
             return;
         }
-        uint32_t fn = type == 0x1F ? 0x00440700u : type == 0x1E ? 0x00440850u : 0x00440B10u;
+        uint32_t fn = type == 0x1F ? FN_PLACE_BOOTH : type == 0x1E ? FN_PLACE_BANDSTAND : FN_PLACE_PAVILION;
         if (GAME_CALL(st, fn, 0, x1, y1, x2, y2) == 0) {
             if (type == 0x1F) {
                 restore_bits(st);
@@ -155,12 +148,12 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
             notice(st, 0x4D);
             return;
         }
-        GAME_CALL(st, 0x004E5070u, type);
+        GAME_CALL(st, FN_NOTICE_4E5070, type);
         drag = 0;
         break;
     }
     case 0xD1: /* @bin 0x00472D49 one per city */
-        if (S16(st, (uint32_t) city(st) + 0x4814) != 0) {
+        if (S16(st, (uint32_t) city(st) + CITY_U4814) != 0) {
             notice(st, 4);
             return;
         }
@@ -168,7 +161,7 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
             fail(st, 0x3D);
             return;
         }
-        if (GAME_CALL(st, 0x00440ED0u, 0, x1, y1, x2, y2) == 0) {
+        if (GAME_CALL(st, FN_PLACE_FESTIVAL_SQUARE, 0, x1, y1, x2, y2) == 0) {
             notice(st, 0xD7);
             return;
         }
@@ -179,40 +172,40 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
             fail(st, 0x3D);
             return;
         }
-        GAME_CALL(st, 0x004759E0u, 0, x1, y1, x2, y2);
-        S32(st, COST) = mul32(S32(st, DRAG_COUNT), S32(st, COST));
-        int32_t s = S32(st, SIZE);
-        GAME_CALL(st, 0x00516F90u, x - s, y - s, x + s, y + s, 1);
-        s = S32(st, SIZE);
-        GAME_CALL(st, 0x005173A0u, x - s, y - s, x + s, y + s);
+        GAME_CALL(st, FN_PLACE_GARDENS, 0, x1, y1, x2, y2);
+        S32(st, G_PLACE_COST) = mul32(S32(st, G_CONSTRUCTION_COUNT), S32(st, G_PLACE_COST));
+        int32_t s = S32(st, G_CONSTRUCTION_UI_SIZE);
+        GAME_CALL(st, FN_ROUTING_FILL_EE0C50, x - s, y - s, x + s, y + s, 1);
+        s = S32(st, G_CONSTRUCTION_UI_SIZE);
+        GAME_CALL(st, FN_ROUTING_FILL_EC7630, x - s, y - s, x + s, y + s);
         drag = 0;
         break;
     }
     case 0x52:
     case 0x53: /* @bin 0x00472E54 bridges */
-        GAME_CALL(st, 0x0047F530u, x, y, type == 0x53);
-        if (S32(st, BRIDGE_LENGTH) <= 1) {
+        GAME_CALL(st, FN_PLACE_BRIDGE, x, y, type == 0x53);
+        if (S32(st, G_BRIDGE_LENGTH) <= 1) {
             notice(st, 0x19);
             return;
         }
-        S32(st, COST) = mul32(S32(st, BRIDGE_LENGTH), S32(st, COST));
+        S32(st, G_PLACE_COST) = mul32(S32(st, G_BRIDGE_LENGTH), S32(st, G_PLACE_COST));
         drag = 0;
         break;
     case 8: /* @bin 0x00472E8D */
-        GAME_CALL(st, 0x00475090u, 0, x1, y1, x2, y2);
+        GAME_CALL(st, FN_PLACE_CANAL, 0, x1, y1, x2, y2);
         break;
     case 10: /* @bin 0x00472EA6 */
         if (place_special_point_in(st, x1, y1, x2, y2)) {
             fail(st, 0x3D);
             return;
         }
-        GAME_CALL(st, 0x00474130u, 0, x1, y1, x2, y2);
+        GAME_CALL(st, FN_PLACE_HOUSES, 0, x1, y1, x2, y2);
         break;
     default: {
         /* @bin 0x00472ED9 single buildings */
         int32_t mask = -1;
-        int32_t size = S32(st, 0x005D06DCu + 0x14u * (uint32_t) type);
-        S32(st, SIZE) = size;
+        int32_t size = S32(st, G_MODELS + 0x14u * (uint32_t) type);
+        S32(st, G_CONSTRUCTION_UI_SIZE) = size;
         if (type == 0x3A || type == 0xAA || type == 0xAB || type == 0xC8 || type == 0xC9 || type == 0xCA ||
             type == 0x38) {
             mask = -0x41;
@@ -241,38 +234,38 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
         /* checks: 0 = on to 0x004738EF, 1 = straight to the follow-ups 0x00473133 */
         int direct = 0;
         if (type == 0x4C || type == 0xB5) { /* @bin 0x004738C3 */
-            if (GAME_CALL(st, 0x0047CC70u, x, y, 0, 0) != 0) {
+            if (GAME_CALL(st, FN_SHORE_FIT, x, y, 0, 0) != 0) {
                 notice(st, 0x19);
                 return;
             }
         } else if (type == 7) { /* @bin 0x0047306F water lift: a type 0x5A building */
-            if (GAME_CALL(st, 0x0047CC70u, x, y, 0, 1) != 0) {
+            if (GAME_CALL(st, FN_SHORE_FIT, x, y, 0, 1) != 0) {
                 fail(st, 0x19);
                 return;
             }
             int32_t off = offset_of(st, x, y);
             type = 0x5A;
-            building = GAME_CALL(st, 0x0046A400u, player, 0x5A, x, y, 0, 0);
-            GAME_CALL(st, 0x004E2D30u, 0x5A);
-            GAME_CALL(st, 0x004E32E0u, 0x5A, x, y);
-            GAME_CALL(st, 0x00485100u, building);
-            int32_t h = S32(st, 0x00BCA2D4u) - 1;
-            int32_t w = S32(st, 0x00BCA2D0u) - 1;
-            U8(st, 0x00AE8E7Cu + (uint32_t) off) = 0;
-            GAME_CALL(st, 0x0047BAE0u, 0, 0, w, h, 0);
-            int32_t s = S32(st, SIZE);
-            GAME_CALL(st, 0x00516F90u, x - s, y - s, x + s, y + s, 1);
-            s = S32(st, SIZE);
-            GAME_CALL(st, 0x005173A0u, x - s, y - s, x + s, y + s);
+            building = GAME_CALL(st, FN_BUILDING_CREATE, player, 0x5A, x, y, 0, 0);
+            GAME_CALL(st, FN_NOTICE_WORKERS_4E2D30, 0x5A);
+            GAME_CALL(st, FN_NOTICE_4E32E0, 0x5A, x, y);
+            GAME_CALL(st, FN_BUILDING_KEEP_REMOVED, building);
+            int32_t h = S32(st, G_MAP_HEIGHT) - 1;
+            int32_t w = S32(st, G_MAP_WIDTH) - 1;
+            U8(st, G_CANAL + (uint32_t) off) = 0;
+            GAME_CALL(st, FN_CANALS_RECT, 0, 0, w, h, 0);
+            int32_t s = S32(st, G_CONSTRUCTION_UI_SIZE);
+            GAME_CALL(st, FN_ROUTING_FILL_EE0C50, x - s, y - s, x + s, y + s, 1);
+            s = S32(st, G_CONSTRUCTION_UI_SIZE);
+            GAME_CALL(st, FN_ROUTING_FILL_EC7630, x - s, y - s, x + s, y + s);
             direct = 1;
         } else if (type == 0xAB || type == 0xCA) { /* @bin 0x00473885 gatehouses */
-            if ((uint8_t) GAME_CALL(st, 0x004BFF60u, x, y, S32(st, 0x00BC9714u)) == 0) {
+            if ((uint8_t) GAME_CALL(st, FN_PLACE_GATEHOUSE_FITS, x, y, S32(st, G_BUILD_ORIENTATION)) == 0) {
                 restore_bits(st);
                 notice(st, 2);
                 return;
             }
         } else if (type == 0xB6 || type == 0x4A) { /* @bin 0x0047380E */
-            if (GAME_CALL(st, 0x0047D060u, x, y, 0) != 0) {
+            if (GAME_CALL(st, FN_SHORE_FIT_47D060, x, y, 0) != 0) {
                 notice(st, 0x19);
                 return;
             }
@@ -281,30 +274,30 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
                 return;
             }
             if (type == 0xB6) {
-                if (S32(st, 0x00BCB9B0u) >= 6) {
+                if (S32(st, G_WARSHIP_WHARVES) >= 6) {
                     notice(st, 0x54);
                     return;
                 }
                 direct = 1;
             }
         } else if (type == 0x88) { /* @bin 0x0047327C ferry: validity from the drawing code */
-            if (U8(st, 0x00BCA314u) == 0) {
-                if (U8(st, 0x00BCA315u) == 0) {
+            if (U8(st, G_FERRY_VALID) == 0) {
+                if (U8(st, G_FERRY_FLAG) == 0) {
                     notice(st, 0x44);
                 }
                 return;
             }
-            if (GAME_CALL(st, 0x0047CC70u, x, y, 0, 0) != 0) {
+            if (GAME_CALL(st, FN_SHORE_FIT, x, y, 0, 0) != 0) {
                 notice(st, 0x19);
                 return;
             }
             direct = 1;
         } else if (type == 0x4B || type == 0xC0) { /* @bin 0x004737A1 docks */
-            if (S32(st, 0x00705C1Cu) >= 10) {
+            if (S32(st, G_DOCK_COUNT) >= 10) {
                 notice(st, 0xCE);
                 return;
             }
-            if (GAME_CALL(st, 0x0047D060u, x, y, 0) != 0) {
+            if (GAME_CALL(st, FN_SHORE_FIT_47D060, x, y, 0) != 0) {
                 notice(st, 0x19);
                 return;
             }
@@ -318,14 +311,14 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
             uint32_t obj, fits, exists;
             int32_t again = 0xF5;
             switch (type) {
-            case 0xE5: obj = 0x006F9320u; fits = 0x005456C0u; exists = 0x00545700u; break;
-            case 0xEA: obj = 0x006F5648u; fits = 0x00558B60u; exists = 0x00558BA0u; break;
-            case 0xEB: obj = 0x006DE9E0u; fits = 0x00555E00u; exists = 0x00555E40u; break;
-            case 0xEC: obj = 0x006E9188u; fits = 0x0054F3F0u; exists = 0x0054F430u; break;
-            case 0xE4: obj = 0x006DE548u; fits = 0x004E65F0u; exists = 0x004E6650u; again = 0xF4; break;
-            default: obj = 0x006DE650u; fits = 0x00401400u; exists = 0x00401430u; again = 0xF4; break;
+            case 0xE5: obj = G_MONUMENT_E5; fits = FN_MONUMENT_E5_FITS; exists = FN_MONUMENT_E5_EXISTS; break;
+            case 0xEA: obj = G_MONUMENT_EA; fits = FN_MONUMENT_EA_FITS; exists = FN_MONUMENT_EA_EXISTS; break;
+            case 0xEB: obj = G_MONUMENT_EB; fits = FN_MONUMENT_EB_FITS; exists = FN_MONUMENT_EB_EXISTS; break;
+            case 0xEC: obj = G_MONUMENT_EC; fits = FN_MONUMENT_EC_FITS; exists = FN_MONUMENT_EC_EXISTS; break;
+            case 0xE4: obj = G_MONUMENT_E4; fits = FN_MONUMENT_E4_FITS; exists = FN_MONUMENT_E4_EXISTS; again = 0xF4; break;
+            default: obj = G_MONUMENT_E6; fits = FN_MONUMENT_E6_FITS; exists = FN_MONUMENT_E6_EXISTS; again = 0xF4; break;
             }
-            if ((uint8_t) GAME_CALLT(st, obj, fits, S32(st, HOVER)) == 0) {
+            if ((uint8_t) GAME_CALLT(st, obj, fits, S32(st, G_HOVER_TILE)) == 0) {
                 notice(st, type == 0xE4 ? 0xF9 : 0x110);
                 notice(st, 0x111);
                 return;
@@ -337,85 +330,85 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
             direct = 1;
         } else {
             /* @bin 0x00473441 the land check */
-            if (GAME_CALL(st, 0x0047C880u, x, y, size, size, mask, 0, roads) == 0) {
+            if (GAME_CALL(st, FN_LAND_BLOCK_FITS, x, y, size, size, mask, 0, roads) == 0) {
                 fail(st, 2);
                 return;
             }
             uint32_t c = (uint32_t) city(st);
             if (type == 0x35) { /* @bin 0x0047346A */
                 direct = 1;
-                if (S32(st, 0x00605A0Cu) != 1) {
-                    if (S32(st, c + 0x494C) < 500) {
+                if (S32(st, G_FREE_BUILD) != 1) {
+                    if (S32(st, c + CITY_STORAGE_STOCK + 4u * 0x17u) < 500) {
                         fail(st, 0x4F);
                         return;
                     }
                     place_take_goods(st, player_now(st), 0x17, 500);
-                    S32(st, 0x00BC9650u) += 500;
+                    S32(st, G_UNDO_GOODS + 4u * 0x17u) += 500;
                 }
             } else if (type == 0xCF || type == 0xD0) { /* @bin 0x004734BE obelisks */
                 direct = 1;
-                if (S32(st, 0x00605A0Cu) != 1) {
+                if (S32(st, G_FREE_BUILD) != 1) {
                     int32_t need = type == 0xCF ? 10000 : 20000;
-                    if (S32(st, c + 0x4958) < need) {
+                    if (S32(st, c + CITY_STORAGE_STOCK + 4u * 0x1Au) < need) {
                         fail(st, type == 0xCF ? 0x55 : 0x56);
                         return;
                     }
                     place_take_goods(st, player_now(st), 0x1A, need);
-                    S32(st, 0x00BC965Cu) += need;
+                    S32(st, G_UNDO_GOODS + 4u * 0x1Au) += need;
                 }
             } else if (type == 0xA1) { /* @bin 0x0047354F */
                 direct = 1;
-                int32_t pred = S32(st, 0x00605A48u);
-                if (pred != 0 && GAME_CALL(st, 0x00482720u, x, y, 2, 1, pred) == 0) {
+                int32_t pred = S32(st, G_PREDICATE);
+                if (pred != 0 && GAME_CALL(st, FN_TERRAIN_SCAN_PREDICATE, x, y, 2, 1, pred) == 0) {
                     notice(st, 0x16);
                     return;
                 }
                 if (place_any_building_459ef0(st) == 0) {
                     notice(st, 0x3C);
                 }
-            } else if (S32(st, 0x006059CCu) != 0) { /* @bin 0x004735A7 the terrain flags of 0x00405200 */
-                if (GAME_CALL(st, 0x00482650u, x, y, 3, 1, 0x10800) == 0) {
+            } else if (S32(st, G_FLAG_CC) != 0) { /* @bin 0x004735A7 the terrain flags of 0x00405200 */
+                if (GAME_CALL(st, FN_TERRAIN_SCAN_MASK, x, y, 3, 1, 0x10800) == 0) {
                     notice(st, 0x14);
                     return;
                 }
-            } else if (S32(st, 0x00605A48u) != 0) {
-                if (GAME_CALL(st, 0x00482720u, x, y, 2, 1, S32(st, 0x00605A48u)) == 0) {
+            } else if (S32(st, G_PREDICATE) != 0) {
+                if (GAME_CALL(st, FN_TERRAIN_SCAN_PREDICATE, x, y, 2, 1, S32(st, G_PREDICATE)) == 0) {
                     notice(st, 0x16);
                     return;
                 }
-            } else if (S32(st, 0x006059C8u) != 0) {
-                if (GAME_CALL(st, 0x00482650u, x, y, 2, 1, 1) == 0) {
+            } else if (S32(st, G_FLAG_C8) != 0) {
+                if (GAME_CALL(st, FN_TERRAIN_SCAN_MASK, x, y, 2, 1, 1) == 0) {
                     notice(st, 0x17);
                     return;
                 }
-            } else if (S32(st, 0x006059C0u) != 0) {
-                if (GAME_CALL(st, 0x00482650u, x, y, 2, 1, 0x40000) == 0) {
+            } else if (S32(st, G_FLAG_C0) != 0) {
+                if (GAME_CALL(st, FN_TERRAIN_SCAN_MASK, x, y, 2, 1, 0x40000) == 0) {
                     notice(st, 0x3A);
                     return;
                 }
-            } else if (S32(st, 0x006059C4u) != 0) {
-                if (GAME_CALL(st, 0x00482650u, x, y, 2, 3, 0x10004) == 0) {
+            } else if (S32(st, G_FLAG_C4) != 0) {
+                if (GAME_CALL(st, FN_TERRAIN_SCAN_MASK, x, y, 2, 3, 0x10004) == 0) {
                     notice(st, 0x15);
                     return;
                 }
-            } else if (S32(st, 0x006059BCu) != 0) {
-                if (GAME_CALL(st, 0x004828E0u, x, y, 2, 0, 0x4000) == 0) {
+            } else if (S32(st, G_FLAG_BC) != 0) {
+                if (GAME_CALL(st, FN_TERRAIN_ALL_MASK, x, y, 2, 0, 0x4000) == 0) {
                     notice(st, 0x31);
                     return;
                 }
-            } else if (S32(st, 0x006059B8u) != 0) {
+            } else if (S32(st, G_FLAG_B8) != 0) {
                 int32_t off = offset_of(st, x, y);
-                if (GAME_CALL(st, 0x004828E0u, x, y, 1, 0, 0x40) == 0) {
+                if (GAME_CALL(st, FN_TERRAIN_ALL_MASK, x, y, 1, 0, 0x40) == 0) {
                     notice(st, 0x42);
                     return;
                 }
-                if (U8(st, 0x00ADC36Cu + (uint32_t) off) != 0) { /* @bin 0x00473735 sprite grid */
+                if (U8(st, G_SPRITE + (uint32_t) off) != 0) { /* @bin 0x00473735 sprite grid */
                     notice(st, 2);
                     return;
                 }
-            } else if (S32(st, 0x006059B4u) != 0) {
-                int32_t flag = S32(st, 0x006059B4u);
-                if (GAME_CALL(st, 0x004829B0u, x, y, S32(st, 0x005D06DCu + 0x14u * (uint32_t) type), 0, 0x80,
+            } else if (S32(st, G_FLAG_B4) != 0) {
+                int32_t flag = S32(st, G_FLAG_B4);
+                if (GAME_CALL(st, FN_TERRAIN_COUNT_MASK, x, y, S32(st, G_MODELS + 0x14u * (uint32_t) type), 0, 0x80,
                               flag) == 0) {
                     notice(st, 0x4C);
                     return;
@@ -425,26 +418,26 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
         if (!direct) {
             /* @bin 0x004738EF forts: the parade ground, at most 6 */
             if (type == 0x28 || type == 0x2C || type == 0x2D) {
-                if (GAME_CALL(st, 0x0047C880u, x + 3, y - 1, 4, 4, mask, 0, roads) == 0) {
+                if (GAME_CALL(st, FN_LAND_BLOCK_FITS, x + 3, y - 1, 4, 4, mask, 0, roads) == 0) {
                     notice(st, 2);
                     return;
                 }
-                if (S32(st, 0x00BCB9B4u) >= 6) {
+                if (S32(st, G_FORMATION_COUNT) >= 6) {
                     notice(st, 0x34);
                     return;
                 }
             }
             uint32_t c = (uint32_t) city(st);
             if (type == 0xD2) { /* @bin 0x00473955 one per city, two 6x6 blocks */
-                if (S16(st, c + 0x433A) != 0) {
+                if (S16(st, c + CITY_U433A) != 0) {
                     notice(st, 4);
                     return;
                 }
-                if (GAME_CALL(st, 0x0047C880u, x + 6, y, 6, 6, mask, 0, roads) == 0) {
+                if (GAME_CALL(st, FN_LAND_BLOCK_FITS, x + 6, y, 6, 6, mask, 0, roads) == 0) {
                     notice(st, 2);
                     return;
                 }
-                if (GAME_CALL(st, 0x0047C880u, x + 12, y, 6, 6, mask, 0, roads) == 0) {
+                if (GAME_CALL(st, FN_LAND_BLOCK_FITS, x + 12, y, 6, 6, mask, 0, roads) == 0) {
                     notice(st, 2);
                     return;
                 }
@@ -458,52 +451,52 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
                     return;
                 }
             } else if (type == 0xD5) { /* @bin 0x00473A40 */
-                if ((uint8_t) GAME_CALL(st, 0x00541AE0u, S32(st, HOVER)) == 0) {
+                if ((uint8_t) GAME_CALL(st, FN_PLACE_MONUMENT_D5_FITS, S32(st, G_HOVER_TILE)) == 0) {
                     notice(st, 2);
                     return;
                 }
-                if ((uint8_t) GAME_CALL0(st, 0x00542EE0u) != 0) {
+                if ((uint8_t) GAME_CALL0(st, FN_PLACE_MONUMENT_D5_DONE) != 0) {
                     notice(st, 0x5B);
                     return;
                 }
-                if (S32(st, 0x00605A0Cu) == 0) {
-                    if (S32(st, (uint32_t) city(st) + 0x4968) < 22000) {
+                if (S32(st, G_FREE_BUILD) == 0) {
+                    if (S32(st, (uint32_t) city(st) + CITY_STORAGE_STOCK + 4u * 0x1Eu) < 22000) {
                         notice(st, 0x5A);
                         return;
                     }
                     place_take_goods(st, player_now(st), 0x1E, 22000);
-                    S32(st, 0x00BC966Cu) += 22000;
+                    S32(st, G_UNDO_GOODS + 4u * 0x1Eu) += 22000;
                 }
             } else if (type == 0xE1 || type == 0xE3) { /* @bin 0x00473AD4 */
-                uint32_t obj = type == 0xE1 ? 0x006FD5D8u : 0x006FD368u;
-                if ((uint8_t) GAME_CALLT(st, obj, type == 0xE1 ? 0x0040D850u : 0x00416F70u, S32(st, HOVER)) == 0) {
+                uint32_t obj = type == 0xE1 ? G_MONUMENT_E1 : G_MONUMENT_E3;
+                if ((uint8_t) GAME_CALLT(st, obj, type == 0xE1 ? FN_MONUMENT_E1_FITS : FN_MONUMENT_E3_FITS, S32(st, G_HOVER_TILE)) == 0) {
                     notice(st, 2);
                     return;
                 }
-                if ((uint8_t) GAME_CALLT0(st, obj, type == 0xE1 ? 0x0040D880u : 0x00416FA0u) != 0) {
+                if ((uint8_t) GAME_CALLT0(st, obj, type == 0xE1 ? FN_MONUMENT_E1_EXISTS : FN_MONUMENT_E3_EXISTS) != 0) {
                     notice(st, type == 0xE1 ? 0xF3 : 0xF5);
                     return;
                 }
             } else if (type == 0xDE) { /* @bin 0x00473B8E at (x1, y1) */
-                if ((uint8_t) GAME_CALL(st, 0x004DEF00u, offset_of(st, x1, y1)) == 0) {
+                if ((uint8_t) GAME_CALL(st, FN_PLACE_MONUMENT_DE_FITS, offset_of(st, x1, y1)) == 0) {
                     notice(st, 2);
                     return;
                 }
-                if (S32(st, 0x00605A0Cu) == 0) {
-                    if (S32(st, (uint32_t) city(st) + 0x4968) < 24000) {
+                if (S32(st, G_FREE_BUILD) == 0) {
+                    if (S32(st, (uint32_t) city(st) + CITY_STORAGE_STOCK + 4u * 0x1Eu) < 24000) {
                         notice(st, 0xBE);
                         return;
                     }
                     place_take_goods(st, player_now(st), 0x1E, 24000);
-                    S32(st, 0x00BC966Cu) += 24000;
+                    S32(st, G_UNDO_GOODS + 4u * 0x1Eu) += 24000;
                 }
             } else {
                 if (type >= 0x41 && type <= 0x45) { /* @bin 0x00473C32 temple complexes */
-                    if (S16(st, c + 0x4478) != 0) {
+                    if (S16(st, c + CITY_U4478) != 0) {
                         fail(st, 4);
                         return;
                     }
-                    int32_t r = GAME_CALL(st, 0x004C3730u, x, y);
+                    int32_t r = GAME_CALL(st, FN_PLACE_TEMPLE_COMPLEX_FITS, x, y);
                     if (r == -1) {
                         fail(st, 2);
                         return;
@@ -514,54 +507,54 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
                     }
                 }
                 if (type == 0xD3 || type == 0xD4) { /* @bin 0x00473C80 complex add-ons */
-                    int32_t b = GAME_CALL(st, 0x00475B50u, (int32_t) S16(st, 0x00B4E6FCu + 2u * U32(st, HOVER)));
+                    int32_t b = GAME_CALL(st, FN_BUILDING_MAIN_PART, (int32_t) S16(st, G_BUILDING_GRID + 2u * U32(st, G_HOVER_TILE)));
                     c = (uint32_t) city(st);
-                    if (S16(st, c + 0x4478) == 0) {
+                    if (S16(st, c + CITY_U4478) == 0) {
                         fail(st, 0x49);
                         return;
                     }
-                    int32_t bt = S16(st, BUILDING_ADDR(b) + 0x10);
+                    int32_t bt = S16(st, BUILDING_ADDR(b) + BLD_TYPE);
                     if (bt < 0x41 || bt > 0x45) {
                         fail(st, 0x4B);
                         return;
                     }
-                    if (S16(st, c + 0x448A) < 2) {
+                    if (S16(st, c + CITY_U448A) < 2) {
                         fail(st, 0x4E);
                         return;
                     }
-                    if ((uint8_t) GAME_CALL(st, 0x004C52D0u, S32(st, c + 0x472C), type == 0xD3 ? 1 : 2) != 0) {
+                    if ((uint8_t) GAME_CALL(st, FN_BUILDING_0XA9_IS, S32(st, c + CITY_U472C), type == 0xD3 ? 1 : 2) != 0) {
                         fail(st, 0x4A);
                         return;
                     }
                 } else { /* @bin 0x00473DA0 */
                     c = (uint32_t) city(st);
-                    if ((type == 0xBD || type == 0xBC || type == 0xBB) && S16(st, c + 0x4486) != 0) {
+                    if ((type == 0xBD || type == 0xBC || type == 0xBB) && S16(st, c + CITY_U4486) != 0) {
                         fail(st, 4);
                         return;
                     }
-                    if ((type == 0x4F || type == 0x4E || type == 0x4D) && S32(st, c + 0x499C) != 0) {
+                    if ((type == 0x4F || type == 0x4E || type == 0x4D) && S32(st, c + CITY_MANSION_BUILT) != 0) {
                         fail(st, 4);
                         return;
                     }
                     if (type == 0x56) {
-                        if (S16(st, c + 0x4486) == 0) {
+                        if (S16(st, c + CITY_U4486) == 0) {
                             fail(st, 0x59);
                             return;
                         }
                     } else if (type == 0x5F) {
-                        if (S32(st, 0x00705C6Cu) > 0) {
+                        if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0x5Fu) > 0) {
                             fail(st, 4);
                             return;
                         }
-                        S32(st, 0x00705C6Cu) = 1;
+                        S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * 0x5Fu) = 1;
                     } else if (type == 0x5E) {
-                        if (S32(st, c + 0x49D0) != 0) {
+                        if (S32(st, c + CITY_ACADEMY_EXISTS) != 0) {
                             fail(st, 4);
                             return;
                         }
                     } else if (type == 0xB7) { /* @bin 0x00473E71 */
                         int32_t reason = x1;
-                        if (place_pyramid_fits(st, offset_of(st, x, y), S32(st, 0x005E6970u), &reason) == 0) {
+                        if (place_pyramid_fits(st, offset_of(st, x, y), S32(st, G_VARIANT), &reason) == 0) {
                             notice(st, reason == 2 ? 0xD6 : 0xD5);
                             return;
                         }
@@ -570,46 +563,46 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
             }
         }
         /* @bin 0x00473133 the follow-up triggers, with the type (0x5A for a water lift) */
-        GAME_CALL(st, 0x004E3330u, type);
-        GAME_CALL(st, 0x004E2D30u, type);
-        GAME_CALL(st, 0x004E3100u, type);
-        GAME_CALL(st, 0x004E3140u, type);
-        GAME_CALL(st, 0x004E3180u, type);
-        GAME_CALL(st, 0x004E31C0u, type);
-        GAME_CALL(st, 0x004E3200u, type);
-        GAME_CALL(st, 0x004E2E20u, type);
-        GAME_CALL(st, 0x004E3240u, type);
-        GAME_CALL(st, 0x004E3280u, type, x, y, size);
-        GAME_CALL(st, 0x004E32E0u, type, x, y);
-        GAME_CALL(st, 0x0051F780u, type);
-        GAME_CALL(st, 0x004E33A0u, type);
-        GAME_CALL(st, 0x004E3460u, type);
-        GAME_CALL(st, 0x004E3520u, type);
-        GAME_CALL(st, 0x004E35E0u, type);
-        GAME_CALL(st, 0x004E36A0u, type);
-        GAME_CALL(st, 0x004E3760u, type);
-        GAME_CALL(st, 0x004E3AA0u, type);
-        GAME_CALL(st, 0x004E39D0u, type);
-        GAME_CALL(st, 0x004E3CF0u, type);
-        GAME_CALL(st, 0x004E3DA0u, type);
-        GAME_CALL(st, 0x004E3F60u, type);
-        GAME_CALL(st, 0x004E4120u, type);
-        GAME_CALL(st, 0x004E42D0u, type);
-        GAME_CALL(st, 0x004E4490u, type);
-        GAME_CALL(st, 0x004E4550u, type);
-        GAME_CALL(st, 0x004E47D0u, type);
-        GAME_CALL(st, 0x004E4E10u, type);
-        GAME_CALL(st, 0x004E4ED0u, type);
-        GAME_CALL(st, 0x004E5070u, type);
-        GAME_CALL(st, 0x004E2B10u, type, x, y, size);
+        GAME_CALL(st, FN_NOTICE_4E3330, type);
+        GAME_CALL(st, FN_NOTICE_WORKERS_4E2D30, type);
+        GAME_CALL(st, FN_NOTICE_4E3100, type);
+        GAME_CALL(st, FN_NOTICE_4E3140, type);
+        GAME_CALL(st, FN_NOTICE_4E3180, type);
+        GAME_CALL(st, FN_NOTICE_4E31C0, type);
+        GAME_CALL(st, FN_NOTICE_4E3200, type);
+        GAME_CALL(st, FN_NOTICE_4E2E20, type);
+        GAME_CALL(st, FN_NOTICE_4E3240, type);
+        GAME_CALL(st, FN_NOTICE_4E3280, type, x, y, size);
+        GAME_CALL(st, FN_NOTICE_4E32E0, type, x, y);
+        GAME_CALL(st, FN_NOTHING, type);
+        GAME_CALL(st, FN_NOTICE_4E33A0, type);
+        GAME_CALL(st, FN_NOTICE_4E3460, type);
+        GAME_CALL(st, FN_NOTICE_4E3520, type);
+        GAME_CALL(st, FN_NOTICE_4E35E0, type);
+        GAME_CALL(st, FN_NOTICE_4E36A0, type);
+        GAME_CALL(st, FN_NOTICE_4E3760, type);
+        GAME_CALL(st, FN_NOTICE_4E3AA0, type);
+        GAME_CALL(st, FN_NOTICE_4E39D0, type);
+        GAME_CALL(st, FN_NOTICE_4E3CF0, type);
+        GAME_CALL(st, FN_NOTICE_4E3DA0, type);
+        GAME_CALL(st, FN_NOTICE_4E3F60, type);
+        GAME_CALL(st, FN_NOTICE_4E4120, type);
+        GAME_CALL(st, FN_NOTICE_4E42D0, type);
+        GAME_CALL(st, FN_NOTICE_4E4490, type);
+        GAME_CALL(st, FN_NOTICE_4E4550, type);
+        GAME_CALL(st, FN_NOTICE_4E47D0, type);
+        GAME_CALL(st, FN_NOTICE_4E4E10, type);
+        GAME_CALL(st, FN_NOTICE_4E4ED0, type);
+        GAME_CALL(st, FN_NOTICE_4E5070, type);
+        GAME_CALL(st, FN_NOTICE_ACCESS_4E2B10, type, x, y, size);
         /* @bin 0x00473208 the building: forts start with their type 0x39 part; monuments with their
          * part counts (not recorded for undo) */
         int monument = 0;
-        U8(st, 0x00605A5Cu) = 0;
+        U8(st, G_FROZEN) = 0;
         if (type == 0x28 || type == 0x2C || type == 0x2D) {
-            building = GAME_CALL(st, 0x0046A400u, player, 0x39, x, y, 0, 0);
+            building = GAME_CALL(st, FN_BUILDING_CREATE, player, 0x39, x, y, 0, 0);
         } else if (type == 0xB7) {
-            building = GAME_CALL(st, 0x0046A400u, player, 0xB7, x, y, 0x90, 0);
+            building = GAME_CALL(st, FN_BUILDING_CREATE, player, 0xB7, x, y, 0x90, 0);
         } else if (type != 0x5A) {
             int32_t parts = 0;
             switch (type) {
@@ -626,36 +619,36 @@ void place_construction(game_state *st, int32_t player, int32_t orientation, int
             default: break;
             }
             monument = parts != 0;
-            building = GAME_CALL(st, 0x0046A400u, player, type, x, y, parts, 0);
+            building = GAME_CALL(st, FN_BUILDING_CREATE, player, type, x, y, parts, 0);
         }
         if (building == 0) {
             return;
         }
         if (!monument) {
-            GAME_CALL(st, 0x00485100u, building);
+            GAME_CALL(st, FN_BUILDING_KEEP_REMOVED, building);
         }
         if (building <= 0) {
             return;
         }
-        GAME_CALL(st, 0x00470990u, player, type, building, x, y, S32(st, SIZE), 1, 0);
+        GAME_CALL(st, FN_BUILDING_MAP_ADD, player, type, building, x, y, S32(st, G_CONSTRUCTION_UI_SIZE), 1, 0);
         if (type == 0x88) {
-            GAME_CALL(st, 0x00486020u, building);
+            GAME_CALL(st, FN_FERRY_PLACE_STEP, building);
         }
         drag = 0;
         break;
     }
     }
     if (drag) {
-        S32(st, COST) = mul32(S32(st, DRAG_COUNT), S32(st, COST)); /* @bin 0x00472AF2 */
+        S32(st, G_PLACE_COST) = mul32(S32(st, G_CONSTRUCTION_COUNT), S32(st, G_PLACE_COST)); /* @bin 0x00472AF2 */
     }
     /* @bin 0x004740B7 the common tail */
-    GAME_CALL0(st, 0x00517370u);
-    GAME_CALL0(st, 0x00517660u);
-    GAME_CALL0(st, 0x005178E0u);
+    GAME_CALL0(st, FN_ROUTING_REBUILD_EE0C50);
+    GAME_CALL0(st, FN_ROUTING_REBUILD_EC7630);
+    GAME_CALL0(st, FN_ROUTING_REBUILD_EBAB20);
     place_formations_alert(st, x, y);
-    int32_t cost = (type == 0x88 && S32(st, 0x00BCA310u) == 0) ? 0 : S32(st, COST); /* @bin 0x004740D0 */
-    cost -= S32(st, REFUND);
-    S32(st, COST) = cost;
+    int32_t cost = (type == 0x88 && S32(st, G_FERRY_STATE) == 0) ? 0 : S32(st, G_PLACE_COST); /* @bin 0x004740D0 */
+    cost -= S32(st, G_REFUND);
+    S32(st, G_PLACE_COST) = cost;
     place_spend(st, player, cost);
     if (type != 0x38 && type != 9) {
         place_undo_cost(st);
@@ -689,14 +682,14 @@ uint8_t place_special_point_in(game_state *st, int32_t x1, int32_t y1, int32_t x
     int32_t ymin = y1 < y2 ? y1 : y2, ymax = y1 > y2 ? y1 : y2;
     /* @bin 0x00470933 four points of i16 x 0x00784B64[], y 0x00784B6C[] */
     for (uint32_t i = 0; i < 4; i++) {
-        int32_t px = S16(st, 0x00784B64u + 2 * i), py = S16(st, 0x00784B6Cu + 2 * i);
+        int32_t px = S16(st, G_HERD_X + 2 * i), py = S16(st, G_HERD_Y + 2 * i);
         if (px >= xmin && px <= xmax && py >= ymin && py <= ymax) {
             return 1;
         }
     }
     /* @bin 0x00470959 four points of i32 x 0x00784CC0[], y 0x00784CD0[] */
     for (uint32_t i = 0; i < 4; i++) {
-        int32_t px = S32(st, 0x00784CC0u + 4 * i), py = S32(st, 0x00784CD0u + 4 * i);
+        int32_t px = S32(st, G_HERD2_X + 4 * i), py = S32(st, G_HERD2_Y + 4 * i);
         if (px >= xmin && px <= xmax && py >= ymin && py <= ymax) {
             return 1;
         }
@@ -715,14 +708,14 @@ int32_t place_figures_near(game_state *st, int32_t x1, int32_t y1, int32_t x2, i
      * +0x14 / +0x16 within 12 of (x1, y1) or (x2, y2) */
     for (uint32_t f = 1; f < FIGURE_COUNT; f++) {
         uint32_t r = FIGURE_ADDR(f);
-        if (U8(st, r + 0x0E) != 1) {
+        if (U8(st, r + FIG_STATE) != 1) {
             continue;
         }
-        uint8_t t = U8(st, r + 0x0A);
+        uint8_t t = U8(st, r + FIG_TYPE);
         if (!((t >= 0x2B && t <= 0x39) || t == 0x63)) {
             continue;
         }
-        int32_t fx = S16(st, r + 0x14), fy = S16(st, r + 0x16);
+        int32_t fx = S16(st, r + FIG_X), fy = S16(st, r + FIG_Y);
         if (absdiff(fx, x1) <= 12 && absdiff(fy, y1) <= 12) {
             return 1;
         }
@@ -736,11 +729,11 @@ int32_t place_figures_near(game_state *st, int32_t x1, int32_t y1, int32_t x2, i
 void place_undo_cost(game_state *st)
 {
     /* @bin 0x00485200 */
-    int32_t cost = S32(st, COST);
-    S32(st, 0x00BC968Cu) = 1;
-    S32(st, 0x00BC9688u) = 500;
-    S32(st, 0x00BC9684u) = cost;
-    U8(st, 0x00E38DCAu) = 1;
+    int32_t cost = S32(st, G_PLACE_COST);
+    S32(st, G_UNDO_READY) = 1;
+    S32(st, G_UNDO_COUNTDOWN) = 500;
+    S32(st, G_UNDO_COST) = cost;
+    U8(st, G_REDRAW) = 1;
 }
 
 void place_spend(game_state *st, int32_t player, int32_t amount)
@@ -748,11 +741,11 @@ void place_spend(game_state *st, int32_t player, int32_t amount)
     /* @bin 0x004E9680 a player city (+0x2 == 1) outside the editor (0x00605A3C): treasury +0xC,
      * construction spending +0x2C8C */
     uint32_t c = CITY_ADDR(player);
-    if (U8(st, c + 2) != 1 || S32(st, 0x00605A3Cu) == 1) {
+    if (U8(st, c + CITY_ACTIVE) != 1 || S32(st, G_EDITOR) == 1) {
         return;
     }
-    S32(st, c + 0xC) -= amount;
-    S32(st, c + 0x2C8C) += amount;
+    S32(st, c + CITY_TREASURY) -= amount;
+    S32(st, c + CITY_CONSTRUCTION_THIS_YEAR) += amount;
 }
 
 void place_monument_slots(game_state *st)
@@ -762,48 +755,48 @@ void place_monument_slots(game_state *st)
      * slot of 0x00784DE0[3] (i16) with that kind and an empty building; the loop skips the parts */
     uint32_t c = CURRENT_CITY(st);
     for (uint32_t i = 0; i < 3; i++) {
-        S32(st, c + 0x4730 + 4 * i) = 0;
-        S32(st, c + 0x473C + 4 * i) = 0;
+        S32(st, c + CITY_MONUMENT_CODE + 4 * i) = 0;
+        S32(st, c + CITY_MONUMENT_ID + 4 * i) = 0;
     }
-    for (int32_t i = 1; i <= S32(st, 0x0078D790u); i++) {
+    for (int32_t i = 1; i <= S32(st, G_BUILDING_HIGHEST); i++) {
         uint32_t b = BUILDING_ADDR(i);
-        uint8_t state = U8(st, b);
+        uint8_t state = U8(st, b + BLD_STATE);
         if (state != 1 && state != 3) {
             continue;
         }
-        if (S16(st, b + 0x16) == -1) {
+        if (S16(st, b + BLD_SEQUENCE) == -1) {
             continue;
         }
-        int32_t t = S16(st, b + 0x10);
+        int32_t t = S16(st, b + BLD_TYPE);
         int32_t id = i;
         int32_t kind;
         switch (t) {
         case 0xB7: {
-            kind = GAME_CALL(st, 0x004F4B70u, i);
+            kind = GAME_CALL(st, FN_MONUMENT_KIND_4F4B70, i);
             /* @bin 0x004F626E the pyramid's part count by its variant +0x54 */
-            uint32_t table = S32(st, 0x005E4EF4u) == 5 ? 0x0056F7ECu : 0x0056F7D8u;
-            i += S32(st, table + 4u * U8(st, b + 0x54)) - 1;
+            uint32_t table = S32(st, G_PYRAMID_KIND) == 5 ? G_PYRAMID_PARTS_KIND5 : G_PYRAMID_PARTS;
+            i += S32(st, table + 4u * U8(st, b + BLD_MONUMENT_KIND)) - 1;
             break;
         }
-        case 0xD5: kind = GAME_CALL(st, 0x004F4B70u, i); i += 0x63; break;
-        case 0xE3: kind = GAME_CALL(st, 0x004F4B70u, i); i += 8; break;
-        case 0xE5: kind = GAME_CALL(st, 0x004F4B70u, i); i += 0xA6; break;
-        case 0xEA: kind = GAME_CALL(st, 0x004F4B70u, i); i += 0x9D; break;
-        case 0xEB: kind = GAME_CALL(st, 0x004F4B70u, i); i += 0x1B4; break;
-        case 0xEC: kind = GAME_CALL(st, 0x004F4B70u, i); i += 0x200; break;
-        case 0xE1: kind = GAME_CALL(st, 0x004F4B70u, i); i += 0x18; break;
-        case 0xE6: kind = GAME_CALL(st, 0x004F4B70u, i); i += 0xF; break;
-        case 0xDE: kind = GAME_CALL(st, 0x004F4B70u, i); i += 0x73; break;
+        case 0xD5: kind = GAME_CALL(st, FN_MONUMENT_KIND_4F4B70, i); i += 0x63; break;
+        case 0xE3: kind = GAME_CALL(st, FN_MONUMENT_KIND_4F4B70, i); i += 8; break;
+        case 0xE5: kind = GAME_CALL(st, FN_MONUMENT_KIND_4F4B70, i); i += 0xA6; break;
+        case 0xEA: kind = GAME_CALL(st, FN_MONUMENT_KIND_4F4B70, i); i += 0x9D; break;
+        case 0xEB: kind = GAME_CALL(st, FN_MONUMENT_KIND_4F4B70, i); i += 0x1B4; break;
+        case 0xEC: kind = GAME_CALL(st, FN_MONUMENT_KIND_4F4B70, i); i += 0x200; break;
+        case 0xE1: kind = GAME_CALL(st, FN_MONUMENT_KIND_4F4B70, i); i += 0x18; break;
+        case 0xE6: kind = GAME_CALL(st, FN_MONUMENT_KIND_4F4B70, i); i += 0xF; break;
+        case 0xDE: kind = GAME_CALL(st, FN_MONUMENT_KIND_4F4B70, i); i += 0x73; break;
         case 0xD2:
-            if (S16(st, b + 0x38) != 0) {
+            if (S16(st, b + BLD_PREV_PART) != 0) {
                 continue;
             }
-            kind = GAME_CALL(st, 0x004F4B70u, i);
+            kind = GAME_CALL(st, FN_MONUMENT_KIND_4F4B70, i);
             break;
         case 0xCF:
         case 0xD0:
         case 0xE4:
-            kind = GAME_CALL(st, 0x004F4B70u, i);
+            kind = GAME_CALL(st, FN_MONUMENT_KIND_4F4B70, i);
             break;
         default:
             continue;
@@ -814,9 +807,9 @@ void place_monument_slots(game_state *st)
         uint32_t p = U32(st, CURRENT_PLAYER_ADDR);
         for (uint32_t k = 0; k < 3; k++) {
             uint32_t cc = CITY_ADDR(p);
-            if (kind == S16(st, 0x00784DE0u + 2 * k) && S32(st, cc + 0x473C + 4 * k) == 0) {
-                S32(st, cc + 0x4730 + 4 * k) = kind;
-                S32(st, cc + 0x473C + 4 * k) = id;
+            if (kind == S16(st, G_MONUMENT_SLOTS + 2 * k) && S32(st, cc + CITY_MONUMENT_ID + 4 * k) == 0) {
+                S32(st, cc + CITY_MONUMENT_CODE + 4 * k) = kind;
+                S32(st, cc + CITY_MONUMENT_ID + 4 * k) = id;
                 break;
             }
         }
@@ -829,20 +822,20 @@ void place_formations_alert(game_state *st, int32_t x, int32_t y)
      * set, +0x28 > 0, within 6 tiles (Chebyshev; the distances kept in 0x00D3B4FC / 0x00D3B4F8):
      * +0x4E := 0x32 and +0x76 := the direction 0x0051CBA0 from the tile to the formation */
     for (uint32_t f = 1; f < 50; f++) {
-        uint32_t r = 0x00BCB9C8u + 0x90u * f;
+        uint32_t r = G_FORMATION_BASE + 0x90u * f;
         if (U8(st, r) != 1 || U8(st, r + 0x42) != 0 || U8(st, r + 0x69) == 0 || U8(st, r + 0x28) == 0) {
             continue;
         }
         int32_t fx = S16(st, r + 0x2E), fy = S16(st, r + 0x30);
         int32_t dx = absdiff(x, fx);
-        S32(st, 0x00D3B4FCu) = dx;
+        S32(st, G_DIST_X) = dx;
         int32_t dy = absdiff(y, fy);
-        S32(st, 0x00D3B4F8u) = dy;
+        S32(st, G_DIST_Y) = dy;
         if ((dx >= dy ? dx : dy) > 6) {
             continue;
         }
         S16(st, r + 0x4E) = 0x32;
-        U8(st, r + 0x76) = (uint8_t) GAME_CALL(st, 0x0051CBA0u, x, y, (int32_t) S16(st, r + 0x2E),
+        U8(st, r + 0x76) = (uint8_t) GAME_CALL(st, FN_ROUTE_DIRECTION, x, y, (int32_t) S16(st, r + 0x2E),
                                                (int32_t) S16(st, r + 0x30));
     }
 }
@@ -854,24 +847,24 @@ uint8_t place_pyramid_fits(game_state *st, int32_t offset, int32_t variant, int3
      * 0x0056FE30) + offset, then 0x005CFCDC tiles of it (offsets 0x005CFE10 by view orientation / 2):
      * 0x0046F9A0(x, y, 3) set → 0 at once; terrain & 0xFEFFD76E → reason bit 1 */
     uint8_t ok = 1;
-    int32_t tiles = S32(st, 0x005CFCDCu);
-    int32_t view = S32(st, 0x00BCA2E0u) / 2;
+    int32_t tiles = S32(st, G_PYRAMID_PIECE_TILES);
+    int32_t view = S32(st, G_VIEW_ORIENTATION) / 2;
     *reason = 0;
-    uint32_t pair = 0x0056FD10u, single = 0x0056FE30u;
+    uint32_t pair = G_PYRAMID_ANCHORS_XY, single = G_PYRAMID_ANCHORS;
     for (int32_t i = 0;; i++, pair += 8, single += 4) {
-        int mode5 = S32(st, 0x005E4EF4u) == 5;
-        int32_t count = S32(st, (mode5 ? 0x0056F7ECu : 0x0056F7D8u) + 4u * (uint32_t) variant);
+        int mode5 = S32(st, G_PYRAMID_KIND) == 5;
+        int32_t count = S32(st, (mode5 ? G_PYRAMID_PARTS_KIND5 : G_PYRAMID_PARTS) + 4u * (uint32_t) variant);
         if (i >= count) {
             break;
         }
         int32_t base = mode5 ? S32(st, pair) + S32(st, pair + 4) * GRID_SIZE : S32(st, single);
         int32_t t = base + offset;
         for (int32_t j = 0; j < tiles; j++) {
-            if ((uint8_t) GAME_CALL(st, 0x0046F9A0u, t % GRID_SIZE, t / GRID_SIZE, 3) != 0) {
+            if ((uint8_t) GAME_CALL(st, FN_MAP_NEAR_EDGE, t % GRID_SIZE, t / GRID_SIZE, 3) != 0) {
                 return 0;
             }
-            int32_t o = S32(st, 0x005CFE10u + 4u * (uint32_t) (j + 36 * view)) + t;
-            if (U32(st, 0x00AF598Cu + 4u * (uint32_t) o) & 0xFEFFD76Eu) {
+            int32_t o = S32(st, G_FOOT_TILES + 4u * (uint32_t) (j + 36 * view)) + t;
+            if (U32(st, G_GRID_TERRAIN + 4u * (uint32_t) o) & 0xFEFFD76Eu) {
                 ok = 0;
                 *reason |= 1;
             }
@@ -879,10 +872,10 @@ uint8_t place_pyramid_fits(game_state *st, int32_t offset, int32_t variant, int3
     }
     /* @bin 0x004ED003 0x004ECEA0(variant): the entry 0x005F5D08[variant] must reach (0x004ED360,
      * result 0x00EAAE9C) → else reason bit 2 */
-    if ((uint8_t) GAME_CALL(st, 0x004ECEA0u, variant) != 0) {
-        int32_t t = S32(st, 0x005F5D08u + 4u * (uint32_t) variant) + offset - S32(st, MAP_START);
-        GAME_CALL(st, 0x004ED360u, t % GRID_SIZE, t / GRID_SIZE, 0, 0);
-        if (S32(st, 0x00EAAE9Cu) == 0) {
+    if ((uint8_t) GAME_CALL(st, FN_PYRAMID_KIND_OK, variant) != 0) {
+        int32_t t = S32(st, G_RAMP_OFFSETS + 4u * (uint32_t) variant) + offset - S32(st, G_MAP_START);
+        GAME_CALL(st, FN_RAMP_WALK, t % GRID_SIZE, t / GRID_SIZE, 0, 0);
+        if (S32(st, G_RAMP_LAST_TILE) == 0) {
             ok = 0;
             *reason |= 2;
         }
@@ -890,14 +883,14 @@ uint8_t place_pyramid_fits(game_state *st, int32_t offset, int32_t variant, int3
     /* @bin 0x004ED064 a row of tiles (0x005700A8 / 0x005700C8 in mode 5, else 0x00570094 /
      * 0x005700B4) with terrain & 0xFEFFD72E → reason bit 4 */
     int32_t n, from;
-    if (S32(st, 0x005E4EF4u) == 5) {
-        n = S32(st, 0x005700A8u + 4u * (uint32_t) variant);
-        from = S32(st, 0x005700C8u + 4u * (uint32_t) variant);
+    if (S32(st, G_PYRAMID_KIND) == 5) {
+        n = S32(st, G_PYRAMID_ROW_COUNT5 + 4u * (uint32_t) variant);
+        from = S32(st, G_PYRAMID_ROW_FROM5 + 4u * (uint32_t) variant);
     } else {
-        n = S32(st, 0x00570094u + 4u * (uint32_t) variant);
-        from = S32(st, 0x005700B4u + 4u * (uint32_t) variant);
+        n = S32(st, G_PYRAMID_ROW_COUNT + 4u * (uint32_t) variant);
+        from = S32(st, G_PYRAMID_ROW_FROM + 4u * (uint32_t) variant);
     }
-    uint32_t p = 0x00AF598Cu + 4u * (uint32_t) (from + offset);
+    uint32_t p = G_GRID_TERRAIN + 4u * (uint32_t) (from + offset);
     for (; n > 0; n--, p += 4) {
         if (U32(st, p) & 0xFEFFD72Eu) {
             ok = 0;
@@ -912,7 +905,7 @@ int32_t place_take_goods(game_state *st, int32_t player, int32_t resource, int32
     /* @bin 0x0045B4D0 from the storage yards (0x48, 0xC1, state 1) after the round-robin index
      * CITY+0x2752 (i16, 1..3999), 3999 steps or until all taken (0x0045B570 returns what remains) */
     uint32_t c = CITY_ADDR(player);
-    int32_t b = S16(st, c + 0x2752);
+    int32_t b = S16(st, c + CITY_STORAGE_CURSOR);
     int32_t left = amount;
     for (int32_t n = 1; n < 4000 && left > 0; n++) {
         b++;
@@ -920,15 +913,15 @@ int32_t place_take_goods(game_state *st, int32_t player, int32_t resource, int32
             b = 1;
         }
         uint32_t r = BUILDING_ADDR(b);
-        if (U8(st, r) != 1) {
+        if (U8(st, r + BLD_STATE) != 1) {
             continue;
         }
-        int16_t t = S16(st, r + 0x10);
+        int16_t t = S16(st, r + BLD_TYPE);
         if (t != 0x48 && t != 0xC1) {
             continue;
         }
-        S16(st, c + 0x2752) = (int16_t) b;
-        left = GAME_CALL(st, 0x0045B570u, player, b, resource, left);
+        S16(st, c + CITY_STORAGE_CURSOR) = (int16_t) b;
+        left = GAME_CALL(st, FN_STORAGE_TAKE, player, b, resource, left);
     }
     return amount - left;
 }
@@ -937,15 +930,15 @@ int32_t place_road_to_entry(game_state *st, int32_t x, int32_t y)
 {
     /* @bin 0x00457AC0 road distances from the entry point 0x00784C8C / 0x00784C8E, then the tile's
      * reach 0x00481420(x, y, 3) */
-    GAME_CALL(st, 0x0051CE90u, (int32_t) S16(st, 0x00784C8Cu), (int32_t) S16(st, 0x00784C8Eu));
-    return GAME_CALL(st, 0x00481420u, x, y, 3) != 0;
+    GAME_CALL(st, FN_ROUTE_DISTANCES_ED4140, (int32_t) S16(st, G_ENTRY_X), (int32_t) S16(st, G_ENTRY_Y));
+    return GAME_CALL(st, FN_ROUTE_ROAD_REACHED, x, y, 3) != 0;
 }
 
 uint8_t place_any_building_459ef0(game_state *st)
 {
     /* @bin 0x00459FA0 buildings 1..0x0078D790 of state 1 */
-    for (int32_t i = 1; i <= S32(st, 0x0078D790u); i++) {
-        if (U8(st, BUILDING_ADDR(i)) == 1 && GAME_CALL(st, 0x00459EF0u, i) != 0) {
+    for (int32_t i = 1; i <= S32(st, G_BUILDING_HIGHEST); i++) {
+        if (U8(st, BUILDING_ADDR(i) + BLD_STATE) == 1 && GAME_CALL(st, FN_BUILDING_TYPE_0X459EF0, i) != 0) {
             return 1;
         }
     }
