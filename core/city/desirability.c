@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "city/ring_tables.h"
+#include "state/layout.h"
 
 #define SIDE DESIRABILITY_GRID_SIDE
 #define GRID (SIDE * SIDE)
@@ -57,10 +58,10 @@ static void add_ring(game_state *st, int x, int y, int size, int r, int8_t v)
     }
     int8_t s1[2 * 4 * 12 + 2], s2[2 * 4 * 12 + 2];
     ring_table t = ring(size, r, s1);
-    int base = S32(st, MAP_START) + y * SIDE + x;
-    S32(st, DESIRABILITY_BASE) = base;
-    int8_t *g = (int8_t *) state_ptr(st, DESIRABILITY_GRID, GRID);
-    int width = S32(st, MAP_WIDTH), height = S32(st, MAP_HEIGHT);
+    int base = S32(st, G_MAP_START) + y * SIDE + x;
+    S32(st, G_TILE_CURSOR) = base;
+    int8_t *g = (int8_t *) state_ptr(st, G_DESIRABILITY_GRID, GRID);
+    int width = S32(st, G_MAP_WIDTH), height = S32(st, G_MAP_HEIGHT);
     if (y + size - 1 + r > height || x + size - 1 + r > width || y - r < -1 || x - r < -1) {
         /* near the edge: each tile is tested by 0x00481AA0, which for 6x6 footprints reads entry i
          * of ring r + 1 (ring 6 for r = 6) instead of ring r; the clamp then applies to the
@@ -103,37 +104,37 @@ static void spread(game_state *st, int x, int y, int size, int32_t value, int32_
 /* model record fields b..e (value, step, step size, range) of building type `type` */
 static void spread_model(game_state *st, int x, int y, int size, int type)
 {
-    uint32_t m = MODEL_BUILDING + 0x28u * (uint32_t) type;
+    uint32_t m = G_MODEL_BUILDING + G_TYPE_TABLE_STRIDE * (uint32_t) type;
     spread(st, x, y, size, S32(st, m + 4), S32(st, m + 8), S32(st, m + 12), S32(st, m + 16));
 }
 
 void desirability_buildings_upto(game_state *st, int32_t last_id)
 {
     /* @bin 0x0046A0C0 clear, then buildings 1 .. highest id in use (state 1), model fields b-e */
-    memset(state_ptr(st, DESIRABILITY_GRID, GRID), 0, GRID);
+    memset(state_ptr(st, G_DESIRABILITY_GRID, GRID), 0, GRID);
     for (int32_t id = 1; id <= last_id; id++) {
-        uint32_t b = BUILDINGS + BUILDING_SIZE * (uint32_t) id;
-        if (U8(st, b) != 1) {
+        uint32_t b = BUILDING_ADDR(id);
+        if (U8(st, b + BLD_STATE) != 1) {
             continue;
         }
         /* the type indexes the model table unchecked (types are < 237 in every save seen) */
-        spread_model(st, S16(st, b + 6), S16(st, b + 8), U8(st, b + 3), S16(st, b + 0x10));
+        spread_model(st, S16(st, b + BLD_X), S16(st, b + BLD_Y), U8(st, b + BLD_SIZE), S16(st, b + BLD_TYPE));
     }
 }
 
 void desirability_buildings(game_state *st)
 {
-    desirability_buildings_upto(st, S32(st, MAX_BUILDING_ID));
+    desirability_buildings_upto(st, S32(st, G_BUILDING_HIGHEST));
 }
 
 void desirability_tiles(game_state *st)
 {
     /* @bin 0x0046A140 map tiles, rows then columns, from MAP_START with MAP_ROW_SKIP per row */
-    int o = S32(st, MAP_START);
-    for (int y = 0; y < S32(st, MAP_HEIGHT); y++) {
-        for (int x = 0; x < S32(st, MAP_WIDTH); x++, o++) {
-            uint32_t t = U32(st, TERRAIN_GRID + 4u * (uint32_t) o);
-            uint8_t *bits = &U8(st, BITFIELDS_GRID + (uint32_t) o);
+    int o = S32(st, G_MAP_START);
+    for (int y = 0; y < S32(st, G_MAP_HEIGHT); y++) {
+        for (int x = 0; x < S32(st, G_MAP_WIDTH); x++, o++) {
+            uint32_t t = U32(st, G_GRID_TERRAIN + 4u * (uint32_t) o);
+            uint8_t *bits = &U8(st, G_DAY2_DESTROY_BITS + (uint32_t) o);
             if (!(*bits & 0x80)) {
                 if (t & 0x20) {
                     spread_model(st, x, y, 1, 39); /* gardens (0x007064C0 = record 39 + 4) */
@@ -148,7 +149,7 @@ void desirability_tiles(game_state *st)
                 *bits &= 0x7F;
             }
         }
-        o += S32(st, MAP_ROW_SKIP);
+        o += S32(st, G_MAP_STRIDE_EXTRA);
     }
 }
 

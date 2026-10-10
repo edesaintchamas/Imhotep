@@ -2,30 +2,25 @@
  * Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0. */
 #include "city/goods.h"
 
-#define CURRENT_PLAYER 0x00EAAC28u /* chunk 31 */
-#define CITY_DATA 0x00EA1870u      /* chunk 28, 2 x 0x49D8 */
-#define CITY_SIZE 0x49D8u
-#define EMPIRE_CITIES 0x0077DE00u  /* chunk 50, 61 x 0x6A */
+#include "state/layout.h"
+
 #define EMPIRE_CITY_SIZE 0x6Au
 #define EMPIRE_CITY_COUNT 61       /* loops end at 0x0077F744 = +2 of record 61 */
-#define ROUTE_LIMITS 0x0077646Cu   /* chunk 114, i32[route][36] */
-#define SCENARIO_FLAG_10 0x00784D32u /* i16, tested for good 10 (scenario info +0x45A) */
-#define SCENARIO_FLAG_1C 0x00784D34u /* i16, tested for good 0x1C (scenario info +0x45C) */
 
 static uint32_t city(int32_t i)
 {
-    return EMPIRE_CITIES + EMPIRE_CITY_SIZE * (uint32_t) i;
+    return G_EMPIRE_CITIES + EMPIRE_CITY_SIZE * (uint32_t) i;
 }
 
 int32_t trade_city_mood(game_state *st)
 {
     /* @bin 0x004C5190 */
-    uint32_t c = CITY_DATA + CITY_SIZE * U32(st, CURRENT_PLAYER);
-    int32_t v = S16(st, c + 0x4984) > 0;
-    if (S16(st, c + 0x4986) > 0) {
+    uint32_t c = CURRENT_CITY(st);
+    int32_t v = S16(st, c + CITY_U4984) > 0;
+    if (S16(st, c + CITY_U4986) > 0) {
         v -= 2;
     }
-    if (S16(st, c + 0x4988) > 0) {
+    if (S16(st, c + CITY_U4988) > 0) {
         v -= 1;
     }
     return v;
@@ -57,7 +52,7 @@ int32_t empire_city_trades(game_state *st, int32_t c, int32_t resource)
 {
     /* @bin 0x00447790 limit of route (city +4) and resource, adjusted, > 0 */
     uint32_t route = U8(st, city(c) + 4);
-    return trade_limit_adjusted(st, S32(st, ROUTE_LIMITS + 4u * ((uint32_t) resource + route * 0x24))) > 0;
+    return trade_limit_adjusted(st, S32(st, G_TRADE_ROUTE_LIMITS + 4u * ((uint32_t) resource + route * 0x24))) > 0;
 }
 
 static int32_t trade_city(game_state *st, int32_t resource, int need_flag5)
@@ -117,14 +112,14 @@ int32_t goods_chain_b90(game_state *st, int32_t p)
     case 0x0D: p = 0x0B; v = goods_trade_city(st, 0x0B); break;
     case 0x0A:
         p = 0x1D;
-        if (S16(st, SCENARIO_FLAG_10) == 0) {
+        if (S16(st, G_SCENARIO_FLAG_10) == 0) {
             return 0;
         }
         v = goods_trade_city(st, 0x1D);
         break;
     case 0x1C:
         p = 0x14;
-        if (S16(st, SCENARIO_FLAG_1C) == 0) {
+        if (S16(st, G_SCENARIO_FLAG_1C) == 0) {
             return 0;
         }
         v = goods_trade_city(st, 0x14);
@@ -191,9 +186,9 @@ int32_t goods_event_list(game_state *st, int32_t p)
 {
     /* @bin 0x00559480 entries of 0x7C bytes; i16 at +0, -2, +2 of 0x00785D7C + i*0x7C, kind byte
      * at -6; scanned from the last entry */
-    int32_t n = S32(st, 0x00785D70u);
+    int32_t n = S32(st, G_EVENTS);
     for (int32_t i = n - 1; n != 0 && i >= 0; i--) {
-        uint32_t e = 0x00785D7Cu + 0x7Cu * (uint32_t) i;
+        uint32_t e = G_EVENTS + 0xCu + 0x7Cu * (uint32_t) i;
         if (U8(st, e - 6) == 0x17 && (S16(st, e - 2) == p || S16(st, e) == p || S16(st, e + 2) == p)) {
             return 1;
         }
@@ -225,7 +220,7 @@ int32_t goods_event_list(game_state *st, int32_t p)
     } else {
         switch (p) {
         case 0x0A:
-            if (S16(st, SCENARIO_FLAG_10) == 0) {
+            if (S16(st, G_SCENARIO_FLAG_10) == 0) {
                 return 0;
             }
             q = 0x1D;
@@ -236,7 +231,7 @@ int32_t goods_event_list(game_state *st, int32_t p)
         case 0x13: q = 0x12; break;
         case 0x17: q = 0x16; break;
         case 0x1C:
-            if (S16(st, SCENARIO_FLAG_1C) == 0) {
+            if (S16(st, G_SCENARIO_FLAG_1C) == 0) {
                 return 0;
             }
             q = 0x14;
@@ -251,39 +246,39 @@ int32_t goods_event_list(game_state *st, int32_t p)
 void goods_available_update(game_state *st)
 {
     /* @bin 0x005596D0 */
-    S32(st, 0x00F53E6Cu) = 0;
+    S32(st, G_D_CALLBACKS_LIST_COUNT) = 0;
     for (uint32_t i = 0; i < 0x24; i++) {
-        S32(st, 0x00F53E70u + 4 * i) = 0;
+        S32(st, G_GOODS_AVAILABLE + 4 * i) = 0;
     }
     for (uint32_t i = 0; i < 0x24; i++) {
-        S32(st, 0x00F53DDCu + 4 * i) = 0;
+        S32(st, G_GOODS_LIST + 4 * i) = 0;
     }
-    S32(st, 0x00F53DD8u) = 0;
-    uint32_t c = CITY_DATA + CITY_SIZE * U32(st, CURRENT_PLAYER);
+    S32(st, G_GOODS_COUNT) = 0;
+    uint32_t c = CURRENT_CITY(st);
     for (int32_t r = 1; r < 0x24; r++) {
         if (goods_chain_b90(st, r) || goods_trade_city(st, r) || goods_event_list(st, r) ||
-            U8(st, c + 0x2995 + (uint32_t) r) != 0) { /* 0x00EA4205 */
-            S32(st, 0x00F53E70u + 4u * (uint32_t) S32(st, 0x00F53E6Cu)) = r;
-            S32(st, 0x00F53E6Cu) += 1;
+            U8(st, c + CITY_U2995 + (uint32_t) r) != 0) { /* 0x00EA4205 */
+            S32(st, G_GOODS_AVAILABLE + 4u * (uint32_t) S32(st, G_D_CALLBACKS_LIST_COUNT)) = r;
+            S32(st, G_D_CALLBACKS_LIST_COUNT) += 1;
         }
     }
     for (int32_t r = 1; r < 9; r++) {
         if (goods_chain_b90(st, r) || goods_trade_city(st, r) || goods_event_list(st, r) ||
-            U8(st, c + 0x298C + (uint32_t) r) != 0) { /* 0x00EA41FC */
-            S32(st, 0x00F53DDCu + 4u * (uint32_t) S32(st, 0x00F53DD8u)) = r;
-            S32(st, 0x00F53DD8u) += 1;
+            U8(st, c + CITY_U298C + (uint32_t) r) != 0) { /* 0x00EA41FC */
+            S32(st, G_GOODS_LIST + 4u * (uint32_t) S32(st, G_GOODS_COUNT)) = r;
+            S32(st, G_GOODS_COUNT) += 1;
         }
     }
-    for (int32_t i = 0; i < S32(st, 0x00F53E6Cu); i++) {
-        int32_t r = S32(st, 0x00F53E70u + 4u * (uint32_t) i);
+    for (int32_t i = 0; i < S32(st, G_D_CALLBACKS_LIST_COUNT); i++) {
+        int32_t r = S32(st, G_GOODS_AVAILABLE + 4u * (uint32_t) i);
         if (r != 0) {
-            U8(st, c + 0x2995 + (uint32_t) r) = 1;
+            U8(st, c + CITY_U2995 + (uint32_t) r) = 1;
         }
     }
-    for (int32_t i = 0; i < S32(st, 0x00F53DD8u); i++) {
-        int32_t r = S32(st, 0x00F53DDCu + 4u * (uint32_t) i);
+    for (int32_t i = 0; i < S32(st, G_GOODS_COUNT); i++) {
+        int32_t r = S32(st, G_GOODS_LIST + 4u * (uint32_t) i);
         if (r != 0) {
-            U8(st, c + 0x298C + (uint32_t) r) = 1;
+            U8(st, c + CITY_U298C + (uint32_t) r) = 1;
         }
     }
 }

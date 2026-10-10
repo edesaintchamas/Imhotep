@@ -3,6 +3,7 @@
 #include "city/last_city.h"
 
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
@@ -12,15 +13,15 @@ void city_population_remove(game_state *st, int32_t player, int32_t amount)
      * then +0x24 := the sum of the 100 words at +0x25C4 (movsx), kept in +0x24 while summing;
      * +0x469C := that sum when greater (signed) */
     uint32_t c = CITY_ADDR(player);
-    S32(st, c + 0x26F8) = (int32_t) ((uint32_t) S32(st, c + 0x26F8) - (uint32_t) amount);
-    GAME_CALL(st, 0x004E9400u, player, amount);
-    S32(st, c + 0x24) = 0;
+    S32(st, c + CITY_U26F8) = (int32_t) ((uint32_t) S32(st, c + CITY_U26F8) - (uint32_t) amount);
+    GAME_CALL(st, FN_PEOPLE_ADD, player, amount);
+    S32(st, c + CITY_POPULATION) = 0;
     for (uint32_t i = 0; i < 100; i++) {
-        S32(st, c + 0x24) = (int32_t) ((uint32_t) S32(st, c + 0x24) + (uint32_t) (int32_t) S16(st, c + 0x25C4 + 2 * i));
+        S32(st, c + CITY_POPULATION) = (int32_t) ((uint32_t) S32(st, c + CITY_POPULATION) + (uint32_t) (int32_t) S16(st, c + CITY_AGES + 2 * i));
     }
-    int32_t sum = S32(st, c + 0x24);
-    if (sum > S32(st, c + 0x469C)) {
-        S32(st, c + 0x469C) = sum;
+    int32_t sum = S32(st, c + CITY_POPULATION);
+    if (sum > S32(st, c + CITY_POPULATION_HIGHEST)) {
+        S32(st, c + CITY_POPULATION_HIGHEST) = sum;
     }
 }
 

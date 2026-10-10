@@ -13,27 +13,23 @@
 #include "city/month_events.h"
 #include "city/month_message.h"
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define EVENTS 0x00785D70u
 #define EVENT_REC 0x7Cu
-#define POPUP 0x00E950DCu
-#define YEAR 0x0078D7BCu
-#define MONTH 0x0078D7C0u
-#define START_YEAR 0x007848D8u
 
 int32_t event_before_date(game_state *st, uint32_t e)
 {
     /* @bin 0x0044D6D0 (thiscall) the record's date (+0x14 + start year, month +3) is after now */
-    int32_t y = S16(st, e + 0x14) + S16(st, START_YEAR);
-    if (S32(st, YEAR) < y) {
+    int32_t y = S16(st, e + 0x14) + S16(st, G_START_YEAR);
+    if (S32(st, G_YEAR) < y) {
         return 1;
     }
-    if (S32(st, YEAR) > y) {
+    if (S32(st, G_YEAR) > y) {
         return 0;
     }
-    return S32(st, MONTH) < (int32_t) U8(st, e + 3);
+    return S32(st, G_MONTH) < (int32_t) U8(st, e + 3);
 }
 
 int32_t event_pending(game_state *st, uint32_t e)
@@ -46,8 +42,8 @@ int32_t event_pending(game_state *st, uint32_t e)
     if (event_before_date(st, e)) {
         return 0;
     }
-    int32_t m = (S32(st, YEAR) - S16(st, e + 0x14) - S16(st, START_YEAR)) * 12 - (int32_t) U8(st, e + 3) +
-                S32(st, MONTH);
+    int32_t m = (S32(st, G_YEAR) - S16(st, e + 0x14) - S16(st, G_START_YEAR)) * 12 - (int32_t) U8(st, e + 3) +
+                S32(st, G_MONTH);
     return m <= S16(st, e + 0x2C);
 }
 
@@ -66,16 +62,16 @@ int32_t event_type_linkable(game_state *st, uint32_t e)
     /* @bin 0x00449390 (thiscall) by the type: 0x00449370 (table 0x005D9C18) and not 0x00449380
      * (table 0x005D9C38) */
     uint8_t t = U8(st, e + 2);
-    if (U8(st, 0x005D9C18u + t) == 0) {
+    if (U8(st, G_U5D9C18 + t) == 0) {
         return 0;
     }
-    return U8(st, 0x005D9C38u + t) == 0;
+    return U8(st, G_U5D9C38 + t) == 0;
 }
 
 static int32_t event_type_has_good(game_state *st, uint32_t e)
 {
     /* @bin 0x004493C0 (thiscall) table 0x005D9C78 by the type */
-    return U8(st, 0x005D9C78u + U8(st, e + 2));
+    return U8(st, G_EVENT_TYPE_FLAGS + U8(st, e + 2));
 }
 
 static int32_t event_good_ok_type1(game_state *st, uint32_t e, int32_t g)
@@ -108,7 +104,7 @@ int32_t event_good_allowed(game_state *st, uint32_t e, int32_t g)
      * 0x004493E0); type 1: 0x00449440, type 23: not 0x25 / 0x1B (0x00449530), types 13..16: not 0x1B
      * / 0x15 */
     uint8_t t = U8(st, e + 2);
-    if (g < S32(st, 0x005D9C98u + 4u * t) || g >= S32(st, 0x005D9D10u + 4u * t)) {
+    if (g < S32(st, G_U5D9C98 + 4u * t) || g >= S32(st, G_U5D9D10 + 4u * t)) {
         return 0;
     }
     if (t == 1) {
@@ -142,7 +138,7 @@ int32_t events_started_later(game_state *st, uint32_t self, int32_t n)
 {
     /* @bin 0x0044C430 (thiscall on the list) record n is at or after the one being stepped
      * (0x005D9A40) and of the walk's kind (type 2 with 0x0078A634 set, other types without) */
-    int32_t cur = S32(st, 0x005D9A40u);
+    int32_t cur = S32(st, G_U5D9A40);
     if (cur < 0 || cur > n) {
         return 0;
     }
@@ -151,9 +147,9 @@ int32_t events_started_later(game_state *st, uint32_t self, int32_t n)
     }
     uint32_t r = self + 4 + EVENT_REC * (uint32_t) n;
     if (U8(st, r + 2) == 2) {
-        return U8(st, 0x0078A634u) != 0;
+        return U8(st, G_U78A634) != 0;
     }
-    return U8(st, 0x0078A634u) == 0;
+    return U8(st, G_U78A634) == 0;
 }
 
 void event_init(game_state *st, uint32_t e)
@@ -201,13 +197,13 @@ static int event_in_use(game_state *st, int32_t i)
     /* @bin 0x00448D69 a formation (0x90 bytes, +0x42 the first byte read) in use (1), not +0x42+0x42 /
      * +0x69, for event i (+0x78); or a figure 1..1999 alive (+0xE) of type 0x5C for event i
      * (+0x186) */
-    for (uint32_t p = 0x00BCBA9Au; p < 0x00BCD62Au; p += 0x90) {
+    for (uint32_t p = G_FORMATION_BASE + 0x90u + 0x42u; p < G_FORMATION_BASE + 0x90u * 50 + 0x42u; p += 0x90) {
         if (U8(st, p - 0x42) == 1 && U8(st, p) == 0 && U8(st, p + 0x27) == 0 && S16(st, p + 0x36) == i) {
             return 1;
         }
     }
-    for (uint32_t p = 0x00BCD786u; p < 0x00C8AD42u; p += FIGURE_SIZE) {
-        if (U8(st, p + 4) != 0 && U8(st, p) == 0x5C && S32(st, p + 0x172) == i) {
+    for (uint32_t p = FIGURE_ADDR(1) + FIG_TYPE; p < FIGURE_ADDR(FIGURE_COUNT) + FIG_TYPE; p += FIGURE_SIZE) {
+        if (U8(st, p - FIG_TYPE + FIG_STATE) != 0 && U8(st, p) == 0x5C && S32(st, p - FIG_TYPE + FIG_U17C) == i) {
             return 1;
         }
     }
@@ -235,7 +231,7 @@ uint32_t events_alloc(game_state *st, uint32_t self, int8_t quiet)
     int32_t n = S32(st, self);
     if (n > 0x8B) {
         if (quiet == 0) {
-            GAME_CALL(st, 0x004CE6E0u, (int32_t) 0x005DA174u, 0, 0); /* "ERR Could not add event" */
+            GAME_CALL(st, FN_PLATFORM_LOG, (int32_t) G_U5DA174, 0, 0); /* "ERR Could not add event" */
         }
         return 0;
     }
@@ -275,7 +271,7 @@ void event_start(game_state *st, uint32_t e, int32_t n, int32_t kind)
     if (src == 0) {
         return;
     }
-    uint32_t r = events_alloc(st, EVENTS, 0);
+    uint32_t r = events_alloc(st, G_EVENTS, 0);
     if (r == 0) {
         return;
     }
@@ -301,17 +297,17 @@ void event_start(game_state *st, uint32_t e, int32_t n, int32_t kind)
     /* @bin 0x0044C5E0 month := (month + delay) % 12 (idiv), years := delay / 12, + 1 when the new
      * month (its low byte) is before the current one */
     int32_t d = S16(st, r + 0x14);
-    int32_t m = (S32(st, MONTH) + d) % 12;
+    int32_t m = (S32(st, G_MONTH) + d) % 12;
     int32_t q = d / 12;
     U8(st, r + 3) = (uint8_t) m;
-    if ((int32_t) (uint8_t) m < S32(st, MONTH)) {
+    if ((int32_t) (uint8_t) m < S32(st, G_MONTH)) {
         q++;
     }
-    S16(st, r + 0x14) = (int16_t) (U32(st, YEAR) - U32(st, START_YEAR) + (uint32_t) q);
+    S16(st, r + 0x14) = (int16_t) (U32(st, G_YEAR) - U32(st, G_START_YEAR) + (uint32_t) q);
     if (d != 0) {
         return;
     }
-    if (events_started_later(st, EVENTS, S16(st, r))) {
+    if (events_started_later(st, G_EVENTS, S16(st, r))) {
         return;
     }
     if (U8(st, r + 2) == 2) {
@@ -350,10 +346,10 @@ void event_request_month(game_state *st, uint32_t e)
     if (!event_pending(st, e)) {
         return;
     }
-    if (event_linked_flag(st, e) && S32(st, CURRENT_CITY(st) + 0x42D8) >= 0xF) {
-        S32(st, POPUP) = 1;
+    if (event_linked_flag(st, e) && S32(st, CURRENT_CITY(st) + CITY_RATING_KINGDOM) >= 0xF) {
+        S32(st, G_MESSAGE_POPUP) = 1;
         message_post(st, 0x78, 0, 0, NULL, 0);
-        GAME_CALLT0(st, e, 0x0044EF90u);
+        GAME_CALLT0(st, e, FN_EVENT_STOP);
         return;
     }
     int32_t left = event_months_left(st, e);
@@ -364,9 +360,9 @@ void event_request_month(game_state *st, uint32_t e)
         int32_t a1 = S16(st, e + 0xC), a2 = S16(st, e + 0x1C), a3 = S16(st, e + 0x38), a4 = S16(st, e);
         switch (kind4) {
         case 1:
-            r = GAME_CALL(st, 0x00446A30u, S16(st, 0x007848FCu), a1, a2, a3, a4);
+            r = GAME_CALL(st, FN_EVENT_TROOPS, S16(st, G_ENEMY), a1, a2, a3, a4);
             if (r != 0) {
-                S32(st, POPUP) = 1;
+                S32(st, G_MESSAGE_POPUP) = 1;
                 sent = 1;
                 event_outcome_message(st, e, 0);
                 put16(blk, 0, 0xBC);
@@ -375,9 +371,9 @@ void event_request_month(game_state *st, uint32_t e)
         case 2:
         case 3:
         case 4:
-            r = GAME_CALL(st, 0x00446A30u, kind4 == 4 ? 0xD : 0xC, a1, a2, a3, a4);
+            r = GAME_CALL(st, FN_EVENT_TROOPS, kind4 == 4 ? 0xD : 0xC, a1, a2, a3, a4);
             if (r != 0) {
-                S32(st, POPUP) = 1;
+                S32(st, G_MESSAGE_POPUP) = 1;
                 sent = 1;
                 put16(blk, 0, kind4 == 2 ? 0xB2 : kind4 == 3 ? 0xA8 : 0x105);
             }
@@ -388,8 +384,8 @@ void event_request_month(game_state *st, uint32_t e)
         }
         U32(st, e + 0x28) |= 4;
         if (sent) {
-            S32(st, POPUP) = 1;
-            message_post(st, 0x85, S16(st, 0x00775900u), r, blk, 0);
+            S32(st, G_MESSAGE_POPUP) = 1;
+            message_post(st, 0x85, S16(st, G_INVASION_SEQUENCE), r, blk, 0);
         }
         int32_t v = event_outcome_message(st, e, 0);
         event_start(st, e, S16(st, e + 0x24), v);
@@ -429,7 +425,7 @@ void event_request_month(game_state *st, uint32_t e)
     }
     if (kind4 < 1 || kind4 > 4) {
         /* the block's words +0 and +2 (+0x10 too) stay the original's leftover stack bytes */
-        state_unported(st, 0x00451540u);
+        state_unported(st, FN_EVENT_REQUEST_MONTH);
         return;
     }
     put16(blk, 0, w_by[row][kind4 - 1]);
@@ -439,7 +435,7 @@ void event_request_month(game_state *st, uint32_t e)
         return;
     }
     U8(st, e + 0x57) = sentbits | bit;
-    S32(st, POPUP) = event_due(st, e, 1) != 0;
+    S32(st, G_MESSAGE_POPUP) = event_due(st, e, 1) != 0;
     message_post(st, msg, 0, 0, blk, 0);
 }
 
@@ -782,7 +778,7 @@ int32_t event_outcome_message(game_state *st, uint32_t e, int32_t slot)
             lvl = 0;
             return event_message_id(outcome_kind(st, e, slot), lvl);
         }
-        lvl = U8(st, 0x007854A8u + 0x24u * (uint32_t) row + (uint32_t) col);
+        lvl = U8(st, G_U7854A8 + 0x24u * (uint32_t) row + (uint32_t) col);
     }
     if (lvl >= 3 && lvl <= 5) {
         uint32_t o = event_at(st, n);

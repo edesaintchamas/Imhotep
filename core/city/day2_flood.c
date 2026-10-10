@@ -6,21 +6,16 @@
 #include "city/day_x87.h"
 #include "random/random.h"
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define TERRAIN 0x00AF598Cu      /* u32 per tile */
-#define BITS 0x00B285CCu         /* u8 per tile */
-#define BUILDING_GRID 0x00B4E6FCu /* i16 per tile */
-#define FIGURE_GRID 0x00B350DCu  /* i16 per tile: first figure */
-#define MAP_START 0x00BCA2D8u
-#define MAP 0x00BCA350u
 #define PS32(st, a) PTR_AT(st, state_s32, a) /* objects reached through `this` */
 #define PU32(st, a) PTR_AT(st, state_u32, a)          /* `this` of the building-area helpers */
 
 static uint32_t terrain_at(int32_t t)
 {
-    return TERRAIN + 4u * (uint32_t) t;
+    return G_GRID_TERRAIN + 4u * (uint32_t) t;
 }
 
 /* the area passes around (x, y) with radius r (cdecl, x0, y0, x1, y1[, 0]) */
@@ -37,16 +32,16 @@ static void call5(game_state *st, uint32_t f, int32_t x, int32_t y, int32_t r)
 static void figures_on_tile_flooded(game_state *st, int32_t t)
 {
     /* @bin 0x004BDC20 every figure on the tile but types 0x0E and 0x1C: 0x004BD250 */
-    int32_t f = S16(st, FIGURE_GRID + 2u * (uint32_t) t);
+    int32_t f = S16(st, G_FIGURE_GRID + 2u * (uint32_t) t);
     if (f == 0) {
         return;
     }
-    while (S16(st, FIGURE_ADDR(f) + 8) != f) {
-        uint8_t type = U8(st, FIGURE_ADDR(f) + 0xA);
+    while (S16(st, FIGURE_ADDR(f) + FIG_NEXT_ON_TILE) != f) {
+        uint8_t type = U8(st, FIGURE_ADDR(f) + FIG_TYPE);
         if (type != 0xE && type != 0x1C) {
-            GAME_CALL(st, 0x004BD250u, f);
+            GAME_CALL(st, FN_FIGB_REMOVE, f);
         }
-        f = S16(st, FIGURE_ADDR(f) + 8);
+        f = S16(st, FIGURE_ADDR(f) + FIG_NEXT_ON_TILE);
         if (f == 0) {
             return;
         }
@@ -57,8 +52,8 @@ static void figures_on_tile_drained(game_state *st, int32_t t)
 {
     /* @bin 0x004BDD89 boats and the like (types 0x14, 0x19, 0x4D, 0x4E, 0x64, 0x65) move one tile
      * toward the middle of the longest run of water neighbours (0x0047DB00, flags 0x00BC97C0) */
-    int32_t f = S16(st, FIGURE_GRID + 2u * (uint32_t) t);
-    if (S16(st, FIGURE_ADDR(f) + 8) == f) {
+    int32_t f = S16(st, G_FIGURE_GRID + 2u * (uint32_t) t);
+    if (S16(st, FIGURE_ADDR(f) + FIG_NEXT_ON_TILE) == f) {
         return;
     }
     for (;;) {
@@ -66,13 +61,13 @@ static void figures_on_tile_drained(game_state *st, int32_t t)
             return;
         }
         uint32_t r = FIGURE_ADDR(f);
-        uint8_t type = U8(st, r + 0xA);
+        uint8_t type = U8(st, r + FIG_TYPE);
         if (type == 0x14 || type == 0x19 || type == 0x4D || type == 0x4E || type == 0x64 || type == 0x65) {
-            S32(st, 0x00BC9768u) = t;
-            GAME_CALL(st, 0x0047DB00u, 4);
+            S32(st, G_TILE_CURSOR) = t;
+            GAME_CALL(st, FN_NEIGHBOURS_WITH_FLAGS, 4);
             int32_t best = 0, run = 0, best_start = -1, start = -1;
             for (int32_t k = 0; k < 16; k++) {
-                int32_t v = S32(st, 0x00BC97C0u + 4u * (uint32_t) (k & 7));
+                int32_t v = S32(st, G_SCRATCH + 4u * (uint32_t) (k & 7));
                 if (v != 0) {
                     if (start < 0) {
                         start = k;
@@ -101,16 +96,16 @@ static void figures_on_tile_drained(game_state *st, int32_t t)
             case 6: dx = -1; d = -1; break;
             default: dy = -1; dx = -1; d = -0xE5; break;
             }
-            GAME_CALL(st, 0x004B5420u, f);
-            U16(st, r + 0x4A) = (uint16_t) (U16(st, r + 0x4A) + dx * 32);
-            U16(st, r + 0x14) = (uint16_t) (U16(st, r + 0x14) + dx * 2);
-            U16(st, r + 0x4C) = (uint16_t) (U16(st, r + 0x4C) + dy * 32);
-            U16(st, r + 0x16) = (uint16_t) (U16(st, r + 0x16) + dy * 2);
-            U32(st, r + 0x20) = U32(st, r + 0x20) + (uint32_t) (d * 2);
-            GAME_CALL(st, 0x004B52F0u, f);
+            GAME_CALL(st, FN_FIGURE_TILE_LIST_REMOVE, f);
+            U16(st, r + FIG_CC_X) = (uint16_t) (U16(st, r + FIG_CC_X) + dx * 32);
+            U16(st, r + FIG_X) = (uint16_t) (U16(st, r + FIG_X) + dx * 2);
+            U16(st, r + FIG_CC_Y) = (uint16_t) (U16(st, r + FIG_CC_Y) + dy * 32);
+            U16(st, r + FIG_Y) = (uint16_t) (U16(st, r + FIG_Y) + dy * 2);
+            U32(st, r + FIG_GRID_OFFSET) = U32(st, r + FIG_GRID_OFFSET) + (uint32_t) (d * 2);
+            GAME_CALL(st, FN_FIGURE_TILE_LIST_ADD, f);
         }
-        f = S16(st, r + 8);
-        if (S16(st, FIGURE_ADDR(f) + 8) == f) {
+        f = S16(st, r + FIG_NEXT_ON_TILE);
+        if (S16(st, FIGURE_ADDR(f) + FIG_NEXT_ON_TILE) == f) {
             return;
         }
     }
@@ -118,7 +113,7 @@ static void figures_on_tile_drained(game_state *st, int32_t t)
 
 static int32_t building_xy_tile(game_state *st, int32_t b)
 {
-    return S32(st, MAP_START) + S16(st, BUILDING_ADDR(b) + 6) + S16(st, BUILDING_ADDR(b) + 8) * 0xE4;
+    return S32(st, G_MAP_START) + S16(st, BUILDING_ADDR(b) + BLD_X) + S16(st, BUILDING_ADDR(b) + BLD_Y) * 0xE4;
 }
 
 void flood_tile_step(game_state *st, uint32_t self, int32_t flood)
@@ -128,7 +123,7 @@ void flood_tile_step(game_state *st, uint32_t self, int32_t flood)
     int32_t t = (int32_t) P32(st, self + 8);
     if ((uint8_t) flood != 0) {
         uint32_t ter = U32(st, terrain_at(t));
-        U8(st, 0x00ADC36Cu + (uint32_t) t) = 0;
+        U8(st, G_SPRITE + (uint32_t) t) = 0;
         ter = (ter & 0xFFFFEFFFu) | 4;
         U32(st, terrain_at(t)) = ter;
         uint8_t depth = 0;
@@ -139,33 +134,33 @@ void flood_tile_step(game_state *st, uint32_t self, int32_t flood)
             v = x87_mul(v, x87_from_double(0x4058C00000000000ull));
             depth = (uint8_t) x87_ftol(v);
         }
-        int32_t b = S16(st, BUILDING_GRID + 2u * (uint32_t) t);
-        U8(st, 0x00A5D4CCu + (uint32_t) t) = depth;
+        int32_t b = S16(st, G_BUILDING_GRID + 2u * (uint32_t) t);
+        U8(st, G_FERTILITY_GRID + (uint32_t) t) = depth;
         uint32_t kept = ter & 0xEEFED77Fu;
         if (kept & 0x40) {
             ter = (ter & ~0x40u) | 0x8000000u;
             U32(st, terrain_at(t)) = ter;
         }
         int32_t x = (int32_t) P32(st, self + 0xC), y = (int32_t) P32(st, self + 0x10);
-        call4(st, 0x00517690u, x, y, 1);
-        call5(st, 0x00516F90u, x, y, 1);
-        call4(st, 0x005173A0u, x, y, 1);
-        call4(st, 0x004777C0u, x, y, 1);
-        call5(st, 0x00475CC0u, x, y, 2);
-        call4(st, 0x0047B590u, x, y, 2);
-        call5(st, 0x0047BAE0u, x, y, 2);
+        call4(st, FN_ROUTING_FILL_ED4140, x, y, 1);
+        call5(st, FN_ROUTING_FILL_EE0C50, x, y, 1);
+        call4(st, FN_ROUTING_FILL_EC7630, x, y, 1);
+        call4(st, FN_FLOODPLAIN_PASS, x, y, 1);
+        call5(st, FN_WATER_PASS, x, y, 2);
+        call4(st, FN_ROADS_RECT, x, y, 2);
+        call5(st, FN_CANALS_RECT, x, y, 2);
         if ((kept & 8) && b != 0) {
             /* @bin 0x004BDA93 a building on a farmable tile */
             uint32_t r = BUILDING_ADDR(b);
-            int16_t type = S16(st, r + 0x10);
+            int16_t type = S16(st, r + BLD_TYPE);
             if (type != 0x63 && type != 0x58 && type != 0x59 && type != 0x5D && type != 0x51 && type != 0x5A &&
-                type != 0x8A && U8(st, r) != 6) {
-                if ((uint8_t) GAME_CALLT(st, MAP, 0x00488030u, b) == 0) {
-                    U8(st, r) = 6;
-                    U8(st, r + 0xBF) = 1;
-                } else if (S32(st, CURRENT_CITY(st) + 0x4998) != 0) {
-                    S32(st, CURRENT_CITY(st) + 0x4998) = 2;
-                    U8(st, r) = 6;
+                type != 0x8A && U8(st, r + BLD_STATE) != 6) {
+                if ((uint8_t) GAME_CALLT(st, G_BUILDING_MANAGER, FN_BUILDING_IS_TYPE_0X487F80, b) == 0) {
+                    U8(st, r + BLD_STATE) = 6;
+                    U8(st, r + BLD_UBF) = 1;
+                } else if (S32(st, CURRENT_CITY(st) + CITY_U4998) != 0) {
+                    S32(st, CURRENT_CITY(st) + CITY_U4998) = 2;
+                    U8(st, r + BLD_STATE) = 6;
                 } else {
                     /* @bin 0x004BDB4E the farm's 3x3 meadow is cleared while every tile has it */
                     int32_t o = building_xy_tile(st, b);
@@ -174,7 +169,7 @@ void flood_tile_step(game_state *st, uint32_t self, int32_t flood)
                         for (int k = 0; k < 3; k++, o++) {
                             uint32_t v = U32(st, terrain_at(o));
                             if (v & 8) {
-                                U8(st, BITS + (uint32_t) o) = 0;
+                                U8(st, G_DAY2_DESTROY_BITS + (uint32_t) o) = 0;
                                 U32(st, terrain_at(o)) = v & ~8u;
                             } else {
                                 ok = 0;
@@ -182,19 +177,19 @@ void flood_tile_step(game_state *st, uint32_t self, int32_t flood)
                         }
                         o += 0xE1;
                     }
-                    U16(st, r + 0x54) = 0;
-                    U16(st, r + 0x40) = 0;
-                    U8(st, r + 0xA6) = 0;
-                    U8(st, r + 0xA7) = 0;
-                    call4(st, 0x004777C0u, (int32_t) P32(st, self + 0xC), (int32_t) P32(st, self + 0x10), 2);
-                    call5(st, 0x00475CC0u, (int32_t) P32(st, self + 0xC), (int32_t) P32(st, self + 0x10), 2);
+                    U16(st, r + BLD_INDUSTRY_PROGRESS) = 0;
+                    U16(st, r + BLD_WORKERS) = 0;
+                    U8(st, r + BLD_SHOWS) = 0;
+                    U8(st, r + BLD_UA7) = 0;
+                    call4(st, FN_FLOODPLAIN_PASS, (int32_t) P32(st, self + 0xC), (int32_t) P32(st, self + 0x10), 2);
+                    call5(st, FN_WATER_PASS, (int32_t) P32(st, self + 0xC), (int32_t) P32(st, self + 0x10), 2);
                 }
             }
         }
         figures_on_tile_flooded(st, t);
         return;
     }
-    int32_t b = S16(st, BUILDING_GRID + 2u * (uint32_t) t);
+    int32_t b = S16(st, G_BUILDING_GRID + 2u * (uint32_t) t);
     uint32_t ter = U32(st, terrain_at(t));
     int32_t x = (int32_t) P32(st, self + 0xC), y = (int32_t) P32(st, self + 0x10);
     if (ter & 4) {
@@ -204,31 +199,31 @@ void flood_tile_step(game_state *st, uint32_t self, int32_t flood)
         if (ter & 0x8000000u) {
             U32(st, terrain_at(t)) = (ter & 0xF7FFFFFFu) | 0x40;
         }
-        call4(st, 0x0047BD50u, x, y, 3);
-        call4(st, 0x00517690u, x, y, 1);
-        call5(st, 0x00516F90u, x, y, 1);
-        call4(st, 0x005173A0u, x, y, 1);
-        call4(st, 0x004777C0u, x, y, 2);
-        call5(st, 0x00475CC0u, x, y, 2);
-        call4(st, 0x0047B590u, x, y, 3);
-        call5(st, 0x0047BAE0u, x, y, 3);
+        call4(st, FN_CANALS_RECT_REDRAW, x, y, 3);
+        call4(st, FN_ROUTING_FILL_ED4140, x, y, 1);
+        call5(st, FN_ROUTING_FILL_EE0C50, x, y, 1);
+        call4(st, FN_ROUTING_FILL_EC7630, x, y, 1);
+        call4(st, FN_FLOODPLAIN_PASS, x, y, 2);
+        call5(st, FN_WATER_PASS, x, y, 2);
+        call4(st, FN_ROADS_RECT, x, y, 3);
+        call5(st, FN_CANALS_RECT, x, y, 3);
         figures_on_tile_drained(st, t);
     } else {
-        GAME_CALL(st, 0x004777C0u, x, y, x + 1, y + 1);
-        call5(st, 0x00475CC0u, x, y, 1);
-        call4(st, 0x0047B590u, x, y, 2);
-        call5(st, 0x0047BAE0u, x, y, 2);
+        GAME_CALL(st, FN_FLOODPLAIN_PASS, x, y, x + 1, y + 1);
+        call5(st, FN_WATER_PASS, x, y, 1);
+        call4(st, FN_ROADS_RECT, x, y, 2);
+        call5(st, FN_CANALS_RECT, x, y, 2);
     }
-    if ((uint8_t) GAME_CALLT(st, MAP, 0x00488030u, b) != 0 && (uint8_t) GAME_CALLT(st, MAP, 0x004894D0u, b) == 0) {
+    if ((uint8_t) GAME_CALLT(st, G_BUILDING_MANAGER, FN_BUILDING_IS_TYPE_0X487F80, b) != 0 && (uint8_t) GAME_CALLT(st, G_BUILDING_MANAGER, FN_BUILDING_AREA_TEST_4894D0, b) == 0) {
         /* @bin 0x004BDFBF a farm's 3x3 meadow comes back */
         int32_t o = building_xy_tile(st, b);
         for (int row = 0; row < 3; row++, o += 0xE4) {
             for (int k = 0; k < 3; k++) {
-                U8(st, BITS + (uint32_t) (o + k)) = 2;
+                U8(st, G_DAY2_DESTROY_BITS + (uint32_t) (o + k)) = 2;
                 U32(st, terrain_at(o + k)) |= 8;
             }
         }
-        GAME_CALLT(st, MAP, 0x00488E60u, b, 0);
+        GAME_CALLT(st, G_BUILDING_MANAGER, FN_FARM_REDRAW_488E60, b, 0);
     }
 }
 
@@ -302,7 +297,7 @@ void flood_quality_roll(game_state *st, uint32_t self)
     static const int32_t table[11][2] = {{2, 100}, {3, 80}, {5, 60}, {10, 40}, {15, 20}, {30, 0},
                                          {15, -20}, {10, -40}, {5, -60}, {3, -80}, {2, -100}};
     random_next_state(st);
-    int32_t r = S32(st, 0x00D3B370u) % 99 + 1;
+    int32_t r = S32(st, G_R_1_15) % 99 + 1;
     int32_t v = 9999, acc = 0;
     for (uint32_t i = 0; v == 9999 && i < 11; i++) {
         acc += table[i][0];
@@ -325,7 +320,7 @@ void flood_season_start(game_state *st, uint32_t self)
     PS32(st, s + 0x10) = PS32(st, s + 4);
     PS32(st, s + 0xC) = PS32(st, s);
     PS32(st, s + 0x1C) = PS32(st, s + 8);
-    PS32(st, s + 0x20) = GAME_CALLT0(st, s, 0x004BD590u);
+    PS32(st, s + 0x20) = GAME_CALLT0(st, s, FN_FLOOD_0X4BD590);
     flood_quality_roll(st, s);
 }
 
@@ -339,22 +334,22 @@ void flood_season_end(game_state *st, uint32_t self)
     PS32(st, s + 0x10) = PS32(st, s + 4);
     for (int32_t f = 1; f < 2000; f++) {
         uint32_t r = FIGURE_ADDR(f);
-        uint8_t action = U8(st, r + 0x38);
-        switch (U8(st, r + 0xA)) {
+        uint8_t action = U8(st, r + FIG_ACTION);
+        switch (U8(st, r + FIG_TYPE)) {
         case 0x14:
             if (action == 10 || action == 12) {
                 break;
             }
-            GAME_CALLT(st, self, 0x004BE4A0u, f);
+            GAME_CALLT(st, self, FN_BOAT_UNSTICK, f);
             break;
         case 0x19:
             if (action == 12) {
                 break;
             }
-            GAME_CALLT(st, self, 0x004BE4A0u, f);
+            GAME_CALLT(st, self, FN_BOAT_UNSTICK, f);
             break;
         case 0x4D: case 0x4E: case 0x5C: case 0x5D: case 0x64: case 0x65:
-            GAME_CALLT(st, self, 0x004BE4A0u, f);
+            GAME_CALLT(st, self, FN_BOAT_UNSTICK, f);
             break;
         default:
             break;

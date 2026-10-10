@@ -36,4 +36,9 @@
 #define G_NOTICE_POSTED 0x00E94E20u    /* i32 := 1 by a post */
 #define G_UF53F34 0x00F53F34u          /* i32 per notice, cleared by a post */
 
+/* Package P3 (phase 10.3) */
+#define G_MESSAGE_DELAYS 0x00E95124u /* @bin 0x004E1850 i32[20]: per-category message delays, monthly -1 (save.md §3 chunk 83) */
+#define G_MESSAGE_COUNTERS 0x00E95174u /* @bin 0x00468B70 i32[20]: per-category message counters (save.md §3 chunk 82) */
+#define G_POPULATION_MILESTONES 0x00E951C5u /* @bin 0x00458649 u8[9]: the population messages posted (500 .. 25000) */
+
 #endif

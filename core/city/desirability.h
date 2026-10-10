@@ -5,23 +5,19 @@
 #ifndef IMHOTEP_CITY_DESIRABILITY_H
 #define IMHOTEP_CITY_DESIRABILITY_H
 
+#include "state/layout/g_building.h"
 #include "state/state.h"
 
 #define DESIRABILITY_GRID_SIDE 228
 
-/* Variables read and written (Pharaoh.exe addresses, game_state). */
-#define DESIRABILITY_GRID 0x00AC2D4Cu      /* i8 per tile, chunk 16 (written) */
-#define DESIRABILITY_BASE 0x00BC9768u      /* grid offset of the last footprint (written) */
-#define BITFIELDS_GRID 0x00B285CCu         /* u8 per tile, chunk 13 (bit 0x80 may be cleared) */
-#define TERRAIN_GRID 0x00AF598Cu           /* u32 per tile, chunk 10 */
-#define BUILDINGS 0x007999D8u              /* 4000 x 264 bytes, chunk 32 */
-#define BUILDING_SIZE 264
-#define MAX_BUILDING_ID 0x0078D790u        /* chunk 93 */
-#define MODEL_BUILDING 0x00705EA4u         /* building model: 0x28-byte records (model.md) */
-#define MAP_WIDTH 0x00BCA2D0u              /* map size and grid offsets, set at scenario start */
-#define MAP_HEIGHT 0x00BCA2D4u
-#define MAP_START 0x00BCA2D8u              /* grid offset of (0, 0) */
-#define MAP_ROW_SKIP 0x00BCA2DCu           /* 228 - width */
+/* Variables read and written (state/layout.h): G_DESIRABILITY_GRID (i8 per tile, chunk 16, written),
+ * G_TILE_CURSOR (the grid offset of the last footprint, written), G_DAY2_DESTROY_BITS (u8 per tile,
+ * chunk 13: bit 0x80 may be cleared), G_GRID_TERRAIN (chunk 10), the buildings (chunk 32),
+ * G_BUILDING_HIGHEST (chunk 93), G_MODEL_BUILDING (0x28-byte records, model.md) and the map size
+ * (G_MAP_WIDTH, G_MAP_HEIGHT, G_MAP_START, G_MAP_STRIDE_EXTRA). The two names below are kept for
+ * the differential test. */
+#define DESIRABILITY_GRID G_DESIRABILITY_GRID
+#define MAX_BUILDING_ID G_BUILDING_HIGHEST
 
 /* @bin 0x0046A0C0 clear the grid, then every building's rings. */
 void desirability_buildings(game_state *st);

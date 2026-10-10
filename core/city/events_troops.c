@@ -6,32 +6,33 @@
 #include "random/random.h"
 #include "sim/call.h"
 #include "sim/math.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
 /* the formations: records of 0x90 bytes, record 1 at 0x00BCBA58 (+0 in use) */
-#define FORMATION_ADDR(i) (0x00BCB9C8u + 0x90u * (uint32_t) (i))
+#define FORMATION_ADDR(i) (G_FORMATION_BASE + 0x90u * (uint32_t) (i))
 
 void figure_init_military(game_state *st, int32_t f)
 {
     /* @bin 0x00446650 the figure's +0x124.. from the table 0x007090D0 (0x38 bytes by figure type
      * +0xA); +0x158 := 20 percent of its +4; city +0x49A0 += 1 */
     uint32_t r = FIGURE_ADDR(f);
-    S32(st, r + 0x124) = 0;
-    uint32_t t = 0x007090D0u + 0x38u * U8(st, r + 0xA);
-    S32(st, r + 0x128) = S32(st, t);
-    S32(st, r + 0x12C) = S32(st, 0x007090D0u + 0x38u * U8(st, r + 0xA));
-    U8(st, r + 0x130) = 0;
-    S32(st, r + 0x138) = 0;
-    S32(st, r + 0x134) = 0;
-    S32(st, r + 0x13C) = S32(st, 0x007090ECu + 0x38u * U8(st, r + 0xA));
-    S32(st, r + 0x140) = S32(st, 0x007090F4u + 0x38u * U8(st, r + 0xA));
-    S32(st, r + 0x144) = S32(st, 0x007090FCu + 0x38u * U8(st, r + 0xA));
-    S32(st, r + 0x148) = S32(st, 0x00709100u + 0x38u * U8(st, r + 0xA));
-    S32(st, r + 0x150) = S32(st, 0x007090D4u + 0x38u * U8(st, r + 0xA));
-    U8(st, r + 0x154) = 0;
-    S32(st, r + 0x158) = calc_percentage(S32(st, 0x007090D4u + 0x38u * U8(st, r + 0xA)), 0x14);
-    S32(st, CURRENT_CITY(st) + 0x49A0) += 1;
+    S32(st, r + FIG_U124) = 0;
+    uint32_t t = G_FIGURE_TYPES + 0x38u * U8(st, r + FIG_TYPE);
+    S32(st, r + FIG_HIT_POINTS) = S32(st, t);
+    S32(st, r + FIG_HIT_POINTS_MAX) = S32(st, G_FIGURE_TYPES + 0x38u * U8(st, r + FIG_TYPE));
+    U8(st, r + FIG_U130) = 0;
+    S32(st, r + FIG_U138) = 0;
+    S32(st, r + FIG_U134) = 0;
+    S32(st, r + FIG_U13C) = S32(st, G_FIGURE_TYPES + FIGTYPE_U1C + 0x38u * U8(st, r + FIG_TYPE));
+    S32(st, r + FIG_U140) = S32(st, G_FIGURE_TYPES + FIGTYPE_U24 + 0x38u * U8(st, r + FIG_TYPE));
+    S32(st, r + FIG_FRAME_PERIOD) = S32(st, G_FIGURE_TYPES + FIGTYPE_U2C + 0x38u * U8(st, r + FIG_TYPE));
+    S32(st, r + FIG_FRAME_TICKS) = S32(st, G_FIGURE_TYPES + FIGTYPE_U30 + 0x38u * U8(st, r + FIG_TYPE));
+    S32(st, r + FIG_U150) = S32(st, G_FIGURE_TYPES + FIGTYPE_U04 + 0x38u * U8(st, r + FIG_TYPE));
+    U8(st, r + FIG_U154) = 0;
+    S32(st, r + FIG_U158) = calc_percentage(S32(st, G_FIGURE_TYPES + FIGTYPE_U04 + 0x38u * U8(st, r + FIG_TYPE)), 0x14);
+    S32(st, CURRENT_CITY(st) + CITY_U49A0) += 1;
 }
 
 static int32_t entry_dir(game_state *st, int32_t x, int32_t y)
@@ -41,13 +42,13 @@ static int32_t entry_dir(game_state *st, int32_t x, int32_t y)
     if (y == 0) {
         return 4;
     }
-    if (y >= S32(st, 0x00784908u) - 1) {
+    if (y >= S32(st, G_U784908) - 1) {
         return 0;
     }
     if (x == 0) {
         return 2;
     }
-    return x < S32(st, 0x00784904u) - 1 ? 4 : 6;
+    return x < S32(st, G_U784904) - 1 ? 4 : 6;
 }
 
 static void split(int32_t n, int32_t *count, int32_t *sizes)
@@ -81,8 +82,8 @@ int32_t event_troops(game_state *st, int32_t kind, int32_t amount, int32_t where
      * (amount / 4 for ev 0x8C) and the amount in boats of 16. Returns the entry tile, or -1 */
     int32_t a = amount;
     uint32_t rec = 0;
-    if (ev >= 0 && ev < S32(st, 0x00785D70u)) {
-        rec = 0x00785D74u + 0x7Cu * (uint32_t) ev;
+    if (ev >= 0 && ev < S32(st, G_EVENTS)) {
+        rec = G_KINGDOM_EVENTS + 0x7Cu * (uint32_t) ev;
         U8(st, rec + 0x32) = 1;
     }
     if (where >= 9 && where <= 0x10 && kind != 0xD) {
@@ -90,10 +91,10 @@ int32_t event_troops(game_state *st, int32_t kind, int32_t amount, int32_t where
         if (a >= 0x96) {
             a = 0x96;
         }
-        int16_t seq = (int16_t) (U16(st, 0x00775900u) + 1);
-        S16(st, 0x00775900u) = seq > 0x7D00 ? 1 : seq;
+        int16_t seq = (int16_t) (U16(st, G_INVASION_SEQUENCE) + 1);
+        S16(st, G_INVASION_SEQUENCE) = seq > 0x7D00 ? 1 : seq;
         int32_t ax[3], ay[3], n = 0;
-        for (uint32_t p = 0x00784DC4u; p < 0x00784DD0u; p += 4) {
+        for (uint32_t p = G_U784DC4; p < G_U784DD0; p += 4) {
             if (S32(st, p) != -1) {
                 ax[n] = S32(st, p);
                 ay[n] = S32(st, p + 0xC);
@@ -101,55 +102,55 @@ int32_t event_troops(game_state *st, int32_t kind, int32_t amount, int32_t where
             }
         }
         int32_t idx = where - 1;
-        for (int k = 8; k < 0x10 && S16(st, 0x00784BC0u + 2u * (uint32_t) idx) == -1; k++) {
+        for (int k = 8; k < 0x10 && S16(st, G_MAP_POINTS_X + 2u * (uint32_t) idx) == -1; k++) {
             idx++;
             if (idx >= 0x10) {
                 idx = 8;
             }
         }
-        int32_t x = S16(st, 0x00784BC0u + 2u * (uint32_t) idx), y = S16(st, 0x00784BE0u + 2u * (uint32_t) idx);
+        int32_t x = S16(st, G_MAP_POINTS_X + 2u * (uint32_t) idx), y = S16(st, G_MAP_POINTS_Y + 2u * (uint32_t) idx);
         if (x == -1 || y == -1) {
-            x = S16(st, 0x00784C68u);
-            y = S16(st, 0x00784C6Au);
+            x = S16(st, G_EXIT_POINT_X);
+            y = S16(st, G_EXIT_POINT_Y);
         }
         int32_t dir = entry_dir(st, x, y);
-        int32_t tile = (int32_t) (U32(st, 0x00BCA2D8u) + (uint32_t) y * 0xE4u + (uint32_t) x);
+        int32_t tile = (int32_t) (U32(st, G_MAP_START) + (uint32_t) y * 0xE4u + (uint32_t) x);
         int32_t ships;
         if (ev == 0x8C) {
             ships = a / 4;
         } else if (rec != 0) {
             ships = U8(st, rec + 0x36);
         } else {
-            state_unported(st, 0x00446A30u); /* the original reads through a null record */
+            state_unported(st, FN_EVENT_TROOPS); /* the original reads through a null record */
             return 0;
         }
         for (int32_t i = 0; i < ships; i++) {
             int32_t f;
             if (kind == 0xC) {
-                f = GAME_CALL(st, 0x004B4800u, 0, 0x64, x, y, dir);
+                f = GAME_CALL(st, FN_FIGURE_CREATE, 0, 0x64, x, y, dir);
             } else {
                 int32_t px = x, py = y;
                 spiral_free_water(st, &px, &py);
-                f = GAME_CALL(st, 0x004B4800u, 0, 0x5D, px, py, dir);
+                f = GAME_CALL(st, FN_FIGURE_CREATE, 0, 0x5D, px, py, dir);
             }
             uint32_t r = FIGURE_ADDR(f);
-            U8(st, r + 0xD) = 0;
-            U8(st, r + 0x38) = 8;
-            S16(st, r + 0x36) = (int16_t) (i * 25 + 10);
-            GAME_CALL(st, 0x004B5AF0u, f);
-            U8(st, r + 0x65) = 1;
-            U8(st, r + 0x76) = 1;
-            S32(st, r + 0x180) = 0;
+            U8(st, r + FIG_U0D) = 0;
+            U8(st, r + FIG_ACTION) = 8;
+            S16(st, r + FIG_WAIT_TICKS) = (int16_t) (i * 25 + 10);
+            GAME_CALL(st, FN_FIGURE_ASSIGN_SLOT, f);
+            U8(st, r + FIG_INVISIBLE) = 1;
+            U8(st, r + FIG_BOAT_MODE) = 1;
+            S32(st, r + FIG_U180) = 0;
             figure_init_military(st, f);
-            U8(st, r + 0x80) = U8(st, 0x0078D7C0u);
+            U8(st, r + FIG_U80) = U8(st, G_MONTH);
         }
         int32_t pick = 0;
         if (n > 0) {
             random_next_state(st);
-            pick = (int32_t) (U32(st, 0x00D3B370u) & 0x7FFF) % n;
+            pick = (int32_t) (U32(st, G_R_1_15) & 0x7FFF) % n;
         }
         if (a != 0 && n == 0) {
-            state_unported(st, 0x00446A30u); /* the landing point comes from uninitialized locals */
+            state_unported(st, FN_EVENT_TROOPS); /* the landing point comes from uninitialized locals */
             return 0;
         }
         for (int32_t k = 0; a != 0; k++) {
@@ -163,47 +164,47 @@ int32_t event_troops(game_state *st, int32_t kind, int32_t amount, int32_t where
             }
             int32_t px = x, py = y;
             spiral_free_water(st, &px, &py);
-            int32_t f = GAME_CALL(st, 0x004B4800u, 0, kind == 0xC ? 0x65 : 0x5C, px, py, dir);
+            int32_t f = GAME_CALL(st, FN_FIGURE_CREATE, 0, kind == 0xC ? 0x65 : 0x5C, px, py, dir);
             uint32_t r = FIGURE_ADDR(f);
-            S16(st, r + 0x30) = (int16_t) ax[pick];
-            S16(st, r + 0x32) = (int16_t) ay[pick];
-            U8(st, r + 0xD) = 0;
-            U8(st, r + 0x38) = 8;
-            S16(st, r + 0x36) = (int16_t) (k * 40 + 10);
-            GAME_CALL(st, 0x004B5AF0u, f);
-            U8(st, r + 0x65) = 1;
-            U8(st, r + 0x76) = 1;
-            S32(st, r + 0x180) = 0;
-            GAME_CALL(st, 0x004620C0u, f);
-            U8(st, r + 0x130) = 1;
-            S32(st, r + 0x16C) = batch;
-            S32(st, r + 0x170) = S16(st, 0x00775900u);
-            S32(st, r + 0x174) = kind;
-            S32(st, r + 0x178) = arg4;
-            S32(st, r + 0x17C) = ev;
+            S16(st, r + FIG_U30) = (int16_t) ax[pick];
+            S16(st, r + FIG_U32) = (int16_t) ay[pick];
+            U8(st, r + FIG_U0D) = 0;
+            U8(st, r + FIG_ACTION) = 8;
+            S16(st, r + FIG_WAIT_TICKS) = (int16_t) (k * 40 + 10);
+            GAME_CALL(st, FN_FIGURE_ASSIGN_SLOT, f);
+            U8(st, r + FIG_INVISIBLE) = 1;
+            U8(st, r + FIG_BOAT_MODE) = 1;
+            S32(st, r + FIG_U180) = 0;
+            GAME_CALL(st, FN_FIGURE_INIT_TYPE_VALUES, f);
+            U8(st, r + FIG_U130) = 1;
+            S32(st, r + FIG_U16C) = batch;
+            S32(st, r + FIG_U170) = S16(st, G_INVASION_SEQUENCE);
+            S32(st, r + FIG_U174) = kind;
+            S32(st, r + FIG_U178) = arg4;
+            S32(st, r + FIG_U17C) = ev;
         }
         return tile;
     }
     /* @bin 0x00446EF9 by land */
-    int32_t n0 = calc_percentage(a, S32(st, 0x005D19B0u + 4u * U32(st, 0x00E39080u)));
+    int32_t n0 = calc_percentage(a, S32(st, G_U5D19B0 + 4u * U32(st, G_DIFFICULTY)));
     if (n0 >= 0x96) {
         n0 = 0x96;
     }
-    int16_t seq = (int16_t) (U16(st, 0x00775900u) + 1);
-    S16(st, 0x00775900u) = seq > 0x7D00 ? 1 : seq;
+    int16_t seq = (int16_t) (U16(st, G_INVASION_SEQUENCE) + 1);
+    S16(st, G_INVASION_SEQUENCE) = seq > 0x7D00 ? 1 : seq;
     int32_t p0, p1, p2;
     if (kind == 0xC) {
-        p0 = S32(st, 0x00709CC0u);
-        p1 = S32(st, 0x00709CF8u);
-        p2 = S32(st, 0x00709D30u);
+        p0 = S32(st, G_FIGURE_TYPES + FIGTYPE_U20 + G_FIGURE_TYPE_STRIDE * 54);
+        p1 = S32(st, G_FIGURE_TYPES + FIGTYPE_U20 + G_FIGURE_TYPE_STRIDE * 55);
+        p2 = S32(st, G_FIGURE_TYPES + FIGTYPE_U20 + G_FIGURE_TYPE_STRIDE * 56);
     } else if (kind == 0xD) {
-        p0 = S32(st, 0x0070A698u);
+        p0 = S32(st, G_FIGURE_TYPES + FIGTYPE_U20 + G_FIGURE_TYPE_STRIDE * 99);
         p1 = 0;
         p2 = 0;
     } else {
-        p0 = S32(st, 0x00709A90u);
-        p1 = S32(st, 0x00709A58u);
-        p2 = S32(st, 0x00709AC8u);
+        p0 = S32(st, G_FIGURE_TYPES + FIGTYPE_U20 + G_FIGURE_TYPE_STRIDE * 44);
+        p1 = S32(st, G_FIGURE_TYPES + FIGTYPE_U20 + G_FIGURE_TYPE_STRIDE * 43);
+        p2 = S32(st, G_FIGURE_TYPES + FIGTYPE_U20 + G_FIGURE_TYPE_STRIDE * 45);
     }
     (void) p0; /* @bin 0x00446F83 its percent is computed and not used */
     int32_t second = calc_percentage(n0, p1);
@@ -215,38 +216,38 @@ int32_t event_troops(game_state *st, int32_t kind, int32_t amount, int32_t where
     split(third, &groups[2], sizes[2]);
     int32_t x, y;
     if (kind == 0xB) {
-        x = S16(st, 0x00784C64u);
-        y = S16(st, 0x00784C66u);
+        x = S16(st, G_ENTRY_POINT_X);
+        y = S16(st, G_ENTRY_POINT_Y);
     } else {
         int32_t cnt = 0;
-        for (uint32_t p = 0x00784BC0u; p < 0x00784BD0u; p += 2) {
+        for (uint32_t p = G_MAP_POINTS_X; p < G_MAP_POINTS_X + 2 * 8; p += 2) {
             if (S16(st, p) != -1) {
                 cnt++;
             }
         }
         int32_t idx;
         if (where == 8) {
-            uint32_t r7 = U32(st, 0x00D3B374u);
+            uint32_t r7 = U32(st, G_R_1_7);
             idx = (int32_t) (cnt <= 2 ? r7 & 1 : cnt <= 4 ? r7 & 3 : r7 & 7);
         } else {
             idx = where - 1;
         }
-        for (int k = 0; k < 8 && S16(st, 0x00784BC0u + 2u * (uint32_t) idx) == -1; k++) {
+        for (int k = 0; k < 8 && S16(st, G_MAP_POINTS_X + 2u * (uint32_t) idx) == -1; k++) {
             idx++;
             if (idx >= 8) {
                 idx = 0;
             }
         }
-        x = S16(st, 0x00784BC0u + 2u * (uint32_t) idx);
-        y = S16(st, 0x00784BE0u + 2u * (uint32_t) idx);
+        x = S16(st, G_MAP_POINTS_X + 2u * (uint32_t) idx);
+        y = S16(st, G_MAP_POINTS_Y + 2u * (uint32_t) idx);
     }
     if (x == -1 || y == -1) {
-        x = S16(st, 0x00784C68u);
-        y = S16(st, 0x00784C6Au);
+        x = S16(st, G_EXIT_POINT_X);
+        y = S16(st, G_EXIT_POINT_Y);
     }
     int32_t dir = entry_dir(st, x, y);
-    int32_t tile = (int32_t) (U32(st, 0x00BCA2D8u) + (uint32_t) y * 0xE4u + (uint32_t) x);
-    uint32_t fl = U32(st, 0x00AF598Cu + 4u * (uint32_t) tile);
+    int32_t tile = (int32_t) (U32(st, G_MAP_START) + (uint32_t) y * 0xE4u + (uint32_t) x);
+    uint32_t fl = U32(st, G_GRID_TERRAIN + 4u * (uint32_t) tile);
     if (fl & 0x203) {
         return -1;
     }
@@ -255,7 +256,7 @@ int32_t event_troops(game_state *st, int32_t kind, int32_t amount, int32_t where
             return -1;
         }
     } else if (fl & 0xC108) {
-        GAME_CALL(st, 0x00469140u, x, y, tile);
+        GAME_CALL(st, FN_BUILDING_DESTROY_AT_0X469140, x, y, tile);
     }
     int32_t spawned = 0;
     for (int g = 0; g < 3; g++) {
@@ -272,7 +273,7 @@ int32_t event_troops(game_state *st, int32_t kind, int32_t amount, int32_t where
             t = g == 1 ? 0x2B : g == 2 ? 0x2D : 0x2C;
         }
         for (int32_t j = 0; j < groups[g]; j++) {
-            int32_t fm = GAME_CALL(st, 0x004B6FF0u, t, m, dir, x, y);
+            int32_t fm = GAME_CALL(st, FN_FORMATION_CREATE_0X4B6FF0, t, m, dir, x, y);
             if (fm <= 0) {
                 continue;
             }
@@ -281,17 +282,17 @@ int32_t event_troops(game_state *st, int32_t kind, int32_t amount, int32_t where
             U8(st, fr + 0x71) = (uint8_t) dir;
             U8(st, fr + 0x6A) = (uint8_t) kind;
             S16(st, fr + 0x78) = (int16_t) ev;
-            S16(st, fr + 0x88) = S16(st, 0x00775900u);
+            S16(st, fr + 0x88) = S16(st, G_INVASION_SEQUENCE);
             int32_t size = sizes[g][j];
             for (int32_t i = 0; i < size; i++) {
-                int32_t f = GAME_CALL(st, 0x004B4800u, 0, t, x, y, dir);
+                int32_t f = GAME_CALL(st, FN_FIGURE_CREATE, 0, t, x, y, dir);
                 uint32_t r = FIGURE_ADDR(f);
-                U8(st, r + 0xD) = 0;
-                U8(st, r + 0x38) = 9;
-                S16(st, r + 0x36) = (int16_t) ((i + 20 * spawned + 1) * 10);
-                S16(st, r + 0x60) = (int16_t) fm;
-                GAME_CALL(st, 0x004B5AF0u, f);
-                U8(st, r + 0x65) = 1;
+                U8(st, r + FIG_U0D) = 0;
+                U8(st, r + FIG_ACTION) = 9;
+                S16(st, r + FIG_WAIT_TICKS) = (int16_t) ((i + 20 * spawned + 1) * 10);
+                S16(st, r + FIG_FORMATION) = (int16_t) fm;
+                GAME_CALL(st, FN_FIGURE_ASSIGN_SLOT, f);
+                U8(st, r + FIG_INVISIBLE) = 1;
             }
             spawned++;
         }

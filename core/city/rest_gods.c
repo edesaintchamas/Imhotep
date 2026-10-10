@@ -7,32 +7,30 @@
 #include "city/monument_rating.h"
 #include "random/crt_rand.h"
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define BUILDINGS_LAST 0x0078D790u /* the highest building id in use */
-#define MISSION_KIND 0x005E4EF4u
-#define SOUND_GOD 0x00E950E0u
 
 static int32_t pyramid_parts(game_state *st, uint32_t r)
 {
     /* @bin 0x0056F7EC / 0x0056F7D8 the number of parts by size +0x54 (mission kind 5 or not) */
-    uint32_t size = U8(st, r + 0x54);
-    return S32(st, MISSION_KIND) == 5 ? S32(st, 0x0056F7ECu + 4u * size) : S32(st, 0x0056F7D8u + 4u * size);
+    uint32_t size = U8(st, r + BLD_MONUMENT_KIND);
+    return S32(st, G_PYRAMID_KIND) == 5 ? S32(st, G_PYRAMID_PARTS_KIND5 + 4u * size) : S32(st, G_PYRAMID_PARTS + 4u * size);
 }
 
 int32_t pyramid_progress_4f5340(game_state *st)
 {
     /* @bin 0x004F5340 with 0x00E38EC3 set, the pyramid (type 0xB7) of the largest size +0x54
      * (first of equals): 2 when its percent (0x004F1310 +0x34) is below 50, 1 below 75, else 0 */
-    if (U8(st, 0x00E38EC3u) == 0) {
+    if (U8(st, G_UE38EC3) == 0) {
         return 0;
     }
     int32_t best = -1, sel = 0;
-    for (int32_t b = 1; b <= S32(st, BUILDINGS_LAST); b++) {
+    for (int32_t b = 1; b <= S32(st, G_BUILDING_HIGHEST); b++) {
         uint32_t r = BUILDING_ADDR(b);
-        if (U8(st, r) == 1 && S16(st, r + 0x10) == 0xB7 && (int32_t) U8(st, r + 0x54) > best) {
-            best = U8(st, r + 0x54);
+        if (U8(st, r + BLD_STATE) == 1 && S16(st, r + BLD_TYPE) == 0xB7 && (int32_t) U8(st, r + BLD_MONUMENT_KIND) > best) {
+            best = U8(st, r + BLD_MONUMENT_KIND);
             sel = b;
         }
     }
@@ -57,32 +55,32 @@ void pyramid_speedup_4f3aa0(game_state *st, int32_t k)
      * left (parts x k, or work left 0x004F1310 capped at parts x k x 2) into 0x0078D7A4, with
      * 0x00EAAF5C set */
     int32_t best = 999999;
-    if (S32(st, BUILDINGS_LAST) <= 1) {
+    if (S32(st, G_BUILDING_HIGHEST) <= 1) {
         return;
     }
     int32_t b = 1;
     do {
         uint32_t r = BUILDING_ADDR(b);
-        if (U8(st, r) == 1 && S16(st, r + 0x10) == 0xB7) {
+        if (U8(st, r + BLD_STATE) == 1 && S16(st, r + BLD_TYPE) == 0xB7) {
             int32_t v = 999999;
             for (int32_t f = 1; f < FIGURE_COUNT; f++) {
                 uint32_t fr = FIGURE_ADDR(f);
-                if (U8(st, fr + 0xE) == 0) {
+                if (U8(st, fr + FIG_STATE) == 0) {
                     continue;
                 }
-                uint8_t type = U8(st, fr + 0xA);
+                uint8_t type = U8(st, fr + FIG_TYPE);
                 if (type != 0x55 && type != 0x51 && type != 0x4F && type != 0x50 && type != 0x60) {
                     continue;
                 }
-                if (type == 0x55 && S16(st, fr + 0x5E) < b) {
+                if (type == 0x55 && S16(st, fr + FIG_DEST_BUILDING) < b) {
                     continue;
                 }
-                if (S16(st, fr + 0x5E) < pyramid_parts(st, r) + b) {
-                    U8(st, fr + 0x38) = 4;
-                    GAME_CALL(st, 0x004B5420u, f);
+                if (S16(st, fr + FIG_DEST_BUILDING) < pyramid_parts(st, r) + b) {
+                    U8(st, fr + FIG_ACTION) = 4;
+                    GAME_CALL(st, FN_FIGURE_TILE_LIST_REMOVE, f);
                 }
             }
-            if (U8(st, r + 0x55) > 1) {
+            if (U8(st, r + BLD_U55) > 1) {
                 int32_t s[0x1C];
                 pyramid_status(st, b, s);
                 v = s[0x11] - s[0x10] + 1;
@@ -90,7 +88,7 @@ void pyramid_speedup_4f3aa0(game_state *st, int32_t k)
                 if (cap < v) {
                     v = cap;
                 }
-            } else if ((uint8_t) GAME_CALL(st, 0x004F53D0u, b) == 0) {
+            } else if ((uint8_t) GAME_CALL(st, FN_PYRAMID_PART_DONE, b) == 0) {
                 v = (int32_t) ((uint32_t) pyramid_parts(st, r) * (uint32_t) k);
             }
             if (v < best) {
@@ -99,10 +97,10 @@ void pyramid_speedup_4f3aa0(game_state *st, int32_t k)
             b += pyramid_parts(st, r) - 1;
         }
         b++;
-    } while (b < S32(st, BUILDINGS_LAST));
+    } while (b < S32(st, G_BUILDING_HIGHEST));
     if (best != 999999) {
-        U8(st, 0x00EAAF5Cu) = 1;
-        S32(st, 0x0078D7A4u) = best;
+        U8(st, G_GOD_CURSE) = 1;
+        S32(st, G_GOD_CURSE_TIMER) = best;
     }
 }
 
@@ -115,16 +113,16 @@ int32_t storage_fill_4c3950(game_state *st)
     int32_t best = 10000, sel = 0;
     for (int32_t b = 1; b < BUILDING_COUNT; b++) {
         uint32_t r = BUILDING_ADDR(b);
-        if (U8(st, r) != 1) {
+        if (U8(st, r + BLD_STATE) != 1) {
             continue;
         }
-        int16_t type = S16(st, r + 0x10);
+        int16_t type = S16(st, r + BLD_TYPE);
         if (type != 0x48 && type != 0xC1) {
             continue;
         }
         int32_t sum = 0;
         for (int i = 0; i < 6; i++) {
-            sum += GAME_CALL(st, 0x0045D510u, b, goods[i]);
+            sum += GAME_CALL(st, FN_BUILDING_PARTS_STOCK, b, goods[i]);
         }
         if (sum != 0 && sum < best) {
             best = sum;
@@ -136,19 +134,19 @@ int32_t storage_fill_4c3950(game_state *st)
     }
     int32_t least = 10000, good = 0;
     for (int i = 0; i < 6; i++) {
-        int32_t v = GAME_CALL(st, 0x0045D510u, sel, goods[i]);
+        int32_t v = GAME_CALL(st, FN_BUILDING_PARTS_STOCK, sel, goods[i]);
         if (v != 0 && v < least) {
             good = goods[i];
             least = v;
         }
     }
     if (good != 0) {
-        uint32_t idx = (uint32_t) good + 98u * U8(st, BUILDING_ADDR(sel) + 0xC1);
-        int32_t amount = S16(st, 0x007900ECu + 2u * idx) - least;
+        uint32_t idx = (uint32_t) good + 98u * U8(st, BUILDING_ADDR(sel) + BLD_STORAGE_ID);
+        int32_t amount = S16(st, G_STORAGE_FILL + 2u * idx) - least;
         if (amount < 0) {
             amount = 0;
         }
-        GAME_CALL(st, 0x0045B2A0u, S32(st, CURRENT_PLAYER_ADDR), sel, good, amount);
+        GAME_CALL(st, FN_STORAGE_ADD, S32(st, CURRENT_PLAYER_ADDR), sel, good, amount);
     }
     return sel;
 }
@@ -159,9 +157,9 @@ static int32_t pick_present(game_state *st, int32_t *types, const int32_t *goods
      * by good); a random one (CRT rand), or 0 */
     int32_t count = 0;
     for (int i = 0; i < n; i++) {
-        if (S32(st, 0x00705AF0u + 4u * (uint32_t) types[i]) > 0) {
+        if (S32(st, G_DAY_BUILDINGS_TYPE_COUNT + 4u * (uint32_t) types[i]) > 0) {
             count++;
-        } else if (goods[i] > 0 && S32(st, 0x0078D64Cu + 4u * (uint32_t) goods[i]) > 0) {
+        } else if (goods[i] > 0 && S32(st, G_INDUSTRY_WORKING + 4u * (uint32_t) goods[i]) > 0) {
             count++;
         } else {
             types[i] = 0;
@@ -199,7 +197,7 @@ int32_t workshops_fill_4c3ac0(game_state *st)
     }
     for (int32_t b = 1; b < BUILDING_COUNT; b++) {
         uint32_t r = BUILDING_ADDR(b);
-        if (U8(st, r) != 1 || S16(st, r + 0x10) != type) {
+        if (U8(st, r + BLD_STATE) != 1 || S16(st, r + BLD_TYPE) != type) {
             continue;
         }
         /* @bin 0x004C3D14 the capacity by type */
@@ -218,12 +216,12 @@ int32_t workshops_fill_4c3ac0(game_state *st)
             cap = 200;
             break;
         }
-        int32_t amount = cap - S16(st, r + 0x3C);
+        int32_t amount = cap - S16(st, r + BLD_STORED);
         if (amount < 0) {
             amount = 0;
         }
-        uint32_t g = (uint32_t) (S16(st, r + 0x12) - 1);
-        GAME_CALL(st, 0x0045FE20u, b, amount, g <= 0x19 ? good_of[g] : -1);
+        uint32_t g = (uint32_t) (S16(st, r + BLD_SUBTYPE) - 1);
+        GAME_CALL(st, FN_BUILDING_ADD_GOOD, b, amount, g <= 0x19 ? good_of[g] : -1);
     }
     return 1;
 }
@@ -232,15 +230,15 @@ static void destroy_with_routes(game_state *st, int32_t b)
 {
     /* the building collapses (0x0046D100, 0x004695D0), the sound 0x11, the routing grids
      * around it filled again (0x00516F90, 0x005173A0) */
-    S32(st, SOUND_GOD) = 0;
-    GAME_CALL(st, 0x0046D100u, b, 0);
-    GAME_CALL(st, 0x004695D0u, b, 1);
-    GAME_CALL(st, 0x0053B090u, 0x11);
+    S32(st, G_UE950E0) = 0;
+    GAME_CALL(st, FN_BUILDING_COLLAPSE, b, 0);
+    GAME_CALL(st, FN_BUILDING_DESTROY_LINKED, b, 1);
+    GAME_CALL(st, FN_UI_SOUND, 0x11);
     uint32_t r = BUILDING_ADDR(b);
-    int32_t s = U8(st, r + 3), x = S16(st, r + 6), y = S16(st, r + 8);
-    GAME_CALL(st, 0x00516F90u, x - s, y - s, x + s, y + s, 1);
-    x = S16(st, r + 6), y = S16(st, r + 8), s = U8(st, r + 3);
-    GAME_CALL(st, 0x005173A0u, x - s, y - s, x + s, y + s, 1);
+    int32_t s = U8(st, r + BLD_SIZE), x = S16(st, r + BLD_X), y = S16(st, r + BLD_Y);
+    GAME_CALL(st, FN_ROUTING_FILL_EE0C50, x - s, y - s, x + s, y + s, 1);
+    x = S16(st, r + BLD_X), y = S16(st, r + BLD_Y), s = U8(st, r + BLD_SIZE);
+    GAME_CALL(st, FN_ROUTING_FILL_EC7630, x - s, y - s, x + s, y + s, 1);
 }
 
 int32_t buildings_destroy_4c3ed0(game_state *st)
@@ -255,15 +253,15 @@ int32_t buildings_destroy_4c3ed0(game_state *st)
     }
     for (int32_t b = 1; b < BUILDING_COUNT; b++) {
         uint32_t r = BUILDING_ADDR(b);
-        if (U8(st, r) == 1 && S16(st, r + 0x10) == type) {
-            GAME_CALL(st, 0x0046D100u, b, 0);
-            GAME_CALL(st, 0x004695D0u, b, 1);
+        if (U8(st, r + BLD_STATE) == 1 && S16(st, r + BLD_TYPE) == type) {
+            GAME_CALL(st, FN_BUILDING_COLLAPSE, b, 0);
+            GAME_CALL(st, FN_BUILDING_DESTROY_LINKED, b, 1);
         }
     }
-    S32(st, SOUND_GOD) = 0;
-    GAME_CALL(st, 0x0053B090u, 0x11);
-    GAME_CALL0(st, 0x00517370u);
-    GAME_CALL0(st, 0x00517660u);
+    S32(st, G_UE950E0) = 0;
+    GAME_CALL(st, FN_UI_SOUND, 0x11);
+    GAME_CALL0(st, FN_ROUTING_REBUILD_EE0C50);
+    GAME_CALL0(st, FN_ROUTING_REBUILD_EC7630);
     return 1;
 }
 
@@ -274,16 +272,16 @@ void storage_strike_4c4020(game_state *st, int32_t destroy)
     int32_t best = 0, sel = 0;
     for (int32_t b = 1; b < BUILDING_COUNT; b++) {
         uint32_t r = BUILDING_ADDR(b);
-        if (U8(st, r) != 1) {
+        if (U8(st, r + BLD_STATE) != 1) {
             continue;
         }
-        int16_t type = S16(st, r + 0x10);
+        int16_t type = S16(st, r + BLD_TYPE);
         if (type != 0x48 && type != 0xC1) {
             continue;
         }
         int32_t sum = 0;
         for (int32_t g = 1; g < 0x24; g++) {
-            sum += GAME_CALL(st, 0x0045D510u, b, g);
+            sum += GAME_CALL(st, FN_BUILDING_PARTS_STOCK, b, g);
         }
         if (sum >= best) {
             best = sum;
@@ -297,9 +295,9 @@ void storage_strike_4c4020(game_state *st, int32_t destroy)
         destroy_with_routes(st, sel);
         return;
     }
-    int16_t type = S16(st, BUILDING_ADDR(sel) + 0x10);
+    int16_t type = S16(st, BUILDING_ADDR(sel) + BLD_TYPE);
     if (type == 0x48 || type == 0xC1) {
-        GAME_CALL(st, 0x0045B700u, sel, 0x10);
+        GAME_CALL(st, FN_STORAGE_TAKE_45B700, sel, 0x10);
     }
 }
 
@@ -310,7 +308,7 @@ int32_t fort_destroy_4c41b0(game_state *st)
      * get state 2 */
     int32_t best = 0, b = 0;
     for (int32_t f = 1; f < 50; f++) {
-        uint32_t r = 0x00BCB9C8u + 0x90u * (uint32_t) f;
+        uint32_t r = G_FORMATION_BASE + 0x90u * (uint32_t) f;
         if (U8(st, r) == 1 && U8(st, r + 0x42) != 0 && S16(st, r + 0x7A) >= best) {
             b = S16(st, r + 6);
             best = S16(st, r + 0x7A);
@@ -319,23 +317,23 @@ int32_t fort_destroy_4c41b0(game_state *st)
     if (b == 0) {
         return 0;
     }
-    S32(st, SOUND_GOD) = 0;
-    uint32_t list = 0x00BCB9D0u + 0x90u * (uint32_t) b;
+    S32(st, G_UE950E0) = 0;
+    uint32_t list = G_FORMATION_BASE + 8u + 0x90u * (uint32_t) b;
     for (int i = 0; i < 0x10; i++) {
         int16_t f = S16(st, list + 2u * (uint32_t) i);
         if (f == 0) {
             break;
         }
-        U8(st, FIGURE_ADDR(f) + 0xE) = 2;
+        U8(st, FIGURE_ADDR(f) + FIG_STATE) = 2;
     }
-    GAME_CALL(st, 0x0046D100u, b, 0);
-    GAME_CALL(st, 0x004695D0u, b, 1);
-    GAME_CALL(st, 0x0053B090u, 0x11);
+    GAME_CALL(st, FN_BUILDING_COLLAPSE, b, 0);
+    GAME_CALL(st, FN_BUILDING_DESTROY_LINKED, b, 1);
+    GAME_CALL(st, FN_UI_SOUND, 0x11);
     uint32_t r = BUILDING_ADDR(b);
     int32_t s = U8(st, r + 3), x = S16(st, r + 6), y = S16(st, r + 8);
-    GAME_CALL(st, 0x00516F90u, x - s, y - s, x + s, y + s, 1);
+    GAME_CALL(st, FN_ROUTING_FILL_EE0C50, x - s, y - s, x + s, y + s, 1);
     x = S16(st, r + 6), y = S16(st, r + 8), s = U8(st, r + 3);
-    GAME_CALL(st, 0x005173A0u, x - s, y - s, x + s, y + s, 1);
+    GAME_CALL(st, FN_ROUTING_FILL_EC7630, x - s, y - s, x + s, y + s, 1);
     return 1;
 }
 
@@ -345,27 +343,27 @@ void houses_stock_4c42b0(game_state *st)
      * needs (food: population +0x1C x 6; goods 0xF, 0xD, 0x11, 0x13 from table 0x0070CDF8 by
      * level +0x12, x 2, x 8 above size 1); storage yards (0x46): the city's goods (list 0x00F53E70,
      * 0x005013A0) in stock raised to at least 800 (good 1), 600 (2..8) or 400, at most 20000 */
-    int32_t cnt = S32(st, 0x00F53E6Cu);
+    int32_t cnt = S32(st, G_D_CALLBACKS_LIST_COUNT);
     for (int32_t b = 0; b < BUILDING_COUNT; b++) {
         uint32_t r = BUILDING_ADDR(b);
-        if (U8(st, r) != 1) {
+        if (U8(st, r + BLD_STATE) != 1) {
             continue;
         }
-        int16_t type = S16(st, r + 0x10);
+        int16_t type = S16(st, r + BLD_TYPE);
         if (type >= 0xA && type <= 0x1D) {
             for (uint32_t k = 0; k < 12; k++) {
-                uint32_t w = r + 0x54 + 2u * k;
+                uint32_t w = r + BLD_HOUSE_INVENTORY + 2u * k;
                 if (S16(st, w) == 0) {
                     continue;
                 }
                 if (k <= 7) {
-                    S16(st, w) = (int16_t) (S16(st, r + 0x1C) * 6);
+                    S16(st, w) = (int16_t) (S16(st, r + BLD_POPULATION) * 6);
                     continue;
                 }
                 /* @bin 0x004C4530 by good (k 8..11: 0xF, 0xD, 0x11, 0x13) */
-                uint32_t table = k == 8 ? 0x0070CE04u : k == 9 ? 0x0070CDF8u : k == 10 ? 0x0070CDFCu : 0x0070CE00u;
-                int32_t v = S32(st, table + 0x58u * (uint32_t) (int32_t) S16(st, r + 0x12));
-                if (U8(st, r + 3) > 1) {
+                uint32_t table = k == 8 ? G_HOUSE_LEVEL_U38 : k == 9 ? G_HOUSE_LEVEL_U2C : k == 10 ? G_HOUSE_LEVEL_U30 : G_HOUSE_LEVEL_U34;
+                int32_t v = S32(st, table + 0x58u * (uint32_t) (int32_t) S16(st, r + BLD_SUBTYPE));
+                if (U8(st, r + BLD_SIZE) > 1) {
                     v <<= 2;
                 }
                 S16(st, w) = (int16_t) (v + v);
@@ -376,7 +374,7 @@ void houses_stock_4c42b0(game_state *st)
             }
             int32_t j = 0;
             do {
-                int32_t g = S32(st, 0x00F53E70u + 4u * (uint32_t) j);
+                int32_t g = S32(st, G_GOODS_AVAILABLE + 4u * (uint32_t) j);
                 /* @bin 0x004C454C the stock slot by good */
                 int32_t idx;
                 switch (g) {
@@ -396,7 +394,7 @@ void houses_stock_4c42b0(game_state *st)
                 }
                 /* @bin 0x005013A0 (storage_kind, ported inline in goods.c) goods 1..8, 0xD, 0xF, 0x11, 0x13 */
                 if ((g >= 1 && g <= 8) || g == 0xD || g == 0xF || g == 0x11 || g == 0x13) {
-                    uint32_t w = r + 0x56 + 2u * (uint32_t) idx;
+                    uint32_t w = r + BLD_INVENTORY + 2u * (uint32_t) idx;
                     int16_t have = S16(st, w);
                     if (have != 0) {
                         int32_t lim = g >= 1 && g <= 8 ? (g != 1 ? 600 : 800) : 400;
@@ -411,7 +409,7 @@ void houses_stock_4c42b0(game_state *st)
                     }
                 }
                 j++;
-                cnt = S32(st, 0x00F53E6Cu);
+                cnt = S32(st, G_D_CALLBACKS_LIST_COUNT);
             } while (j < cnt);
         }
     }
@@ -593,7 +591,7 @@ void crt_qsort_state(game_state *st, uint32_t base, uint32_t num, uint32_t width
 static int by_part(game_state *st, int32_t a, int32_t b)
 {
     /* @bin 0x004C45A0 by +0x12 */
-    int32_t x = S16(st, BUILDING_ADDR(a) + 0x12), y = S16(st, BUILDING_ADDR(b) + 0x12);
+    int32_t x = S16(st, BUILDING_ADDR(a) + BLD_SUBTYPE), y = S16(st, BUILDING_ADDR(b) + BLD_SUBTYPE);
     return x < y ? -1 : x > y;
 }
 
@@ -607,8 +605,8 @@ void houses_destroy_4c45e0(game_state *st)
     int full = 0;
     for (int32_t b = 1; b < BUILDING_COUNT; b++) {
         uint32_t r = BUILDING_ADDR(b);
-        int16_t type = S16(st, r + 0x10);
-        if (type >= 0xA && type <= 0x1D && U8(st, r) == 1) {
+        int16_t type = S16(st, r + BLD_TYPE);
+        if (type >= 0xA && type <= 0x1D && U8(st, r + BLD_STATE) == 1) {
             list[n++] = b;
             if (n >= 20) {
                 full = 1;
@@ -621,16 +619,16 @@ void houses_destroy_4c45e0(game_state *st)
         crt_qsort4(st, list, 20, by_part);
         for (int32_t b = 21; b < BUILDING_COUNT; b++) {
             uint32_t r = BUILDING_ADDR(b);
-            int16_t type = S16(st, r + 0x10);
-            if (type < 0xA || type > 0x1D || U8(st, r) != 1) {
+            int16_t type = S16(st, r + BLD_TYPE);
+            if (type < 0xA || type > 0x1D || U8(st, r + BLD_STATE) != 1) {
                 continue;
             }
-            int16_t lv = S16(st, r + 0x12);
-            if (lv <= S16(st, BUILDING_ADDR(list[19]) + 0x12)) {
+            int16_t lv = S16(st, r + BLD_SUBTYPE);
+            if (lv <= S16(st, BUILDING_ADDR(list[19]) + BLD_SUBTYPE)) {
                 continue;
             }
             for (int32_t i = 0; i < 20; i++) {
-                if (S16(st, BUILDING_ADDR(list[i]) + 0x12) < lv) {
+                if (S16(st, BUILDING_ADDR(list[i]) + BLD_SUBTYPE) < lv) {
                     pos = i;
                     break;
                 }
@@ -652,18 +650,18 @@ void workers_recalled_4b4710(game_state *st)
      * building +0x5A and +0x36 cleared, the building's +0xB4 cleared */
     for (int32_t f = 1; f < FIGURE_COUNT; f++) {
         uint32_t fr = FIGURE_ADDR(f);
-        if (U8(st, fr + 0xE) != 1) {
+        if (U8(st, fr + FIG_STATE) != 1) {
             continue;
         }
-        uint8_t type = U8(st, fr + 0xA);
+        uint8_t type = U8(st, fr + FIG_TYPE);
         if (type != 0x19 && type != 0x4D && type != 0x4E) {
             continue;
         }
-        int16_t b = S16(st, fr + 0x5A);
-        S16(st, fr + 0x5A) = 0;
-        U8(st, fr + 0xA) = 0x43;
-        S16(st, fr + 0x36) = 0;
-        S16(st, BUILDING_ADDR(b) + 0xB4) = 0;
+        int16_t b = S16(st, fr + FIG_HOME);
+        S16(st, fr + FIG_HOME) = 0;
+        U8(st, fr + FIG_TYPE) = 0x43;
+        S16(st, fr + FIG_WAIT_TICKS) = 0;
+        S16(st, BUILDING_ADDR(b) + BLD_SECOND_WALKER) = 0;
     }
 }
 
@@ -671,7 +669,7 @@ static int32_t run_qsort(game_state *st, const int32_t *a)
 {
     uint32_t n = (uint32_t) a[1], w = (uint32_t) a[2];
     if (n >= 2 && w != 0 && state_ptr(st, (uint32_t) a[0], n * w) == NULL) {
-        state_unported(st, 0x00562069u); /* an array outside the state: its caller's stack */
+        state_unported(st, FN_CRT_QSORT); /* an array outside the state: its caller's stack */
         return 0;
     }
     crt_qsort_state(st, (uint32_t) a[0], n, w, (uint32_t) a[3]);
@@ -682,7 +680,7 @@ static int32_t run_swap(game_state *st, const int32_t *a)
 {
     uint32_t w = (uint32_t) a[2];
     if (w != 0 && (state_ptr(st, (uint32_t) a[0], w) == NULL || state_ptr(st, (uint32_t) a[1], w) == NULL)) {
-        state_unported(st, 0x0056220Bu); /* outside the state: its caller's stack */
+        state_unported(st, FN_CRT_QSORT_SWAP); /* outside the state: its caller's stack */
         return 0;
     }
     state_swap(st, (uint32_t) a[0], (uint32_t) a[1], w);

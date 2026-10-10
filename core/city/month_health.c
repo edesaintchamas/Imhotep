@@ -105,11 +105,11 @@ void city_health_update(game_state *st)
             a = 0;
             cc = 0;
             U8(st, h + BLD_SENTIMENT) = S32(st, c + CITY_POPULATION) < 0xC8 ? (uint8_t) (base + 0xA) : base;
-            S32(st, p + BLD_STATE) = 0;
+            S32(st, p) = 0;
             continue;
         }
         int32_t level = S16(st, h + BLD_SUBTYPE);
-        S32(st, p + BLD_STATE) += S32(st, G_HOUSE_LEVEL_U3C + G_HOUSE_LEVEL_STRIDE * (uint32_t) level);
+        S32(st, p) += S32(st, G_HOUSE_LEVEL_U3C + G_HOUSE_LEVEL_STRIDE * (uint32_t) level);
         U8(st, h + BLD_SENTIMENT) = (uint8_t) (U8(st, h + BLD_SENTIMENT) + (uint8_t) ((uint8_t) b + (uint8_t) a + (uint8_t) e));
         n2++;
         uint8_t add_d = 0;

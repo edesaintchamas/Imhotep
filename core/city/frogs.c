@@ -9,10 +9,10 @@
 #include "city/month_mood.h"
 #include "random/random.h"
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 
-#define BREC(id) (0x007999D8u + 0x108u * (uint32_t) (int32_t) (id))
-#define FIG(id) (0x00BCD600u + 0x184u * (uint32_t) (int32_t) (id))
+#define BREC(id) BUILDING_ADDR((int32_t) (id))
 
 static int32_t isqrt_ftol(int32_t d)
 {
@@ -39,20 +39,20 @@ int32_t frog_tile_4e75a0(game_state *st, int32_t id, int32_t *ox, int32_t *oy)
      * (0x004EB800 within the larger map side, 0x00BCA2D0 / 0x00BCA2D4); their distances (the
      * truncated square root, or the radius when none); the strictly nearer one, if nearer than the
      * radius, into *ox, *oy: 1. Else 0 */
-    int32_t radius = S32(st, 0x00BCA2D0u);
-    if (S32(st, 0x00BCA2D4u) > radius) {
-        radius = S32(st, 0x00BCA2D4u);
+    int32_t radius = S32(st, G_MAP_WIDTH);
+    if (S32(st, G_MAP_HEIGHT) > radius) {
+        radius = S32(st, G_MAP_HEIGHT);
     }
     uint32_t b = BREC(id);
     int32_t x1 = 0, y1 = 0, x2 = 0, y2 = 0, d1, d2;
-    if (map_search_rings(st, S16(st, b + 6), S16(st, b + 8), 0, 0, 0x40000u, &x1, &y1, radius, 0) != 0) {
-        int32_t dy = S16(st, b + 8) - y1, dx = S16(st, b + 6) - x1;
+    if (map_search_rings(st, S16(st, b + BLD_X), S16(st, b + BLD_Y), 0, 0, 0x40000u, &x1, &y1, radius, 0) != 0) {
+        int32_t dy = S16(st, b + BLD_Y) - y1, dx = S16(st, b + BLD_X) - x1;
         d1 = isqrt_ftol(dy * dy + dx * dx);
     } else {
         d1 = radius;
     }
-    if (map_search_rings(st, S16(st, b + 6), S16(st, b + 8), 0, 0, 4u, &x2, &y2, radius, 0) != 0) {
-        int32_t dy = S16(st, b + 8) - y2, dx = S16(st, b + 6) - x2;
+    if (map_search_rings(st, S16(st, b + BLD_X), S16(st, b + BLD_Y), 0, 0, 4u, &x2, &y2, radius, 0) != 0) {
+        int32_t dy = S16(st, b + BLD_Y) - y2, dx = S16(st, b + BLD_X) - x2;
         d2 = isqrt_ftol(dy * dy + dx * dx);
     } else {
         d2 = radius;
@@ -76,20 +76,20 @@ int32_t frog_tile_4e75a0(game_state *st, int32_t id, int32_t *ox, int32_t *oy)
 void frog_create_4e7410(game_state *st, int32_t id, int32_t x, int32_t y)
 {
     /* @bin 0x004E7410 a figure of type 0x6A at (x, y) (0x004B4800 with 0x00EAAC28, flag 0):
-     * action +0x30 := 8, building +0x54 := id, the building's +0x2E := the figure; one game random
+     * (offsets from the figure's +8:) action +0x30 := 8, building +0x54 := id, the building's +0x2E := the figure; one game random
      * draw; +0x2E := the 15-bit draw % 150, +0x5C := 0, +0x6A := 6. */
-    int32_t f = GAME_CALL(st, 0x004B4800u, S32(st, 0x00EAAC28u), 0x6A, x, y, 0);
-    uint32_t a = FIG(f);
-    U8(st, a + 0x30) = 8;
-    S16(st, a + 0x54) = (int16_t) id;
-    S16(st, BREC(id) + 0x2E) = (int16_t) f;
+    int32_t f = GAME_CALL(st, FN_FIGURE_CREATE, S32(st, G_PLAYER), 0x6A, x, y, 0);
+    uint32_t a = FIGURE_ADDR(f);
+    U8(st, a + FIG_ACTION) = 8;
+    S16(st, a + FIG_TARGET_HOUSE) = (int16_t) id;
+    S16(st, BREC(id) + BLD_IMMIGRANT) = (int16_t) f;
     random_next_state(st);
-    S16(st, a + 0x2E) = (int16_t) (S32(st, 0x00D3B370u) % 0x96);
-    U8(st, a + 0x5C) = 0;
-    U8(st, a + 0x6A) = 6;
+    S16(st, a + FIG_WAIT_TICKS) = (int16_t) (S32(st, G_R_1_15) % 0x96);
+    U8(st, a + FIG_MIGRANT_PEOPLE) = 0;
+    U8(st, a + FIG_TERRAIN_USAGE) = 6;
     /* @bin 0x004E7573 sprintf(buffer, 0x005E4958, figure, x, y, id) into the original's frame, then
      * OutputDebugStringA(buffer): debugger output only (0: a buffer outside the state) */
-    GAME_CALL(st, 0x00561A36u, 0, 0x005E4958, f, x, y, id);
+    GAME_CALL(st, FN_CRT_SPRINTF, 0, G_U5E4958, f, x, y, id);
 }
 
 void frog_maybe_4e7300(game_state *st, int32_t id)
@@ -97,7 +97,7 @@ void frog_maybe_4e7300(game_state *st, int32_t id)
     /* @bin 0x004E7300 one game random draw; when its 15-bit value % 100 is below 50, the frog's
      * tile (0x004E75A0) and, when there is one, the frog (0x004E7410) */
     random_next_state(st);
-    if (S32(st, 0x00D3B370u) % 100 >= 0x32) {
+    if (S32(st, G_R_1_15) % 100 >= 0x32) {
         return;
     }
     int32_t x = 0, y = id;
@@ -121,7 +121,7 @@ static int32_t run_4e7410(game_state *st, const int32_t *a)
 static int32_t run_4e75a0(game_state *st, const int32_t *a)
 {
     if (!state_ptr(st, (uint32_t) a[1], 4) || !state_ptr(st, (uint32_t) a[2], 4)) {
-        state_unported(st, 0x004E75A0u); /* outputs in the caller's frame */
+        state_unported(st, FN_FROG_TILE_4E75A0); /* outputs in the caller's frame */
         return 0;
     }
     int32_t x = S32(st, (uint32_t) a[1]), y = S32(st, (uint32_t) a[2]);
