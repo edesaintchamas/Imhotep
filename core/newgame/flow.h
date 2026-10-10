@@ -14,7 +14,6 @@
 
 #include "state/state.h"
 
-#define CAMPAIGN_TABLE_ADDR 0x006FDD08u
 #define CAMPAIGN_TABLE_SIZE 0x4A9Cu
 
 /* @bin 0x00516A20 "save\" + player name + ".dat" into 0x00EADDA0: the family's progress file;

@@ -16,11 +16,9 @@
 #include "frame/sound.h"
 #include "sim/call.h"
 #include "sim/platform.h"
+#include "state/layout.h"
 #include "state/ported.h"
 
-#define SOUND 0x00E92BF8u  /* the sound object */
-#define MUSIC 0x00E39180u  /* the music tables */
-#define DRIVE 0x00E38E62u  /* the CD drive's letter */
 
 static uint8_t rd8(game_state *st, uint32_t a)
 {
@@ -163,7 +161,7 @@ int32_t sound_register(game_state *st, uint32_t name)
     if (!file_exists(st, path)) {
         return -1; /* "D:\\" + name is not on the platform either */
     }
-    uint32_t self = SOUND;
+    uint32_t self = G_SOUND;
     int32_t count = S32(st, self + 4);
     if (count >= S32(st, self)) {
         return -1;
@@ -324,7 +322,7 @@ static void music_read(game_state *st)
             continue;
         }
         if (strcmp(name, "AMBIENT") == 0) { /* @bin 0x005F9084 */
-            uint32_t rec = MUSIC + (uint32_t) mission * 0x1B10u;
+            uint32_t rec = G_MUSIC + (uint32_t) mission * 0x1B10u;
             S32(st, rec + 0x1A40 + 4u * (uint32_t) S32(st, rec + 0x1B08)) = 1;
             continue;
         }
@@ -357,7 +355,7 @@ static void music_read(game_state *st)
         if (!file_exists(st, path)) {
             char cd[100];
             int m = 0;
-            cd[m++] = (char) U8(st, DRIVE);
+            cd[m++] = (char) U8(st, G_DRIVE);
             cd[m++] = ':';
             cd[m++] = '\\';
             for (int q = 0; path[q] && m < 99; q++) {
@@ -366,7 +364,7 @@ static void music_read(game_state *st)
             cd[m] = 0;
             memcpy(path, cd, (size_t) m + 1);
         }
-        tune_add(st, MUSIC, path, mission, a, b, c, is_a);
+        tune_add(st, G_MUSIC, path, mission, a, b, c, is_a);
     }
     free(text);
 }
@@ -377,7 +375,7 @@ static void music_read(game_state *st)
  * record at 0x00F54670); kind 1: one of at most 3 variants (count at +0x10) */
 static void building_sound(game_state *st, int32_t type, uint32_t name, int32_t kind)
 {
-    uint32_t rec = 0x00F54670u + 20u * (uint32_t) type;
+    uint32_t rec = G_BUILDING_SOUND_TABLE + 20u * (uint32_t) type;
     if (kind == 0) {
         S32(st, rec + 0xC) = sound_register(st, name);
     } else if (kind == 1 && S32(st, rec + 0x10) < 3) {
@@ -391,7 +389,7 @@ static void building_sound(game_state *st, int32_t type, uint32_t name, int32_t 
  * terrain's own (+0x28), kind 1 one of at most 10 variants (count at +0x2C) */
 static void ambient_sound(game_state *st, int32_t terrain, uint32_t name, int32_t kind)
 {
-    uint32_t rec = 0x00F54550u + 0x30u * (uint32_t) terrain;
+    uint32_t rec = G_AMBIENT_SOUNDS + 0x30u * (uint32_t) terrain;
     if (kind == 0) {
         S32(st, rec + 0x28) = sound_register(st, name);
     } else if (kind == 1 && S32(st, rec + 0x2C) < 10) {
@@ -404,21 +402,21 @@ static void ambient_sound(game_state *st, int32_t terrain, uint32_t name, int32_
 void boot_sound_start(game_state *st, const boot_host *host)
 {
     /* @bin 0x005394F0 */
-    S32(st, 0x00F55B88u) = driver_open(st, host, SOUND);
-    registry_create(st, host, SOUND, 500);
-    S32(st, MUSIC + 0x59A50u) = 0; /* @bin 0x00539A40 (0) */
+    S32(st, G_SOUND_ON) = driver_open(st, host, G_SOUND);
+    registry_create(st, host, G_SOUND, 500);
+    S32(st, G_MUSIC + 0x59A50u) = 0; /* @bin 0x00539A40 (0) */
     music_read(st);
-    music_window(st, MUSIC, 1); /* @bin 0x00539730 (1) */
-    S32(st, 0x00F55B80u) = -1;
+    music_window(st, G_MUSIC, 1); /* @bin 0x00539730 (1) */
+    S32(st, G_AMBIENT_CHOICE) = -1;
     /* @bin 0x00539D60 the building sounds: 5-dword records from 0x00F54670 (to 0x00F55900): -1 x 4, 0 */
-    for (uint32_t p = 0x00F5467Cu;;) {
+    for (uint32_t p = G_BUILDING_SOUNDS;;) {
         S32(st, p - 0xC) = -1;
         S32(st, p - 8) = -1;
         S32(st, p - 4) = -1;
         S32(st, p) = -1;
         S32(st, p + 4) = 0;
         p += 20;
-        if (p >= 0x00F55900u) {
+        if (p >= G_BUILDING_SOUNDS + 237u * 20u) {
             break;
         }
     }
@@ -426,13 +424,13 @@ void boot_sound_start(game_state *st, const boot_host *host)
         building_sound(st, sound_list_539d60[i].index, sound_list_539d60[i].name, sound_list_539d60[i].kind);
     }
     /* @bin 0x0053BCF0 the ambient sounds: 12-dword records to 0x00F54698: 10 x -1, -1, 0 */
-    for (uint32_t p = 0x00F54578u;; p += 0x30) {
+    for (uint32_t p = G_AMBIENT_SOUNDS + 0x28u;; p += 0x30) {
         for (uint32_t k = 0; k < 10; k++) {
             S32(st, p - 0x28 + 4 * k) = -1;
         }
         S32(st, p) = -1;
         S32(st, p + 4) = 0;
-        if (p + 0x30 >= 0x00F54698u) {
+        if (p + 0x30 >= G_AMBIENT_SOUNDS + 0x148u) {
             break;
         }
     }
@@ -441,18 +439,18 @@ void boot_sound_start(game_state *st, const boot_host *host)
     }
     /* @bin 0x0053AF90 the interface sounds: 100 dwords at 0x00F543B8, -1, then 0x0053AF70 */
     for (uint32_t k = 0; k < 100; k++) {
-        S32(st, 0x00F543B8u + 4 * k) = -1;
+        S32(st, G_INTERFACE_SOUNDS + 4 * k) = -1;
     }
     for (int i = 0; i < sound_list_53af90_count; i++) {
-        S32(st, 0x00F543B8u + 4u * (uint32_t) sound_list_53af90[i].index) =
+        S32(st, G_INTERFACE_SOUNDS + 4u * (uint32_t) sound_list_53af90[i].index) =
             sound_register(st, sound_list_53af90[i].name);
     }
     /* @bin 0x0053B130 the figure sounds: 0xA5 dwords at 0x00F54120, -1, then 0x0053B100 (5 per figure) */
     for (uint32_t k = 0; k < 0xA5; k++) {
-        S32(st, 0x00F54120u + 4 * k) = -1;
+        S32(st, G_FIGURE_SOUNDS + 4 * k) = -1;
     }
     for (int i = 0; i < sound_list_53b130_count; i++) {
-        S32(st, 0x00F54120u + 4u * (uint32_t) (sound_list_53b130[i].index * 5 + sound_list_53b130[i].kind)) =
+        S32(st, G_FIGURE_SOUNDS + 4u * (uint32_t) (sound_list_53b130[i].index * 5 + sound_list_53b130[i].kind)) =
             sound_register(st, sound_list_53b130[i].name);
     }
 }

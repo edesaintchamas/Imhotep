@@ -11,6 +11,7 @@
 #include "newgame/flow2.h"
 #include "sim/call.h"
 #include "sim/platform.h"
+#include "state/layout.h"
 #include "state/ported.h"
 
 int32_t boot_file_into(game_state *st, const char *path, uint32_t dst, uint32_t cap)
@@ -42,11 +43,11 @@ int32_t boot_atoi(game_state *st, uint32_t p)
     /* @bin 0x00561C0B CRT atol (atoi 0x00561C96 calls it): blanks skipped (ctype bit 8 of the table
      * [0x00604C58]), a sign, digits (bit 4), wrapping; the multi-byte path ([0x00604E64] > 1,
      * 0x00565F66) is the CRT's for other locales (the "C" locale's value is 1) */
-    if (S32(st, 0x00604E64u) > 1) {
+    if (S32(st, G_CRT_MB_CUR_MAX) > 1) {
         state_unported(st, 0x00565F66u);
         return 0;
     }
-    uint32_t ctype = U32(st, 0x00604C58u);
+    uint32_t ctype = U32(st, G_CRT_CTYPE);
     while (rd8(st, ctype + 2u * rd8(st, p)) & 8) {
         p++;
     }
@@ -67,7 +68,7 @@ int32_t boot_atoi(game_state *st, uint32_t p)
  * '='); 1 and its atoi when offset + index > 0 */
 static int ini_number(game_state *st, uint32_t buf, int32_t at, int32_t *out)
 {
-    int32_t eq = GAME_CALL(st, 0x004CBE30u, (int32_t) (buf + (uint32_t) at), 0x3D, 20000);
+    int32_t eq = GAME_CALL(st, FN_TEXT_FIND_CHAR, (int32_t) (buf + (uint32_t) at), 0x3D, 20000);
     if (at + eq <= 0) {
         return 0;
     }
@@ -91,26 +92,26 @@ int32_t boot_ini_read(game_state *st, const boot_host *host)
     /* @bin 0x00414AB8 fopen("Pharaoh.ini" 0x005764D8, "rb"), fread of up to 20,000 bytes; missing:
      * logged (0x00579290), freed, 0 */
     if (boot_file_into(st, "Pharaoh.ini", buf, 20000) < 0) {
-        platform_log(st, 0x00579290u, 0, 0);
+        platform_log(st, G_STR_ERR_SIERRA_INI, 0, 0);
         boot_release(st, host, buf);
         return 0;
     }
     int32_t v;
     /* @bin 0x00414AF9 "RAM" (0x0057928C): 0x00E38ED8 (the test is on offset + index only, so a
      * missing key still reads the number after the buffer's first '=') */
-    int32_t at = GAME_CALL(st, 0x004CBDD0u, (int32_t) buf, (int32_t) 0x0057928Cu, 20000);
+    int32_t at = GAME_CALL(st, FN_TEXT_FIND_STRING, (int32_t) buf, (int32_t) G_STR_RAM, 20000);
     if (ini_number(st, buf, at, &v)) {
-        S32(st, 0x00E38ED8u) = v;
+        S32(st, G_RAM) = v;
     }
     /* @bin 0x00414B34 "CheckCD" (0x00579284): the byte 0x00E39089, when the key is found (offset > 0) */
-    at = GAME_CALL(st, 0x004CBDD0u, (int32_t) buf, (int32_t) 0x00579284u, 20000);
+    at = GAME_CALL(st, FN_TEXT_FIND_STRING, (int32_t) buf, (int32_t) G_STR_CHECK_CD, 20000);
     if (at > 0 && ini_number(st, buf, at, &v)) {
-        U8(st, 0x00E39089u) = (uint8_t) v;
+        U8(st, G_CHECK_CD) = (uint8_t) v;
     }
     /* @bin 0x00414B76 "CPU" (0x00579280): 0x00E38EDC, when the key is found */
-    at = GAME_CALL(st, 0x004CBDD0u, (int32_t) buf, (int32_t) 0x00579280u, 20000);
+    at = GAME_CALL(st, FN_TEXT_FIND_STRING, (int32_t) buf, (int32_t) G_STR_CPU, 20000);
     if (at > 0 && ini_number(st, buf, at, &v)) {
-        S32(st, 0x00E38EDCu) = v;
+        S32(st, G_CPU) = v;
     }
     boot_release(st, host, buf); /* @bin 0x00414BB9 operator delete */
     return 1;
@@ -127,69 +128,69 @@ int32_t boot_file_read(game_state *st, const char *path, uint32_t dst)
 int32_t boot_settings(game_state *st, const boot_host *host, int32_t screen_width)
 {
     /* @bin 0x00414802 .. 0x004148B1 the defaults */
-    S32(st, 0x00E38E58u) = 0x10;
-    S32(st, 0x00E38E5Cu) = 1;
-    U8(st, 0x00E38E60u) = 0;
-    U8(st, 0x00E38E61u) = 0;
-    S32(st, 0x00E38ED4u) = 2;
-    S32(st, 0x00E38ED8u) = 0xF;
-    S32(st, 0x00E38EDCu) = 0x42;
-    S32(st, 0x00E38EE0u) = 0;
-    U8(st, 0x00E38E62u) = 0x44;
-    U8(st, 0x00E38E63u) = 1;
-    U8(st, 0x00E38E64u) = 1;
-    U8(st, 0x00E38E65u) = 1;
-    U8(st, 0x00E38EC0u) = 1;
-    U8(st, 0x00E38EC1u) = 1;
-    S32(st, 0x00E38EACu) = 2;
-    S32(st, 0x00E38E6Cu) = 0x5A;
-    S32(st, 0x00E38E70u) = 0x46;
-    U8(st, 0x00E39089u) = 1;
-    S32(st, 0x00E39080u) = 2;
-    S32(st, 0x00E39084u) = 1;
-    S32(st, 0x00E38EC4u) = 100;
-    S32(st, 0x00E38EC8u) = 0x50;
-    S32(st, 0x00E38ECCu) = 100;
-    S32(st, 0x00E38ED0u) = 100;
-    S32(st, 0x00E38E68u) = 1;
+    S32(st, G_OPTIONS) = 0x10;
+    S32(st, G_FULLSCREEN) = 1;
+    U8(st, G_GATE) = 0;
+    U8(st, G_UE38E61) = 0;
+    S32(st, G_UE38ED4) = 2;
+    S32(st, G_RAM) = 0xF;
+    S32(st, G_CPU) = 0x42;
+    S32(st, G_UE38EE0) = 0;
+    U8(st, G_DRIVE) = 0x44;
+    U8(st, G_SOUND_EFFECTS_ON) = 1;
+    U8(st, G_MUSIC_ON) = 1;
+    U8(st, G_SPEECH_ON) = 1;
+    U8(st, G_CITY_SOUNDS_ON) = 1;
+    U8(st, G_NOTICES_ON) = 1;
+    S32(st, G_TIPS_ON) = 2;
+    S32(st, G_GAME_SPEED) = 0x5A;
+    S32(st, G_SCROLL_SPEED) = 0x46;
+    U8(st, G_CHECK_CD) = 1;
+    S32(st, G_DIFFICULTY) = 2;
+    S32(st, G_UE39084) = 1;
+    S32(st, G_EFFECTS_VOLUME) = 100;
+    S32(st, G_MUSIC_VOLUME) = 0x50;
+    S32(st, G_SPEECH_VOLUME) = 100;
+    S32(st, G_CITY_VOLUME) = 100;
+    S32(st, G_RESOLUTION) = 1;
     boot_ini_read(st, host); /* @bin 0x004148B7 */
     /* @bin 0x004148BC RAM at most 0x17 (signed): 100, 100, resolution 1 */
-    if (S32(st, 0x00E38ED8u) <= 0x17) {
-        S32(st, 0x00E38E6Cu) = 100;
-        S32(st, 0x00E38E70u) = 100;
-        S32(st, 0x00E38E68u) = 1;
+    if (S32(st, G_RAM) <= 0x17) {
+        S32(st, G_GAME_SPEED) = 100;
+        S32(st, G_SCROLL_SPEED) = 100;
+        S32(st, G_RESOLUTION) = 1;
     }
     /* @bin 0x004148D7 GetSystemMetrics(SM_CXSCREEN): below 800 resolution 1, below 1024 resolution 2,
      * else the default stays (signed compares) */
     if (screen_width < 800) {
-        S32(st, 0x00E38E68u) = 1;
+        S32(st, G_RESOLUTION) = 1;
     } else if (screen_width < 0x400) {
-        S32(st, 0x00E38E68u) = 2;
+        S32(st, G_RESOLUTION) = 2;
     }
-    S32(st, 0x00E38EE4u) = S32(st, 0x00E38E68u);
+    S32(st, G_RESOLUTION_SAVED) = S32(st, G_RESOLUTION);
     campaign_period_first(st, 0); /* @bin 0x00414907 */
-    S32(st, 0x00E38EA4u) = 1;     /* @bin 0x00414916 */
+    S32(st, G_LAST_ADVISOR) = 1;     /* @bin 0x00414916 */
     /* @bin 0x0041491C the saved options: Pharaoh.inf (0x00579274) over 0x00E38E58 */
-    boot_file_read(st, "Pharaoh.inf", 0x00E38E58u);
-    U8(st, 0x00E39089u) = 1; /* @bin 0x00414924 */
+    boot_file_read(st, "Pharaoh.inf", G_OPTIONS);
+    U8(st, G_CHECK_CD) = 1; /* @bin 0x00414924 */
     boot_ini_read(st, host); /* @bin 0x0041492A */
-    S32(st, 0x00E36C6Cu) = 1;
-    U8(st, 0x00E38E60u) = 0;
+    S32(st, G_UE36C6C) = 1;
+    U8(st, G_GATE) = 0;
     /* @bin 0x0041493A the words 0x005C9022 / 0x005C9062 by 0x00E38EAC (2: 4, 1: 3) */
-    if (S32(st, 0x00E38EACu) == 2) {
-        S16(st, 0x005C9022u) = 4;
-        S16(st, 0x005C9062u) = 4;
-    } else if (S32(st, 0x00E38EACu) == 1) {
-        S16(st, 0x005C9022u) = 3;
-        S16(st, 0x005C9062u) = 3;
+    if (S32(st, G_TIPS_ON) == 2) {
+        S16(st, G_MENU_HELP2_TEXT) = 4;
+        S16(st, G_MENU_HELP2_TEXT_B) = 4;
+    } else if (S32(st, G_TIPS_ON) == 1) {
+        S16(st, G_MENU_HELP2_TEXT) = 3;
+        S16(st, G_MENU_HELP2_TEXT_B) = 3;
     }
-    if (U8(st, 0x00E38EC1u) == 1) {
-        S16(st, 0x005C9032u) = 6; /* @bin 0x00414977 */
+    if (U8(st, G_NOTICES_ON) == 1) {
+        S16(st, G_MENU_HELP3_TEXT) = 6; /* @bin 0x00414977 */
     }
     /* @bin 0x00414980 .. 0x004149C0 */
-    S16(st, 0x005C8FF2u) = (int16_t) ((S32(st, 0x00E38EECu) != 0) + 9);
-    S16(st, 0x005C9002u) = (int16_t) ((U8(st, 0x00E38EC3u) != 0) + 4);
-    S16(st, 0x005C8FD2u) = (int16_t) ((U8(st, 0x00E39088u) != 0) + 7);
+    S16(st, G_MENU_OPTIONS8_TEXT) = (int16_t) ((S32(st, G_UE38EEC) != 0) + 9);
+    S16(st, G_MENU_OPTIONS9_TEXT) = (int16_t) ((U8(st, G_UE38EC3) != 0) + 4);
+    S16(st, G_MENU_OPTIONS6_TEXT) = (int16_t) ((U8(st, G_EMPIRE_LANGUAGE) != 0) + 7);
     return 1;
 }
 
@@ -201,7 +202,7 @@ int32_t boot_text_load(game_state *st, const boot_host *host, const char *text, 
      * a block at 0x00E36C74. 0 when a file does not open */
     static const struct {
         uint32_t pointer, head, site;
-    } part[2] = {{0x00E36C70u, 0x1F5Cu, 0x004CEC93u}, {0x00E36C74u, 0x13898u, 0x004CED1Au}};
+    } part[2] = {{G_TEXT_BUFFER, 0x1F5Cu, 0x004CEC93u}, {G_MM_TEXT, 0x13898u, 0x004CED1Au}};
     for (int k = 0; k < 2; k++) {
         const char *path = k ? mm : text;
         int32_t size = platform_file_read(st, path, 0, NULL, 0);
@@ -216,10 +217,10 @@ int32_t boot_text_load(game_state *st, const boot_host *host, const char *text, 
         uint32_t block = boot_alloc(st, host, rest, part[k].site);
         U32(st, part[k].pointer) = block;
         if (k == 0) {
-            platform_file_read(st, path, 0, st->mem + (0x00E36B78u - STATE_BASE), 0x1C);
-            platform_file_read(st, path, 0x1C, st->mem + (0x00E34C38u - STATE_BASE), 8000);
+            platform_file_read(st, path, 0, st->mem + (G_TEXT_HEADER - STATE_BASE), 0x1C);
+            platform_file_read(st, path, 0x1C, st->mem + (G_TEXT_GROUPS - STATE_BASE), 8000);
         } else {
-            platform_file_read(st, path, 0, st->mem + (0x00E209A0u - STATE_BASE), 0x13898);
+            platform_file_read(st, path, 0, st->mem + (G_MM_TEXT_HEAD - STATE_BASE), 0x13898);
         }
         uint8_t *p = block ? state_ptr(st, block, rest) : NULL;
         if (!p) {
@@ -248,13 +249,13 @@ void boot_names(game_state *st)
     /* @bin 0x004149D0 text 9.5 into 0x00E38E74 (the player's name), 9.6 into 0x00E37100 and 0x00E370BC,
      * 9.7 into 0x00E37078 */
     text_seek(st, 9, 5);
-    copy_string(st, U32(st, TEXT_CURSOR), 0x00E38E74u);
+    copy_string(st, U32(st, G_TEXT_CURSOR), G_PLAYER_NAME);
     text_seek(st, 9, 6);
-    uint32_t s = U32(st, TEXT_CURSOR);
-    copy_string(st, s, 0x00E37100u);
-    copy_string(st, s, 0x00E370BCu);
+    uint32_t s = U32(st, G_TEXT_CURSOR);
+    copy_string(st, s, G_FILES_NAME);
+    copy_string(st, s, G_LAST_NAME);
     text_seek(st, 9, 7);
-    copy_string(st, U32(st, TEXT_CURSOR), 0x00E37078u);
+    copy_string(st, U32(st, G_TEXT_CURSOR), G_MAP_NAME);
 }
 
 /* the boot's functions as ports: without a host (memory outside the state) they are partial */

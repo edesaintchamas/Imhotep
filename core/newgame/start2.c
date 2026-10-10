@@ -9,16 +9,12 @@
 
 #include "city/day_x87.h"
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 
-#define MAP_W 0x00BCA2D0u
-#define MAP_H 0x00BCA2D4u
-#define MAP_BASE 0x00BCA2D8u
-#define MAP_BORDER 0x00BCA2DCu
-#define GRID(i) U32(st, 0x00AF598Cu + 4u * (uint32_t) (i))
-#define STRENGTH(i) U8(st, 0x00A509BCu + (uint32_t) (i))
-#define OBJECT(i) U32(st, 0x00D05720u + 4u * (uint32_t) (i))
-#define TILE_INDEX 0x00BC9768u
+#define GRID(i) U32(st, G_GRID_TERRAIN + 4u * (uint32_t) (i))
+#define STRENGTH(i) U8(st, G_MOISTURE + (uint32_t) (i))
+#define OBJECT(i) U32(st, G_UD05720 + 4u * (uint32_t) (i))
 
 /* ---- 0x00478420 and the 0x10000 flag passes ---- */
 
@@ -55,21 +51,21 @@ void terrain_0x00479ac0(game_state *st, int32_t x, int32_t y, int32_t mode)
     /* @bin 0x00479AC0 inside the map (0x0046F930 with the offsets 0x00BCA2E8 / 0x00BCA2EC): mode 1
      * sets 0x2000000, the i32 grid 0x00B7482C := (0x00ACF85C & 7) + [0x00F56BA4], 0x00B285CC &= 0xF0,
      * 0x00B67D1C |= 0x40; another mode keeps only 0x2000000 */
-    if ((GAME_CALL(st, 0x0046F930u, S32(st, 0x00BCA2E8u) + x, S32(st, 0x00BCA2ECu) + y) & 0xFF) == 0) {
+    if ((GAME_CALL(st, FN_MAP_TILE_INSIDE, S32(st, G_VIEW_DX) + x, S32(st, G_VIEW_DY) + y) & 0xFF) == 0) {
         return;
     }
-    int32_t i = S32(st, MAP_BASE) + 228 * y + x;
-    S32(st, TILE_INDEX) = i;
+    int32_t i = S32(st, G_MAP_START) + 228 * y + x;
+    S32(st, G_TILE_CURSOR) = i;
     uint32_t t = GRID(i);
     if (mode != 1) {
         GRID(i) = t & 0x2000000u;
         return;
     }
-    int32_t v = (U8(st, 0x00ACF85Cu + (uint32_t) i) & 7) + S32(st, 0x00F56BA4u);
+    int32_t v = (U8(st, G_RANDOM + (uint32_t) i) & 7) + S32(st, G_IMAGE_DUNES);
     GRID(i) = t | 0x2000000u;
-    S32(st, 0x00B7482Cu + 4u * (uint32_t) i) = v;
-    U8(st, 0x00B285CCu + (uint32_t) i) &= 0xF0;
-    U8(st, 0x00B67D1Cu + (uint32_t) i) |= 0x40;
+    S32(st, G_IMAGE + 4u * (uint32_t) i) = v;
+    U8(st, G_DAY2_DESTROY_BITS + (uint32_t) i) &= 0xF0;
+    U8(st, G_EDGE + (uint32_t) i) |= 0x40;
 }
 
 void terrain_0x00477430(game_state *st, int32_t x1, int32_t y1, int32_t x2, int32_t y2)
@@ -81,16 +77,16 @@ void terrain_0x00477430(game_state *st, int32_t x1, int32_t y1, int32_t x2, int3
     if (y1 < 0) {
         y1 = 0;
     }
-    int32_t w = S32(st, MAP_W);
+    int32_t w = S32(st, G_MAP_WIDTH);
     if (x2 >= w) {
         x2 = w - 1;
     }
-    int32_t h = S32(st, MAP_H);
+    int32_t h = S32(st, G_MAP_HEIGHT);
     if (y2 >= h) {
         y2 = h - 1;
     }
     int32_t skip = w - x2 + x1 - 1;
-    int32_t idx = S32(st, MAP_BASE) + 228 * y1 + x1;
+    int32_t idx = S32(st, G_MAP_START) + 228 * y1 + x1;
     for (int32_t y = y1; y <= y2; y++) {
         if (x1 <= x2) {
             int32_t i = idx;
@@ -102,7 +98,7 @@ void terrain_0x00477430(game_state *st, int32_t x1, int32_t y1, int32_t x2, int3
                 }
             }
         }
-        idx += S32(st, MAP_BORDER) + skip;
+        idx += S32(st, G_MAP_STRIDE_EXTRA) + skip;
     }
 }
 
@@ -111,19 +107,19 @@ void terrain_0x00477dd0(game_state *st, int32_t x, int32_t y, int32_t r)
     /* @bin 0x00477DD0 the rectangle (x, y) +/- r clamped to 0 .. map size (inclusive), then the
      * image passes in the original's order */
     int32_t x1 = x - r < 0 ? 0 : x - r;
-    int32_t x2 = S32(st, MAP_W) < x + r ? S32(st, MAP_W) : x + r;
+    int32_t x2 = S32(st, G_MAP_WIDTH) < x + r ? S32(st, G_MAP_WIDTH) : x + r;
     int32_t y1 = y - r < 0 ? 0 : y - r;
-    int32_t y2 = S32(st, MAP_H) < y + r ? S32(st, MAP_H) : y + r;
-    GAME_CALL(st, 0x00475CC0u, x1, y1, x2, y2, 1);
-    GAME_CALL(st, 0x004776F0u, x1, y1, x2, y2);
-    GAME_CALL(st, 0x004770F0u, x1, y1, x2, y2);
-    GAME_CALL0(st, 0x00475DC0u);
+    int32_t y2 = S32(st, G_MAP_HEIGHT) < y + r ? S32(st, G_MAP_HEIGHT) : y + r;
+    GAME_CALL(st, FN_WATER_PASS, x1, y1, x2, y2, 1);
+    GAME_CALL(st, FN_FLAG_0X40000_RECT, x1, y1, x2, y2);
+    GAME_CALL(st, FN_SPECIAL_ROCKS_RECT, x1, y1, x2, y2);
+    GAME_CALL0(st, FN_ROCKS_ALL);
     terrain_0x00477430(st, x1, y1, x2, y2);
-    GAME_CALL(st, 0x004767D0u, x1, y1, x2, y2, 0, 1);
-    GAME_CALL(st, 0x004777C0u, x1, y1, x2, y2);
-    GAME_CALL(st, 0x0047B590u, x1 - 1, y1 - 1, x2 + 1, y2 + 1);
-    GAME_CALL(st, 0x0047BD50u, x1 - 1, y1 - 1, x2 + 1, y2 + 1);
-    GAME_CALL(st, 0x00477500u, x1, y1, x2, y2);
+    GAME_CALL(st, FN_TERRAIN_LAND, x1, y1, x2, y2, 0, 1);
+    GAME_CALL(st, FN_FLOODPLAIN_PASS, x1, y1, x2, y2);
+    GAME_CALL(st, FN_ROADS_RECT, x1 - 1, y1 - 1, x2 + 1, y2 + 1);
+    GAME_CALL(st, FN_CANALS_RECT_REDRAW, x1 - 1, y1 - 1, x2 + 1, y2 + 1);
+    GAME_CALL(st, FN_MEADOW_RECT, x1, y1, x2, y2);
 }
 
 int32_t terrain_0x00477f70(game_state *st, int32_t x, int32_t y)
@@ -132,13 +128,13 @@ int32_t terrain_0x00477f70(game_state *st, int32_t x, int32_t y)
      * 0x10004 that 0x00477EB0 finds closed gets 0x10000 (flags & 0xD9CBF680), its images redone
      * (r 2) and the spread continues from it */
     int32_t x1 = x - 1 < 0 ? 0 : x - 1;
-    int32_t w = S32(st, MAP_W);
+    int32_t w = S32(st, G_MAP_WIDTH);
     int32_t x2 = w < x + 1 ? w : x + 1;
     int32_t y1 = y - 1 < 0 ? 0 : y - 1;
-    int32_t y2 = S32(st, MAP_H) < y + 1 ? S32(st, MAP_H) : y + 1;
+    int32_t y2 = S32(st, G_MAP_HEIGHT) < y + 1 ? S32(st, G_MAP_HEIGHT) : y + 1;
     int32_t changed = 0;
-    int32_t skip = S32(st, MAP_BORDER) - x2 + w + x1 - 1;
-    int32_t idx = S32(st, MAP_BASE) + 228 * y1 + x1;
+    int32_t skip = S32(st, G_MAP_STRIDE_EXTRA) - x2 + w + x1 - 1;
+    int32_t idx = S32(st, G_MAP_START) + 228 * y1 + x1;
     for (int32_t yy = y1; yy <= y2; yy++) {
         for (int32_t xx = x1; xx <= x2; xx++, idx++) {
             if ((GRID(idx) & 0x10004u) != 0 || terrain_0x00477eb0(st, idx, 0x10004u, 1) != 0) {
@@ -159,13 +155,13 @@ int32_t terrain_0x00478090(game_state *st, int32_t x, int32_t y)
     /* @bin 0x00478090 the 3x3 block around (x, y): 0x10000 cleared, images redone (r 1), and the
      * clearing continues from tiles with any of 0x22341A33 */
     int32_t x1 = x - 1 < 0 ? 0 : x - 1;
-    int32_t w = S32(st, MAP_W);
+    int32_t w = S32(st, G_MAP_WIDTH);
     int32_t x2 = w < x + 1 ? w : x + 1;
     int32_t y1 = y - 1 < 0 ? 0 : y - 1;
-    int32_t y2 = S32(st, MAP_H) < y + 1 ? S32(st, MAP_H) : y + 1;
+    int32_t y2 = S32(st, G_MAP_HEIGHT) < y + 1 ? S32(st, G_MAP_HEIGHT) : y + 1;
     int32_t changed = 0;
-    int32_t skip = S32(st, MAP_BORDER) - x2 + w + x1 - 1;
-    int32_t idx = S32(st, MAP_BASE) + 228 * y1 + x1;
+    int32_t skip = S32(st, G_MAP_STRIDE_EXTRA) - x2 + w + x1 - 1;
+    int32_t idx = S32(st, G_MAP_START) + 228 * y1 + x1;
     for (int32_t yy = y1; yy <= y2; yy++) {
         if (x1 <= x2) {
             int32_t i = idx;
@@ -198,7 +194,7 @@ int32_t terrain_0x004781a0(game_state *st, int32_t tile, uint32_t mask)
     int32_t best = 0, result = 0;
     for (int k = 0; k < 8; k++) {
         int32_t n = offsets[k] + tile;
-        int32_t c = GAME_CALL(st, 0x00477690u, (int32_t) mask, n);
+        int32_t c = GAME_CALL(st, FN_TILE_NEIGHBOURS_WITH, (int32_t) mask, n);
         if ((mask & GRID(n)) != 0 && 8 - c > best) {
             best = 8 - c;
             result = offsets[k];
@@ -211,7 +207,7 @@ int32_t terrain_0x00478270(game_state *st, int32_t x, int32_t y)
 {
     /* @bin 0x00478270 a tile without 0x10000: while 0x004781A0 finds a neighbour, that neighbour
      * loses 0x10000 and gets 0x80, recursively, and its images are redone (r 1) */
-    int32_t i = S32(st, MAP_BASE) + 228 * y + x;
+    int32_t i = S32(st, G_MAP_START) + 228 * y + x;
     if ((GRID(i) & 0x10000u) != 0) {
         return 0;
     }
@@ -222,7 +218,7 @@ int32_t terrain_0x00478270(game_state *st, int32_t x, int32_t y)
     do {
         int32_t n = d + i;
         GRID(n) = (GRID(n) & 0xFFFEFFFFu) | 0x80u;
-        int32_t rel = n - S32(st, MAP_BASE);
+        int32_t rel = n - S32(st, G_MAP_START);
         int32_t nx = rel % 228, ny = rel / 228; /* idiv / signed multiply-shift */
         terrain_0x00478270(st, nx, ny);
         terrain_0x00477dd0(st, nx, ny, 1);
@@ -240,16 +236,16 @@ void terrain_0x00478330(game_state *st, int32_t x1, int32_t y1, int32_t x2, int3
     if (y1 < 0) {
         y1 = 0;
     }
-    int32_t w = S32(st, MAP_W);
+    int32_t w = S32(st, G_MAP_WIDTH);
     if (x2 >= w) {
         x2 = w - 1;
     }
-    int32_t h = S32(st, MAP_H);
+    int32_t h = S32(st, G_MAP_HEIGHT);
     if (y2 >= h) {
         y2 = h - 1;
     }
     int32_t skip = w - x2 + x1 - 1;
-    int32_t idx = S32(st, MAP_BASE) + 228 * y1 + x1;
+    int32_t idx = S32(st, G_MAP_START) + 228 * y1 + x1;
     for (int32_t y = y1; y <= y2; y++) {
         if (x1 <= x2) {
             int32_t i = idx;
@@ -267,14 +263,14 @@ void terrain_0x00478330(game_state *st, int32_t x1, int32_t y1, int32_t x2, int3
                 }
             }
         }
-        idx += S32(st, MAP_BORDER) + skip;
+        idx += S32(st, G_MAP_STRIDE_EXTRA) + skip;
     }
 }
 
 void terrain_0x00478420(game_state *st)
 {
     /* @bin 0x00478420 */
-    terrain_0x00478330(st, 0, 0, S32(st, MAP_W) - 1, S32(st, MAP_H) - 1);
+    terrain_0x00478330(st, 0, 0, S32(st, G_MAP_WIDTH) - 1, S32(st, G_MAP_HEIGHT) - 1);
 }
 
 /* ---- 0x00487450: the 0x80 marks and their strength ---- */
@@ -288,7 +284,7 @@ int32_t terrain_0x00486d30(game_state *st, int32_t x, int32_t y, uint32_t mask, 
         return -1;
     }
     int32_t ry = y - 1;
-    int32_t rbase = S32(st, MAP_BASE) + 228 * y - 228;
+    int32_t rbase = S32(st, G_MAP_START) + 228 * y - 228;
     int32_t xy = x - y;
     int32_t n = 8;
     for (int32_t r = 1;;) {
@@ -305,7 +301,7 @@ int32_t terrain_0x00486d30(game_state *st, int32_t x, int32_t y, uint32_t mask, 
             case 3: row -= 228; ty--; break;
             default: break;
             }
-            if (tx >= 0 && tx <= S32(st, MAP_W) && ty >= 0 && ty <= S32(st, MAP_H)) {
+            if (tx >= 0 && tx <= S32(st, G_MAP_WIDTH) && ty >= 0 && ty <= S32(st, G_MAP_HEIGHT)) {
                 uint32_t t = GRID(row + tx);
                 if ((mask & t) != 0 && (t & 0x80000u) == 0) {
                     result = r;
@@ -424,7 +420,7 @@ int32_t terrain_0x00486f20(game_state *st, int32_t i)
     /* @bin 0x00486F20 a tile between two 4 tiles or two objects gets strength 100; a strength in
      * 41 .. 90 sets 0x00BC97C0..0x00BC97DC (N, NE, E, SE, S, SW, W, NW at 100) and returns
      * 0x00484F40; 100 stays 100; others return 0 */
-    if (((U8(st, 0x00AF598Cu + 4u * (uint32_t) (i - 228)) & 4) != 0 && (GRID(i + 228) & 4u) != 0) ||
+    if (((U8(st, G_GRID_TERRAIN + 4u * (uint32_t) (i - 228)) & 4) != 0 && (GRID(i + 228) & 4u) != 0) ||
         ((GRID(i - 1) & 4u) != 0 && (GRID(i + 1) & 4u) != 0) || terrain_0x00487260(st, i) != 0) {
         STRENGTH(i) = 100;
         return 0;
@@ -436,15 +432,15 @@ int32_t terrain_0x00486f20(game_state *st, int32_t i)
         }
         return 0;
     }
-    S32(st, 0x00BC97C0u) = side_strength(st, i - 228) == 100;
-    S32(st, 0x00BC97C4u) = side_strength(st, i - 227) == 100;
-    S32(st, 0x00BC97C8u) = side_strength(st, i + 1) == 100;
-    S32(st, 0x00BC97CCu) = side_strength(st, i + 229) == 100;
-    S32(st, 0x00BC97D0u) = strength_open(st, i + 228, terrain_0x00487300(st, i + 228)) == 100;
-    S32(st, 0x00BC97D4u) = strength_open(st, i + 227, terrain_0x00487300(st, i + 227)) == 100;
-    S32(st, 0x00BC97D8u) = strength_open(st, i - 1, terrain_0x00487300(st, i - 1)) == 100;
-    S32(st, 0x00BC97DCu) = terrain_0x00487390(st, i, -229) == 100;
-    return GAME_CALL0(st, 0x00484F40u);
+    S32(st, G_SCRATCH) = side_strength(st, i - 228) == 100;
+    S32(st, G_SCRATCH + 4u) = side_strength(st, i - 227) == 100;
+    S32(st, G_SCRATCH + 8u) = side_strength(st, i + 1) == 100;
+    S32(st, G_SCRATCH + 0xCu) = side_strength(st, i + 229) == 100;
+    S32(st, G_SCRATCH + 0x10u) = strength_open(st, i + 228, terrain_0x00487300(st, i + 228)) == 100;
+    S32(st, G_SCRATCH + 0x14u) = strength_open(st, i + 227, terrain_0x00487300(st, i + 227)) == 100;
+    S32(st, G_SCRATCH + 0x18u) = strength_open(st, i - 1, terrain_0x00487300(st, i - 1)) == 100;
+    S32(st, G_SCRATCH + 0x1Cu) = terrain_0x00487390(st, i, -229) == 100;
+    return GAME_CALL0(st, FN_NEIGHBOURS_COUNT);
 }
 
 static void mark_clear(game_state *st, int32_t idx)
@@ -467,23 +463,23 @@ void terrain_0x00487450(game_state *st, int32_t x1, int32_t y1, int32_t x2, int3
     if (y1 < 0) {
         y1 = 0;
     }
-    int32_t w = S32(st, MAP_W);
+    int32_t w = S32(st, G_MAP_WIDTH);
     if (x2 >= w) {
         x2 = w - 1;
     }
-    if (y2 >= S32(st, MAP_H)) {
-        y2 = S32(st, MAP_H) - 1;
+    if (y2 >= S32(st, G_MAP_HEIGHT)) {
+        y2 = S32(st, G_MAP_HEIGHT) - 1;
     }
-    uint32_t saved = U32(st, TILE_INDEX);
-    int32_t skip = S32(st, MAP_BORDER) - x2 + w + x1 - 1;
+    uint32_t saved = U32(st, G_TILE_CURSOR);
+    int32_t skip = S32(st, G_MAP_STRIDE_EXTRA) - x2 + w + x1 - 1;
     int32_t radius = 0x10;
-    uint8_t mode = U8(st, 0x00784CB0u);
+    uint8_t mode = U8(st, G_U784CB0);
     if (mode == 0) {
         radius = 0x2E;
     } else if (mode == 2) {
         radius = 8;
     }
-    int32_t idx = S32(st, MAP_BASE) + 228 * y1 + x1;
+    int32_t idx = S32(st, G_MAP_START) + 228 * y1 + x1;
     for (int32_t y = y1; y <= y2; y++) {
         if (x1 <= x2) {
             for (int32_t x = x1; x <= x2; x++, idx++) {
@@ -527,26 +523,26 @@ void terrain_0x00487450(game_state *st, int32_t x1, int32_t y1, int32_t x2, int3
         }
         idx += skip;
     }
-    idx = S32(st, MAP_BASE) + 228 * y1 + x1;
+    idx = S32(st, G_MAP_START) + 228 * y1 + x1;
     for (int32_t y = y1; y <= y2; y++) {
         if (x1 <= x2) {
             for (int32_t x = x1; x <= x2; x++, idx++) {
-                if ((U8(st, 0x00AF598Cu + 4u * (uint32_t) idx) & 0x80) == 0 || terrain_0x00486f20(st, idx) == 0) {
+                if ((U8(st, G_GRID_TERRAIN + 4u * (uint32_t) idx) & 0x80) == 0 || terrain_0x00486f20(st, idx) == 0) {
                     continue;
                 }
                 uint32_t t = GRID(idx);
-                uint32_t keep = U32(st, 0x00BCA2E0u);
+                uint32_t keep = U32(st, G_VIEW_ORIENTATION);
                 GRID(idx) = t & ~0x800u;
-                U32(st, 0x00BCA2E0u) = 0;
-                GAME_CALL(st, 0x00484BE0u, 0x005CBFB8, 0x1A, -1, 0);
-                int32_t m = S32(st, 0x00BC9748u);
+                U32(st, G_VIEW_ORIENTATION) = 0;
+                GAME_CALL(st, FN_LAND_PATTERN_MATCH, G_U5CBFB8, 0x1A, -1, 0);
+                int32_t m = S32(st, G_M_OFFSET);
                 STRENGTH(idx) = m == 0xE ? 100 : (uint8_t) (m | 0x80);
-                U32(st, 0x00BCA2E0u) = keep;
+                U32(st, G_VIEW_ORIENTATION) = keep;
             }
         }
         idx += skip;
     }
-    U32(st, TILE_INDEX) = saved;
+    U32(st, G_TILE_CURSOR) = saved;
 }
 
 /* ---- 0x0046D480's mark rectangles ---- */
@@ -564,36 +560,36 @@ static void mark_rect(game_state *st, int32_t x, int32_t y, int32_t size, int32_
     if (y1 < 0) {
         y1 = 0;
     }
-    if (x2 >= S32(st, MAP_W)) {
-        x2 = S32(st, MAP_W) - 1;
+    if (x2 >= S32(st, G_MAP_WIDTH)) {
+        x2 = S32(st, G_MAP_WIDTH) - 1;
     }
-    if (y2 >= S32(st, MAP_H)) {
-        y2 = S32(st, MAP_H) - 1;
+    if (y2 >= S32(st, G_MAP_HEIGHT)) {
+        y2 = S32(st, G_MAP_HEIGHT) - 1;
     }
-    S32(st, 0x00D3B4E0u) = y1;
-    int32_t idx = S32(st, MAP_BASE) + 228 * y1 + x1;
-    S32(st, TILE_INDEX) = idx;
+    S32(st, G_ROAD_ACCESS_Y) = y1;
+    int32_t idx = S32(st, G_MAP_START) + 228 * y1 + x1;
+    S32(st, G_TILE_CURSOR) = idx;
     if (y1 > y2) {
         return;
     }
     int32_t rows = y2 - y1 + 1;
-    S32(st, 0x00D3B4E0u) = y1 + rows;
+    S32(st, G_ROAD_ACCESS_Y) = y1 + rows;
     for (; rows != 0; rows--) {
-        S32(st, 0x00D3B4E4u) = x1;
+        S32(st, G_ROAD_ACCESS_X) = x1;
         if (x1 <= x2) {
             int32_t n = x2 - x1 + 1;
-            S32(st, 0x00D3B4E4u) = n + x1;
+            S32(st, G_ROAD_ACCESS_X) = n + x1;
             for (; n != 0; n--, idx++) {
                 if (set) {
-                    U8(st, 0x00B67D1Cu + (uint32_t) idx) |= 0x80;
+                    U8(st, G_EDGE + (uint32_t) idx) |= 0x80;
                 } else {
-                    U8(st, 0x00B67D1Cu + (uint32_t) idx) &= 0x7F;
+                    U8(st, G_EDGE + (uint32_t) idx) &= 0x7F;
                 }
             }
         }
         idx += x1 - x2 + 0xE3;
     }
-    S32(st, TILE_INDEX) = idx;
+    S32(st, G_TILE_CURSOR) = idx;
 }
 
 void terrain_0x00482a90(game_state *st, int32_t x, int32_t y, int32_t size, int32_t r)

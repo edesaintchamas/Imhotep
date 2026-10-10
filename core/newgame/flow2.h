@@ -17,8 +17,6 @@
 
 #include "state/state.h"
 
-#define FAMILY_LIST 0x00EADFA8u
-
 /* @bin 0x0041B680 (thiscall on the campaign table) read the progress file `path` (a state string):
  * the table's mission records; 1 when it was read */
 int32_t campaign_progress_read(game_state *st, uint32_t self, uint32_t path);

@@ -15,26 +15,8 @@
 
 #include "sim/call.h"
 #include "sim/platform.h"
+#include "state/layout.h"
 #include "state/ported.h"
-
-#define PLAYER_NAME 0x00E38E74u   /* char[32] */
-#define STR_SAVE_DIR 0x005E0494u  /* "save\\" */
-#define STR_DAT 0x005F80E8u       /* ".dat" */
-#define STR_SAV_PATTERN 0x005761C4u /* "\\*.sav" */
-#define PROGRESS_PATH 0x00EADDA0u /* char[0x104] */
-#define FAMILY_DIR 0x00EADEA4u
-#define LAST_SAVE 0x00700998u     /* the last saved game's path (empty: none) */
-#define SCREEN 0x00E38DDAu
-#define REDRAW 0x00E38DCAu
-#define CUSTOM 0x00E38EBCu
-#define MISSION 0x00E38EA8u
-#define STEP 0x00E38EABu
-#define LIST_OBJECT 0x00704C00u
-#define LIST_MODE 0x00704DB0u     /* 0: .map files, 1: the missions of the campaign table */
-#define STEPS 0x1900u             /* table + : i32 step count */
-#define NAMES 0x1904u             /* table + : char[0x32] mission names */
-#define NAME_COUNT 0x2C8Cu        /* table + : i32 */
-#define LOG_LINE 0x00E36C90u      /* the log line buffer (0x004CE6E0; presentation, excluded.py) */
 
 /* ---- strings of the state ---- */
 
@@ -87,18 +69,18 @@ static void cat_c(char *out, size_t cap, game_state *st, uint32_t a)
 uint32_t campaign_progress_path(game_state *st)
 {
     /* @bin 0x00516A20 */
-    str_copy(st, PROGRESS_PATH, STR_SAVE_DIR);
-    str_cat(st, PROGRESS_PATH, PLAYER_NAME);
-    str_cat(st, PROGRESS_PATH, STR_DAT);
-    return PROGRESS_PATH;
+    str_copy(st, G_PROGRESS_PATH, G_STR_SAVE_DIR);
+    str_cat(st, G_PROGRESS_PATH, G_PLAYER_NAME);
+    str_cat(st, G_PROGRESS_PATH, G_STR_DAT);
+    return G_PROGRESS_PATH;
 }
 
 uint32_t family_dir_path(game_state *st)
 {
     /* @bin 0x005169C0 */
-    str_copy(st, FAMILY_DIR, STR_SAVE_DIR);
-    str_cat(st, FAMILY_DIR, PLAYER_NAME);
-    return FAMILY_DIR;
+    str_copy(st, G_FAMILY_DIR, G_STR_SAVE_DIR);
+    str_cat(st, G_FAMILY_DIR, G_PLAYER_NAME);
+    return G_FAMILY_DIR;
 }
 
 int32_t campaign_progress_write(game_state *st, uint32_t self, uint32_t path)
@@ -123,7 +105,7 @@ int32_t campaign_next_step(game_state *st, uint32_t self, int32_t period, int32_
         step = -1;
         want = 0;
     } else {
-        if (step >= S32(st, self + STEPS)) {
+        if (step >= S32(st, self + CAMPAIGN_STEP_COUNT)) {
             return -1;
         }
         uint32_t e = self + ((uint32_t) step << 6);
@@ -135,7 +117,7 @@ int32_t campaign_next_step(game_state *st, uint32_t self, int32_t period, int32_
     }
     /* @bin 0x0041B962 the next step of the period whose path (+1) is 0 (any) or that path, or
      * that merges it (+7 ids at +2) */
-    int32_t n = S32(st, self + STEPS);
+    int32_t n = S32(st, self + CAMPAIGN_STEP_COUNT);
     for (int32_t i = step + 1; i < n; i++) {
         uint32_t e = self + ((uint32_t) i << 6);
         if ((int32_t) P8(st, e) != period) {
@@ -161,7 +143,7 @@ int32_t campaign_period_done(game_state *st, uint32_t self, int32_t period)
     if (period >= 5) {
         return 1;
     }
-    for (int32_t i = 0; i < S32(st, self + STEPS); i++) {
+    for (int32_t i = 0; i < S32(st, self + CAMPAIGN_STEP_COUNT); i++) {
         uint32_t e = self + ((uint32_t) i << 6);
         if ((int32_t) P8(st, e) == period && P8(st, e + 0x3C) != 0 &&
             campaign_next_step(st, self, period, i, 0) < 0) {
@@ -298,10 +280,10 @@ static void parse_error(game_state *st, uint32_t file, int32_t line, const char 
                         uint32_t msg)
 {
     if (text) {
-        stage(st, LOG_LINE, text);
-        text_addr = LOG_LINE;
+        stage(st, G_LOG_LINE, text);
+        text_addr = G_LOG_LINE;
     }
-    GAME_CALL(st, 0x0041ADF0u, (int32_t) file, line, (int32_t) text_addr, (int32_t) msg);
+    GAME_CALL(st, FN_CAMPAIGN_ERROR_LINE, (int32_t) file, line, (int32_t) text_addr, (int32_t) msg);
 }
 
 /* @bin 0x0041ADF0 sprintf(buffer, "ERR: %s line %d: %s %s" (0x0057C04C), ...) and the game's log
@@ -322,19 +304,21 @@ static int32_t run_error_line(game_state *st, const int32_t *a)
 }
 
 /* the section names and keywords of the file, in the order of the original's table */
-static const uint32_t KEYWORDS[13] = {0x0057C270u, 0x0057C258u, 0x0057C244u, 0x0057C234u, 0x0057C220u,
-                                      0x0057C210u, 0x0057C1F8u, 0x0057C1ECu, 0x0057C1D4u, 0x0057C1BCu,
-                                      0x0057C1B4u, 0x0057C1A4u, 0x0057C19Cu};
+static const uint32_t KEYWORDS[13] = {G_STR_MISSION_NAMES,         G_STR_PREDYNASTIC_PERIOD, G_STR_ARCHAIC_PERIOD,
+                                      G_STR_OLD_KINGDOM,           G_STR_MIDDLE_KINGDOM,     G_STR_NEW_KINGDOM,
+                                      G_STR_VALLEY_OF_THE_KINGS,   G_STR_RAMSES_II,          G_STR_ANCIENT_CONQUERORS,
+                                      G_STR_CLEOPATRAS_ALEXANDRIA, G_STR_MISSION,            G_STR_CHOICESCREEN,
+                                      G_STR_CHOICE};
 
 /* @bin 0x0041AC90 (thiscall) append a step: < 100 steps and period < 9 */
 static int add_step(game_state *st, uint32_t self, const uint8_t *e)
 {
-    int32_t n = S32(st, self + STEPS);
+    int32_t n = S32(st, self + CAMPAIGN_STEP_COUNT);
     if (n >= 100 || e[0] >= 9) {
         return 0;
     }
     memcpy(state_ptr(st, self + ((uint32_t) n << 6), 0x40), e, 0x40);
-    S32(st, self + STEPS) = S32(st, self + STEPS) + 1;
+    S32(st, self + CAMPAIGN_STEP_COUNT) = S32(st, self + CAMPAIGN_STEP_COUNT) + 1;
     return 1;
 }
 
@@ -368,15 +352,15 @@ int32_t campaign_load(game_state *st, uint32_t self, uint32_t path)
     platform_file_read(st, file, 0, (uint8_t *) text, (uint32_t) size);
     /* the stream is binary ("rb"): the lines keep their CR, removed with the other blanks */
     size_t len = (size_t) size;
-    const char *delim = state_str(st, U32(st, 0x0057BE28u));   /* ",=" */
-    const char *delim2 = state_str(st, 0x0057BFACu);          /* ",=" */
+    const char *delim = state_str(st, U32(st, G_STR_DELIM_PTR));   /* ",=" */
+    const char *delim2 = state_str(st, G_STR_COMMA_EQUALS);          /* ",=" */
     uint8_t names = 0;
     /* @bin 0x0041AF04 the 100 steps of the table at 0x006FDD08 (absolute), the counts, 0x41 bytes */
-    for (uint32_t a = CAMPAIGN_TABLE_ADDR; a < 0x006FF608u; a += 0x40) {
+    for (uint32_t a = G_CAMPAIGN_TABLE; a < G_CAMPAIGN_TABLE + CAMPAIGN_STEP_COUNT; a += CAMPAIGN_STEP_SIZE) {
         entry_init(state_ptr(st, a, 0x40));
     }
-    S32(st, self + STEPS) = 0;
-    S32(st, self + NAME_COUNT) = 0;
+    S32(st, self + CAMPAIGN_STEP_COUNT) = 0;
+    S32(st, self + CAMPAIGN_NAME_COUNT) = 0;
     memset(state_ptr(st, self + 0x2C90u, 0x41), 0, 0x41);
     uint8_t ok = 1;
     int32_t line = 0;
@@ -427,7 +411,7 @@ int32_t campaign_load(game_state *st, uint32_t self, uint32_t path)
             names = 0;
             if (rd32(e + 0xC) >= 0) {
                 if (!add_step(st, self, e)) {
-                    err = 0x007027D4u;
+                    err = G_GOAL_SEPARATOR;
                     goto error;
                 }
                 reset_after_add(e);
@@ -436,45 +420,45 @@ int32_t campaign_load(game_state *st, uint32_t self, uint32_t path)
         } else if (idx == 10) {
             /* @bin 0x0041B088 mission=id,intro,transition[,path[,merge ...]] */
             if (names) {
-                err = 0x0057C188u;
+                err = G_STR_BAD_MISSION_NAME;
                 goto error;
             }
             if (rd32(e + 0xC) >= 0) {
                 if (!add_step(st, self, e)) {
-                    err = 0x0057C16Cu;
+                    err = G_STR_FAILED_TO_ADD_MISSION_LINK;
                     goto error;
                 }
                 reset_after_add(e);
             }
             if (parse_int(&next, delim, &v) != 1) {
-                err = 0x0057C15Cu;
+                err = G_STR_BAD_MISSION_ID;
                 goto error;
             }
             wr32(e + 0xC, v);
-            if (v < 0 || v >= S32(st, self + NAME_COUNT)) {
-                err = 0x0057C15Cu;
+            if (v < 0 || v >= S32(st, self + CAMPAIGN_NAME_COUNT)) {
+                err = G_STR_BAD_MISSION_ID;
                 goto error;
             }
             if (parse_int(&next, delim, &v) != 1) {
-                err = 0x0057C14Cu;
+                err = G_STR_BAD_INTRO_ID;
                 goto error;
             }
             wr32(e + 0x8, v);
             if (parse_int(&next, delim, &v) != 1) {
-                err = 0x0057C134u;
+                err = G_STR_BAD_TRANSITION_TEXT_ID;
                 goto error;
             }
             wr32(e + 0x10, v);
             r = parse_int(&next, delim, &v);
             if (r == 2) {
-                err = 0x0057C128u;
+                err = G_STR_BAD_PATH_ID;
                 goto error;
             }
             if (r == 0) {
                 continue;
             }
             if (v < 0 || v > 0xFF) {
-                err = 0x0057C128u;
+                err = G_STR_BAD_PATH_ID;
                 goto error;
             }
             e[1] = (uint8_t) v;
@@ -485,7 +469,7 @@ int32_t campaign_load(game_state *st, uint32_t self, uint32_t path)
                 }
                 r = parse_int(&next, delim, &v);
                 if (r == 2 || (r == 1 && (v < 0 || v > 0xFF))) {
-                    err = 0x0057C118u;
+                    err = G_STR_BAD_MERGE_ID;
                     goto error;
                 }
                 if (r == 0) {
@@ -500,49 +484,49 @@ int32_t campaign_load(game_state *st, uint32_t self, uint32_t path)
                 wr32(e + 0xC, 0x7F);
             }
             if (names) {
-                err = 0x0057C188u;
+                err = G_STR_BAD_MISSION_NAME;
                 goto error;
             }
             if (parse_int(&next, delim, &v) != 1) {
-                err = 0x0057C104u;
+                err = G_STR_BAD_BACKGROUND_ID;
                 goto error;
             }
             wr32(e + 0x1C, v);
             if (parse_int(&next, delim, &v) != 1) {
-                err = 0x0057C0CCu;
+                err = G_STR_BAD_TEXT_ID;
                 goto error;
             }
             wr32(e + 0x18, v);
         } else if (idx == 12) {
             /* @bin 0x0041B2F7 choice=path,x,y,text (two at most) */
             if (names) {
-                err = 0x0057C188u;
+                err = G_STR_BAD_MISSION_NAME;
                 goto error;
             }
             int32_t c = rd32(e + 0x38);
             if (c >= 2) {
-                err = 0x0057C0F0u;
+                err = G_STR_TOO_MANY_CHOICES;
                 goto error;
             }
             if (parse_int(&next, delim, &v) != 1 || v < 0 || v > 0xFF) {
-                err = 0x0057C128u;
+                err = G_STR_BAD_PATH_ID;
                 goto error;
             }
             uint8_t *ch = e + 0x20 + 12 * c;
             ch[0xA] = (uint8_t) v;
             if (parse_int(&next, delim, &v) != 1) {
-                err = 0x0057C0E4u;
+                err = G_STR_BAD_X_VALUE;
                 goto error;
             }
             wr32(ch, v);
             if (parse_int(&next, delim, &v) != 1) {
-                err = 0x0057C0D8u;
+                err = G_STR_BAD_Y_VALUE;
                 goto error;
             }
             wr32(ch + 4, v);
             /* @bin 0x0041ADC0 the text id: 16 bits */
             if (parse_int(&next, delim, &v) != 1) {
-                err = 0x0057C0CCu;
+                err = G_STR_BAD_TEXT_ID;
                 goto error;
             }
             ch[8] = (uint8_t) v;
@@ -555,21 +539,21 @@ int32_t campaign_load(game_state *st, uint32_t self, uint32_t path)
                 copy[k--] = 0;
             }
             if (k + 2 > 0x32) {
-                err = 0x0057C0B4u;
+                err = G_STR_MISSION_NAME_TOO_LONG;
                 goto error;
             }
             if (k <= 0) {
                 continue;
             }
-            int32_t count = S32(st, self + NAME_COUNT);
+            int32_t count = S32(st, self + CAMPAIGN_NAME_COUNT);
             if (count >= 100) {
-                err = 0x0057C09Cu;
+                err = G_STR_MAX_MISSIONS_EXCEEDED;
                 goto error;
             }
-            memcpy(state_ptr(st, self + NAMES + 0x32u * (uint32_t) count, (uint32_t) k + 2), copy, (size_t) k + 2);
-            S32(st, self + NAME_COUNT) = S32(st, self + NAME_COUNT) + 1;
+            memcpy(state_ptr(st, self + CAMPAIGN_NAMES + CAMPAIGN_NAME_SIZE * (uint32_t) count, (uint32_t) k + 2), copy, (size_t) k + 2);
+            S32(st, self + CAMPAIGN_NAME_COUNT) = S32(st, self + CAMPAIGN_NAME_COUNT) + 1;
         } else {
-            err = 0x0057C088u; /* unrecognized line */
+            err = G_STR_UNRECOGNIZED_LINE; /* unrecognized line */
             goto error;
         }
         continue;
@@ -579,18 +563,18 @@ int32_t campaign_load(game_state *st, uint32_t self, uint32_t path)
     }
     /* @bin 0x0041B50D the last step */
     if (rd32(e + 0xC) >= 0 && !add_step(st, self, e)) {
-        parse_error(st, path, line, copy, 0, 0x0057C16Cu);
+        parse_error(st, path, line, copy, 0, G_STR_FAILED_TO_ADD_MISSION_LINK);
         ok = 0;
     }
     /* @bin 0x0041B54B every choice of the steps with two or more must lead somewhere (the table at
      * 0x006FDD08, absolute) */
-    for (int32_t i = 0; i < S32(st, self + STEPS); i++) {
-        uint32_t s = CAMPAIGN_TABLE_ADDR + ((uint32_t) i << 6);
+    for (int32_t i = 0; i < S32(st, self + CAMPAIGN_STEP_COUNT); i++) {
+        uint32_t s = G_CAMPAIGN_TABLE + ((uint32_t) i << 6);
         if (S32(st, s + 0x38) <= 1) {
             continue;
         }
         for (int32_t k = 0; k < S32(st, s + 0x38); k++) {
-            if (campaign_next_step(st, CAMPAIGN_TABLE_ADDR, U8(st, s), i, k) >= 0) {
+            if (campaign_next_step(st, G_CAMPAIGN_TABLE, U8(st, s), i, k) >= 0) {
                 continue;
             }
             /* @bin 0x0041B5C9 sprintf(line buffer, "%s mission %d: choice %d not found" (0x0057C064), the
@@ -599,11 +583,11 @@ int32_t campaign_load(game_state *st, uint32_t self, uint32_t path)
              * buffer for 0x0041ADF0 */
             uint32_t name = KEYWORDS[U8(st, s) + 1];
             int32_t mission = S32(st, s + 0xC), path_id = U8(st, s + 0x2A + 12u * (uint32_t) k);
-            GAME_CALL(st, 0x00561A36u, 0, 0x0057C064, (int32_t) name, mission, path_id);
+            GAME_CALL(st, FN_CRT_SPRINTF, 0, G_STR_CHOICE_NOT_FOUND, (int32_t) name, mission, path_id);
             char msg[200];
             snprintf(msg, sizeof(msg), "%s mission %d: choice %d not found", state_str(st, name), mission, path_id);
-            stage(st, LOG_LINE + 0x80, msg);
-            parse_error(st, path, line, NULL, 0x007027D4u, LOG_LINE + 0x80);
+            stage(st, G_LOG_LINE + 0x80, msg);
+            parse_error(st, path, line, NULL, G_GOAL_SEPARATOR, G_LOG_LINE + 0x80);
             ok = 0;
         }
     }
@@ -619,69 +603,69 @@ void fade_start(game_state *st, int32_t a, int32_t next, int32_t ms)
 {
     /* @bin 0x0041AA20 the fade's start time is timeGetTime(): the wall clock (core/sim/platform.h) */
     uint32_t now = platform_clock_ms(st);
-    S32(st, 0x006FDCB0u) = a;
-    U32(st, 0x006FDCACu) = now;
-    U32(st, 0x006FDCA8u) = now + (uint32_t) ms;
-    S32(st, 0x006FDCA4u) = next;
-    U8(st, SCREEN) = 4;
-    U8(st, REDRAW) = 1;
+    S32(st, G_MISSION_PICTURE_KIND) = a;
+    U32(st, G_FADE_START) = now;
+    U32(st, G_FADE_END) = now + (uint32_t) ms;
+    S32(st, G_FADE_NEXT) = next;
+    U8(st, G_WINDOW) = 4;
+    U8(st, G_REDRAW) = 1;
 }
 
 int32_t briefing_text_id(game_state *st)
 {
     /* @bin 0x00418140 a campaign step's intro id (+8; with the option byte 0x00E39088: + 200 below
      * 0x1B7, else + 15); otherwise 200 + mission (200 for none, 0x7F) */
-    if (S32(st, CUSTOM) == 0) {
-        int32_t s = S8(st, STEP);
-        if (s >= 0 && s < S32(st, 0x006FF608u)) {
-            int32_t v = S32(st, CAMPAIGN_TABLE_ADDR + ((uint32_t) s << 6) + 8);
-            if (U8(st, 0x00E39088u) == 0) {
+    if (S32(st, G_CUSTOM) == 0) {
+        int32_t s = S8(st, G_STEP);
+        if (s >= 0 && s < S32(st, G_CAMPAIGN_TABLE + CAMPAIGN_STEP_COUNT)) {
+            int32_t v = S32(st, G_CAMPAIGN_TABLE + ((uint32_t) s << 6) + 8);
+            if (U8(st, G_EMPIRE_LANGUAGE) == 0) {
                 return v;
             }
             return v < 0x1B7 ? v + 0xC8 : v + 0xF;
         }
     }
-    if (S8(st, MISSION) == 0x7F) {
+    if (S8(st, G_MISSION) == 0x7F) {
         return 0xC8;
     }
-    return S8(st, MISSION) + 0xC8;
+    return S8(st, G_MISSION) + 0xC8;
 }
 
 void briefing_open(game_state *st)
 {
     /* @bin 0x004181E0 */
     fade_start(st, 0, 0x35, 1000);
-    U32(st, 0x007027A8u) = 0;
-    U32(st, 0x00D3B130u) = 0;
-    U32(st, 0x00D3B138u) = 0;
-    S32(st, 0x00D3B124u) = briefing_text_id(st);
+    U32(st, G_U7027A8) = 0;
+    U32(st, G_SCROLL) = 0;
+    U32(st, G_TEXT_LINES) = 0;
+    S32(st, G_MW_TYPE) = briefing_text_id(st);
 }
 
 void main_menu_open(game_state *st)
 {
     /* @bin 0x004CB6A0 continue (a campaign period done), Cleopatra, load (a saved game in the
      * family's directory), the last save (0x00700998 opens) */
-    U8(st, 0x00D3B189u) = (uint8_t) campaign_any_period_done(st, CAMPAIGN_TABLE_ADDR);
-    U8(st, 0x00D3B188u) = 1;
-    U8(st, 0x00D3B18Bu) = 0;
-    U8(st, 0x00D3B18Au) = 0;
-    if (U8(st, LAST_SAVE) != 0) {
-        const char *p = state_str(st, LAST_SAVE);
+    U8(st, G_MENU_PERIOD_DONE) = (uint8_t) campaign_any_period_done(st, G_CAMPAIGN_TABLE);
+    U8(st, G_MENU_BUTTON1_SHOWN) = 1;
+    U8(st, G_MENU_LAST_SAVE_FOUND) = 0;
+    U8(st, G_MENU_SAVES_FOUND) = 0;
+    if (U8(st, G_LAST_SAVE) != 0) {
+        const char *p = state_str(st, G_LAST_SAVE);
         if (p && platform_file_read(st, p, 0, NULL, 0) >= 0) { /* fopen "rb", fclose */
-            U8(st, 0x00D3B18Bu) = 1;
+            U8(st, G_MENU_LAST_SAVE_FOUND) = 1;
         }
     }
     /* @bin 0x004CB711 a file list on the stack (0x0041C6D0 .. 0x0041C710, flow2.c file_list_count):
      * "save\" + name + "\*.sav" (0x005761C4); any file found sets 0x00D3B18A */
     char pattern[300] = "";
-    cat_c(pattern, sizeof(pattern), st, STR_SAVE_DIR);
-    cat_c(pattern, sizeof(pattern), st, PLAYER_NAME);
-    cat_c(pattern, sizeof(pattern), st, STR_SAV_PATTERN);
+    cat_c(pattern, sizeof(pattern), st, G_STR_SAVE_DIR);
+    cat_c(pattern, sizeof(pattern), st, G_PLAYER_NAME);
+    cat_c(pattern, sizeof(pattern), st, G_STR_SAV_PATTERN);
     if (file_list_count(st, pattern) > 0) {
-        U8(st, 0x00D3B18Au) = 1;
+        U8(st, G_MENU_SAVES_FOUND) = 1;
     }
-    U8(st, SCREEN) = 0x30;
-    U8(st, REDRAW) = 1;
+    U8(st, G_WINDOW) = 0x30;
+    U8(st, G_REDRAW) = 1;
 }
 
 /* ---- the scenario / mission list object 0x00704C00 ---- */
@@ -690,7 +674,7 @@ int32_t list_row_kind(game_state *st, uint32_t self, int32_t row)
 {
     /* @bin 0x0041DFE0 0 a .map, 1 a mission, 3 no such row */
     if (row >= 0 && row < S32(st, self + 8)) {
-        return S32(st, LIST_MODE) != 0;
+        return S32(st, G_SCENARIO_LIST_MODE) != 0;
     }
     return 3;
 }
@@ -702,10 +686,10 @@ uint32_t list_row_name(game_state *st, uint32_t self, int32_t row)
     if (row < 0 || row >= S32(st, self + 8)) {
         return 0;
     }
-    if (S32(st, LIST_MODE) == 0) {
+    if (S32(st, G_SCENARIO_LIST_MODE) == 0) {
         return P32(st, P32(st, self + 4) + 4u * (uint32_t) row) + P32(st, self + 0x10);
     }
-    return 0x006FF60Cu + 0x32u * U32(st, self + 0x1C + 4u * (uint32_t) row);
+    return G_CAMPAIGN_TABLE + CAMPAIGN_NAMES + CAMPAIGN_NAME_SIZE * U32(st, self + 0x1C + 4u * (uint32_t) row);
 }
 
 int32_t list_row_mission(game_state *st, uint32_t self, int32_t row)
@@ -720,12 +704,12 @@ int32_t list_row_mission(game_state *st, uint32_t self, int32_t row)
 int32_t list_fill(game_state *st, uint32_t self, uint32_t pattern, int32_t keep)
 {
     /* @bin 0x0041DF70 files (mode 0: 0x0041C740) or the [0x00700994] missions, in order */
-    if (S32(st, LIST_MODE) == 0) {
-        return GAME_CALLT(st, self, 0x0041C740u, (int32_t) pattern, keep);
+    if (S32(st, G_SCENARIO_LIST_MODE) == 0) {
+        return GAME_CALLT(st, self, FN_FILE_LIST_FILL, (int32_t) pattern, keep);
     }
     S32(st, self + 8) = 0;
     int32_t i = 0;
-    for (; i < S32(st, 0x00700994u); i++) {
+    for (; i < S32(st, G_MISSION_COUNT); i++) {
         S32(st, self + 0x1C + 4u * (uint32_t) S32(st, self + 8)) = i;
         S32(st, self + 8) = S32(st, self + 8) + 1;
     }
@@ -735,30 +719,30 @@ int32_t list_fill(game_state *st, uint32_t self, uint32_t pattern, int32_t keep)
 void list_load(game_state *st, uint32_t pattern)
 {
     /* @bin 0x0041F810 */
-    list_fill(st, LIST_OBJECT, pattern, 0);
-    S32(st, 0x00704DB4u) = S32(st, LIST_OBJECT + 8);
-    if (S32(st, LIST_MODE) != 0) {
+    list_fill(st, G_LIST_OBJECT, pattern, 0);
+    S32(st, G_SCENARIO_ROWS) = S32(st, G_LIST_OBJECT + 8);
+    if (S32(st, G_SCENARIO_LIST_MODE) != 0) {
         return;
     }
     /* the file names without their extension (0x004CE3A0), sorted with _stricmp (0x0041CA10) */
-    for (int32_t i = 0; i < S32(st, 0x00704DB4u); i++) {
-        uint32_t name = list_row_name(st, LIST_OBJECT, i);
-        GAME_CALL(st, 0x004CE3A0u, (int32_t) name);
+    for (int32_t i = 0; i < S32(st, G_SCENARIO_ROWS); i++) {
+        uint32_t name = list_row_name(st, G_LIST_OBJECT, i);
+        GAME_CALL(st, FN_FILE_NAME_STRIP_EXTENSION, (int32_t) name);
     }
-    GAME_CALLT(st, LIST_OBJECT, 0x0041CA10u, 0x00562370);
+    GAME_CALLT(st, G_LIST_OBJECT, FN_FILE_LIST_SORT, FN_CRT_STRCMPI);
 }
 
 void list_open(game_state *st)
 {
     /* @bin 0x0041F870 screen 0x3D, the list ("maps\*.map", 0x00576260), the first row clicked */
-    U8(st, SCREEN) = 0x3D;
-    list_load(st, 0x00576260u);
-    U8(st, 0x00D3B1B3u) = 0;
-    S32(st, 0x00704DB8u) = 0;
-    U8(st, 0x00D3B1C0u) = 1;
-    S32(st, 0x00D3B198u) = S32(st, 0x00704DBCu);
-    GAME_CALL0(st, 0x0041F670u);
-    U8(st, REDRAW) = 1;
+    U8(st, G_WINDOW) = 0x3D;
+    list_load(st, G_STR_MAPS_PATTERN);
+    U8(st, G_NOT_FOUND) = 0;
+    S32(st, G_SCENARIO_FIRST) = 0;
+    U8(st, G_FILES_MODE) = 1;
+    S32(st, G_PARAM1) = S32(st, G_SCENARIO_LIST_ROW);
+    GAME_CALL0(st, FN_NEWGAME_LIST_ROW);
+    U8(st, G_REDRAW) = 1;
 }
 
 /* ---- the table ---- */
@@ -804,7 +788,7 @@ static int32_t run_entry_init(game_state *st, const int32_t *a)
 {
     uint8_t *e = state_ptr(st, (uint32_t) a[PORT_THIS_ARG], 0x40);
     if (!e) {
-        state_unported(st, 0x0041AC00u); /* a step on the caller's stack */
+        state_unported(st, FN_CAMPAIGN_ENTRY_INIT); /* a step on the caller's stack */
         return 0;
     }
     entry_init(e);
@@ -874,21 +858,21 @@ const ported_function newgame_flow_ports[] = {
     {0x00516A20u, "campaign_progress_path", 0, 32, 0, run_progress_path, 0},
     {0x005169C0u, "family_dir_path", 0, 32, 0, run_family_dir, 0},
     /* the whole function is the file write (fopen "wb", fwrite, fclose): a platform request */
-    {0x0041B8A0u, "campaign_progress_write (platform_file_write)", 1, 8, CAMPAIGN_TABLE_ADDR, run_progress_write,
+    {0x0041B8A0u, "campaign_progress_write (platform_file_write)", 1, 8, G_CAMPAIGN_TABLE, run_progress_write,
      PORT_PLATFORM},
-    {0x0041B920u, "campaign_next_step", 3, 32, CAMPAIGN_TABLE_ADDR, run_next_step, 0},
-    {0x0041BA20u, "campaign_period_done", 1, 8, CAMPAIGN_TABLE_ADDR, run_period_done, 0},
-    {0x0041BAB0u, "campaign_any_period_done", 0, 8, CAMPAIGN_TABLE_ADDR, run_any_period_done, 0},
-    {0x0041AE40u, "campaign_load (campaign.txt)", 1, 8, CAMPAIGN_TABLE_ADDR, run_campaign_load, 0},
+    {0x0041B920u, "campaign_next_step", 3, 32, G_CAMPAIGN_TABLE, run_next_step, 0},
+    {0x0041BA20u, "campaign_period_done", 1, 8, G_CAMPAIGN_TABLE, run_period_done, 0},
+    {0x0041BAB0u, "campaign_any_period_done", 0, 8, G_CAMPAIGN_TABLE, run_any_period_done, 0},
+    {0x0041AE40u, "campaign_load (campaign.txt)", 1, 8, G_CAMPAIGN_TABLE, run_campaign_load, 0},
     {0x0041AC00u, "campaign_entry_init", 0, 0, 0, run_entry_init, 0},
     {0x0041AA20u, "fade_start", 3, 0, 0, run_fade, 0},
     {0x00418140u, "briefing_text_id", 0, 32, 0, run_text_id, 0},
     {0x004181E0u, "briefing_open", 0, 0, 0, run_briefing, 0},
     {0x004CB6A0u, "main_menu_open", 0, 0, 0, run_main_menu, 0},
-    {0x0041DFE0u, "list_row_kind", 1, 32, LIST_OBJECT, run_row_kind, 0},
-    {0x0041E010u, "list_row_name", 1, 32, LIST_OBJECT, run_row_name, 0},
-    {0x0041DFC0u, "list_row_mission", 1, 32, LIST_OBJECT, run_row_mission, 0},
-    {0x0041DF70u, "list_fill", 2, 8, LIST_OBJECT, run_list_fill, 0},
+    {0x0041DFE0u, "list_row_kind", 1, 32, G_LIST_OBJECT, run_row_kind, 0},
+    {0x0041E010u, "list_row_name", 1, 32, G_LIST_OBJECT, run_row_name, 0},
+    {0x0041DFC0u, "list_row_mission", 1, 32, G_LIST_OBJECT, run_row_mission, 0},
+    {0x0041DF70u, "list_fill", 2, 8, G_LIST_OBJECT, run_list_fill, 0},
     {0x0041F810u, "list_load", 1, 0, 0, run_list_load, 0},
     {0x0041F870u, "list_open", 0, 0, 0, run_list_open, 0},
     /* inside campaign_load, on its own frame (stack arguments) */

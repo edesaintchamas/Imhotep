@@ -8,16 +8,16 @@
 #include "city/text_lookup.h"
 #include "sim/call.h"
 #include "sim/platform.h"
+#include "state/layout.h"
 
-#define GFX 0x00F55BB0u
-#define SLOTS_LOADED (GFX + 0x30F5D4u)
+#define SLOTS_LOADED (G_GRAPHICS_GFX + 0x30F5D4u)
 
 /* @bin 0x0041448A .. 0x00414578 the slot names (strings of .rdata), in their order on the stack */
 static const uint32_t SLOT_NAMES[30] = {
-    0x00579218u, 0x00579210u, 0x00579208u, 0x005791F8u, 0x005791E8u, 0x005791DCu, 0x005791D0u, 0x005791C4u,
-    0x005791B8u, 0x005791A8u, 0x0057919Cu, 0x00579194u, 0x00579188u, 0x00579178u, 0x0057916Cu, 0x00579160u,
-    0x00579154u, 0x00579144u, 0x00579134u, 0x00579124u, 0x0057922Cu, 0x0057922Cu, 0x0057922Cu, 0x00576284u,
-    0x00579110u, 0x00579100u, 0x005790F0u, 0x005790E0u, 0x005790D0u, 0x005790C0u,
+    G_STR_PHARAOH_UNLOADED, G_STR_SPRMAIN, G_STR_HYKSOS, G_STR_PHARAOH_GENERAL, G_STR_PHARAOH_TERRAIN, G_STR_SPHINX1A, G_STR_SPHINX1B, G_STR_SPHINX1C,
+    G_STR_SPHINX1D, G_STR_SPHINX_EXTRA, G_STR_TEMPLE_NILE, G_STR_EMPIRE, G_STR_SPRAMBIENT, G_STR_PHARAOH_FONTS, G_STR_EGYPTIAN, G_STR_SPRMAIN2,
+    G_STR_EXPANSION, G_STR_PYRAMID_DUMMY, G_STR_CAESAREUM_DUMMY, G_STR_LT_HOUSE_DUMMY, G_STR_LIB_MAIN_DUMMY, G_STR_LIB_MAIN_DUMMY, G_STR_LIB_MAIN_DUMMY, G_LIB_EXTRA,
+    G_STR_MAUS_CARRYOVER_DUMMY, G_STR_TOMB_THUT_DUMMY, G_STR_ABU_SIMBEL_DUMMY, G_STR_TOMB_TUT_DUMMY, G_STR_TOMB_SETI_DUMMY, G_STR_TOMB_RAM_DUMMY,
 };
 
 /* @bin 0x0053DD10 (thiscall on the graphics object, names) the next slot (the number loaded so far,
@@ -32,7 +32,7 @@ static int32_t load_next(game_state *st)
     if (!name || U8(st, name) == 0) {
         return 0;
     }
-    return GAME_CALLT(st, GFX, 0x0053DD90u, (int32_t) name, -1) & 0xFF;
+    return GAME_CALLT(st, G_GRAPHICS_GFX, FN_GRAPHICS_LOAD_SLOT, (int32_t) name, -1) & 0xFF;
 }
 
 /* @bin 0x0053DD40 the following slots while each one loads (and while names remain) */
@@ -46,7 +46,7 @@ static void load_rest(game_state *st)
         }
         uint32_t name = SLOT_NAMES[n];
         if (name && U8(st, name) != 0) {
-            ok = GAME_CALLT(st, GFX, 0x0053DD90u, (int32_t) name, -1) & 0xFF;
+            ok = GAME_CALLT(st, G_GRAPHICS_GFX, FN_GRAPHICS_LOAD_SLOT, (int32_t) name, -1) & 0xFF;
         }
         if (!ok) {
             return;
@@ -59,7 +59,7 @@ static void load_rest(game_state *st)
  * boot without a display makes it a no-op: tools/oracle/game.py PRESENTATION) */
 static void loading_text(game_state *st, const boot_host *host, uint32_t text)
 {
-    if (U32(st, 0x00E92E18u) == 0) {
+    if (U32(st, G_BACK_BUFFER) == 0) {
         return; /* no back buffer: no display */
     }
     int32_t n = text_length(st, text); /* 0x004CC000 */
@@ -79,14 +79,14 @@ static void loading_text(game_state *st, const boot_host *host, uint32_t text)
         return;
     }
     /* @bin 0x004CF7F4 the box under the text, centred on the screen and a quarter down (signed halves) */
-    int32_t bx = (S32(st, 0x00E38DB0u) - cx) / 2;
-    int32_t by = (S32(st, 0x00E38DACu) - cy) / 2;
+    int32_t bx = (S32(st, G_SCREEN_W) - cx) / 2;
+    int32_t by = (S32(st, G_SCREEN_H) - cy) / 2;
     by += by * 50 / 100;
-    if (S32(st, 0x00E38DB4u) != S32(st, 0x00E38DACu)) {
+    if (S32(st, G_DESKTOP_H) != S32(st, G_SCREEN_H)) {
         by -= 0x18;
     }
-    GAME_CALL(st, 0x004CD9D0u, bx - 0x1A, by - 0xB, cx + 0x34, cy + 0x16, 0);
-    GAME_CALL(st, 0x004CD9D0u, bx - 0x19, by - 0xA, cx + 0x32, cy + 0x14, 0xFFFF);
+    GAME_CALL(st, FN_RECT_FILL, bx - 0x1A, by - 0xB, cx + 0x34, cy + 0x16, 0);
+    GAME_CALL(st, FN_RECT_FILL, bx - 0x19, by - 0xA, cx + 0x32, cy + 0x14, 0xFFFF);
     /* @bin 0x004CF8B3 SetBkColor, TextOutA at the screen's centre, ReleaseDC: the window's text, the
      * platform's (it is not in the back buffer) */
 }
@@ -94,29 +94,29 @@ static void loading_text(game_state *st, const boot_host *host, uint32_t text)
 /* the picture k, its text (group 0xB, `index`), a present between two draws of the text */
 static void loading_step(game_state *st, const boot_host *host, int32_t picture, int32_t index)
 {
-    GAME_CALL(st, 0x00520B20u, picture);
+    GAME_CALL(st, FN_LOADING_PICTURE, picture);
     text_seek(st, 0xB, index);
-    loading_text(st, host, U32(st, TEXT_CURSOR));
-    GAME_CALL(st, 0x004D0280u, 1);
-    loading_text(st, host, U32(st, TEXT_CURSOR));
+    loading_text(st, host, U32(st, G_TEXT_CURSOR));
+    GAME_CALL(st, FN_FRAME_PRESENT, 1);
+    loading_text(st, host, U32(st, G_TEXT_CURSOR));
 }
 
 int32_t boot_graphics(game_state *st, const boot_host *host)
 {
     /* @bin 0x00414430 Pharaohmap.inf (0x0057924C) into 0x00BCA2B8 (file_read_at) */
-    GAME_CALL(st, 0x004CEB60u, (int32_t) 0x0057924Cu, (int32_t) 0x00BCA2B8u, 0);
-    S32(st, 0x00E38E94u) = 0x10;
-    S32(st, 0x005E06D0u) = 1;
+    GAME_CALL(st, FN_FILE_READ_AT, (int32_t) G_STR_PHARAOHMAP_INF, (int32_t) G_MAP_EDITOR_SETTINGS, 0);
+    S32(st, G_DEBUG_GRID) = 0x10;
+    S32(st, G_U5E06D0) = 1;
     /* @bin 0x00414459 CreateDirectoryA("Save", "Maps"): the player's directories, the platform's */
     /* @bin 0x00414464 the spare screen: malloc(height * width * 2), at least 1,200,000 bytes */
-    int32_t size = (int32_t) ((uint32_t) S32(st, 0x00E38DACu) * (uint32_t) S32(st, 0x00E38DB0u) * 2u);
+    int32_t size = (int32_t) ((uint32_t) S32(st, G_SCREEN_H) * (uint32_t) S32(st, G_SCREEN_W) * 2u);
     if (size <= 0x124F80) {
         size = 0x124F80;
     }
-    U32(st, 0x00E92E1Cu) = boot_alloc(st, host, (uint32_t) size, 0x00414485u);
+    U32(st, G_SPARE_SCREEN) = boot_alloc(st, host, (uint32_t) size, 0x00414485u);
     load_next(st);
     loading_step(st, host, 0, 7);
-    if (U32(st, 0x00E92E1Cu) == 0) {
+    if (U32(st, G_SPARE_SCREEN) == 0) {
         return 1;
     }
     load_next(st);
@@ -129,8 +129,8 @@ int32_t boot_graphics(game_state *st, const boot_host *host)
     loading_step(st, host, 3, 10);
     load_rest(st);
     loading_step(st, host, 3, 11);
-    GAME_CALL0(st, 0x00520AF0u);
-    GAME_CALL(st, 0x004D0280u, 1);
-    platform_log(st, 0x005790A4u, 0, 0); /* "OK :Setup loaded DAT files." */
+    GAME_CALL0(st, FN_LOADING_LAST);
+    GAME_CALL(st, FN_FRAME_PRESENT, 1);
+    platform_log(st, G_STR_OK_SETUP_LOADED, 0, 0); /* "OK :Setup loaded DAT files." */
     return 0;
 }
