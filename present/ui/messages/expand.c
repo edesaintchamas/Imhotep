@@ -7,12 +7,10 @@
 #include "messages.h"
 
 #include "draw/mem.h"
+#include "present_layout.h"
 #include "sim/call.h"
 #include "state/ported.h"
 
-#define KEYWORDS_THIS 0x00784F34u  /* @bin 0x00448358 `this` of 0x004CB980: [this] = the keyword table */
-#define STRINGS_THIS 0x00784F20u   /* @bin 0x00448344 `this` of 0x004CBDB0: +4 entries, +0x0C count */
-#define KEYWORD_CURRENT 0x00D3B18Cu /* u32 the keyword entry whose handler runs */
 
 /* @bin 0x0056B240 CRT _strnicmp: n bytes compared with A-Z folded to a-z (no stop at a NUL); 0 when
  * equal. The locale path ([0x0126648C] != 0, 0x00566682) is not ported. */
@@ -21,7 +19,7 @@ static int32_t strnicmp_c(game_state *st, uint32_t a, uint32_t b, uint32_t n)
     if (n == 0) {
         return 0;
     }
-    if (U32(st, 0x0126648Cu) != 0) {
+    if (U32(st, G_LC_CTYPE) != 0) {
         state_unported(st, 0x00566682u);
         return 0;
     }
@@ -85,15 +83,15 @@ static int32_t expand_n(game_state *st, uint32_t self, uint32_t text, char *out,
             }
             /* the comparison through sim_call: _strnicmp is a partial port, which the replay takes
              * as one recorded unit wherever the original calls it */
-            if (GAME_CALL(st, 0x0056B240u, (int32_t) name, (int32_t) (text + (uint32_t) start), i - start) == 0) {
+            if (GAME_CALL(st, FN_CRT_STRNICMP, (int32_t) name, (int32_t) (text + (uint32_t) start), i - start) == 0) {
                 break;
             }
             e += 0x0C;
         }
-        uint32_t saved = U32(st, KEYWORD_CURRENT);
-        U32(st, KEYWORD_CURRENT) = e;
+        uint32_t saved = U32(st, G_KEYWORD_CURRENT);
+        U32(st, G_KEYWORD_CURRENT) = e;
         uint32_t s = (uint32_t) GAME_CALL0(st, mem_rd32(st, e + 8));
-        U32(st, KEYWORD_CURRENT) = saved;
+        U32(st, G_KEYWORD_CURRENT) = saved;
         if (s != 0) {
             uint8_t ch = mem_rd8(st, s);
             while (ch != 0) {
@@ -134,10 +132,10 @@ static void message_text_expand_n(game_state *st, int32_t index, char *out, int3
     }
     out[0] = 0;
     *written = 1;
-    uint32_t t = strings_entry(st, STRINGS_THIS, index);
+    uint32_t t = strings_entry(st, G_STRINGS_THIS, index);
     if (t != 0) {
         int32_t n = 0;
-        expand_n(st, KEYWORDS_THIS, t, out, size, &n);
+        expand_n(st, G_KEYWORDS_THIS, t, out, size, &n);
         if (n > *written) {
             *written = n;
         }
@@ -169,7 +167,7 @@ static int expand_depth;
 static int32_t run_expand(game_state *st, const int32_t *a)
 {
     if (expand_depth >= EXPAND_DEPTH) {
-        state_unported(st, 0x004CB980u);
+        state_unported(st, FN_TEXT_EXPAND);
         return 0;
     }
     char *buf = expand_bufs[expand_depth++];
@@ -187,7 +185,7 @@ static int32_t run_expand(game_state *st, const int32_t *a)
 static int32_t run_message_expand(game_state *st, const int32_t *a)
 {
     if (expand_depth >= EXPAND_DEPTH) {
-        state_unported(st, 0x00448330u);
+        state_unported(st, FN_MESSAGE_TEXT_EXPAND);
         return 0;
     }
     char *buf = expand_bufs[expand_depth++];

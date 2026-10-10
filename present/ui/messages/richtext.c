@@ -13,47 +13,24 @@
 #include "draw/mem.h"
 #include "draw/text.h"
 #include "model/model_text.h"
+#include "present_layout.h"
 #include "sim/call.h"
 #include "state/ported.h"
 
-#define LINE_BUF 0x00E3439Cu      /* char[200] the line being laid out */
-#define WORD_CHARS 0x00E20760u    /* i32 bytes the last measured word takes */
-#define TEXT_X 0x00E20778u        /* i32 text cursor x */
-#define TEXT_Y 0x00E20774u        /* i32 the height laid out (+16 per line) */
-#define TEXT_MAX_X 0x00E2076Cu    /* i32 widest line */
-#define LINES 0x00D3B138u         /* i32 lines counted when measuring */
-#define SCROLL 0x00D3B130u        /* i32 first line drawn */
-#define VISIBLE 0x00D3B13Cu       /* i32 lines drawn */
-#define BOX_W 0x00D3B14Cu         /* i32 the text box's width in pieces */
-#define FONT_LINK 0x00D3B164u     /* i32 link font */
-#define FONT_TEXT 0x00D3B168u     /* i32 text font */
-#define FONT_SMALL 0x00F56F84u
-#define GLYPH_COLOUR 0x00D3B51Cu  /* u16 */
-#define PIXEL_FORMAT 0x00E92DFCu
-#define PICTURES 0x00F55C04u      /* i32 first image of the message pictures */
-#define IMGS_W 0x010D6A0Cu         /* i16 image entries of 0x40 bytes: +0 width, +2 height */
-#define IMGS_H 0x010D6A0Eu
-#define IMG_COUNT 0x0126517Cu
-#define GLYPHS 0x005E049Cu        /* u8 glyph number per character - 0x20 */
-#define LINKS_COUNT 0x00D3A6ECu
-#define LINKS_NEXT 0x00D3A6F0u
-#define LINKS 0x00D3A6F8u         /* 50 entries of 5 i32: x1, x2, y1, y2, target */
-#define GLYPH_LAST 0x00D3B5C0u
-#define GFX 0x00F55BB0u
 
 static int32_t clamp_id(game_state *st, int32_t id)
 {
-    return id < S32(st, IMG_COUNT) ? id : 0;
+    return id < S32(st, G_IMAGE_COUNT) ? id : 0;
 }
 
 static int32_t img_w(game_state *st, int32_t id)
 {
-    return S16(st, IMGS_W + ((uint32_t) clamp_id(st, id) << 6));
+    return S16(st, G_U0D6A0C + ((uint32_t) clamp_id(st, id) << 6));
 }
 
 static int32_t img_h(game_state *st, int32_t id)
 {
-    return S16(st, IMGS_H + ((uint32_t) clamp_id(st, id) << 6));
+    return S16(st, G_IMGS_H + ((uint32_t) clamp_id(st, id) << 6));
 }
 
 /* @bin 0x004C8239 (h + (h >> 31 & 15)) >> 4: the height in 16-pixel lines, toward zero */
@@ -68,7 +45,7 @@ int32_t rich_word_width(game_state *st, const uint8_t *p)
      * "@P", "@L", "@G<n>" end it with 0; "@<n>" is skipped; bytes taken in 0x00E20760 */
     int32_t w = 0;
     int seen = 0;
-    S32(st, WORD_CHARS) = 0;
+    S32(st, G_WORD_CHARS) = 0;
     for (int32_t k = 1;; k++) {
         uint8_t c = *p++;
         if (c == 0) {
@@ -78,17 +55,17 @@ int32_t rich_word_width(game_state *st, const uint8_t *p)
             c = *p++;
             if (!seen) {
                 if (c == 0x50 || c == 0x4C) {
-                    S32(st, WORD_CHARS) += 2;
+                    S32(st, G_WORD_CHARS) += 2;
                     return 0;
                 }
                 if (c == 0x47) {
-                    S32(st, WORD_CHARS) += 2;
+                    S32(st, G_WORD_CHARS) += 2;
                     p++;
                     c = p[-1];
                     if (c >= 0x30) {
                         while (c <= 0x39) {
                             c = *p++;
-                            S32(st, WORD_CHARS) += 1;
+                            S32(st, G_WORD_CHARS) += 1;
                             if (c < 0x30) {
                                 break;
                             }
@@ -96,11 +73,11 @@ int32_t rich_word_width(game_state *st, const uint8_t *p)
                     }
                     return 0;
                 }
-                S32(st, WORD_CHARS) += 1;
+                S32(st, G_WORD_CHARS) += 1;
                 if (c >= 0x30) {
                     while (c <= 0x39) {
                         c = *p++;
-                        S32(st, WORD_CHARS) += 1;
+                        S32(st, G_WORD_CHARS) += 1;
                         if (c < 0x30) {
                             break;
                         }
@@ -114,10 +91,10 @@ int32_t rich_word_width(game_state *st, const uint8_t *p)
             }
             w += 4;
         } else if (c > 0x20) {
-            w += glyph_width(st, c, S32(st, FONT_TEXT));
+            w += glyph_width(st, c, S32(st, G_MESSAGE_WINDOW_FONT_TEXT));
             seen = 1;
         }
-        S32(st, WORD_CHARS) += 1;
+        S32(st, G_WORD_CHARS) += 1;
         if (k + 1 >= 2000) {
             return w;
         }
@@ -127,15 +104,15 @@ int32_t rich_word_width(game_state *st, const uint8_t *p)
 static void link_add(game_state *st, int32_t target, int32_t x1, int32_t x2, int32_t y)
 {
     /* @bin 0x004C7FD0 a link's rectangle (at most 50) */
-    if (S32(st, LINKS_COUNT) < 0x32) {
-        uint32_t e = LINKS + 20u * (uint32_t) S32(st, LINKS_NEXT);
+    if (S32(st, G_LINKS_COUNT) < 0x32) {
+        uint32_t e = G_LINKS + 20u * (uint32_t) S32(st, G_LINKS_NEXT);
         S32(st, e) = x1 - 2;
         S32(st, e + 4) = x2 + 2;
         S32(st, e + 8) = y - 1;
         S32(st, e + 12) = y + 0x0D;
         S32(st, e + 16) = target;
-        S32(st, LINKS_COUNT) += 1;
-        S32(st, LINKS_NEXT) += 1;
+        S32(st, G_LINKS_COUNT) += 1;
+        S32(st, G_LINKS_NEXT) += 1;
     }
 }
 
@@ -144,8 +121,8 @@ static int32_t glyph_draw(game_state *st, int32_t font, uint8_t ch, int32_t x, i
 {
     /* @bin 0x004C8680 glyph ch (- 0x20) of font at (x, y), lowered by its height - 0x0B (- 0x10 when
      * raised) for characters from 0x80 on but 0xE7 and 0x107: its width */
-    uint32_t g = U8(st, GLYPHS + ch);
-    S32(st, GLYPH_LAST) = (int32_t) g;
+    uint32_t g = U8(st, G_GLYPH_DRAW_MAP + ch);
+    S32(st, G_GLYPH_LAST) = (int32_t) g;
     if (g == 0) {
         return 0;
     }
@@ -161,8 +138,8 @@ static int32_t glyph_draw(game_state *st, int32_t font, uint8_t ch, int32_t x, i
         h = 0;
     }
     if (measure == 0) {
-        GAME_CALLT(st, GFX, 0x0053E590u, id, x, y - h);
-        g = (uint32_t) S32(st, GLYPH_LAST);
+        GAME_CALLT(st, G_GRAPHICS_GFX, FN_IMAGE_DRAW, id, x, y - h);
+        g = (uint32_t) S32(st, G_GLYPH_LAST);
     }
     return img_w(st, (int32_t) g + font - 1);
 }
@@ -186,22 +163,22 @@ static void line_draw(game_state *st, const uint8_t *p, int32_t x, int32_t y, in
                 }
             }
             int32_t w = rich_word_width(st, p - 1);
-            link_chars = S32(st, WORD_CHARS) + 1;
+            link_chars = S32(st, G_WORD_CHARS) + 1;
             link_add(st, target, x, w + x, y);
         }
         if (c >= 0x20) {
             uint8_t ch = (uint8_t) (c - 0x20);
             int32_t font;
             if (link_chars > 0) {
-                font = S32(st, FONT_LINK);
+                font = S32(st, G_MESSAGE_WINDOW_FONT_LINK);
                 link_chars--;
             } else {
-                font = S32(st, FONT_TEXT);
+                font = S32(st, G_MESSAGE_WINDOW_FONT_TEXT);
             }
             int32_t adv;
-            if (U8(st, GLYPHS + ch) != 0) {
+            if (U8(st, G_GLYPH_DRAW_MAP + ch) != 0) {
                 adv = glyph_draw(st, font, ch, x, y, measure, raised);
-                if (font == S32(st, FONT_SMALL)) {
+                if (font == S32(st, G_FONT_SMALL)) {
                     adv += 2;
                 }
             } else {
@@ -217,7 +194,7 @@ static void line_draw_buffer(game_state *st, int32_t x, int32_t y, int32_t measu
 {
     uint8_t buf[201];
     for (uint32_t k = 0; k < 200; k++) {
-        buf[k] = U8(st, LINE_BUF + k);
+        buf[k] = U8(st, G_LINE_BUF + k);
     }
     buf[200] = 0;
     line_draw(st, buf, x, y, measure, raised);
@@ -238,7 +215,7 @@ void rich_text_draw(game_state *st, const uint8_t *text, int32_t x, int32_t y, i
     const uint8_t *p = text;
     (void) new_line;
     if (measure == 1) {
-        S32(st, LINES) = 0;
+        S32(st, G_TEXT_LINES) = 0;
     }
     for (;;) {
         if (more == 0 && blank == 0) {
@@ -248,7 +225,7 @@ void rich_text_draw(game_state *st, const uint8_t *text, int32_t x, int32_t y, i
             return;
         }
         for (uint32_t k = 0; k < 200; k++) {
-            U8(st, LINE_BUF + k) = 0;
+            U8(st, G_LINE_BUF + k) = 0;
         }
         int32_t used, indent;
         if (paragraph != 0) {
@@ -279,7 +256,7 @@ void rich_text_draw(game_state *st, const uint8_t *text, int32_t x, int32_t y, i
                 }
                 continue;
             }
-            int32_t n = S32(st, WORD_CHARS);
+            int32_t n = S32(st, G_WORD_CHARS);
             for (int32_t i = 0; i < n; i++) {
                 uint8_t c = *p++;
                 if (c == 0x40) {
@@ -298,7 +275,7 @@ void rich_text_draw(game_state *st, const uint8_t *text, int32_t x, int32_t y, i
                     }
                     if (d == 0x47) {
                         if (len != 0 && measure == 1) {
-                            S32(st, LINES) += 1;
+                            S32(st, G_TEXT_LINES) += 1;
                         }
                         used = width;
                         p++;
@@ -313,7 +290,7 @@ void rich_text_draw(game_state *st, const uint8_t *text, int32_t x, int32_t y, i
                                 }
                             }
                         }
-                        picture = S32(st, PICTURES) + number - 1;
+                        picture = S32(st, G_PICTURES) + number - 1;
                         blank = lines_of(img_h(st, picture)) + 2;
                         if (line > 0) {
                             delay = 1;
@@ -323,7 +300,7 @@ void rich_text_draw(game_state *st, const uint8_t *text, int32_t x, int32_t y, i
                 }
                 if (skip_spaces == 0 || c != 0x20) {
                     skip_spaces = 0;
-                    U8(st, LINE_BUF + (uint32_t) len) = c;
+                    U8(st, G_LINE_BUF + (uint32_t) len) = c;
                     len++;
                 }
             }
@@ -333,16 +310,16 @@ void rich_text_draw(game_state *st, const uint8_t *text, int32_t x, int32_t y, i
         }
         /* @bin 0x004C8277 the line */
         int32_t hidden = 0;
-        S32(st, 0x00E20780u) = 1;
-        S32(st, TEXT_X) = 0;
-        U8(st, 0x00E20799u) = 1;
+        S32(st, G_RUN_HASH) = 1;
+        S32(st, G_TEXT_X) = 0;
+        U8(st, G_RUN_NO_COLLAPSE) = 1;
         int draw = 1;
         if (measure == 0) {
-            int32_t scroll = S32(st, SCROLL);
+            int32_t scroll = S32(st, G_SCROLL);
             if (line < scroll) {
                 hidden = 1;
             }
-            if (line >= S32(st, VISIBLE) + scroll) {
+            if (line >= S32(st, G_MESSAGE_WINDOW_VISIBLE) + scroll) {
                 hidden = 1;
                 draw = 0;
             } else if (hidden != 0) {
@@ -351,14 +328,14 @@ void rich_text_draw(game_state *st, const uint8_t *text, int32_t x, int32_t y, i
         }
         if (draw) {
             line_draw_buffer(st, indent + x, y, measure, raised);
-            if (S32(st, FONT_TEXT) == S32(st, FONT_SMALL)) {
-                uint16_t saved = U16(st, GLYPH_COLOUR);
-                U16(st, GLYPH_COLOUR) = 0x7F9A;
-                if (S32(st, PIXEL_FORMAT) == 2) {
-                    U16(st, GLYPH_COLOUR) = 0xFF3A;
+            if (S32(st, G_MESSAGE_WINDOW_FONT_TEXT) == S32(st, G_FONT_SMALL)) {
+                uint16_t saved = U16(st, G_GLYPH_COLOUR);
+                U16(st, G_GLYPH_COLOUR) = 0x7F9A;
+                if (S32(st, G_PIXEL_FORMAT) == 2) {
+                    U16(st, G_GLYPH_COLOUR) = 0xFF3A;
                 }
                 line_draw_buffer(st, x + indent - 1, y - 1, measure, raised);
-                U16(st, GLYPH_COLOUR) = saved;
+                U16(st, G_GLYPH_COLOUR) = saved;
             }
         }
         if (measure == 0 && picture != 0) {
@@ -366,25 +343,25 @@ void rich_text_draw(game_state *st, const uint8_t *text, int32_t x, int32_t y, i
                 delay--;
             } else {
                 blank = lines_of(img_h(st, picture)) + 2;
-                int32_t px = (int32_t) ((S32(st, BOX_W) << 4) - img_w(st, picture) - 4) / 2 + x - 4;
-                int32_t scroll = S32(st, SCROLL);
-                if (line < S32(st, VISIBLE) + scroll) {
+                int32_t px = (int32_t) ((S32(st, G_MESSAGE_WINDOW_BOX_W) << 4) - img_w(st, picture) - 4) / 2 + x - 4;
+                int32_t scroll = S32(st, G_SCROLL);
+                if (line < S32(st, G_MESSAGE_WINDOW_VISIBLE) + scroll) {
                     int32_t py = line < scroll ? ((line - scroll) << 4) + y + 8 : y + 8;
-                    GAME_CALLT(st, GFX, 0x0053E590u, picture, px, py);
+                    GAME_CALLT(st, G_GRAPHICS_GFX, FN_IMAGE_DRAW, picture, px, py);
                 }
                 picture = 0;
             }
         }
-        if (S32(st, TEXT_X) > S32(st, TEXT_MAX_X)) {
-            S32(st, TEXT_MAX_X) = S32(st, TEXT_X);
+        if (S32(st, G_TEXT_X) > S32(st, G_LINE_MAX_W)) {
+            S32(st, G_LINE_MAX_W) = S32(st, G_TEXT_X);
         }
         line++;
         if (measure == 1) {
-            S32(st, LINES) += 1;
+            S32(st, G_TEXT_LINES) += 1;
         }
         if (hidden == 0) {
             y += 0x10;
-            S32(st, TEXT_Y) += 0x10;
+            S32(st, G_TEXT_Y) += 0x10;
         }
     }
 }

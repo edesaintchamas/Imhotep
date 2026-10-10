@@ -30,7 +30,6 @@
 #define G_K_100 0x0056F470u /* @bin 0x00476B0F f64 100.0 (core/map/terrain_land.c), 0x0040D940 */
 #define G_U56F478 0x0056F478u /* @bin 0x00401540 f64: 1 / 56, the first part's stages (core/city/monument_rating.c) */
 #define G_U56F4C8 0x0056F4C8u /* @bin 0x0040D940 f64: 1 / 21, the stages (core/city/monument_rating.c) */
-#define G_U56F550 0x0056F550u /* @bin 0x00546790 f32 (fimul by the parts; 4.0f in present/ui/cityframe.c) */
 #define G_U56F568 0x0056F568u /* @bin 0x00469B90 f32: the population factor of the spawn pass (0.02 in its port) */
 #define G_K_0_01 0x0056F598u /* @bin 0x0047A049 f64 0.01 (core/map/terrain_flood.c), 0x004BE7DB */
 #define G_U56F5B8 0x0056F5B8u /* @bin 0x0045EA30 i32 month table: ten rows of four months, -1 ends a row (core/city/day_buildings.c) */

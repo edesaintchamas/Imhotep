@@ -408,7 +408,7 @@ void play_editor_city_move(game_state *st, int32_t dir, int32_t step)
         return;
     }
     int16_t d = (int16_t) step;
-    uint32_t x = rec + (S32(st, G_U784CB4) != 0 ? G_EMPIRE_OBJECTS + EMPOBJ_X2 : G_EMPIRE_OBJECTS + EMPOBJ_X), y = x + 2;
+    uint32_t x = rec + (S32(st, G_EMPIRE_ALT_POSITIONS) != 0 ? G_EMPIRE_OBJECTS + EMPOBJ_X2 : G_EMPIRE_OBJECTS + EMPOBJ_X), y = x + 2;
     if (dir == 0) {
         S16(st, y) = (int16_t) (S16(st, y) - d);
     } else if (dir == 2) {

@@ -85,7 +85,6 @@
 #define G_CAMPAIGN_MISSION_NAMES 0x006FF60Cu /* @bin 0x004C5660 char[0x32] per mission: the names in the campaign table */
 #define G_MISSION_RECORDS 0x007009DCu  /* @bin 0x0041C600 the family's best record by mission, 0x4C bytes (as G_HIGHSCORE_TABLE's) */
 #define G_SCENARIO_PICTURE 0x00784B5Eu /* @bin 0x0041E5C0 i16: the scenario's picture, Pharaoh's periods below 0x13, else Cleopatra's */
-#define G_U784CB4 0x00784CB4u          /* @bin 0x0052F8B0 i32: in the editor, != 0 frames an object at its other place (+0x14, +0x16) */
 #define G_U784F0C 0x00784F0Cu          /* @bin 0x00447840 i32: a string of group 0x98 put with the player's name; := 0 while a title is expanded */
 #define G_HIGHSCORE_PREV_NAME 0x00D386E0u /* @bin 0x004C5A40 char[]: the name of the record's holder before it is replaced */
 #define G_UE36EFC 0x00E36EFCu          /* @bin 0x004CDFF0 i32: := 0 when the file list is read */

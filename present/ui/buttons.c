@@ -7,12 +7,10 @@
  * rectangle table (entries of 0x1C: function +8), with the clicked index in 0x00D3B198. */
 #include "ui.h"
 
+#include "present_layout.h"
 #include "sim/call.h"
 #include "state/ported.h"
 
-#define PARAM 0x00D3B198u  /* i32 the callback's parameter (the button's +0x1C / rect's +0x0C) */
-#define REDRAW 0x00E38DCAu /* u8 the window's full redraw */
-#define WINDOW 0x00E38DDAu /* u8 the current window */
 
 /* ---- the yes / no popup (window 0x3F, buttons 0x005C8168) ---- */
 
@@ -20,11 +18,11 @@ static void popup_answer(game_state *st, uint8_t yes)
 {
     /* @bin 0x00426590 (yes: 1) / 0x004265B0 (no: 0) the answer 0x00D3B439, the popup's action
      * 0x00705704 called, the redraw, back to the window 0x0070570C */
-    U8(st, 0x00D3B439u) = yes;
-    GAME_CALL0(st, U32(st, 0x00705704u));
-    uint8_t back = U8(st, 0x0070570Cu);
-    U8(st, REDRAW) = 1;
-    U8(st, WINDOW) = back;
+    U8(st, G_CONFIRM_ANSWER) = yes;
+    GAME_CALL0(st, U32(st, G_POPUP_ACTION));
+    uint8_t back = U8(st, G_POPUP_BACK);
+    U8(st, G_REDRAW) = 1;
+    U8(st, G_WINDOW) = back;
 }
 
 /* ---- the empire map (window 0x14) ---- */
@@ -38,9 +36,9 @@ static int32_t distance(game_state *st, int32_t mx, int32_t my, int32_t cx, int3
 {
     /* @bin 0x00407AD2 the larger of |mx - cx| (0x00D3B4FC) and |my - cy| (0x00D3B4F8) */
     int32_t dx = mx > cx ? mx - cx : mx < cx ? cx - mx : 0;
-    S32(st, 0x00D3B4FCu) = dx;
+    S32(st, G_DIST_X) = dx;
     int32_t dy = my > cy ? my - cy : my < cy ? cy - my : 0;
-    S32(st, 0x00D3B4F8u) = dy;
+    S32(st, G_DIST_Y) = dy;
     return dx < dy ? dy : dx;
 }
 
@@ -52,17 +50,17 @@ static void empire_pick(game_state *st, uint32_t object_out, uint32_t route_out)
      * or the alternative x, y +0x13 / +0x15 when 0x00784CB4 is set) widened by 8; 1-based into
      * *object_out. Then the route points 0x00F535D4 (0x00F53FDC of them, 0x14 bytes: i32 x, y, w, h,
      * screen coordinates): a nearer one clears *object_out and goes into *route_out (else -1) */
-    int32_t mx = S32(st, UI_MOUSE_X) - S32(st, 0x005D2A18u) + S32(st, 0x00775910u);
-    int32_t my = S32(st, UI_MOUSE_Y) - S32(st, 0x005D2A1Cu) + S32(st, 0x0077590Cu);
+    int32_t mx = S32(st, G_MOUSE_X) - S32(st, G_MAP_X) + S32(st, G_SCROLL_X);
+    int32_t my = S32(st, G_MOUSE_Y) - S32(st, G_MAP_Y) + S32(st, G_SCROLL_Y);
     int32_t best = 0x1E;
     S32(st, object_out) = 0;
     int32_t i = 0;
-    for (uint32_t p = 0x0077F75Cu; p < 0x007843ECu; p += 0x62, i++) {
+    for (uint32_t p = G_EMPIRE_OBJECT_ALT_X; p < G_EMPIRE_OBJECT_ALT_X + 200u * 0x62u; p += 0x62, i++) {
         if (U8(st, p - 0x13) == 0) {
             break;
         }
         int32_t x, y;
-        if (S32(st, 0x00784CB4u) != 0) {
+        if (S32(st, G_EMPIRE_ALT_POSITIONS) != 0) {
             x = S16(st, p);
             y = S16(st, p + 2);
         } else {
@@ -80,11 +78,11 @@ static void empire_pick(game_state *st, uint32_t object_out, uint32_t route_out)
         }
     }
     S32(st, route_out) = -1;
-    for (int32_t k = 0; k < S32(st, 0x00F53FDCu); k++) {
-        uint32_t r = 0x00F535D4u + (uint32_t) k * 0x14u;
+    for (int32_t k = 0; k < S32(st, G_MARKER_COUNT); k++) {
+        uint32_t r = G_MARKER_X + (uint32_t) k * 0x14u;
         int32_t cx = half(S32(st, r + 8)) + S32(st, r);
         int32_t cy = half(S32(st, r + 0x0C)) + S32(st, r + 4);
-        int32_t d = distance(st, S32(st, UI_MOUSE_X), S32(st, UI_MOUSE_Y), cx, cy);
+        int32_t d = distance(st, S32(st, G_MOUSE_X), S32(st, G_MOUSE_Y), cx, cy);
         if (d < best) {
             best = d;
             S32(st, object_out) = 0;
@@ -99,26 +97,26 @@ static void empire_open_route(game_state *st)
      * bytes from 0x0077DE00) whose +5 is below 50: popup 0x77 when the treasury (player +0x187C) is
      * -5000 or less, else the open-route question 0x004022D0 (popup 2 by land when the route's +0
      * (0x144 bytes from 0x007770F0, by the city's +4) is 1, else 4) */
-    uint32_t c = (uint32_t) S32(st, 0x00784F18u) * 0x6Au;
-    if (U8(st, 0x0077DE05u + c) >= 0x32) {
+    uint32_t c = (uint32_t) S32(st, G_EMPIRE_SELECTED) * 0x6Au;
+    if (U8(st, G_EMPIRE_CITY_OPEN + c) >= 0x32) {
         return;
     }
-    if (S32(st, 0x00EA187Cu + U32(st, 0x00EAAC28u) * 0x49D8u) <= -5000) {
-        GAME_CALL(st, 0x004264D0u, 0x77, 0x0051F780, 0);
+    if (S32(st, CITY_BASE + CITY_TREASURY + U32(st, G_PLAYER) * 0x49D8u) <= -5000) {
+        GAME_CALL(st, FN_POPUP_CONFIRM_OPEN, 0x77, FN_NOTHING, 0);
         return;
     }
-    uint32_t route = U8(st, 0x0077DE04u + c);
-    if (U8(st, 0x007770F0u + route * 0x144u) == 1) {
-        GAME_CALL(st, 0x004264D0u, 2, 0x004022D0, 2);
+    uint32_t route = U8(st, G_EMPIRE_CITY_ROUTE + c);
+    if (U8(st, G_ARMIES + route * 0x144u) == 1) {
+        GAME_CALL(st, FN_POPUP_CONFIRM_OPEN, 2, FN_CMD_TRADE_OPEN_ROUTE, 2);
     } else {
-        GAME_CALL(st, 0x004264D0u, 4, 0x004022D0, 2);
+        GAME_CALL(st, FN_POPUP_CONFIRM_OPEN, 4, FN_CMD_TRADE_OPEN_ROUTE, 2);
     }
 }
 
 static void empire_help(game_state *st)
 {
     /* @bin 0x00409510 the empire map's help button (0x005C7CE8): message 0x20 */
-    GAME_CALL(st, 0x004C5BF0u, 0x20, 1, 0);
+    GAME_CALL(st, FN_MESSAGE_WINDOW_OPEN, 0x20, 1, 0);
 }
 
 static void empire_close(game_state *st)
@@ -126,17 +124,17 @@ static void empire_close(game_state *st)
     /* @bin 0x0040A090 (and its thunk 0x00409520) back to the city; in the editor the edited
      * object's position (0x00784F10: +0x7843D8 x / +0x7843DA y, 0x20 bytes) is the scroll
      * 0x00775910 / 0x0077590C, with 0x00442800 */
-    int16_t sy = S16(st, 0x0077590Cu);
-    if (S32(st, UI_EDITOR) == 1) {
-        int32_t o = S32(st, 0x00784F10u);
-        int16_t sx = S16(st, 0x00775910u);
-        S16(st, 0x007848DCu) = (int16_t) o;
-        S16(st, 0x007843D8u + (uint32_t) o * 0x20u) = sx;
-        S16(st, 0x007843DAu + (uint32_t) o * 0x20u) = sy;
-        GAME_CALL0(st, 0x00442800u);
+    int16_t sy = S16(st, G_SCROLL_Y);
+    if (S32(st, G_EDITOR) == 1) {
+        int32_t o = S32(st, G_EMPIRE_CURRENT);
+        int16_t sx = S16(st, G_SCROLL_X);
+        S16(st, G_SCENARIO_EMPIRE) = (int16_t) o;
+        S16(st, G_EMPIRE_OBJECTS_END + (uint32_t) o * 0x20u) = sx;
+        S16(st, G_EMPIRE_SCROLL_Y + (uint32_t) o * 0x20u) = sy;
+        GAME_CALL0(st, FN_EMPIRE_SCROLL_CLAMP);
     }
-    U8(st, WINDOW) = 1;
-    U8(st, REDRAW) = 1;
+    U8(st, G_WINDOW) = 1;
+    U8(st, G_REDRAW) = 1;
 }
 
 /* ---- the overlays menu (window 8) ---- */
@@ -146,12 +144,12 @@ static void overlay_monuments_refresh(game_state *st)
     /* @bin 0x00547A60 the buildings 1..0x0078D790 of the monument types 0xE5, 0xEA, 0xEB, 0xEC
      * (0x108 bytes, type +0x10 from 0x00799AF0) refreshed by 0x005468D0 on their monument object
      * (0x006F9320, 0x006F5648, 0x006DE9E0, 0x006E9188) */
-    for (int32_t b = 1; b <= S32(st, 0x0078D790u); b++) {
-        int16_t t = S16(st, 0x00799AF0u + (uint32_t) (b - 1) * 0x108u);
-        uint32_t obj = t == 0xE5 ? 0x006F9320u : t == 0xEA ? 0x006F5648u : t == 0xEB ? 0x006DE9E0u
-                     : t == 0xEC ? 0x006E9188u : 0;
+    for (int32_t b = 1; b <= S32(st, G_BUILDING_HIGHEST); b++) {
+        int16_t t = S16(st, BUILDING_ADDR(1) + BLD_TYPE + (uint32_t) (b - 1) * 0x108u);
+        uint32_t obj = t == 0xE5 ? G_MONUMENT_E5 : t == 0xEA ? G_MONUMENT_EA : t == 0xEB ? G_MONUMENT_EB
+                     : t == 0xEC ? G_MONUMENT_EC : 0;
         if (obj != 0) {
-            GAME_CALLT(st, obj, 0x005468D0u, b);
+            GAME_CALLT(st, obj, FN_MONUMENT_REDRAW_5468D0, b);
         }
     }
 }
@@ -161,17 +159,17 @@ static void overlays_group(game_state *st)
     /* @bin 0x00409DA0 an overlay group (0x005C2BF0): its overlay 0x005CF734[p]; 0 goes back to the
      * normal view (the old overlay kept in 0x00E94E10); the groups that are an overlay themselves
      * (4, 0x2D, 0x1F, 0x33) are chosen; then the city and 0x00547A60 */
-    int32_t old = S32(st, 0x00E94E0Cu);
-    int32_t ov = S32(st, 0x005CF734u + (uint32_t) S32(st, PARAM) * 4u);
+    int32_t old = S32(st, G_OVERLAY);
+    int32_t ov = S32(st, G_OVL_GROUP_OVERLAYS + (uint32_t) S32(st, G_PARAM1) * 4u);
     if (ov == 0) {
-        S32(st, 0x00E94E0Cu) = 0;
-        S32(st, 0x00E94E10u) = old;
+        S32(st, G_OVERLAY) = 0;
+        S32(st, G_OVERLAY_PREV) = old;
     } else if (ov == 4 || ov == 0x2D || ov == 0x1F || ov == 0x33) {
-        S32(st, 0x00E94E10u) = 0;
-        S32(st, 0x00E94E0Cu) = ov;
+        S32(st, G_OVERLAY_PREV) = 0;
+        S32(st, G_OVERLAY) = ov;
     }
-    U8(st, WINDOW) = 1;
-    U8(st, REDRAW) = 1;
+    U8(st, G_WINDOW) = 1;
+    U8(st, G_REDRAW) = 1;
     overlay_monuments_refresh(st);
 }
 
@@ -179,14 +177,14 @@ static void overlays_item(game_state *st)
 {
     /* @bin 0x00409E00 an item of the open group 0x007056DC (0x005C2D08): the overlay
      * 0x005CF75C[group * 30 + p] when not 0; then the city and 0x00547A60 */
-    uint32_t k = (uint32_t) S32(st, PARAM) + (uint32_t) S32(st, 0x007056DCu) * 30u;
-    int32_t ov = S32(st, 0x005CF75Cu + k * 4u);
+    uint32_t k = (uint32_t) S32(st, G_PARAM1) + (uint32_t) S32(st, G_OVL_GROUP) * 30u;
+    int32_t ov = S32(st, G_OVL_ITEMS + k * 4u);
     if (ov != 0) {
-        S32(st, 0x00E94E10u) = 0;
-        S32(st, 0x00E94E0Cu) = ov;
+        S32(st, G_OVERLAY_PREV) = 0;
+        S32(st, G_OVERLAY) = ov;
     }
-    U8(st, WINDOW) = 1;
-    U8(st, REDRAW) = 1;
+    U8(st, G_WINDOW) = 1;
+    U8(st, G_REDRAW) = 1;
     overlay_monuments_refresh(st);
 }
 
@@ -197,56 +195,56 @@ static void storage_scroll(game_state *st)
     /* @bin 0x0040C6B0 the storage info's list (window 9, arrows 0x005C5B48 / 0x005C5B60): the first
      * row (building +0xD0, 0x108 bytes from 0x007999E8, of 0x00EADD6C) up (p 0, at least 1) or down
      * (p != 0: while first + 0x00502780 rows - 1 stays within 0x00F53E6C) */
-    uint32_t r = 0x00799AB8u + U32(st, 0x00EADD6Cu) * 0x108u;
-    if (S32(st, PARAM) == 0) {
+    uint32_t r = BUILDING_BASE + BLD_UE0 + U32(st, G_INFO_BUILDING) * 0x108u;
+    if (S32(st, G_PARAM1) == 0) {
         int32_t v = S32(st, r) - 1;
         S32(st, r) = v;
         if (v <= 0) {
             S32(st, r) = 1;
         }
-        U8(st, REDRAW) = 1;
+        U8(st, G_REDRAW) = 1;
         return;
     }
     S32(st, r) = S32(st, r) + 1;
-    int32_t rows = GAME_CALL0(st, 0x00502780u);
-    r = 0x00799AB8u + U32(st, 0x00EADD6Cu) * 0x108u;
-    if (rows + S32(st, r) - 1 > S32(st, 0x00F53E6Cu)) {
-        rows = GAME_CALL0(st, 0x00502780u);
-        r = 0x00799AB8u + U32(st, 0x00EADD6Cu) * 0x108u;
-        S32(st, r) = S32(st, 0x00F53E6Cu) - rows + 1;
+    int32_t rows = GAME_CALL0(st, FN_STORAGE_ROWS_VISIBLE);
+    r = BUILDING_BASE + BLD_UE0 + U32(st, G_INFO_BUILDING) * 0x108u;
+    if (rows + S32(st, r) - 1 > S32(st, G_STORAGE_LIST)) {
+        rows = GAME_CALL0(st, FN_STORAGE_ROWS_VISIBLE);
+        r = BUILDING_BASE + BLD_UE0 + U32(st, G_INFO_BUILDING) * 0x108u;
+        S32(st, r) = S32(st, G_STORAGE_LIST) - rows + 1;
     }
-    U8(st, REDRAW) = 1;
+    U8(st, G_REDRAW) = 1;
 }
 
 static void trade_scroll(game_state *st)
 {
     /* @bin 0x0040C760 the trade advisor's list (arrows 0x005C5B78 / 0x005C5B90): the first row
      * (player +0x60A4) up (p 0, at least 1) or down (p != 0, at most 0x00F53E6C - 13) */
-    uint32_t r = 0x00EA60A4u + U32(st, 0x00EAAC28u) * 0x49D8u;
-    if (S32(st, PARAM) == 0) {
+    uint32_t r = CITY_BASE + CITY_TRADE_SCROLL + U32(st, G_PLAYER) * 0x49D8u;
+    if (S32(st, G_PARAM1) == 0) {
         int32_t v = S32(st, r) - 1;
         S32(st, r) = v;
         if (v <= 0) {
             S32(st, r) = 1;
         }
-        U8(st, REDRAW) = 1;
+        U8(st, G_REDRAW) = 1;
         return;
     }
     int32_t v = S32(st, r) + 1;
     S32(st, r) = v;
-    if (v + 0x0D > S32(st, 0x00F53E6Cu)) {
-        S32(st, r) = S32(st, 0x00F53E6Cu) - 0x0D;
+    if (v + 0x0D > S32(st, G_STORAGE_LIST)) {
+        S32(st, r) = S32(st, G_STORAGE_LIST) - 0x0D;
     }
-    U8(st, REDRAW) = 1;
+    U8(st, G_REDRAW) = 1;
 }
 
 static void mission_menu_toggle(game_state *st)
 {
     /* @bin 0x0041E0E0 the mission menu's switch (0x0057CD50): 0x00704DAC becomes 2 when it was 3,
      * else 3 */
-    int32_t v = S32(st, 0x00704DACu);
-    U8(st, REDRAW) = 1;
-    S32(st, 0x00704DACu) = (v != 3) + 2;
+    int32_t v = S32(st, G_SCENARIO_KIND);
+    U8(st, G_REDRAW) = 1;
+    S32(st, G_SCENARIO_KIND) = (v != 3) + 2;
 }
 
 static void mission_menu_scroll(game_state *st)
@@ -254,56 +252,56 @@ static void mission_menu_scroll(game_state *st)
     /* @bin 0x0041F460 the mission menu's list (arrows 0x0057CC30 / 0x0057CCC0, the arrow keys):
      * 0x00704DB4 entries shown 13 at a time (15 unless 0x00704DB0 is 1), first 0x00704DB8; p 0 up,
      * p 1 down */
-    int32_t page = (S32(st, 0x00704DB0u) != 1 ? 2 : 0) + 0x0D;
-    int32_t n = S32(st, 0x00704DB4u);
+    int32_t page = (S32(st, G_SCENARIO_LIST_MODE) != 1 ? 2 : 0) + 0x0D;
+    int32_t n = S32(st, G_SCENARIO_ROWS);
     if (n <= page) {
         return;
     }
-    int32_t p = S32(st, PARAM);
+    int32_t p = S32(st, G_PARAM1);
     if (p == 0) {
-        int32_t first = S32(st, 0x00704DB8u);
+        int32_t first = S32(st, G_SCENARIO_FIRST);
         if (first <= 0) {
             return;
         }
-        U8(st, REDRAW) = 1;
-        S32(st, 0x00704DB8u) = first - 1;
+        U8(st, G_REDRAW) = 1;
+        S32(st, G_SCENARIO_FIRST) = first - 1;
         return;
     }
     if (p == 1) {
-        page = (S32(st, 0x00704DB0u) != 1 ? 2 : 0) + 0x0D;
-        if (S32(st, 0x00704DB8u) + page >= n) {
+        page = (S32(st, G_SCENARIO_LIST_MODE) != 1 ? 2 : 0) + 0x0D;
+        if (S32(st, G_SCENARIO_FIRST) + page >= n) {
             return;
         }
-        S32(st, 0x00704DB8u) = S32(st, 0x00704DB8u) + 1;
+        S32(st, G_SCENARIO_FIRST) = S32(st, G_SCENARIO_FIRST) + 1;
     }
-    U8(st, REDRAW) = 1;
+    U8(st, G_REDRAW) = 1;
 }
 
 static void list53_scroll(game_state *st)
 {
     /* @bin 0x004C5400 window 0x53's list (buttons 0x005E01D0): 0x00D3A4BC entries, 20 shown from
      * 0x00D3A4B8; p 0 up, p 1 down; the redraw flag 2 */
-    int32_t n = S32(st, 0x00D3A4BCu);
+    int32_t n = S32(st, G_HIGHSCORE_ROWS);
     if (n <= 0x14) {
         return;
     }
-    int32_t p = S32(st, PARAM);
+    int32_t p = S32(st, G_PARAM1);
     if (p == 0) {
-        int32_t first = S32(st, 0x00D3A4B8u);
+        int32_t first = S32(st, G_HIGHSCORE_FIRST);
         if (first <= 0) {
             return;
         }
-        U8(st, REDRAW) = 2;
-        S32(st, 0x00D3A4B8u) = first - 1;
+        U8(st, G_REDRAW) = 2;
+        S32(st, G_HIGHSCORE_FIRST) = first - 1;
         return;
     }
     if (p == 1) {
-        if (S32(st, 0x00D3A4B8u) + 0x14 >= n) {
+        if (S32(st, G_HIGHSCORE_FIRST) + 0x14 >= n) {
             return;
         }
-        S32(st, 0x00D3A4B8u) = S32(st, 0x00D3A4B8u) + 1;
+        S32(st, G_HIGHSCORE_FIRST) = S32(st, G_HIGHSCORE_FIRST) + 1;
     }
-    U8(st, REDRAW) = 2;
+    U8(st, G_REDRAW) = 2;
 }
 
 /* ---- the message window (5) and the message list (0x11) ---- */
@@ -312,21 +310,21 @@ static void msgwin_scroll(game_state *st)
 {
     /* @bin 0x004C7E90 the message window's text (arrows 0x005C7DF8 / 0x005C7E20): first line
      * 0x00D3B130 of 0x00D3B134, p 0 up / p 1 down; 0x004C8040, 0x00D3B12C cleared, redraw flag 2 */
-    int32_t p = S32(st, PARAM);
+    int32_t p = S32(st, G_PARAM1);
     if (p == 0) {
-        int32_t v = S32(st, 0x00D3B130u);
+        int32_t v = S32(st, G_SCROLL);
         if (v > 0) {
-            S32(st, 0x00D3B130u) = v - 1;
+            S32(st, G_SCROLL) = v - 1;
         }
     } else if (p == 1) {
-        int32_t v = S32(st, 0x00D3B130u);
-        if (v < S32(st, 0x00D3B134u)) {
-            S32(st, 0x00D3B130u) = v + 1;
+        int32_t v = S32(st, G_SCROLL);
+        if (v < S32(st, G_MESSAGE_WINDOW_SCROLL_MAX)) {
+            S32(st, G_SCROLL) = v + 1;
         }
     }
-    GAME_CALL0(st, 0x004C8040u);
-    S32(st, 0x00D3B12Cu) = 0;
-    U8(st, REDRAW) = 2;
+    GAME_CALL0(st, FN_MESSAGE_WINDOW_LINES_CLEAR);
+    S32(st, G_MW_DRAGGING) = 0;
+    U8(st, G_REDRAW) = 2;
 }
 
 static void msgwin_back(game_state *st)
@@ -334,26 +332,26 @@ static void msgwin_back(game_state *st)
     /* @bin 0x004C7EE0 the message window's back button (0x005C7DA8): the history 0x00D3AAE0 (its
      * depth; the messages 0x00D3AE00[], first lines 0x00D3AAE0[]) popped into 0x00D3B124 /
      * 0x00D3B130; 0x004C8040, 0x00D3B138 and 0x00D3B12C cleared, the redraw */
-    int32_t n = S32(st, 0x00D3AAE0u);
+    int32_t n = S32(st, G_HISTORY);
     if (n <= 0) {
         return;
     }
-    int32_t msg = S32(st, 0x00D3AE00u + (uint32_t) n * 4u);
-    int32_t line = S32(st, 0x00D3AAE0u + (uint32_t) n * 4u);
-    S32(st, 0x00D3B124u) = msg;
-    S32(st, 0x00D3AAE0u) = n - 1;
-    S32(st, 0x00D3B130u) = line;
-    GAME_CALL0(st, 0x004C8040u);
-    S32(st, 0x00D3B138u) = 0;
-    S32(st, 0x00D3B12Cu) = 0;
-    U8(st, REDRAW) = 1;
+    int32_t msg = S32(st, G_MW_HISTORY_MESSAGES + (uint32_t) n * 4u);
+    int32_t line = S32(st, G_HISTORY + (uint32_t) n * 4u);
+    S32(st, G_MW_TYPE) = msg;
+    S32(st, G_HISTORY) = n - 1;
+    S32(st, G_SCROLL) = line;
+    GAME_CALL0(st, FN_MESSAGE_WINDOW_LINES_CLEAR);
+    S32(st, G_TEXT_LINES) = 0;
+    S32(st, G_MW_DRAGGING) = 0;
+    U8(st, G_REDRAW) = 1;
 }
 
 static void msgwin_close_help(game_state *st)
 {
     /* @bin 0x004E2360 the message window's button 0x005C7E48: 0x004C7F30, then message 10 */
-    GAME_CALL0(st, 0x004C7F30u);
-    GAME_CALL(st, 0x004C5BF0u, 0x0A, 0, 0);
+    GAME_CALL0(st, FN_MESSAGE_WINDOW_CLOSE);
+    GAME_CALL(st, FN_MESSAGE_WINDOW_OPEN, 0x0A, 0, 0);
 }
 
 static int32_t message_figure_tile(game_state *st, int32_t id)
@@ -362,18 +360,18 @@ static int32_t message_figure_tile(game_state *st, int32_t id)
      * below 0x00BCD5E8) in use (+0 = 1), not dying (+0x42 = 0, +0x69 = 0) whose +0x88 (i16) is id: the
      * tile 0x00BCA2D8 + x (+0x2E) + y (+0x30) * 228 when x or y is positive; else 0 */
     int32_t i = 1;
-    uint32_t p = 0x00BCBA9Au;
+    uint32_t p = G_FORMATION_U42 + 0x90u;
     for (;; p += 0x90, i++) {
-        if (p >= 0x00BCD62Au) {
+        if (p >= G_FORMATION_U42 + 50u * 0x90u) {
             return 0;
         }
         if (U8(st, p - 0x42) == 1 && U8(st, p) == 0 && U8(st, p + 0x27) == 0 && S16(st, p + 0x46) == id) {
             break;
         }
     }
-    int16_t y = S16(st, 0x00BCB9F8u + (uint32_t) i * 0x90u);
-    int16_t x = S16(st, 0x00BCB9F6u + (uint32_t) i * 0x90u);
-    int32_t tile = S32(st, 0x00BCA2D8u) + x + y * 0xE4;
+    int16_t y = S16(st, G_FORMATION_Y + (uint32_t) i * 0x90u);
+    int16_t x = S16(st, G_FORMATION_X + (uint32_t) i * 0x90u);
+    int32_t tile = S32(st, G_MAP_START) + x + y * 0xE4;
     if (x > 0 || y > 0) {
         return tile;
     }
@@ -386,19 +384,19 @@ static void msgwin_go_to(game_state *st)
      * tile (0x30 bytes from 0x00E95200: +0x2C), or for a message of kind 7 (0x50 bytes from
      * 0x00E20990 by 0x00D3B124: +0x2A) its figure's (0x004B80B0 of +0x28) when positive; the city
      * view centred there (0x00430CD0) when 0 < tile < 0xCB10; back to the city */
-    uint32_t m = U32(st, 0x00E951E4u) * 0x30u;
-    int32_t tile = S32(st, 0x00E9522Cu + m);
-    if (S16(st, 0x00E209BAu + U32(st, 0x00D3B124u) * 0x50u) == 7) {
-        int32_t t = message_figure_tile(st, S32(st, 0x00E95228u + m));
+    uint32_t m = U32(st, G_MESSAGE_CURRENT) * 0x30u;
+    int32_t tile = S32(st, MESSAGE_BASE + MSG_PARAM_B + m);
+    if (S16(st, G_MESSAGE_TYPES + MSGTYPE_U0A + U32(st, G_MW_TYPE) * 0x50u) == 7) {
+        int32_t t = message_figure_tile(st, S32(st, MESSAGE_BASE + MSG_PARAM_A + m));
         if (t > 0) {
             tile = t;
         }
     }
     if (tile > 0 && tile < 0xCB10) {
-        GAME_CALL(st, 0x00430CD0u, tile);
+        GAME_CALL(st, FN_CAMERA_GO_TO, tile);
     }
-    U8(st, WINDOW) = 1;
-    U8(st, REDRAW) = 1;
+    U8(st, G_WINDOW) = 1;
+    U8(st, G_REDRAW) = 1;
 }
 
 static int message_goes_somewhere(game_state *st, uint32_t e, int16_t kind)
@@ -411,7 +409,7 @@ static int message_goes_somewhere(game_state *st, uint32_t e, int16_t kind)
     if (kind != 7) {
         return 0;
     }
-    return message_figure_tile(st, S32(st, e - 0x0A)) > 0 || S32(st, e - 6) > 0;
+    return message_figure_tile(st, S32(st, e - (MSG_ID - MSG_PARAM_A))) > 0 || S32(st, e - (MSG_ID - MSG_PARAM_B)) > 0;
 }
 
 static void message_next_important(game_state *st)
@@ -421,56 +419,56 @@ static void message_next_important(game_state *st)
      * (0x0078D7BC - 1) that go somewhere counted into 0x00E951D8; none: 0x00E951D4 = 0; else the
      * next one after 0x00E951D4 (wrapping) centres the city view (0x00430CD0) and the city comes
      * back */
-    GAME_CALL0(st, 0x004E1640u);
-    S32(st, 0x00E951D8u) = 0;
-    for (uint32_t e = 0x00E95232u; e < 0x00EA0D82u; e += 0x30) {
+    GAME_CALL0(st, FN_MESSAGE_SORT);
+    S32(st, G_UE951D8) = 0;
+    for (uint32_t e = MESSAGE_BASE + MSG_ID; e < MESSAGE_ADDR(MESSAGE_COUNT) - 0x26u; e += 0x30) {
         int16_t text = S16(st, e);
-        if (text == 0 || S16(st, e - 2) < S32(st, 0x0078D7BCu) - 1) {
+        if (text == 0 || S16(st, e - (MSG_ID - MSG_YEAR)) < S32(st, G_YEAR) - 1) {
             continue;
         }
-        int16_t kind = S16(st, 0x00E209BAu + (uint32_t) (int32_t) text * 0x50u);
+        int16_t kind = S16(st, G_MESSAGE_TYPES + MSGTYPE_U0A + (uint32_t) (int32_t) text * 0x50u);
         if (message_goes_somewhere(st, e, kind)) {
-            S32(st, 0x00E951D8u) = S32(st, 0x00E951D8u) + 1;
+            S32(st, G_UE951D8) = S32(st, G_UE951D8) + 1;
         }
     }
-    int32_t count = S32(st, 0x00E951D8u);
+    int32_t count = S32(st, G_UE951D8);
     if (count <= 0) {
-        S32(st, 0x00E951D4u) = 0;
+        S32(st, G_NEXT_MESSAGE_INDEX) = 0;
         return;
     }
-    if (S32(st, 0x00E951D4u) >= count) {
-        S32(st, 0x00E951D4u) = 0;
+    if (S32(st, G_NEXT_MESSAGE_INDEX) >= count) {
+        S32(st, G_NEXT_MESSAGE_INDEX) = 0;
     }
     int32_t k = 0;
-    for (uint32_t e = 0x00E95232u; e < 0x00EA0D82u; e += 0x30) {
+    for (uint32_t e = MESSAGE_BASE + MSG_ID; e < MESSAGE_ADDR(MESSAGE_COUNT) - 0x26u; e += 0x30) {
         int16_t text = S16(st, e);
-        if (text == 0 || S16(st, e - 2) < S32(st, 0x0078D7BCu) - 1) {
+        if (text == 0 || S16(st, e - (MSG_ID - MSG_YEAR)) < S32(st, G_YEAR) - 1) {
             continue;
         }
-        int16_t kind = S16(st, 0x00E209BAu + (uint32_t) (int32_t) text * 0x50u);
+        int16_t kind = S16(st, G_MESSAGE_TYPES + MSGTYPE_U0A + (uint32_t) (int32_t) text * 0x50u);
         if (!message_goes_somewhere(st, e, kind)) {
             continue;
         }
         k++;
-        int32_t cur = S32(st, 0x00E951D4u);
+        int32_t cur = S32(st, G_NEXT_MESSAGE_INDEX);
         if (cur >= k) {
             continue;
         }
-        int32_t tile = S32(st, e - 6);
-        S32(st, 0x00E951D4u) = cur + 1;
+        int32_t tile = S32(st, e - (MSG_ID - MSG_PARAM_B));
+        S32(st, G_NEXT_MESSAGE_INDEX) = cur + 1;
         if (kind == 7) {
             /* @bin 0x004E24E3 the figure's tile asked again; neither positive: the next message */
-            tile = message_figure_tile(st, S32(st, e - 0x0A));
+            tile = message_figure_tile(st, S32(st, e - (MSG_ID - MSG_PARAM_A)));
             if (tile <= 0) {
-                tile = S32(st, e - 6);
+                tile = S32(st, e - (MSG_ID - MSG_PARAM_B));
                 if (tile <= 0) {
                     continue;
                 }
             }
         }
-        GAME_CALL(st, 0x00430CD0u, tile);
-        U8(st, WINDOW) = 1;
-        U8(st, REDRAW) = 1;
+        GAME_CALL(st, FN_CAMERA_GO_TO, tile);
+        U8(st, G_WINDOW) = 1;
+        U8(st, G_REDRAW) = 1;
         return;
     }
 }
@@ -479,27 +477,27 @@ static void msglist_scroll(game_state *st)
 {
     /* @bin 0x004E2160 the message list (window 0x11, arrows 0x005C8118 / 0x005C8140): first row
      * 0x00E95120 of 0x00E9511C, p 0 up / p 1 down; 0x00E95118 cleared, the redraw */
-    int32_t p = S32(st, PARAM);
+    int32_t p = S32(st, G_PARAM1);
     if (p == 0) {
-        int32_t v = S32(st, 0x00E95120u);
+        int32_t v = S32(st, G_MESSAGE_SCROLL);
         if (v > 0) {
-            S32(st, 0x00E95120u) = v - 1;
+            S32(st, G_MESSAGE_SCROLL) = v - 1;
         }
     } else if (p == 1) {
-        int32_t v = S32(st, 0x00E95120u);
-        if (v < S32(st, 0x00E9511Cu)) {
-            S32(st, 0x00E95120u) = v + 1;
+        int32_t v = S32(st, G_MESSAGE_SCROLL);
+        if (v < S32(st, G_MESSAGE_SCROLL_ROWS)) {
+            S32(st, G_MESSAGE_SCROLL) = v + 1;
         }
     }
-    S32(st, 0x00E95118u) = 0;
-    U8(st, REDRAW) = 1;
+    S32(st, G_MSGLIST_DRAGGING) = 0;
+    U8(st, G_REDRAW) = 1;
 }
 
 static void msglist_help(game_state *st)
 {
     /* @bin 0x004E21B0 the message list's help button (0x005C7E98): message 0x22, the redraw */
-    GAME_CALL(st, 0x004C5BF0u, 0x22, 0, 0);
-    U8(st, REDRAW) = 1;
+    GAME_CALL(st, FN_MESSAGE_WINDOW_OPEN, 0x22, 0, 0);
+    U8(st, G_REDRAW) = 1;
 }
 
 /* ---- front end: names (0x51), campaign map (0x35), mission end (0x43), cheats (0x55) ---- */
@@ -507,9 +505,9 @@ static void msglist_help(game_state *st)
 static void names_back(game_state *st)
 {
     /* @bin 0x0040C810 window 0x51's back rectangle (0x005C47F0): the name window 0x36 again */
-    S32(st, 0x00E20998u) = 0;
-    U8(st, WINDOW) = 0x36;
-    U8(st, REDRAW) = 1;
+    S32(st, G_UE20998) = 0;
+    U8(st, G_WINDOW) = 0x36;
+    U8(st, G_REDRAW) = 1;
 }
 
 static void names_pick(game_state *st)
@@ -517,49 +515,49 @@ static void names_pick(game_state *st)
     /* @bin 0x0040C830 a name of window 0x51's list (0x005C4358): text p of group 0xC5 (0x004CC110,
      * its address in 0x00E20768) copied into the player's name 0x00E38E74; the text field 1
      * (0x004CC500) refreshed (0x004CC3C0, 0x004CC3E0); the pick kept in 0x006059FC */
-    GAME_CALL(st, 0x004CC110u, 0xC5, S32(st, PARAM));
-    uint32_t src = U32(st, 0x00E20768u);
+    GAME_CALL(st, FN_TEXT_SEEK, 0xC5, S32(st, G_PARAM1));
+    uint32_t src = U32(st, G_TEXT_CURSOR);
     uint32_t i = 0;
     do {
-        P8(st, 0x00E38E74u + i) = P8(st, src + i);
+        P8(st, G_PLAYER_NAME + i) = P8(st, src + i);
     } while (P8(st, src + i++) != 0);
-    GAME_CALL(st, 0x004CC500u, 1);
-    GAME_CALL0(st, 0x004CC3C0u);
-    GAME_CALL0(st, 0x004CC3E0u);
-    S32(st, 0x006059FCu) = S32(st, PARAM);
+    GAME_CALL(st, FN_TEXT_BOX_FOCUS, 1);
+    GAME_CALL0(st, FN_TEXT_BOX_CURSOR_START);
+    GAME_CALL0(st, FN_TEXT_BOX_CURSOR_END);
+    S32(st, G_NAME_PICK) = S32(st, G_PARAM1);
 }
 
 static void campaign_map_pick(game_state *st)
 {
     /* @bin 0x00418350 window 0x35's button 0x005797B0: with a mission chosen (0x00E38EAA >= 0,
      * signed byte) window 0x34 opens on it (0x00E38EAB), the choice cleared, 0x0051F780(1) */
-    if (U8(st, WINDOW) == 0x35) {
-        int8_t m = S8(st, 0x00E38EAAu);
+    if (U8(st, G_WINDOW) == 0x35) {
+        int8_t m = S8(st, G_STEP_PREV);
         if (m >= 0) {
-            U8(st, WINDOW) = 0x34;
-            S8(st, 0x00E38EABu) = m;
-            S8(st, 0x00E38EAAu) = -1;
-            GAME_CALL(st, 0x0051F780u, 1);
+            U8(st, G_WINDOW) = 0x34;
+            S8(st, G_STEP) = m;
+            S8(st, G_STEP_PREV) = -1;
+            GAME_CALL(st, FN_NOTHING, 1);
         }
     }
-    U8(st, REDRAW) = 1;
+    U8(st, G_REDRAW) = 1;
 }
 
 static void mission_end_replay(game_state *st)
 {
     /* @bin 0x004EA830 window 0x43's replay button (0x005C6664): a jump to 0x00418510 */
-    GAME_CALL0(st, 0x00418510u);
+    GAME_CALL0(st, FN_NEWGAME_REPLAY);
 }
 
 static void cheat_ok(game_state *st)
 {
     /* @bin 0x0041D3A0 the cheat window's OK (0x0057C560): the notice 0xDA the first time
      * (0x007027E0), then as Enter (0x0041D3F0) */
-    if (U8(st, 0x007027E0u) != 0) {
-        GAME_CALL(st, 0x004E2970u, 0xDA, 0, 0);
+    if (U8(st, G_CHEATS_ON) != 0) {
+        GAME_CALL(st, FN_NOTICE_ADD_4E2970, 0xDA, 0, 0);
     }
-    U8(st, 0x007027E0u) = 0;
-    GAME_CALL0(st, 0x0041D3F0u);
+    U8(st, G_CHEATS_ON) = 0;
+    GAME_CALL0(st, FN_CHEAT_ENTER);
 }
 
 /* ---- port table ---- */

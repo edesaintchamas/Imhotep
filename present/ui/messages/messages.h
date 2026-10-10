@@ -10,33 +10,12 @@
 
 #include <stdint.h>
 
+#include "present_layout.h"
 #include "state/state.h"
 
-/* @bin the message list window's layout, set by 0x004E1870 */
-#define MSGLIST_Y 0x00E9510Cu        /* i32 outer panel y */
-#define MSGLIST_X 0x00E95110u        /* i32 outer panel x */
-#define MSGLIST_W 0x00E95108u        /* i32 outer panel width in 16-pixel pieces */
-#define MSGLIST_H 0x00E95104u        /* i32 outer panel height in pieces */
-#define MSGLIST_IN_X 0x00E95100u     /* i32 inner panel x */
-#define MSGLIST_IN_Y 0x00E950FCu     /* i32 inner panel y */
-#define MSGLIST_IN_W 0x00E950F8u     /* i32 inner panel width in pieces */
-#define MSGLIST_IN_H 0x00E950F4u     /* i32 inner panel height in pieces */
-#define MSGLIST_THUMB_Y 0x00E95114u  /* i32 the scroll thumb's offset while dragged */
-#define MSGLIST_DRAGGING 0x00E95118u /* i32 1 while the thumb is dragged */
-#define MSGLIST_ROWS 0x00E9511Cu     /* i32 scrollable rows (0: no scroll bar) */
-#define MSGLIST_SCROLL 0x00E95120u   /* i32 first message shown */
-#define MSG_COUNT 0x00E951ECu        /* i32 messages in the list */
-#define MSG_CURRENT 0x00E951E4u      /* i32 the message the keyword handlers read */
-#define MSG_TYPE_CUR 0x00E951DCu     /* i32 the type of the row being drawn */
-#define MESSAGES 0x00E95228u         /* message records, 0x30 bytes */
-#define MESSAGE_TYPES 0x00E20970u    /* message type records, 0x50 bytes */
-#define TEXT_BASE 0x00E36C74u        /* u32 base of the message texts (type +0x8C: offset) */
-#define HOVER_ROW 0x007056C8u        /* i32 hovered row / button (1-based, 0 none) */
-#define HOVER_DELETE 0x007056C4u     /* i32 the "delete read" button hovered */
-#define MOUSE_X 0x00E38E34u
-#define MOUSE_Y 0x00E38E30u
-#define LEFT_HELD 0x00E38E00u
-#define RIGHT_RELEASED 0x00E38DF8u
+/* @bin 0x004E1870 the message type records (0x50 bytes) as these ports offset their fields: from
+ * 0x40 below G_MESSAGE_TYPES (+0x4A is MSGTYPE_U0A) */
+#define MESSAGE_TYPES (G_MESSAGE_TYPES - 0x40u)
 
 void msglist_redraw(game_state *st);
 void msglist_draw(game_state *st);

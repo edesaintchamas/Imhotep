@@ -5,26 +5,26 @@
 
 #include "city/monument_rating.h"
 #include "command/military.h"
+#include "present_layout.h"
 #include "sim/call.h"
 #include "state/ported.h"
 
-#define HOVER 0x007056C8u    /* i32 the highlighted rectangle (1-based) */
-#define AX() S32(st, UI_ADVISOR_X)
-#define AY() S32(st, UI_ADVISOR_Y)
+#define AX() S32(st, G_ADVISOR_X)
+#define AY() S32(st, G_ADVISOR_Y)
 
 static void frame_rect(game_state *st, int32_t x, int32_t y, int32_t w, int32_t h, int32_t lit)
 {
     /* 0x004D63D0(0, x, y, w, h, lit, dx, dy): a rectangle's frame, lit or not */
-    GAME_CALL(st, 0x004D63D0u, 0, x, y, w, h, lit, S32(st, UI_DX), S32(st, UI_DY));
+    GAME_CALL(st, FN_LAYOUT_FRAME, 0, x, y, w, h, lit, S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
 }
 
 static void advisors_min_lines(game_state *st)
 {
     /* @bin 0x00521060 every advisor page per frame: the panel's lines 0x00F53F48 at least 6 (a
      * redraw when raised) */
-    if (S32(st, 0x00F53F48u) <= 5) {
-        S32(st, 0x00F53F48u) = 6;
-        U8(st, UI_REDRAW) = 1;
+    if (S32(st, G_ADVISOR_SLIDE) <= 5) {
+        S32(st, G_ADVISOR_SLIDE) = 6;
+        U8(st, G_REDRAW) = 1;
     }
 }
 
@@ -32,12 +32,12 @@ static void advisor5_frame(game_state *st)
 {
     /* @bin 0x004F7770 advisor page 5: with at least 5 lines (0x00F53F48; 5 - n < 5 and <= 0), its four
      * buttons' frames (120 x 66 at x 0x50 + 120 k, y 0x11E), the hovered one (k + 1) lit */
-    int32_t d = 5 - S32(st, 0x00F53F48u);
+    int32_t d = 5 - S32(st, G_ADVISOR_SLIDE);
     if (d >= 5 || d > 0) {
         return;
     }
     for (int32_t k = 1, x = 0x78; x <= 0x1E0; x += 0x78, k++) {
-        frame_rect(st, x + AX() - 0x28, AY() + 0x11E, 0x78, 0x42, S32(st, HOVER) == k);
+        frame_rect(st, x + AX() - 0x28, AY() + 0x11E, 0x78, 0x42, S32(st, G_HOVER) == k);
     }
 }
 
@@ -46,21 +46,21 @@ static int32_t storage_rows(game_state *st)
     /* @bin 0x005027B0 the info panel's list rows (window 9 per frame): a storage yard or granary
      * (types 0x48, 0xC1) min(0x00502780, 0x00F53E6C); a market (0x46, 0xBE) the goods of
      * 0x00F53E70[0x00F53E6C] that 0x005013A0 keeps; else 0x00F53DD8 */
-    int16_t t = S16(st, 0x007999E8u + U32(st, 0x00EADD6Cu) * 0x108u);
+    int16_t t = S16(st, BUILDING_BASE + BLD_TYPE + U32(st, G_INFO_BUILDING) * 0x108u);
     if (t == 0x48 || t == 0xC1) {
-        int32_t n = GAME_CALL0(st, 0x00502780u);
-        int32_t max = S32(st, 0x00F53E6Cu);
+        int32_t n = GAME_CALL0(st, FN_STORAGE_ROWS_VISIBLE);
+        int32_t max = S32(st, G_STORAGE_LIST);
         if (n < max) {
-            return GAME_CALL0(st, 0x00502780u);
+            return GAME_CALL0(st, FN_STORAGE_ROWS_VISIBLE);
         }
         return max;
     }
     if (t != 0x46 && t != 0xBE) {
-        return S32(st, 0x00F53DD8u);
+        return S32(st, G_GOODS_COUNT);
     }
     int32_t n = 0;
-    for (int32_t i = 0; i < S32(st, 0x00F53E6Cu); i++) {
-        if (GAME_CALL(st, 0x005013A0u, S32(st, 0x00F53E70u + (uint32_t) i * 4u)) != 0) {
+    for (int32_t i = 0; i < S32(st, G_STORAGE_LIST); i++) {
+        if (GAME_CALL(st, FN_STORAGE_KIND, S32(st, G_GOODS_AVAILABLE + (uint32_t) i * 4u)) != 0) {
             n++;
         }
     }
@@ -74,11 +74,11 @@ static void dialog2a_frame(game_state *st)
      * red when the hover is 1 */
     int32_t k = 0;
     for (int32_t x = 0; x < 0x120; x += 0x20, k++) {
-        int32_t colour = k == S32(st, HOVER) - 2 ? 0xF800 : 0;
-        GAME_CALL(st, 0x004CD680u, x + AX() + 0xB2, AY() + 0xDD, 0x1B, 0x1B, colour);
+        int32_t colour = k == S32(st, G_HOVER) - 2 ? 0xF800 : 0;
+        GAME_CALL(st, FN_RECT_DRAW, x + AX() + 0xB2, AY() + 0xDD, 0x1B, 0x1B, colour);
     }
     for (int32_t n = 0x0A - k; k < 0x0A && n != 0; n--) {
-        GAME_CALL(st, 0x004CD680u, AX() + 0xB4, AY() + 0x100, 0x118, 0x19, S32(st, HOVER) == 1 ? 0xF800 : 0);
+        GAME_CALL(st, FN_RECT_DRAW, AX() + 0xB4, AY() + 0x100, 0x118, 0x19, S32(st, G_HOVER) == 1 ? 0xF800 : 0);
     }
 }
 
@@ -86,11 +86,11 @@ static void advisor7_frame(game_state *st)
 {
     /* @bin 0x005271F0 advisor page 7: when the hover changed (0x005F825C), the two buttons' frames
      * (106 x 57 at 0x1F5, y 0x3C and 0xA0), the hovered one (1 or 2) lit; other hovers: nothing */
-    int32_t h = S32(st, HOVER);
-    if (h == S32(st, 0x005F825Cu) || (h != 0 && h != 1 && h != 2)) {
+    int32_t h = S32(st, G_HOVER);
+    if (h == S32(st, G_GRAPH_HOVER) || (h != 0 && h != 1 && h != 2)) {
         return;
     }
-    S32(st, 0x005F825Cu) = h;
+    S32(st, G_GRAPH_HOVER) = h;
     frame_rect(st, AX() + 0x1F5, AY() + 0x3C, 0x6A, 0x39, h == 1);
     frame_rect(st, AX() + 0x1F5, AY() + 0xA0, 0x6A, 0x39, h == 2);
 }
@@ -98,7 +98,7 @@ static void advisor7_frame(game_state *st)
 static void text_at(game_state *st, int32_t group, int32_t idx, int32_t x, int32_t y, int32_t font)
 {
     /* 0x004D62F0(group, idx, x, y, font, 0, dx, dy): a text of the layout */
-    GAME_CALL(st, 0x004D62F0u, group, idx, x, y, font, 0, S32(st, UI_DX), S32(st, UI_DY));
+    GAME_CALL(st, FN_LAYOUT_GROUP, group, idx, x, y, font, 0, S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
 }
 
 static void dialog2d_frame(game_state *st)
@@ -106,10 +106,10 @@ static void dialog2d_frame(game_state *st)
     /* @bin 0x005253C0 window 0x2D per frame: five 64 x 20 frames at x 0x80 + 0x50 k, y 0xD8 (lit by
      * the hover 3..7), then 160 x 20 at 0x150 (hover 1) and 0x90 (hover 2), y 0x11B */
     for (int32_t k = 0; k < 5; k++) {
-        frame_rect(st, AX() + 0x80 + 0x50 * k, AY() + 0xD8, 0x40, 0x14, S32(st, HOVER) == k + 3);
+        frame_rect(st, AX() + 0x80 + 0x50 * k, AY() + 0xD8, 0x40, 0x14, S32(st, G_HOVER) == k + 3);
     }
-    frame_rect(st, AX() + 0x150, AY() + 0x11B, 0xA0, 0x14, S32(st, HOVER) == 1);
-    frame_rect(st, AX() + 0x90, AY() + 0x11B, 0xA0, 0x14, S32(st, HOVER) == 2);
+    frame_rect(st, AX() + 0x150, AY() + 0x11B, 0xA0, 0x14, S32(st, G_HOVER) == 1);
+    frame_rect(st, AX() + 0x90, AY() + 0x11B, 0xA0, 0x14, S32(st, G_HOVER) == 2);
 }
 
 static void dialog4c_frame(game_state *st)
@@ -120,27 +120,27 @@ static void dialog4c_frame(game_state *st)
      * the text's end 0x00E20778); texts 199:5 (lit, font 0x00F56FA4, at hover 1), 199:8 / 199:9
      * (lit at the hover 0x007056B0 = 10 / 11) at x 0x152; 199:6 centred over 240 at y 0x155; the
      * frames 240 x 20 at (0x80, 0x150) hover 2 and 160 x 20 at (400, 0x150) hover 3 */
-    uint32_t p = U32(st, 0x00EAAC28u) * 0x49D8u;
-    int32_t kind = S32(st, 0x00EA41ECu + p);
-    int32_t amount = S32(st, 0x00EA41F4u + p);
+    uint32_t p = U32(st, G_PLAYER) * 0x49D8u;
+    int32_t kind = S32(st, CITY_BASE + CITY_GRAVE_GOODS_RESOURCE + p);
+    int32_t amount = S32(st, CITY_BASE + CITY_GRAVE_GOODS_AMOUNT + p);
     int plain = kind == 0x18 || kind == 0x19 || kind == 0x1A || kind == 0x1E || kind == 0x23 || kind == 0x1C ||
                 kind == 0x0A || kind == 0x24;
     if (!plain) {
         amount *= 100;
     }
-    S32(st, 0x00E20778u) = 0;
-    text_at(st, 0xC7, 4, AX() + 0x80, AY() + 0xD5, S32(st, 0x00F56F9Cu));
-    GAME_CALL(st, 0x004D6860u, amount, 0x40, 0x007027D4, AX() + S32(st, 0x00E20778u) + 0x80, AY() + 0xD5,
-              S32(st, 0x00F56F9Cu), 0, S32(st, UI_DX), S32(st, UI_DY));
-    text_at(st, 0xC7, 5, AX() + 0x152, AY() + 0xD5, S32(st, S32(st, HOVER) == 1 ? 0x00F56FA4u : 0x00F56F9Cu));
-    text_at(st, 0xC7, 8, AX() + 0x152, AY() + 0xEE, S32(st, S32(st, 0x007056B0u) == 0x0A ? 0x00F56FA4u : 0x00F56F9Cu));
-    text_at(st, 0xC7, 9, AX() + 0x152, AY() + 0x107, S32(st, S32(st, 0x007056B0u) == 0x0B ? 0x00F56FA4u : 0x00F56F9Cu));
-    GAME_CALL(st, 0x004D6250u, 0xC7, 6, AX() + 0x80, AY() + 0x155, 0xF0, S32(st, 0x00F56F8Cu), 0, S32(st, UI_DX),
-              S32(st, UI_DY));
-    GAME_CALL(st, 0x004D63D0u, 1, AX() + 0x80, AY() + 0x150, 0xF0, 0x14, S32(st, HOVER) == 2, S32(st, UI_DX),
-              S32(st, UI_DY));
-    GAME_CALL(st, 0x004D63D0u, 1, AX() + 400, AY() + 0x150, 0xA0, 0x14, S32(st, HOVER) == 3, S32(st, UI_DX),
-              S32(st, UI_DY));
+    S32(st, G_TEXT_X) = 0;
+    text_at(st, 0xC7, 4, AX() + 0x80, AY() + 0xD5, S32(st, G_FONT_9C));
+    GAME_CALL(st, FN_LAYOUT_NUMBER_AT, amount, 0x40, G_GOAL_SEPARATOR, AX() + S32(st, G_TEXT_X) + 0x80, AY() + 0xD5,
+              S32(st, G_FONT_9C), 0, S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
+    text_at(st, 0xC7, 5, AX() + 0x152, AY() + 0xD5, S32(st, S32(st, G_HOVER) == 1 ? G_FONT_RED : G_FONT_9C));
+    text_at(st, 0xC7, 8, AX() + 0x152, AY() + 0xEE, S32(st, S32(st, G_SQUARE_BUTTON_HOVER) == 0x0A ? G_FONT_RED : G_FONT_9C));
+    text_at(st, 0xC7, 9, AX() + 0x152, AY() + 0x107, S32(st, S32(st, G_SQUARE_BUTTON_HOVER) == 0x0B ? G_FONT_RED : G_FONT_9C));
+    GAME_CALL(st, FN_LAYOUT_GROUP_CENTRED, 0xC7, 6, AX() + 0x80, AY() + 0x155, 0xF0, S32(st, G_FONT_LARGE), 0, S32(st, G_LAYOUT_DX),
+              S32(st, G_LAYOUT_DY));
+    GAME_CALL(st, FN_LAYOUT_FRAME, 1, AX() + 0x80, AY() + 0x150, 0xF0, 0x14, S32(st, G_HOVER) == 2, S32(st, G_LAYOUT_DX),
+              S32(st, G_LAYOUT_DY));
+    GAME_CALL(st, FN_LAYOUT_FRAME, 1, AX() + 400, AY() + 0x150, 0xA0, 0x14, S32(st, G_HOVER) == 3, S32(st, G_LAYOUT_DX),
+              S32(st, G_LAYOUT_DY));
 }
 
 static void military_tail(game_state *st, int any, uint32_t table1, uint32_t table2)
@@ -148,25 +148,25 @@ static void military_tail(game_state *st, int any, uint32_t table1, uint32_t tab
     /* the common end of 0x00522A60 / 0x00523BB0: the panel 0x004CD1A0 of table1 (lit at hover 0x13);
      * with a unit in the field (`any`) the panel of table2 (hover 0x14) and texts 0x33:0x1E / 0x1F,
      * else 0x33:5 / 6, at x 0x226; 0x005F8518 the flag */
-    GAME_CALL(st, 0x004CD1A0u, 0, (int32_t) table1, S32(st, HOVER) == 0x13, 0, 0);
+    GAME_CALL(st, FN_LAYOUT_PANEL, 0, (int32_t) table1, S32(st, G_HOVER) == 0x13, 0, 0);
     if (any) {
-        GAME_CALL(st, 0x004CD1A0u, 0, (int32_t) table2, S32(st, HOVER) == 0x14, 0, 0);
-        text_at(st, 0x33, 0x1E, AX() + 0x226, AY() + 0x28, S32(st, 0x00F56F8Cu));
-        text_at(st, 0x33, 0x1F, AX() + 0x226, AY() + 0x36, S32(st, 0x00F56F8Cu));
-        U8(st, 0x005F8518u) = 1;
+        GAME_CALL(st, FN_LAYOUT_PANEL, 0, (int32_t) table2, S32(st, G_HOVER) == 0x14, 0, 0);
+        text_at(st, 0x33, 0x1E, AX() + 0x226, AY() + 0x28, S32(st, G_FONT_LARGE));
+        text_at(st, 0x33, 0x1F, AX() + 0x226, AY() + 0x36, S32(st, G_FONT_LARGE));
+        U8(st, G_DISPATCH_ENABLED) = 1;
         return;
     }
-    text_at(st, 0x33, 5, AX() + 0x226, AY() + 0x2B, S32(st, 0x00F56F8Cu));
-    text_at(st, 0x33, 6, AX() + 0x226, AY() + 0x3A, S32(st, 0x00F56F8Cu));
-    U8(st, 0x005F8518u) = 0;
+    text_at(st, 0x33, 5, AX() + 0x226, AY() + 0x2B, S32(st, G_FONT_LARGE));
+    text_at(st, 0x33, 6, AX() + 0x226, AY() + 0x3A, S32(st, G_FONT_LARGE));
+    U8(st, G_DISPATCH_ENABLED) = 0;
 }
 
 static void military_origin(game_state *st)
 {
-    S32(st, UI_ADVISOR_X) = S32(st, UI_DX);
-    S32(st, UI_ADVISOR_Y) = S32(st, UI_DY);
-    S32(st, 0x00F53F04u) = 0x28;
-    S32(st, 0x00F53F00u) = 0x1A;
+    S32(st, G_ADVISOR_X) = S32(st, G_LAYOUT_DX);
+    S32(st, G_ADVISOR_Y) = S32(st, G_LAYOUT_DY);
+    S32(st, G_PANEL_W) = 0x28;
+    S32(st, G_PANEL_H) = 0x1A;
 }
 
 static void advisor2_frame(game_state *st)
@@ -177,34 +177,34 @@ static void advisor2_frame(game_state *st)
      * place (i16 +0x82 < 0): three 30 x 30 frames at x 0x1B8, 0x1F4, 0x230, y 0x53 + 44 row, lit at
      * the hovers 3 row + 1..3, the third only when that request is open (kind 2 when 0x0040B5E0,
      * else the other); one with +0x67 set makes the tail's "any" */
-    if (5 - S32(st, 0x00F53F48u) > 0) {
+    if (5 - S32(st, G_ADVISOR_SLIDE) > 0) {
         return;
     }
     military_origin(st);
-    S32(st, 0x00F53DD4u) = GAME_CALL0(st, 0x004B78F0u);
+    S32(st, G_LEGION_ROWS) = GAME_CALL0(st, 0x004B78F0u);
     uint8_t other = 0, kind2 = 0;
     military_requests_open(st, &other, &kind2);
     int any = 0;
-    for (int32_t row = 0, h = 2, y = 0; row < S32(st, 0x00F53DD4u); h += 3, y += 0x2C) {
+    for (int32_t row = 0, h = 2, y = 0; row < S32(st, G_LEGION_ROWS); h += 3, y += 0x2C) {
         row++;
-        int32_t f = GAME_CALL(st, 0x004B78B0u, row);
+        int32_t f = GAME_CALL(st, FN_PLAYER_LEGION_BY_ROW, row);
         uint32_t r = (uint32_t) f * 0x90u;
-        if (S16(st, 0x00BCBA4Au + r) >= 0) {
+        if (S16(st, G_FORMATION_U82 + r) >= 0) {
             continue;
         }
-        frame_rect(st, AX() + 0x1B8, y + AY() + 0x53, 0x1E, 0x1E, S32(st, HOVER) == h - 1);
-        frame_rect(st, AX() + 0x1F4, y + AY() + 0x53, 0x1E, 0x1E, S32(st, HOVER) == h);
-        int away = GAME_CALL(st, 0x0040B5E0u, f) != 0;
+        frame_rect(st, AX() + 0x1B8, y + AY() + 0x53, 0x1E, 0x1E, S32(st, G_HOVER) == h - 1);
+        frame_rect(st, AX() + 0x1F4, y + AY() + 0x53, 0x1E, 0x1E, S32(st, G_HOVER) == h);
+        int away = GAME_CALL(st, FN_FORMATION_HAS_ACTION_0X12, f) != 0;
         int lit = 0;
-        if (S16(st, 0x00BCBA4Au + r) < 0 && (away ? kind2 : other) != 0) {
-            lit = S32(st, HOVER) == h + 1;
+        if (S16(st, G_FORMATION_U82 + r) < 0 && (away ? kind2 : other) != 0) {
+            lit = S32(st, G_HOVER) == h + 1;
         }
         frame_rect(st, AX() + 0x230, y + AY() + 0x53, 0x1E, 0x1E, lit);
-        if (U8(st, 0x00BCBA2Fu + r) != 0) {
+        if (U8(st, G_FORMATION_IN_FIELD + r) != 0) {
             any = 1;
         }
     }
-    military_tail(st, any, 0x005C4EC8u, 0x005C4EE4u);
+    military_tail(st, any, G_ADVISOR2_PANEL_A, G_ADVISOR2_PANEL_B);
 }
 
 static void advisor3_frame(game_state *st)
@@ -213,33 +213,33 @@ static void advisor3_frame(game_state *st)
      * warships (count player +0x5ED8 into 0x00F53DD0, rows 0x004BC620; figure +0x13A < 0), the
      * figure's +0x0A making "any" (read after the first frame), the third frame lit only when the
      * kind-2 request is open */
-    if (5 - S32(st, 0x00F53F48u) > 0) {
+    if (5 - S32(st, G_ADVISOR_SLIDE) > 0) {
         return;
     }
-    uint8_t ships = U8(st, 0x00EA5ED8u + U32(st, 0x00EAAC28u) * 0x49D8u);
-    S32(st, UI_ADVISOR_X) = S32(st, UI_DX);
-    S32(st, UI_ADVISOR_Y) = S32(st, UI_DY);
+    uint8_t ships = U8(st, CITY_BASE + CITY_WARSHIPS + U32(st, G_PLAYER) * 0x49D8u);
+    S32(st, G_ADVISOR_X) = S32(st, G_LAYOUT_DX);
+    S32(st, G_ADVISOR_Y) = S32(st, G_LAYOUT_DY);
     uint8_t other = 0, kind2 = 0;
-    S32(st, 0x00F53F04u) = 0x28;
-    S32(st, 0x00F53F00u) = 0x1A;
-    S32(st, 0x00F53DD0u) = ships;
+    S32(st, G_PANEL_W) = 0x28;
+    S32(st, G_PANEL_H) = 0x1A;
+    S32(st, G_FLEET_ROWS) = ships;
     military_requests_open(st, &other, &kind2);
     int any = 0;
-    for (int32_t row = 0, h = 2, y = 0; row < S32(st, 0x00F53DD0u); h += 3, y += 0x2C) {
+    for (int32_t row = 0, h = 2, y = 0; row < S32(st, G_FLEET_ROWS); h += 3, y += 0x2C) {
         row++;
-        int32_t f = GAME_CALL(st, 0x004BC620u, row);
+        int32_t f = GAME_CALL(st, FN_PLAYER_WARSHIP_BY_ROW, row);
         uint32_t r = (uint32_t) f * 0x184u;
-        if (S16(st, 0x00BCD72Au + r) >= 0) {
+        if (S16(st, FIGURE_BASE + FIG_U132 + r) >= 0) {
             continue;
         }
-        frame_rect(st, AX() + 0x1B8, y + AY() + 0x53, 0x1E, 0x1E, S32(st, HOVER) == h - 1);
-        if (U8(st, 0x00BCD5FAu + r) != 0) {
+        frame_rect(st, AX() + 0x1B8, y + AY() + 0x53, 0x1E, 0x1E, S32(st, G_HOVER) == h - 1);
+        if (U8(st, FIGURE_BASE + FIG_U02 + r) != 0) {
             any = 1;
         }
-        frame_rect(st, AX() + 0x1F4, y + AY() + 0x53, 0x1E, 0x1E, S32(st, HOVER) == h);
-        frame_rect(st, AX() + 0x230, y + AY() + 0x53, 0x1E, 0x1E, kind2 != 0 && S32(st, HOVER) == h + 1);
+        frame_rect(st, AX() + 0x1F4, y + AY() + 0x53, 0x1E, 0x1E, S32(st, G_HOVER) == h);
+        frame_rect(st, AX() + 0x230, y + AY() + 0x53, 0x1E, 0x1E, kind2 != 0 && S32(st, G_HOVER) == h + 1);
     }
-    military_tail(st, any, 0x005C50F8u, 0x005C5114u);
+    military_tail(st, any, G_ADVISOR3_PANEL_A, G_ADVISOR3_PANEL_B);
 }
 
 static void festival_square_frame(game_state *st)
@@ -252,49 +252,49 @@ static void festival_square_frame(game_state *st)
      * (+0x5D80) and an image (0x00F571FC + 15, 0x0053E590 on 0x00F55BB0); then the sizes the
      * treasury (player +0x187C) cannot pay are greyed (0x004CF090): all three at -5000 or less,
      * else each costing more, the grand one also while +0x5D84 is set */
-    int32_t px = S32(st, 0x00EADD90u), py = S32(st, 0x00EADD8Cu);
-    uint32_t p = U32(st, 0x00EAAC28u) * 0x49D8u;
+    int32_t px = S32(st, G_INFO_X), py = S32(st, G_INFO_Y);
+    uint32_t p = U32(st, G_PLAYER) * 0x49D8u;
     static const int32_t fy[3] = {0xF6, 0x114, 0x132};
     for (int32_t i = 0; i < 3; i++) {
-        GAME_CALL(st, 0x004D63D0u, 1, 0x84, fy[i], 0x1AE, 0x1A, S32(st, HOVER) == 6 + i, px, py);
-        px = S32(st, 0x00EADD90u);
-        py = S32(st, 0x00EADD8Cu);
-        S32(st, 0x00E20778u) = 0;
-        GAME_CALL(st, 0x004D62F0u, 0x3A, 0x1F + i, 0x8C, fy[i] + 8, S32(st, 0x00F56F8Cu), 0, px, py);
-        p = U32(st, 0x00EAAC28u) * 0x49D8u;
-        int32_t w = S32(st, 0x00E20778u);
-        GAME_CALL(st, 0x004CCC30u, 8, 0, S32(st, 0x00EA5D74u + p + 4u * (uint32_t) i), w + 0x8C, fy[i] + 8,
-                  S32(st, 0x00F56F8Cu), 0);
+        GAME_CALL(st, FN_LAYOUT_FRAME, 1, 0x84, fy[i], 0x1AE, 0x1A, S32(st, G_HOVER) == 6 + i, px, py);
+        px = S32(st, G_INFO_X);
+        py = S32(st, G_INFO_Y);
+        S32(st, G_TEXT_X) = 0;
+        GAME_CALL(st, FN_LAYOUT_GROUP, 0x3A, 0x1F + i, 0x8C, fy[i] + 8, S32(st, G_FONT_LARGE), 0, px, py);
+        p = U32(st, G_PLAYER) * 0x49D8u;
+        int32_t w = S32(st, G_TEXT_X);
+        GAME_CALL(st, FN_TEXT_COUNT_DRAW, 8, 0, S32(st, CITY_BASE + CITY_FESTIVAL_COST + p + 4u * (uint32_t) i), w + 0x8C, fy[i] + 8,
+                  S32(st, G_FONT_LARGE), 0);
         if (i == 2) {
-            int32_t sum = S32(st, 0x00E20778u) + w;
-            S32(st, 0x00E20778u) = sum;
-            p = U32(st, 0x00EAAC28u) * 0x49D8u;
-            GAME_CALL(st, 0x004CCC30u, 8, 0x0A, S32(st, 0x00EA5D80u + p), sum + 0x96, 0x13A, S32(st, 0x00F56F8Cu), 0);
-            int32_t x = S32(st, 0x00E20778u) + sum;
-            S32(st, 0x00E20778u) = x;
-            GAME_CALLT(st, 0x00F55BB0u, 0x0053E590u, S32(st, 0x00F571FCu) + 0x0F, x + 0x96, 0x135);
+            int32_t sum = S32(st, G_TEXT_X) + w;
+            S32(st, G_TEXT_X) = sum;
+            p = U32(st, G_PLAYER) * 0x49D8u;
+            GAME_CALL(st, FN_TEXT_COUNT_DRAW, 8, 0x0A, S32(st, CITY_BASE + CITY_FESTIVAL_BEER + p), sum + 0x96, 0x13A, S32(st, G_FONT_LARGE), 0);
+            int32_t x = S32(st, G_TEXT_X) + sum;
+            S32(st, G_TEXT_X) = x;
+            GAME_CALLT(st, G_GRAPHICS_GFX, FN_IMAGE_DRAW, S32(st, G_RESOURCE_ICONS) + 0x0F, x + 0x96, 0x135);
         }
-        px = S32(st, 0x00EADD90u);
-        py = S32(st, 0x00EADD8Cu);
+        px = S32(st, G_INFO_X);
+        py = S32(st, G_INFO_Y);
     }
-    p = U32(st, 0x00EAAC28u) * 0x49D8u;
-    int32_t money = S32(st, 0x00EA187Cu + p);
+    p = U32(st, G_PLAYER) * 0x49D8u;
+    int32_t money = S32(st, CITY_BASE + CITY_TREASURY + p);
     if (money <= -5000) {
         for (int32_t i = 0; i < 3; i++) {
-            GAME_CALL(st, 0x004CF090u, 0x86, fy[i] + 2, 0x1AA, 0x16, 0);
+            GAME_CALL(st, FN_RECT_GREY, 0x86, fy[i] + 2, 0x1AA, 0x16, 0);
         }
         return;
     }
-    if (money < S32(st, 0x00EA5D74u + p)) {
-        GAME_CALL(st, 0x004CF090u, 0x86, 0xF8, 0x1AA, 0x16, 0);
+    if (money < S32(st, CITY_BASE + CITY_FESTIVAL_COST + p)) {
+        GAME_CALL(st, FN_RECT_GREY, 0x86, 0xF8, 0x1AA, 0x16, 0);
     }
-    p = U32(st, 0x00EAAC28u) * 0x49D8u;
-    if (S32(st, 0x00EA187Cu + p) < S32(st, 0x00EA5D78u + p)) {
-        GAME_CALL(st, 0x004CF090u, 0x86, 0x116, 0x1AA, 0x16, 0);
+    p = U32(st, G_PLAYER) * 0x49D8u;
+    if (S32(st, CITY_BASE + CITY_TREASURY + p) < S32(st, CITY_BASE + CITY_FESTIVAL_COST + 4 + p)) {
+        GAME_CALL(st, FN_RECT_GREY, 0x86, 0x116, 0x1AA, 0x16, 0);
     }
-    p = U32(st, 0x00EAAC28u) * 0x49D8u;
-    if (S32(st, 0x00EA187Cu + p) < S32(st, 0x00EA5D7Cu + p) || S32(st, 0x00EA5D84u + p) != 0) {
-        GAME_CALL(st, 0x004CF090u, 0x86, 0x134, 0x1AA, 0x16, 0);
+    p = U32(st, G_PLAYER) * 0x49D8u;
+    if (S32(st, CITY_BASE + CITY_TREASURY + p) < S32(st, CITY_BASE + CITY_FESTIVAL_COST + 8 + p) || S32(st, CITY_BASE + CITY_U4514 + p) != 0) {
+        GAME_CALL(st, FN_RECT_GREY, 0x86, 0x134, 0x1AA, 0x16, 0);
     }
 }
 
@@ -310,35 +310,35 @@ static void dialog2e_frame(game_state *st)
      * 160 x 20 at (400, 0x150) (hover 5) */
     static const int32_t ys[3] = {0xDA, 0xEE, 0x102};
     for (uint32_t i = 0; i < 3; i++) {
-        uint32_t p = U32(st, 0x00EAAC28u) * 0x49D8u;
-        int32_t cost = S32(st, 0x00EA5DE4u + p + 4u * i);
-        if (cost > S32(st, 0x00EA5CC0u + p)) {
+        uint32_t p = U32(st, G_PLAYER) * 0x49D8u;
+        int32_t cost = S32(st, CITY_BASE + CITY_GIFT_COST + p + 4u * i);
+        if (cost > S32(st, CITY_BASE + CITY_SAVINGS + p)) {
             if (i == 0) {
-                GAME_CALL(st, 0x004D6160u, 0x34, 0x46, AX() + 0xA0, AY() + 0xE0, 0x160, S32(st, 0x00F56F9Cu), 0,
-                          S32(st, UI_DX), S32(st, UI_DY));
+                GAME_CALL(st, FN_LAYOUT_GROUP_LINES, 0x34, 0x46, AX() + 0xA0, AY() + 0xE0, 0x160, S32(st, G_FONT_9C), 0,
+                          S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
             }
             continue;
         }
-        GAME_CALL(st, 0x004D62F0u, 0x34, 0x3F + (int32_t) i, AX() + 0x80, AY() + ys[i], S32(st, 0x00F56F9Cu), 0,
-                  S32(st, UI_DX), S32(st, UI_DY));
-        int32_t font = S32(st, S32(st, HOVER) == (int32_t) i + 1 ? 0x00F56FA4u : 0x00F56F9Cu);
-        S32(st, 0x00E20778u) = 0;
-        p = U32(st, 0x00EAAC28u) * 0x49D8u;
-        GAME_CALL(st, 0x004D62F0u, 0x34, S32(st, 0x00EA5DD8u + p + 4u * i) + 0x33 + 4 * (int32_t) i, AX() + 0xE0,
-                  AY() + ys[i], font, 0, S32(st, UI_DX), S32(st, UI_DY));
-        p = U32(st, 0x00EAAC28u) * 0x49D8u;
-        GAME_CALL(st, 0x004D6860u, S32(st, 0x00EA5DE4u + p + 4u * i), 0x40, 0x005F89CC,
-                  S32(st, 0x00E20778u) + AX() + 0xE0, AY() + ys[i], font, 0, S32(st, UI_DX), S32(st, UI_DY));
+        GAME_CALL(st, FN_LAYOUT_GROUP, 0x34, 0x3F + (int32_t) i, AX() + 0x80, AY() + ys[i], S32(st, G_FONT_9C), 0,
+                  S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
+        int32_t font = S32(st, S32(st, G_HOVER) == (int32_t) i + 1 ? G_FONT_RED : G_FONT_9C);
+        S32(st, G_TEXT_X) = 0;
+        p = U32(st, G_PLAYER) * 0x49D8u;
+        GAME_CALL(st, FN_LAYOUT_GROUP, 0x34, S32(st, CITY_BASE + CITY_GIFT_COUNTS + p + 4u * i) + 0x33 + 4 * (int32_t) i, AX() + 0xE0,
+                  AY() + ys[i], font, 0, S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
+        p = U32(st, G_PLAYER) * 0x49D8u;
+        GAME_CALL(st, FN_LAYOUT_NUMBER_AT, S32(st, CITY_BASE + CITY_GIFT_COST + p + 4u * i), 0x40, G_STR_DB_CAP,
+                  S32(st, G_TEXT_X) + AX() + 0xE0, AY() + ys[i], font, 0, S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
     }
-    uint32_t p = U32(st, 0x00EAAC28u) * 0x49D8u;
-    if (S32(st, 0x00EA5DE4u + p) <= S32(st, 0x00EA5CC0u + p)) {
-        GAME_CALL(st, 0x004D6250u, 0x34, S32(st, 0x00EA5DC8u + p) + 0x42, AX() + 0x80, AY() + 0x155, 0xF0,
-                  S32(st, 0x00F56F8Cu), 0, S32(st, UI_DX), S32(st, UI_DY));
-        GAME_CALL(st, 0x004D63D0u, 1, AX() + 0x80, AY() + 0x150, 0xF0, 0x14, S32(st, HOVER) == 4, S32(st, UI_DX),
-                  S32(st, UI_DY));
+    uint32_t p = U32(st, G_PLAYER) * 0x49D8u;
+    if (S32(st, CITY_BASE + CITY_GIFT_COST + p) <= S32(st, CITY_BASE + CITY_SAVINGS + p)) {
+        GAME_CALL(st, FN_LAYOUT_GROUP_CENTRED, 0x34, S32(st, CITY_BASE + CITY_GIFT_SIZE + p) + 0x42, AX() + 0x80, AY() + 0x155, 0xF0,
+                  S32(st, G_FONT_LARGE), 0, S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
+        GAME_CALL(st, FN_LAYOUT_FRAME, 1, AX() + 0x80, AY() + 0x150, 0xF0, 0x14, S32(st, G_HOVER) == 4, S32(st, G_LAYOUT_DX),
+                  S32(st, G_LAYOUT_DY));
     }
-    GAME_CALL(st, 0x004D63D0u, 1, AX() + 400, AY() + 0x150, 0xA0, 0x14, S32(st, HOVER) == 5, S32(st, UI_DX),
-              S32(st, UI_DY));
+    GAME_CALL(st, FN_LAYOUT_FRAME, 1, AX() + 400, AY() + 0x150, 0xA0, 0x14, S32(st, G_HOVER) == 5, S32(st, G_LAYOUT_DX),
+              S32(st, G_LAYOUT_DY));
 }
 
 static void advisor4_frame(game_state *st)
@@ -351,42 +351,42 @@ static void advisor4_frame(game_state *st)
      * (hover 2), 0x34:(+0x450C) + 4, its amount (+0x4508) and 0x34:3; the frame at (0x140, 0x14A)
      * (hover 3) with 0x34:0x31; then the five request rows that 0x0044D500 finds, 560 x 40 frames at
      * (0x26, 0x60 + 42 k) lit at the hovers 4..8 */
-    if (S32(st, 0x00F53F48u) <= 5) {
+    if (S32(st, G_ADVISOR_SLIDE) <= 5) {
         return;
     }
-    int32_t dx = S32(st, UI_DX), dy = S32(st, UI_DY);
-#define P4() (U32(st, 0x00EAAC28u) * 0x49D8u)
-    GAME_CALL(st, 0x004D65B0u, AX() + 0x40, AY() + 0x144, 0x20, 6, dx, dy);
-    GAME_CALL(st, 0x004D62F0u, 0x20, S32(st, 0x00EA5CBCu + P4()), AX() + 0x48, AY() + 0x152, S32(st, 0x00F56FBCu), 0,
-              S32(st, UI_DX), S32(st, UI_DY));
-    S32(st, 0x00E20778u) = 0;
-    text_at(st, 0x34, 1, AX() + 0x48, AY() + 0x174, S32(st, 0x00F56F9Cu));
-    GAME_CALL(st, 0x004D6860u, S32(st, 0x00EA5CC0u + P4()), 0x40, 0x005E03EC, S32(st, 0x00E20778u) + 0x50 + AX(),
-              AY() + 0x174, S32(st, 0x00F56F9Cu), 0, S32(st, UI_DX), S32(st, UI_DY));
-    S32(st, 0x00E20778u) = 0;
-    GAME_CALL(st, 0x004D6860u, S32(st, 0x00EA5FF4u + P4()), 0x40, 0x0057C048, AX() + 0xFA, AY() + 0x174,
-              S32(st, 0x00F56F9Cu), 0, S32(st, UI_DX), S32(st, UI_DY));
-    text_at(st, 0x34, 0x4F, S32(st, 0x00E20778u) + 0xFA + AX(), AY() + 0x174, S32(st, 0x00F56F9Cu));
-    frame_rect(st, AX() + 0x140, AY() + 0x160, 0xFA, 0x14, S32(st, HOVER) == 1);
-    GAME_CALL(st, 0x004D6250u, 0x34, 2, AX() + 0x140, AY() + 0x165, 0xFA, S32(st, 0x00F56F9Cu), 0, S32(st, UI_DX),
-              S32(st, UI_DY));
-    if (S32(st, 0x00EA620Cu + P4()) == 0) {
-        text_at(st, 0x34, 0x4E, AX() + 100, AY() + 0x18E, S32(st, 0x00F56F9Cu));
+    int32_t dx = S32(st, G_LAYOUT_DX), dy = S32(st, G_LAYOUT_DY);
+#define P4() (U32(st, G_PLAYER) * 0x49D8u)
+    GAME_CALL(st, FN_LAYOUT_INNER_PANEL, AX() + 0x40, AY() + 0x144, 0x20, 6, dx, dy);
+    GAME_CALL(st, FN_LAYOUT_GROUP, 0x20, S32(st, CITY_BASE + CITY_RANK + P4()), AX() + 0x48, AY() + 0x152, S32(st, G_FONT_LARGE2), 0,
+              S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
+    S32(st, G_TEXT_X) = 0;
+    text_at(st, 0x34, 1, AX() + 0x48, AY() + 0x174, S32(st, G_FONT_9C));
+    GAME_CALL(st, FN_LAYOUT_NUMBER_AT, S32(st, CITY_BASE + CITY_SAVINGS + P4()), 0x40, G_STR_SPACE_DB, S32(st, G_TEXT_X) + 0x50 + AX(),
+              AY() + 0x174, S32(st, G_FONT_9C), 0, S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
+    S32(st, G_TEXT_X) = 0;
+    GAME_CALL(st, FN_LAYOUT_NUMBER_AT, S32(st, CITY_BASE + CITY_U4784 + P4()), 0x40, G_NUMBER_SUFFIX, AX() + 0xFA, AY() + 0x174,
+              S32(st, G_FONT_9C), 0, S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
+    text_at(st, 0x34, 0x4F, S32(st, G_TEXT_X) + 0xFA + AX(), AY() + 0x174, S32(st, G_FONT_9C));
+    frame_rect(st, AX() + 0x140, AY() + 0x160, 0xFA, 0x14, S32(st, G_HOVER) == 1);
+    GAME_CALL(st, FN_LAYOUT_GROUP_CENTRED, 0x34, 2, AX() + 0x140, AY() + 0x165, 0xFA, S32(st, G_FONT_9C), 0, S32(st, G_LAYOUT_DX),
+              S32(st, G_LAYOUT_DY));
+    if (S32(st, CITY_BASE + CITY_MANSION_BUILT + P4()) == 0) {
+        text_at(st, 0x34, 0x4E, AX() + 100, AY() + 0x18E, S32(st, G_FONT_9C));
     } else {
-        frame_rect(st, AX() + 0x46, AY() + 0x189, 500, 0x14, S32(st, HOVER) == 2);
-        S32(st, 0x00E20778u) = 0;
-        text_at(st, 0x34, S32(st, 0x00EA450Cu + P4()) + 4, AX() + 0x78, AY() + 0x18E, S32(st, 0x00F56F9Cu));
-        GAME_CALL(st, 0x004D6860u, S32(st, 0x00EA4508u + P4()), 0x40, 0x0057C048, S32(st, 0x00E20778u) + 0x78 + AX(),
-                  AY() + 0x18E, S32(st, 0x00F56F9Cu), 0, S32(st, UI_DX), S32(st, UI_DY));
-        text_at(st, 0x34, 3, S32(st, 0x00E20778u) + 0x78 + AX(), AY() + 0x18E, S32(st, 0x00F56F9Cu));
+        frame_rect(st, AX() + 0x46, AY() + 0x189, 500, 0x14, S32(st, G_HOVER) == 2);
+        S32(st, G_TEXT_X) = 0;
+        text_at(st, 0x34, S32(st, CITY_BASE + CITY_SALARY_RANK + P4()) + 4, AX() + 0x78, AY() + 0x18E, S32(st, G_FONT_9C));
+        GAME_CALL(st, FN_LAYOUT_NUMBER_AT, S32(st, CITY_BASE + CITY_SALARY + P4()), 0x40, G_NUMBER_SUFFIX, S32(st, G_TEXT_X) + 0x78 + AX(),
+                  AY() + 0x18E, S32(st, G_FONT_9C), 0, S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
+        text_at(st, 0x34, 3, S32(st, G_TEXT_X) + 0x78 + AX(), AY() + 0x18E, S32(st, G_FONT_9C));
     }
-    frame_rect(st, AX() + 0x140, AY() + 0x14A, 0xFA, 0x14, S32(st, HOVER) == 3);
-    GAME_CALL(st, 0x004D6250u, 0x34, 0x31, AX() + 0x140, AY() + 0x14F, 0xFA, S32(st, 0x00F56F9Cu), 0, S32(st, UI_DX),
-              S32(st, UI_DY));
+    frame_rect(st, AX() + 0x140, AY() + 0x14A, 0xFA, 0x14, S32(st, G_HOVER) == 3);
+    GAME_CALL(st, FN_LAYOUT_GROUP_CENTRED, 0x34, 0x31, AX() + 0x140, AY() + 0x14F, 0xFA, S32(st, G_FONT_9C), 0, S32(st, G_LAYOUT_DX),
+              S32(st, G_LAYOUT_DY));
 #undef P4
     for (int32_t k = 0; k < 5; k++) {
-        int lit = S32(st, HOVER) == k + 4;
-        if (GAME_CALL(st, 0x0044D500u, k) != 0) {
+        int lit = S32(st, G_HOVER) == k + 4;
+        if (GAME_CALL(st, FN_REQUEST_ROW, k) != 0) {
             frame_rect(st, AX() + 0x26, AY() + 0x60 + 0x2A * k, 0x230, 0x28, lit);
         }
     }
@@ -400,33 +400,31 @@ static void message_options_frame(game_state *st)
      * group 0x136: 0 (font 0x00F56FB4) and 1 (font 0x00F56F8C read first) centred over 384 at x 0x30,
      * the twelve options 2..13 at (0x80, 0x78 + 24 k) over 224 lit (font 0x00F56FA4) when their bit
      * 2 << k of 0x006DE510 is set, 14 and 15 at 0x1B0 / 0x1C8; then 0x00F53F4C = 50 */
-    int32_t font1 = S32(st, 0x00F56F8Cu);
-    GAME_CALL(st, 0x00536820u, S32(st, UI_DX) + 0x20, S32(st, UI_DY) + 0x26, 0x1A, 0x1C);
+    int32_t font1 = S32(st, G_FONT_LARGE);
+    GAME_CALL(st, FN_PANEL_DRAW, S32(st, G_LAYOUT_DX) + 0x20, S32(st, G_LAYOUT_DY) + 0x26, 0x1A, 0x1C);
     for (int32_t k = 0; k < 14; k++) {
         int32_t y = k < 12 ? 0x74 + 0x18 * k : (k == 12 ? 0x1AC : 0x1C4);
-        GAME_CALL(st, 0x004D6480u, 0x0F, S32(st, UI_DX) + 0x80, S32(st, UI_DY) + y, 0x0E, 0,
-                  (S32(st, HOVER) != k + 1) + 1, S32(st, UI_DX), S32(st, UI_DY));
+        GAME_CALL(st, FN_LAYOUT_SMALL_BUTTON, 0x0F, S32(st, G_LAYOUT_DX) + 0x80, S32(st, G_LAYOUT_DY) + y, 0x0E, 0,
+                  (S32(st, G_HOVER) != k + 1) + 1, S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
     }
-    GAME_CALL(st, 0x004D6250u, 0x136, 0, S32(st, UI_DX) + 0x30, S32(st, UI_DY) + 0x3C, 0x180, S32(st, 0x00F56FB4u), 0,
-              S32(st, UI_DX), S32(st, UI_DY));
-    GAME_CALL(st, 0x004D6250u, 0x136, 1, S32(st, UI_DX) + 0x30, S32(st, UI_DY) + 0x5F, 0x180, font1, 0,
-              S32(st, UI_DX), S32(st, UI_DY));
+    GAME_CALL(st, FN_LAYOUT_GROUP_CENTRED, 0x136, 0, S32(st, G_LAYOUT_DX) + 0x30, S32(st, G_LAYOUT_DY) + 0x3C, 0x180, S32(st, G_FONT_TITLE), 0,
+              S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
+    GAME_CALL(st, FN_LAYOUT_GROUP_CENTRED, 0x136, 1, S32(st, G_LAYOUT_DX) + 0x30, S32(st, G_LAYOUT_DY) + 0x5F, 0x180, font1, 0,
+              S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
     for (int32_t k = 0; k < 12; k++) {
-        int32_t font = S32(st, (U32(st, 0x006DE510u) & (2u << k)) != 0 ? 0x00F56FA4u : 0x00F56F8Cu);
-        GAME_CALL(st, 0x004D6250u, 0x136, k + 2, S32(st, UI_DX) + 0x80, S32(st, UI_DY) + 0x78 + 0x18 * k, 0xE0, font, 0,
-                  S32(st, UI_DX), S32(st, UI_DY));
+        int32_t font = S32(st, (U32(st, G_MESSAGE_OPTIONS_EDIT) & (2u << k)) != 0 ? G_FONT_RED : G_FONT_LARGE);
+        GAME_CALL(st, FN_LAYOUT_GROUP_CENTRED, 0x136, k + 2, S32(st, G_LAYOUT_DX) + 0x80, S32(st, G_LAYOUT_DY) + 0x78 + 0x18 * k, 0xE0, font, 0,
+                  S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
     }
-    GAME_CALL(st, 0x004D6250u, 0x136, 0x0E, S32(st, UI_DX) + 0x80, S32(st, UI_DY) + 0x1B0, 0xE0, S32(st, 0x00F56F8Cu), 0,
-              S32(st, UI_DX), S32(st, UI_DY));
-    GAME_CALL(st, 0x004D6250u, 0x136, 0x0F, S32(st, UI_DX) + 0x80, S32(st, UI_DY) + 0x1C8, 0xE0, S32(st, 0x00F56F8Cu), 0,
-              S32(st, UI_DX), S32(st, UI_DY));
-    S32(st, 0x00F53F4Cu) = 0x32;
+    GAME_CALL(st, FN_LAYOUT_GROUP_CENTRED, 0x136, 0x0E, S32(st, G_LAYOUT_DX) + 0x80, S32(st, G_LAYOUT_DY) + 0x1B0, 0xE0, S32(st, G_FONT_LARGE), 0,
+              S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
+    GAME_CALL(st, FN_LAYOUT_GROUP_CENTRED, 0x136, 0x0F, S32(st, G_LAYOUT_DX) + 0x80, S32(st, G_LAYOUT_DY) + 0x1C8, 0xE0, S32(st, G_FONT_LARGE), 0,
+              S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
+    S32(st, G_UF53F4C) = 0x32;
 }
 
 /* ---- advisor page 0x0E (0x0052B6D0) ---- */
 
-#define ADV_FONT 0x00F56F9Cu
-#define GOAL_RECTS 0x005C5798u /* the page's rectangle table (0x1C bytes per row) */
 
 static int goal_in_hundreds(uint32_t i)
 {
@@ -438,12 +436,12 @@ static int goal_in_hundreds(uint32_t i)
 
 static void goals_text(game_state *st, int32_t group, int32_t idx, int32_t x, int32_t y)
 {
-    GAME_CALL(st, 0x004D62F0u, group, idx, x, y, S32(st, ADV_FONT), 0, S32(st, UI_DX), S32(st, UI_DY));
+    GAME_CALL(st, FN_LAYOUT_GROUP, group, idx, x, y, S32(st, G_FONT_9C), 0, S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
 }
 
 static void goals_number(game_state *st, int32_t v, int32_t x, int32_t y)
 {
-    GAME_CALL(st, 0x004D6860u, v, 0x40, 0x0057C048, x, y, S32(st, ADV_FONT), 0, S32(st, UI_DX), S32(st, UI_DY));
+    GAME_CALL(st, FN_LAYOUT_NUMBER_AT, v, 0x40, G_NUMBER_SUFFIX, x, y, S32(st, G_FONT_9C), 0, S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
 }
 
 static void goals_requirements(game_state *st)
@@ -457,9 +455,9 @@ static void goals_requirements(game_state *st)
      * divided by 100 for the units: signed) at 0x12C and 0xC7:1 (units: 0xC7:0x39 for 1, else
      * 0xC7:0x3A) */
     int32_t row = 1, dy = 0;
-    uint32_t rect = GOAL_RECTS;
+    uint32_t rect = G_GOAL_RECTS;
     for (uint32_t i = 0; i < 0x24; i++) {
-        uint32_t need = 0x00784DE8u + i * 4u;
+        uint32_t need = G_GOODS_NEEDED + i * 4u;
         if (i == 0 || i > 0x1E) {
             continue;
         }
@@ -469,15 +467,15 @@ static void goals_requirements(game_state *st)
             continue;
         }
         int32_t y = dy + AY() + 0x42;
-        S32(st, 0x00E20778u) = 0;
-        GAME_CALLT(st, 0x00F55BB0u, 0x0053E590u, S32(st, 0x00F571FCu) + (int32_t) i, AX() + 0x28, y);
+        S32(st, G_TEXT_X) = 0;
+        GAME_CALLT(st, G_GRAPHICS_GFX, FN_IMAGE_DRAW, S32(st, G_RESOURCE_ICONS) + (int32_t) i, AX() + 0x28, y);
         int32_t missing = S32(st, need) - S32(st, need + 0x90);
         int units = i == 0x18 || i == 0x19 || i == 0x1A || i == 0x1E || i == 0x23;
         if (goal_in_hundreds(i)) {
             missing *= 100;
         }
-        GAME_CALL(st, 0x004CD1A0u, 0, (int32_t) rect, S32(st, HOVER) == row, 0, 0);
-        S32(st, 0x00E20778u) = 0;
+        GAME_CALL(st, FN_LAYOUT_PANEL, 0, (int32_t) rect, S32(st, G_HOVER) == row, 0, 0);
+        S32(st, G_TEXT_X) = 0;
         y = dy + AY() + 0x42;
         if (missing != 0) {
             goals_number(st, missing, AX() + 0x3C, y);
@@ -485,16 +483,16 @@ static void goals_requirements(game_state *st)
             goals_text(st, 0xC7, 2, AX() + 0x3C, y);
         }
         int plural = units || ((i == 0x1C || i == 0x0A) && missing > 1);
-        goals_text(st, 0x17, plural ? (int32_t) i + 0x36 : (int32_t) i, AX() + S32(st, 0x00E20778u) + 0x3C,
+        goals_text(st, 0x17, plural ? (int32_t) i + 0x36 : (int32_t) i, AX() + S32(st, G_TEXT_X) + 0x3C,
                    dy + AY() + 0x42);
-        int32_t have = S32(st, 0x00EA6160u + U32(st, 0x00EAAC28u) * 0x49D8u + i * 4u);
-        S32(st, 0x00E20778u) = 0;
+        int32_t have = S32(st, CITY_BASE + CITY_STORAGE_STOCK + U32(st, G_PLAYER) * 0x49D8u + i * 4u);
+        S32(st, G_TEXT_X) = 0;
         if (!goal_in_hundreds(i)) {
             have /= 100;
         }
         goals_number(st, have, AX() + 0x12C, dy + AY() + 0x42);
         int32_t label = units ? (have == 1 ? 0x39 : 0x3A) : 1;
-        goals_text(st, 0xC7, label, AX() + S32(st, 0x00E20778u) + 0x12C, dy + AY() + 0x42);
+        goals_text(st, 0xC7, label, AX() + S32(st, G_TEXT_X) + 0x12C, dy + AY() + 0x42);
         row++;
         rect += 0x1C;
         dy += 0x2A;
@@ -504,8 +502,8 @@ static void goals_requirements(game_state *st)
 static void goals_hover_lit(game_state *st, int32_t row)
 {
     /* the lit panel of an unfinished monument's row (0x004CD1A0 kind 0 with the colour 0xF800) */
-    if (S32(st, HOVER) == row + 1) {
-        GAME_CALL(st, 0x004CD1A0u, 0, (int32_t) (GOAL_RECTS + (uint32_t) row * 0x1Cu), 0xF800, 0, 0);
+    if (S32(st, G_HOVER) == row + 1) {
+        GAME_CALL(st, FN_LAYOUT_PANEL, 0, (int32_t) (G_GOAL_RECTS + (uint32_t) row * 0x1Cu), 0xF800, 0, 0);
     }
 }
 
@@ -517,12 +515,12 @@ static int32_t goals_monument(game_state *st, uint32_t k, int32_t row, int32_t *
      * +0x5FA0[k] = 0): its text pair and costs; placed (building player +0x5FAC[k]): its progress
      * (percent) by the model's function, the "in progress" text when below 100 (with the lit panel at
      * the hover row + 1), else done. Returns the percent (100 when not placed or done) */
-    uint32_t p = U32(st, 0x00EAAC28u) * 0x49D8u;
-    int16_t kind = S16(st, 0x00784DE0u + k * 2u);
-    uint32_t rec = 0x005D19C8u + (uint32_t) (int32_t) kind * 16u;
+    uint32_t p = U32(st, G_PLAYER) * 0x49D8u;
+    int16_t kind = S16(st, G_MONUMENT_SLOTS + k * 2u);
+    uint32_t rec = G_MONUMENT_MODELS + (uint32_t) (int32_t) kind * 16u;
     int32_t v = S16(st, rec + 2);
-    int32_t placed = S32(st, 0x00EA5FA0u + p + k * 4u);
-    int32_t b = S32(st, 0x00EA5FACu + p + k * 4u);
+    int32_t placed = S32(st, CITY_BASE + CITY_MONUMENT_CODE + p + k * 4u);
+    int32_t b = S32(st, CITY_BASE + CITY_MONUMENT_ID + p + k * 4u);
     *text2 = 0;
     *cost = *cost2 = 0;
     if (S16(st, rec) == 1) {
@@ -542,25 +540,25 @@ static int32_t goals_monument(game_state *st, uint32_t k, int32_t row, int32_t *
             goals_hover_lit(st, row);
             return pct;
         }
-        p = U32(st, 0x00EAAC28u) * 0x49D8u;
-        *text = S32(st, 0x00EA6090u + p) == 0 && S32(st, 0x00EA6098u + p) >= 0x0C ? base + 0x11 : base + 0x12;
+        p = U32(st, G_PLAYER) * 0x49D8u;
+        *text = S32(st, CITY_BASE + CITY_U4820 + p) == 0 && S32(st, CITY_BASE + CITY_U4828 + p) >= 0x0C ? base + 0x11 : base + 0x12;
         return 100;
     }
     /* @bin 0x0052BBEC the other models (jump table 0x0052C534 on +2 - 1, 0..13; others: the default) */
     struct { uint32_t self, fn; int32_t text; } models[14] = {
         {0, 0, 0x27},                       /* 1: the player's +0x5BAA in sixteenths */
         {0, 0, 0x2B},                       /* 2: the building's +0x55 (u8) */
-        {0, 0x00542AD0u, 0x2F},             /* 3 */
+        {0, FN_MONUMENT_D5_STATUS, 0x2F},             /* 3 */
         {0, 0, 0},                          /* 4: default */
-        {0x006DE548u, 0x004E6710u, 0x43},   /* 5 */
-        {0x006FD5D8u, 0x0040D940u, 0x3B},   /* 6 */
-        {0x006FD368u, 0x00417050u, 0x3F},   /* 7 */
+        {G_MONUMENT_E4, FN_MONUMENT_PROGRESS_4E6710, 0x43},   /* 5 */
+        {G_MONUMENT_E1, FN_MONUMENT_PROGRESS_40D940, 0x3B},   /* 6 */
+        {G_MONUMENT_E3, FN_MONUMENT_PROGRESS_417050, 0x3F},   /* 7 */
         {0, 0, 0}, {0, 0, 0},            /* 8, 9: default */
-        {0x006F9320u, 0x00545740u, 0x4B},   /* 10 */
-        {0x006F5648u, 0x00558BE0u, 0x4F},   /* 11 */
-        {0x006DE9E0u, 0x00555E80u, 0x53},   /* 12 */
-        {0x006E9188u, 0x0054F470u, 0x57},   /* 13 */
-        {0x006DE650u, 0x00401540u, 0x47},   /* 14 */
+        {G_MONUMENT_E5, FN_MONUMENT_PROGRESS_PARTS_9, 0x4B},   /* 10 */
+        {G_MONUMENT_EA, FN_MONUMENT_PROGRESS_PARTS_10, 0x4F},   /* 11 */
+        {G_MONUMENT_EB, FN_MONUMENT_PROGRESS_PARTS_21, 0x53},   /* 12 */
+        {G_MONUMENT_EC, FN_MONUMENT_PROGRESS_PARTS_31, 0x57},   /* 13 */
+        {G_MONUMENT_E6, FN_MONUMENT_PROGRESS_401540, 0x47},   /* 14 */
     };
     uint32_t m = (uint32_t) (v - 1);
     if (m > 0x0D || models[m].text == 0) {
@@ -571,17 +569,17 @@ static int32_t goals_monument(game_state *st, uint32_t k, int32_t row, int32_t *
             *text = 0x33;
             *text2 = 0x34;
             *cost = 0x5DC0;
-            *cost2 = S32(st, 0x00EA61D8u + p);
+            *cost2 = S32(st, CITY_BASE + CITY_STORAGE_STOCK + 4 * 0x1E + p);
             return 100;
         }
-        int32_t pct = GAME_CALL(st, 0x004DF040u, b, 0);
+        int32_t pct = GAME_CALL(st, FN_MONUMENT_DE_STATUS, b, 0);
         if (pct < 100) {
             *text = 0x35;
             *text2 = 0x0D;
             return pct;
         }
-        p = U32(st, 0x00EAAC28u) * 0x49D8u;
-        *text = S32(st, 0x00EA6090u + p) == 0 && S32(st, 0x00EA6098u + p) >= 0x0C ? 0x36 : 0x37;
+        p = U32(st, G_PLAYER) * 0x49D8u;
+        *text = S32(st, CITY_BASE + CITY_U4820 + p) == 0 && S32(st, CITY_BASE + CITY_U4828 + p) >= 0x0C ? 0x36 : 0x37;
         return 100;
     }
     int32_t t = models[m].text;
@@ -590,21 +588,21 @@ static int32_t goals_monument(game_state *st, uint32_t k, int32_t row, int32_t *
         *text2 = t + 1;
         if (v == 2) {
             /* @bin 0x0052BC84 the costs: 20000 unless 0x004F52B0(k) is 0xCF (10000), player +0x61C8 */
-            int32_t slot = GAME_CALL(st, 0x004F52B0u, (int32_t) k);
+            int32_t slot = GAME_CALL(st, FN_MONUMENT_SLOT_TYPE_4F52B0, (int32_t) k);
             *cost = slot != 0xCF ? 20000 : 10000;
-            *cost2 = S32(st, 0x00EA61C8u + U32(st, 0x00EAAC28u) * 0x49D8u);
+            *cost2 = S32(st, CITY_BASE + CITY_STORAGE_STOCK + 4 * 0x1A + U32(st, G_PLAYER) * 0x49D8u);
         } else if (v == 3) {
             *cost = 0x55F0;
-            *cost2 = S32(st, 0x00EA61D8u + p);
+            *cost2 = S32(st, CITY_BASE + CITY_STORAGE_STOCK + 4 * 0x1E + p);
         }
         return 100;
     }
     int32_t pct;
     if (v == 1) {
         /* @bin 0x0052BC2C the player's +0x5BAA (i16) x 100 / 16, signed */
-        pct = S16(st, 0x00EA5BAAu + p) * 100 / 16;
+        pct = S16(st, CITY_BASE + CITY_U433A + p) * 100 / 16;
     } else if (v == 2) {
-        pct = U8(st, 0x00799A2Du + (uint32_t) b * 0x108u);
+        pct = U8(st, BUILDING_BASE + BLD_U55 + (uint32_t) b * 0x108u);
     } else if (models[m].self == 0) {
         pct = GAME_CALL(st, models[m].fn, b, 0);
     } else {
@@ -627,34 +625,34 @@ static void goals_monuments(game_state *st)
      * (0x004D6200, font 0x00F56F9C, 0x00E20774 cleared), the percent below 100 (0x004CD290, string
      * 0x005E03FC) and 0xC7:2 after it; the first cost / 100; the second line 0xC7:text2 at (8, 0x18)
      * and the second cost / 100 with 0xC7:0x39 (cost 100) or 0x3A */
-    GAME_CALL(st, 0x004D65B0u, AX() + 0x26, AY() + 0x11A, 0x23, 8, S32(st, UI_DX), S32(st, UI_DY));
+    GAME_CALL(st, FN_LAYOUT_INNER_PANEL, AX() + 0x26, AY() + 0x11A, 0x23, 8, S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
     int32_t row = 5;
     for (uint32_t k = 0; k < 3; k++) {
-        if (S16(st, 0x00784DE0u + k * 2u) <= 0) {
+        if (S16(st, G_MONUMENT_SLOTS + k * 2u) <= 0) {
             continue;
         }
         int32_t text, text2, cost, cost2;
         int32_t pct = goals_monument(st, k, row, &text, &text2, &cost, &cost2);
-        int32_t font = S32(st, ADV_FONT);
-        int32_t rect = (int32_t) (GOAL_RECTS + (uint32_t) row * 0x1Cu);
-        S32(st, 0x00E20778u) = 0;
-        S32(st, 0x00E20774u) = 0;
-        GAME_CALL(st, 0x004D6200u, 0xC7, text, rect, font, 0, 8, 8, S32(st, UI_DX), S32(st, UI_DY));
+        int32_t font = S32(st, G_FONT_9C);
+        int32_t rect = (int32_t) (G_GOAL_RECTS + (uint32_t) row * 0x1Cu);
+        S32(st, G_TEXT_X) = 0;
+        S32(st, G_TEXT_Y) = 0;
+        GAME_CALL(st, FN_LAYOUT_GROUP_AT, 0xC7, text, rect, font, 0, 8, 8, S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
         if (pct < 100) {
-            GAME_CALL(st, 0x004CD290u, pct, 0x40, 0x005E03FC, rect, font, 0, S32(st, 0x00E20778u) + 8, 8);
-            GAME_CALL(st, 0x004D6200u, 0xC7, 2, rect, font, 0, S32(st, 0x00E20778u) + 8, 8, S32(st, UI_DX), S32(st, UI_DY));
+            GAME_CALL(st, FN_LAYOUT_NUMBER, pct, 0x40, G_PERCENT_STRING, rect, font, 0, S32(st, G_TEXT_X) + 8, 8);
+            GAME_CALL(st, FN_LAYOUT_GROUP_AT, 0xC7, 2, rect, font, 0, S32(st, G_TEXT_X) + 8, 8, S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
         }
         if (cost != 0) {
-            GAME_CALL(st, 0x004CD290u, cost / 100, 0x40, 0x0057C048, rect, font, 0, S32(st, 0x00E20778u) + 8, 8);
+            GAME_CALL(st, FN_LAYOUT_NUMBER, cost / 100, 0x40, G_NUMBER_SUFFIX, rect, font, 0, S32(st, G_TEXT_X) + 8, 8);
         }
-        S32(st, 0x00E20778u) = 0;
+        S32(st, G_TEXT_X) = 0;
         if (text2 != 0) {
-            GAME_CALL(st, 0x004D6200u, 0xC7, text2, rect, font, 0, 8, 0x18, S32(st, UI_DX), S32(st, UI_DY));
+            GAME_CALL(st, FN_LAYOUT_GROUP_AT, 0xC7, text2, rect, font, 0, 8, 0x18, S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
         }
         if (cost != 0) {
-            GAME_CALL(st, 0x004CD290u, cost2 / 100, 0x40, 0x0057C048, rect, font, 0, S32(st, 0x00E20778u) + 8, 0x18);
-            GAME_CALL(st, 0x004D6200u, 0xC7, cost2 == 100 ? 0x39 : 0x3A, rect, font, 0, S32(st, 0x00E20778u) + 8, 0x18,
-                      S32(st, UI_DX), S32(st, UI_DY));
+            GAME_CALL(st, FN_LAYOUT_NUMBER, cost2 / 100, 0x40, G_NUMBER_SUFFIX, rect, font, 0, S32(st, G_TEXT_X) + 8, 0x18);
+            GAME_CALL(st, FN_LAYOUT_GROUP_AT, 0xC7, cost2 == 100 ? 0x39 : 0x3A, rect, font, 0, S32(st, G_TEXT_X) + 8, 0x18,
+                      S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY));
         }
         row++;
     }
@@ -664,7 +662,7 @@ static void advisor14_frame(game_state *st)
 {
     /* @bin 0x0052B6D0 advisor page 0x0E (the goals): the requirements' rows while grave goods are
      * asked (0x0040CC40(0) != 0), then the monuments' rows */
-    if (GAME_CALL(st, 0x0040CC40u, 0) != 0) {
+    if (GAME_CALL(st, FN_GRAVE_GOODS_COUNT, 0) != 0) {
         goals_requirements(st);
     }
     goals_monuments(st);

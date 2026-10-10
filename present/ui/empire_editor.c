@@ -19,20 +19,16 @@
 
 #include "city/day_x87.h"
 #include "city/monument_rating_x87.h"
+#include "present_layout.h"
 #include "sim/call.h"
 #include "sim/x87_float.h"
 #include "state/ported.h"
 
-#define ROUTES 0x00776FB0u
 #define ROUTE_SIZE 0x144u
-#define ROUTE_CURRENT 0x005D2A30u
-#define ROUTE_DRAG 0x005E1DB0u  /* i32 the waypoint being dragged, -1 none */
-#define OBJECTS 0x0077F748u     /* empire objects, 200 of 0x62 bytes */
-#define MODE 0x00775928u
 
 static uint32_t route_current(game_state *st)
 {
-    return ROUTES + (uint32_t) S32(st, ROUTE_CURRENT) * ROUTE_SIZE;
+    return G_ROUTES + (uint32_t) S32(st, G_ROUTE_SELECTED) * ROUTE_SIZE;
 }
 
 static int16_t wp_x(game_state *st, uint32_t r, int32_t k) { return S16(st, r + 8u + 6u * (uint32_t) k); }
@@ -162,17 +158,17 @@ static void route_find_ends(game_state *st, uint32_t r)
         return;
     }
     for (int32_t j = 0; j < 200; j++) {
-        uint32_t o = OBJECTS + (uint32_t) j * 0x62u;
+        uint32_t o = G_EMPIRE_OBJECTS + (uint32_t) j * 0x62u;
         if (U8(st, o + 1) == 0 || U8(st, o) != 1) {
             continue;
         }
         int32_t img = U16(st, o + 0x0C);
-        int32_t lim = S32(st, 0x0126517Cu);
+        int32_t lim = S32(st, G_IMAGE_COUNT);
         uint32_t iw = img < lim ? (uint32_t) img : 0u;
         uint32_t ih = img < lim ? (uint32_t) img : 0u;
         int32_t ox = S16(st, o + 4), oy = S16(st, o + 6);
-        int32_t x1 = S16(st, 0x010D6A0Cu + iw * 64u) + ox;
-        int32_t y1 = S16(st, 0x010D6A0Eu + ih * 64u) + oy;
+        int32_t x1 = S16(st, G_U0D6A0C + iw * 64u) + ox;
+        int32_t y1 = S16(st, G_IMGS_H + ih * 64u) + oy;
         if (in_box(wp_x(st, r, 0), wp_y(st, r, 0), ox, x1, oy, y1)) {
             S16(st, r + 0x13C) = (int16_t) j;
         }
@@ -184,12 +180,12 @@ static void route_find_ends(game_state *st, uint32_t r)
 
 static int in_map(game_state *st)
 {
-    int32_t mx = S32(st, UI_MOUSE_X), left = S32(st, 0x005D2A18u);
-    if (mx < left || mx >= S32(st, 0x00E38D9Cu) - 2 * left) {
+    int32_t mx = S32(st, G_MOUSE_X), left = S32(st, G_MAP_X);
+    if (mx < left || mx >= S32(st, G_UE38D9C) - 2 * left) {
         return 0;
     }
-    int32_t my = S32(st, UI_MOUSE_Y), top = S32(st, 0x005D2A1Cu);
-    return my >= top && my < S32(st, 0x00E38D98u) - S32(st, 0x005D2A20u) - top;
+    int32_t my = S32(st, G_MOUSE_Y), top = S32(st, G_MAP_Y);
+    return my >= top && my < S32(st, G_DRAW_H) - S32(st, G_MAP_BOTTOM) - top;
 }
 
 static int route_insert(game_state *st, uint32_t r, int32_t n, int32_t x, int32_t y)
@@ -220,7 +216,7 @@ static void rebuild_and_close(game_state *st, uint32_t r)
 {
     /* the new-route copies: on success the route's own update 0x00407F90 */
     if (route_rebuild(st, r)) {
-        GAME_CALLT0(st, r, 0x00407F90u);
+        GAME_CALLT0(st, r, FN_ROUTE_FIND_CITIES);
     }
 }
 
@@ -248,24 +244,24 @@ static int32_t rect_input(game_state *st, int32_t x, int32_t y, uint32_t table, 
 {
     int32_t hit = rect_hit(st, x, y, table, count);
     S32(st, slot) = rect_highlight(st, x, y, table, count, hit);
-    return GAME_CALL(st, 0x004261D0u, x, y, (int32_t) table, count);
+    return GAME_CALL(st, FN_BUTTONS_RECT_CLICK, x, y, (int32_t) table, count);
 }
 
 static int32_t rects(game_state *st, uint32_t table, int32_t count)
 {
-    return GAME_CALL(st, 0x004261D0u, 0xDF, S32(st, UI_SCREEN_H) - 0x72, (int32_t) table, count);
+    return GAME_CALL(st, FN_BUTTONS_RECT_CLICK, 0xDF, S32(st, G_SCREEN_H) - 0x72, (int32_t) table, count);
 }
 
 static void edit_mode(game_state *st, int32_t mx, int32_t my)
 {
     /* @bin 0x004D9E28 mode 0x0F */
-    if (rects(st, 0x005C3418u, 4) != 0) {
+    if (rects(st, G_EMPIRE_EDITOR_RECTS_D, 4) != 0) {
         return;
     }
     uint32_t r = route_current(st);
     int32_t end0 = S16(st, r + 0x13E), start0 = S16(st, r + 0x13C);
     int at_end = 0; /* 1: 0x004DB01E (0x005D2A2C cleared), else 0x004DB028 */
-    if (U8(st, UI_LEFT_PRESSED) != 0) {
+    if (U8(st, G_LEFT_PRESSED) != 0) {
         int32_t x0 = mx - 8, x1 = mx + 8, y0 = my - 8, y1 = my + 8;
         int on_wp = 0;
         int32_t hit = -1;
@@ -286,16 +282,16 @@ static void edit_mode(game_state *st, int32_t mx, int32_t my)
                 }
             }
         }
-        S32(st, ROUTE_DRAG) = hit;
+        S32(st, G_ROUTE_DRAG) = hit;
         if (hit < 0) {
             /* @bin 0x004DA6F7 a press off the route selects the route under the mouse */
             for (int32_t q = 0; q < 50; q++) {
-                int32_t h = find_in_route(st, ROUTES + (uint32_t) q * ROUTE_SIZE, x0, x1, y0, y1);
-                S32(st, ROUTE_DRAG) = h;
+                int32_t h = find_in_route(st, G_ROUTES + (uint32_t) q * ROUTE_SIZE, x0, x1, y0, y1);
+                S32(st, G_ROUTE_DRAG) = h;
                 if (h >= 0) {
-                    S32(st, ROUTE_DRAG) = -1;
-                    S32(st, ROUTE_CURRENT) = q;
-                    U8(st, UI_REDRAW) = 1;
+                    S32(st, G_ROUTE_DRAG) = -1;
+                    S32(st, G_ROUTE_SELECTED) = q;
+                    U8(st, G_REDRAW) = 1;
                     break;
                 }
             }
@@ -313,15 +309,15 @@ static void edit_mode(game_state *st, int32_t mx, int32_t my)
             at_end = 1;
             int32_t ins = hit + 1 < 0 ? 0 : hit + 1;
             if (!route_insert(st, r, ins, mx, my) || !route_rebuild(st, r)) {
-                S32(st, ROUTE_DRAG) = -1;
+                S32(st, G_ROUTE_DRAG) = -1;
             } else {
                 route_find_ends(st, r);
-                S32(st, ROUTE_DRAG) = ins;
+                S32(st, G_ROUTE_DRAG) = ins;
             }
         }
-    } else if (U8(st, UI_LEFT_RELEASED) != 0) {
+    } else if (U8(st, G_LEFT_RELEASED) != 0) {
         /* @bin 0x004DA7E2 the dragged waypoint is dropped */
-        int32_t h = S32(st, ROUTE_DRAG);
+        int32_t h = S32(st, G_ROUTE_DRAG);
         if (h >= 0) {
             if (in_map(st) && h < U8(st, r + 0x141)) {
                 set_wp(st, r, h, mx, my);
@@ -329,12 +325,12 @@ static void edit_mode(game_state *st, int32_t mx, int32_t my)
                     route_find_ends(st, r);
                 }
             }
-            S32(st, 0x005D2A2Cu) = 0;
+            S32(st, G_U5D2A2C) = 0;
         }
-        S32(st, ROUTE_DRAG) = -1;
-    } else if (U8(st, UI_LEFT_HELD) != 0) {
+        S32(st, G_ROUTE_DRAG) = -1;
+    } else if (U8(st, G_LEFT_HELD) != 0) {
         /* @bin 0x004DABC7 dragging */
-        int32_t h = S32(st, ROUTE_DRAG);
+        int32_t h = S32(st, G_ROUTE_DRAG);
         if (h >= 0) {
             at_end = 1;
             if (in_map(st) && h < U8(st, r + 0x141)) {
@@ -344,7 +340,7 @@ static void edit_mode(game_state *st, int32_t mx, int32_t my)
                 }
             }
         }
-    } else if (U8(st, UI_RIGHT_RELEASED) != 0) {
+    } else if (U8(st, G_RIGHT_RELEASED) != 0) {
         /* @bin 0x004DAF9D a right click on a waypoint deletes it (0x004DD930); the last one clears
          * the route */
         uint8_t on_wp = 0;
@@ -359,11 +355,11 @@ static void edit_mode(game_state *st, int32_t mx, int32_t my)
         }
     }
     if (at_end) {
-        S32(st, 0x005D2A2Cu) = 0;
+        S32(st, G_U5D2A2C) = 0;
     }
     /* @bin 0x004DB028 a change of the route's ends redraws */
     if (start0 != route_start(st, route_current(st)) || end0 != route_end(st, route_current(st))) {
-        U8(st, UI_REDRAW) = 1;
+        U8(st, G_REDRAW) = 1;
     }
 }
 
@@ -372,7 +368,7 @@ static void new_route_mode(game_state *st, int32_t mx, int32_t my, int32_t start
     /* @bin 0x004DB079 mode 0x0E: a release moves the last waypoint to the mouse (the first one sets
      * the route's flag +0x142) and adds a new one there; between releases the last one follows the
      * mouse; right click ends (mode 0x0F) */
-    if (U8(st, UI_LEFT_RELEASED) != 0) {
+    if (U8(st, G_LEFT_RELEASED) != 0) {
         uint32_t r = route_current(st);
         int32_t c = (int32_t) U8(st, r + 0x141) - 1;
         if (c < 0) {
@@ -391,9 +387,9 @@ static void new_route_mode(game_state *st, int32_t mx, int32_t my, int32_t start
         if (route_insert(st, r, U8(st, r + 0x141), mx, my)) {
             rebuild_and_close(st, r);
         }
-        S32(st, 0x005D2A2Cu) = 0;
-    } else if (U8(st, UI_RIGHT_RELEASED) != 0) {
-        S32(st, MODE) = 0x0F;
+        S32(st, G_U5D2A2C) = 0;
+    } else if (U8(st, G_RIGHT_RELEASED) != 0) {
+        S32(st, G_EDITOR_MODE) = 0x0F;
     } else {
         uint32_t r = route_current(st);
         int32_t c = (int32_t) U8(st, r + 0x141) - 1;
@@ -401,105 +397,105 @@ static void new_route_mode(game_state *st, int32_t mx, int32_t my, int32_t start
             set_wp(st, r, c, mx, my);
             rebuild_and_close(st, r);
         }
-        S32(st, 0x005D2A2Cu) = 0;
+        S32(st, G_U5D2A2C) = 0;
     }
     uint32_t r = route_current(st);
     if (start0 != S16(st, r + 0x13C) || end0 != S16(st, r + 0x13E)) {
-        U8(st, UI_REDRAW) = 1;
+        U8(st, G_REDRAW) = 1;
     }
 }
 
 static void object_pick(game_state *st, int32_t keep)
 {
     /* the object under the mouse (0x00407620 / 0x00407870) becomes the current one 0x0077591C */
-    GAME_CALL(st, 0x00407620u, keep ? S32(st, 0x0077591Cu) : S32(st, 0x00775918u), keep);
+    GAME_CALL(st, 0x00407620u, keep ? S32(st, G_EDITOR_OBJECT) : S32(st, G_U775918), keep);
     int32_t o = GAME_CALL0(st, 0x00407870u);
     if (o == 0) {
         return;
     }
     if (!keep) {
-        S32(st, MODE) = 2;
+        S32(st, G_EDITOR_MODE) = 2;
     }
-    S32(st, 0x0077591Cu) = o - 1;
-    S32(st, 0x00775924u) = U16(st, 0x0077F754u + (uint32_t) (o - 1) * 0x62u);
+    S32(st, G_EDITOR_OBJECT) = o - 1;
+    S32(st, G_OBJECT_IMAGE) = U16(st, G_EMPIRE_OBJECT_IMAGE + (uint32_t) (o - 1) * 0x62u);
 }
 
 void empire_editor_input(game_state *st, int32_t mouse_x, int32_t mouse_y)
 {
     /* @bin 0x004D9CB5 window 0x15 (mouse_x / mouse_y: the cursor as 0x004D8310 read it on entry) */
-    int32_t mx = S32(st, 0x00775910u) - S32(st, 0x005D2A18u) + mouse_x;
-    int32_t my = S32(st, 0x0077590Cu) - S32(st, 0x005D2A1Cu) + mouse_y;
+    int32_t mx = S32(st, G_SCROLL_X) - S32(st, G_MAP_X) + mouse_x;
+    int32_t my = S32(st, G_SCROLL_Y) - S32(st, G_MAP_Y) + mouse_y;
     uint32_t r0 = route_current(st);
     int32_t start0 = S16(st, r0 + 0x13C), end0 = S16(st, r0 + 0x13E);
     GAME_CALL0(st, 0x00442500u);
-    GAME_CALL0(st, 0x004426C0u);
-    GAME_CALL(st, 0x00442730u, GAME_CALL0(st, 0x004CF660u));
-    if (rect_input(st, 0x0F, S32(st, UI_SCREEN_H) - 0x74, 0x005C3268u, 8, UI_HOVER_RECT) != 0) {
+    GAME_CALL0(st, FN_EMPIRE_OBJECTS_SIZES);
+    GAME_CALL(st, FN_EMPIRE_SCROLL_KEY, GAME_CALL0(st, FN_SCROLL_DIRECTION));
+    if (rect_input(st, 0x0F, S32(st, G_SCREEN_H) - 0x74, G_EMPIRE_EDITOR_RECTS, 8, G_HOVER) != 0) {
         return;
     }
-    if (S32(st, UI_HOVER_RECT) == 0) {
-        if (rect_input(st, 0xDF, S32(st, UI_SCREEN_H) - 0x72, 0x005C3348u, 1, UI_HOVER_RECT) != 0) {
+    if (S32(st, G_HOVER) == 0) {
+        if (rect_input(st, 0xDF, S32(st, G_SCREEN_H) - 0x72, G_EMPIRE_EDITOR_RECTS_B, 1, G_HOVER) != 0) {
             return;
         }
-        if (S32(st, UI_HOVER_RECT) == 1) {
-            S32(st, UI_HOVER_RECT) = 0x0A;
+        if (S32(st, G_HOVER) == 1) {
+            S32(st, G_HOVER) = 0x0A;
         }
     }
-    int32_t mode = S32(st, MODE);
+    int32_t mode = S32(st, G_EDITOR_MODE);
     if (mode == 0x0E) {
         new_route_mode(st, mx, my, start0, end0);
     } else if (mode == 0x0F) {
         edit_mode(st, mx, my);
     } else if (mode == 1) {
         /* @bin 0x004DB108 */
-        if (S32(st, 0x00775920u) == 0 &&
-            GAME_CALL(st, 0x00425C40u, 0xDF, S32(st, UI_SCREEN_H) - 0x72, 0x005C8C60, 5) != 0) {
+        if (S32(st, G_PICTURE_KIND) == 0 &&
+            GAME_CALL(st, FN_BUTTONS_EDITOR_CLICK, 0xDF, S32(st, G_SCREEN_H) - 0x72, G_EMPIRE_EDITOR_BUTTONS, 5) != 0) {
             return;
         }
-        if (rects(st, 0x005C33C0u, 3) != 0) {
+        if (rects(st, G_EMPIRE_EDITOR_RECTS_C, 3) != 0) {
             return;
         }
         object_pick(st, 0);
     } else if (mode == 2) {
         /* @bin 0x004DB1A7 */
-        int32_t wait = S32(st, 0x00E38DDCu);
+        int32_t wait = S32(st, G_UE38DDC);
         if (wait > 0) {
-            S32(st, 0x00E38DDCu) = wait - 1;
+            S32(st, G_UE38DDC) = wait - 1;
             return;
         }
-        if (U8(st, OBJECTS + U32(st, 0x0077591Cu) * 0x62u) == 0 &&
-            GAME_CALL(st, 0x00425C40u, 0xDF, S32(st, UI_SCREEN_H) - 0x72, 0x005C8C60, 5) != 0) {
+        if (U8(st, G_EMPIRE_OBJECTS + U32(st, G_EDITOR_OBJECT) * 0x62u) == 0 &&
+            GAME_CALL(st, FN_BUTTONS_EDITOR_CLICK, 0xDF, S32(st, G_SCREEN_H) - 0x72, G_EMPIRE_EDITOR_BUTTONS, 5) != 0) {
             return;
         }
-        int32_t o = S32(st, 0x0077591Cu);
-        uint32_t e = OBJECTS + (uint32_t) o * 0x62u;
+        int32_t o = S32(st, G_EDITOR_OBJECT);
+        uint32_t e = G_EMPIRE_OBJECTS + (uint32_t) o * 0x62u;
         uint8_t kind = U8(st, e);
         if (kind == 1) {
-            if (rects(st, 0x005C3DC0u, 6) != 0) {
+            if (rects(st, G_EMPIRE_EDITOR_RECTS_E, 6) != 0) {
                 return;
             }
             if (U8(st, e + 0x18) == 0) {
-                if (rects(st, 0x005C3EC0u, 0x0E) != 0) {
+                if (rects(st, G_EMPIRE_EDITOR_SELLS_RECTS, 0x0E) != 0) {
                     return;
                 }
-            } else if (rects(st, 0x005C4048u, 0x10) != 0) {
+            } else if (rects(st, G_EMPIRE_EDITOR_BUYS_RECTS, 0x10) != 0) {
                 return;
             }
             GAME_CALL(st, 0x00442A40u, o);
             GAME_CALL0(st, 0x00442EF0u);
             GAME_CALL0(st, 0x00442F80u);
         } else if (kind == 3) {
-            if (rects(st, 0x005C3E88u, 2) != 0) {
+            if (rects(st, G_EMPIRE_EDITOR_RECTS_G, 2) != 0) {
                 return;
             }
         } else if (kind == 2) {
-            if (rects(st, 0x005C3E68u, 1) != 0) {
+            if (rects(st, G_EMPIRE_EDITOR_RECTS_F, 1) != 0) {
                 return;
             }
         }
         object_pick(st, 1);
     } else if (mode == 4) {
-        rects(st, 0x005C3348u, 1);
+        rects(st, G_EMPIRE_EDITOR_RECTS_B, 1);
     }
 }
 

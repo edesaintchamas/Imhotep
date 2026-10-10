@@ -12,23 +12,15 @@
 #include "messages.h"
 
 #include "city/text_lookup.h"
+#include "present_layout.h"
 #include "sim/call.h"
 #include "state/ported.h"
 
-#define MSG_INDEX 0x00E951E4u   /* i32 the current message (records of 0x30 bytes) */
-#define MSG_NESTED 0x007854A4u  /* u8 1 while the reason phrase (0x00447B10) expands: its own fields */
-#define MSG_BUILDING 0x00EADD6Cu /* i32 the building the message is about */
-#define CITY 0x00EAAC28u        /* i32 the player's city (records of 0x49D8 bytes) */
-#define FMT_D 0x005D9A18u       /* "%d" */
-#define FMT_PERCENT 0x005D9A1Cu /* "%d%%" */
-#define FMT_D_S 0x005D9A24u     /* "%d %s" */
-#define COURSE_MAIN 0x00EADB34u /* i32 the resource of the monument's main course */
-#define COURSE_SECOND 0x00EADB30u /* i32 the resource of the secondary course */
 
 /* the message's field at `addr` (the address for message 0): addr + 0x30 * index */
 static uint32_t msg_field(game_state *st, uint32_t addr)
 {
-    return addr + 0x30u * U32(st, MSG_INDEX);
+    return addr + 0x30u * U32(st, G_MESSAGE_CURRENT);
 }
 
 /* @bin 0x00447806 .. (every handler that returns a text string) string `index` of group `group`,
@@ -44,13 +36,13 @@ static uint32_t text_string(game_state *st, int32_t group, int32_t index)
 
 static uint32_t print_d(game_state *st, uint32_t buf, int32_t v)
 {
-    GAME_CALL(st, 0x00561A36u, (int32_t) buf, (int32_t) FMT_D, v);
+    GAME_CALL(st, FN_CRT_SPRINTF, (int32_t) buf, (int32_t) G_FMT_D, v);
     return buf;
 }
 
 static uint32_t print_d_s(game_state *st, uint32_t buf, int32_t v, uint32_t s)
 {
-    GAME_CALL(st, 0x00561A36u, (int32_t) buf, (int32_t) FMT_D_S, v, (int32_t) s);
+    GAME_CALL(st, FN_CRT_SPRINTF, (int32_t) buf, (int32_t) G_FMT_D_S, v, (int32_t) s);
     return buf;
 }
 
@@ -121,8 +113,8 @@ uint32_t keyword_course_resource(game_state *st, int32_t kind)
  * kind), or by the building's type when its +6 is -1. 0 when the building is not in the list. */
 uint32_t keyword_monument_name(game_state *st, int32_t building)
 {
-    int32_t b = GAME_CALL(st, 0x00475B50u, building); /* the monument's main part */
-    uint32_t rec = 0x007999E8u + (uint32_t) b * 0x108u;
+    int32_t b = GAME_CALL(st, FN_BUILDING_MAIN_PART, building); /* the monument's main part */
+    uint32_t rec = BUILDING_BASE + BLD_TYPE + (uint32_t) b * 0x108u;
     int32_t index = 0;
     if (S16(st, rec + 6) == -1) {
         /* @bin 0x00510DE4 jump table 0x00510F14 / bytes 0x00510F34 on type - 0xDE */
@@ -154,7 +146,7 @@ uint32_t keyword_monument_name(game_state *st, int32_t building)
         }
         return text_string(st, 0xB2, index);
     }
-    uint32_t ids = 0x00EA5FACu + (uint32_t) S32(st, CITY) * 0x49D8u;
+    uint32_t ids = CITY_BASE + CITY_MONUMENT_ID + (uint32_t) S32(st, G_PLAYER) * 0x49D8u;
     int32_t k = 0;
     while (S32(st, ids + 4u * (uint32_t) k) != b) {
         k++;
@@ -162,14 +154,14 @@ uint32_t keyword_monument_name(game_state *st, int32_t building)
             return 0;
         }
     }
-    int32_t e = S16(st, 0x00784DE0u + 2u * (uint32_t) k);
+    int32_t e = S16(st, G_MONUMENT_SLOTS + 2u * (uint32_t) k);
     if (e < 0) {
         return 0;
     }
-    uint32_t def = 0x005D19C8u + (uint32_t) e * 0x10u;
+    uint32_t def = G_MONUMENT_MODELS + (uint32_t) e * 0x10u;
     if (S16(st, def) == 1) {
         /* @bin 0x00510EB4 jump table 0x00510F7C on the size - 1 */
-        switch (S32(st, 0x005E4EF4u)) {
+        switch (S32(st, G_PYRAMID_KIND)) {
         case 1:
             index = 0x4C;
             break;
@@ -243,7 +235,7 @@ static uint32_t loads_word(game_state *st, int32_t n)
 /* the building type of the message's building (i16 +0 of its 0x108-byte record) */
 static uint16_t msg_building_type(game_state *st)
 {
-    return U16(st, 0x007999E8u + U32(st, MSG_BUILDING) * 0x108u);
+    return U16(st, BUILDING_BASE + BLD_TYPE + U32(st, G_INFO_BUILDING) * 0x108u);
 }
 
 static int32_t div_s(int32_t a, int32_t b)
@@ -255,8 +247,8 @@ static int32_t run_greeting(game_state *st, const int32_t *a)
 {
     (void) a;
     /* @bin 0x00447800 group 0x20, string [city +0xEA5CBC] + 0xB */
-    uint32_t city = (uint32_t) S32(st, CITY) * 0x49D8u;
-    return (int32_t) text_string(st, 0x20, (int32_t) (U32(st, 0x00EA5CBCu + city) + 0xBu));
+    uint32_t city = (uint32_t) S32(st, G_PLAYER) * 0x49D8u;
+    return (int32_t) text_string(st, 0x20, (int32_t) (U32(st, CITY_BASE + CITY_RANK + city) + 0xBu));
 }
 
 static int32_t run_city_name(game_state *st, const int32_t *a)
@@ -264,54 +256,54 @@ static int32_t run_city_name(game_state *st, const int32_t *a)
     (void) a;
     /* @bin 0x00447890 the message's city (+0x5E, the reason phrase's +0x6A): the byte 0x0077DE03 + 0x6A x city,
      * group 0x15 in [0x00E39088] mode, else 0xC3 */
-    int32_t c = U8(st, MSG_NESTED) ? S16(st, msg_field(st, 0x00E9524Au)) : S16(st, msg_field(st, 0x00E9523Eu));
-    int32_t name = U8(st, 0x0077DE03u + (uint32_t) c * 0x6Au);
-    return (int32_t) text_string(st, U8(st, 0x00E39088u) ? 0x15 : 0xC3, name);
+    int32_t c = U8(st, G_MSG_NESTED) ? S16(st, msg_field(st, MESSAGE_BASE + MSG_PHRASE_CITY)) : S16(st, msg_field(st, MESSAGE_BASE + MSG_CITY));
+    int32_t name = U8(st, G_EMPIRE_CITY_NAME + (uint32_t) c * 0x6Au);
+    return (int32_t) text_string(st, U8(st, G_EMPIRE_LANGUAGE) ? 0x15 : 0xC3, name);
 }
 
 static int32_t run_amount(game_state *st, const int32_t *a)
 {
     (void) a;
     /* @bin 0x00447910 the amount (+0x60) of the kind (+0x62); the reason phrase's +0x70 / +0x72 */
-    int nested = U8(st, MSG_NESTED) != 0;
-    int32_t v = S16(st, msg_field(st, nested ? 0x00E95250u : 0x00E95240u));
-    int32_t kind = S16(st, msg_field(st, nested ? 0x00E95252u : 0x00E95242u));
-    return (int32_t) print_d(st, 0x0078541Cu, kind_amount(kind, v));
+    int nested = U8(st, G_MSG_NESTED) != 0;
+    int32_t v = S16(st, msg_field(st, nested ? MESSAGE_BASE + MSG_PHRASE_AMOUNT : MESSAGE_BASE + MSG_AMOUNT));
+    int32_t kind = S16(st, msg_field(st, nested ? MESSAGE_BASE + MSG_PHRASE_KIND : MESSAGE_BASE + MSG_KIND));
+    return (int32_t) print_d(st, G_BUF_AMOUNT, kind_amount(kind, v));
 }
 
 static int32_t run_amount_granted(game_state *st, const int32_t *a)
 {
     (void) a;
     /* @bin 0x004479B0 the amount granted (+0x6C) of the kind (+0x62) */
-    int32_t v = S16(st, msg_field(st, 0x00E9524Cu));
-    int32_t kind = S16(st, msg_field(st, 0x00E95242u));
-    return (int32_t) print_d(st, 0x00785414u, kind_amount(kind, v));
+    int32_t v = S16(st, msg_field(st, MESSAGE_BASE + MSG_AMOUNT_GRANTED));
+    int32_t kind = S16(st, msg_field(st, MESSAGE_BASE + MSG_KIND));
+    return (int32_t) print_d(st, G_BUF_AMOUNT_GRANTED, kind_amount(kind, v));
 }
 
 static int32_t run_item(game_state *st, const int32_t *a)
 {
     (void) a;
     /* @bin 0x00447A30 the kind (+0x62; the reason phrase's +0x72) + 0x36 of group 0x17 */
-    int32_t kind = U8(st, MSG_NESTED) ? S16(st, msg_field(st, 0x00E95252u)) : S16(st, msg_field(st, 0x00E95242u));
+    int32_t kind = U8(st, G_MSG_NESTED) ? S16(st, msg_field(st, MESSAGE_BASE + MSG_PHRASE_KIND)) : S16(st, msg_field(st, MESSAGE_BASE + MSG_KIND));
     return (int32_t) text_string(st, 0x17, kind + 0x36);
 }
 
 static int32_t run_time_allotted(game_state *st, const int32_t *a)
 {
     (void) a;
-    return (int32_t) print_d(st, 0x0078540Cu, S16(st, msg_field(st, 0x00E95244u))); /* @bin 0x00447A80 */
+    return (int32_t) print_d(st, G_BUF_TIME_ALLOTTED, S16(st, msg_field(st, MESSAGE_BASE + MSG_TIME))); /* @bin 0x00447A80 */
 }
 
 static int32_t run_travel_time(game_state *st, const int32_t *a)
 {
     (void) a;
-    return (int32_t) print_d(st, 0x00785404u, S16(st, msg_field(st, 0x00E95244u))); /* @bin 0x00447AB0 */
+    return (int32_t) print_d(st, G_BUF_TRAVEL_TIME, S16(st, msg_field(st, MESSAGE_BASE + MSG_TIME))); /* @bin 0x00447AB0 */
 }
 
 static int32_t run_time_until_attack(game_state *st, const int32_t *a)
 {
     (void) a;
-    return (int32_t) print_d(st, 0x007853FCu, S16(st, msg_field(st, 0x00E95246u))); /* @bin 0x00447AE0 */
+    return (int32_t) print_d(st, G_BUF_TIME_UNTIL_ATTACK, S16(st, msg_field(st, MESSAGE_BASE + MSG_ATTACK_TIME))); /* @bin 0x00447AE0 */
 }
 
 static int32_t run_reason_phrase(game_state *st, const int32_t *a)
@@ -319,30 +311,30 @@ static int32_t run_reason_phrase(game_state *st, const int32_t *a)
     (void) a;
     /* @bin 0x00447B10 the phrase (+0x68) expanded into 0x00785334 (200 bytes), its fields read from
      * the phrase's own slots while 0x007854A4 is 1 */
-    int32_t phrase = S16(st, msg_field(st, 0x00E95248u));
-    U8(st, MSG_NESTED) = 1;
-    GAME_CALL(st, 0x00448330u, phrase, 0x00785334, 200);
-    U8(st, MSG_NESTED) = 0;
-    return 0x00785334;
+    int32_t phrase = S16(st, msg_field(st, MESSAGE_BASE + MSG_PHRASE));
+    U8(st, G_MSG_NESTED) = 1;
+    GAME_CALL(st, FN_MESSAGE_TEXT_EXPAND, phrase, G_BUF_REASON_PHRASE, 200);
+    U8(st, G_MSG_NESTED) = 0;
+    return G_BUF_REASON_PHRASE;
 }
 
 static int32_t run_pharaoh_name(game_state *st, const int32_t *a)
 {
     (void) a;
-    return (int32_t) text_string(st, 0x97, S32(st, 0x00784F08u)); /* @bin 0x00447B50 */
+    return (int32_t) text_string(st, 0x97, S32(st, G_PHARAOH_NAME)); /* @bin 0x00447B50 */
 }
 
 static int32_t run_foreign_army(game_state *st, const int32_t *a)
 {
     (void) a;
-    return (int32_t) text_string(st, 0x25, S16(st, 0x007848FCu) + 0x1C); /* @bin 0x00447B80 */
+    return (int32_t) text_string(st, 0x25, S16(st, G_SCENARIO_ENEMY) + 0x1C); /* @bin 0x00447B80 */
 }
 
 static int32_t run_god(game_state *st, const int32_t *a)
 {
     (void) a;
     /* @bin 0x00447BB0 the god (byte +0x74; the reason phrase's +0x75), 0 when above 4, group 0x9D */
-    uint8_t g = U8(st, MSG_NESTED) ? U8(st, msg_field(st, 0x00E95255u)) : U8(st, msg_field(st, 0x00E95254u));
+    uint8_t g = U8(st, G_MSG_NESTED) ? U8(st, msg_field(st, MESSAGE_BASE + MSG_PHRASE_GOD)) : U8(st, msg_field(st, MESSAGE_BASE + MSG_GOD));
     if (g >= 5) {
         g = 0;
     }
@@ -352,7 +344,7 @@ static int32_t run_god(game_state *st, const int32_t *a)
 static int32_t run_monument_name(game_state *st, const int32_t *a)
 {
     (void) a;
-    return (int32_t) keyword_monument_name(st, S32(st, MSG_BUILDING)); /* @bin 0x00447C20 */
+    return (int32_t) keyword_monument_name(st, S32(st, G_INFO_BUILDING)); /* @bin 0x00447C20 */
 }
 
 static int32_t run_percent_complete(game_state *st, const int32_t *a)
@@ -360,44 +352,44 @@ static int32_t run_percent_complete(game_state *st, const int32_t *a)
     (void) a;
     /* @bin 0x00447C30 by the building's type (jump table 0x00447CFC, bytes 0x00447D28 on type -
      * 0xB7), clamped to 0 .. 100, "%d%%" into 0x0078532C; 0 for other types */
-    uint32_t id = U32(st, MSG_BUILDING);
+    uint32_t id = U32(st, G_INFO_BUILDING);
     int32_t v;
-    switch (S16(st, 0x007999E8u + id * 0x108u)) {
+    switch (S16(st, BUILDING_BASE + BLD_TYPE + id * 0x108u)) {
     case 0xB7:
-        v = S32(st, 0x00EADC7Cu);
+        v = S32(st, G_PYRAMID_PERCENT);
         break;
     case 0xCF:
     case 0xD0:
-        v = U8(st, 0x00799A2Du + id * 0x108u);
+        v = U8(st, BUILDING_BASE + BLD_U55 + id * 0x108u);
         break;
     case 0xD2: {
-        int32_t p = S16(st, 0x00EA5BAAu + (uint32_t) S32(st, CITY) * 0x49D8u);
+        int32_t p = S16(st, CITY_BASE + CITY_U433A + (uint32_t) S32(st, G_PLAYER) * 0x49D8u);
         v = (int32_t) ((uint32_t) p * 100u) / 16; /* @bin 0x00447CB8 cdq; and 0xF; sar 4 */
         break;
     }
     case 0xD5:
-        v = S32(st, 0x00EADC40u);
+        v = S32(st, G_MON_D5_PERCENT);
         break;
     case 0xDE:
-        v = S32(st, 0x00EADB78u);
+        v = S32(st, G_MON_DE_PERCENT);
         break;
     case 0xE1:
-        v = S32(st, 0x00EADC08u);
+        v = S32(st, G_MON_E1_PERCENT);
         break;
     case 0xE3:
-        v = S32(st, 0x00EADBC0u);
+        v = S32(st, G_MON_E3_PERCENT);
         break;
     case 0xE4:
-        v = S32(st, 0x00EADBA0u);
+        v = S32(st, G_MON_E4_PERCENT);
         break;
     case 0xE5:
     case 0xEA:
     case 0xEB:
     case 0xEC:
-        v = S32(st, 0x00EADB4Cu);
+        v = S32(st, G_MON_E5_PERCENT);
         break;
     case 0xE6:
-        v = S32(st, 0x00EADBD4u);
+        v = S32(st, G_MON_E6_PERCENT);
         break;
     default:
         return 0;
@@ -407,14 +399,14 @@ static int32_t run_percent_complete(game_state *st, const int32_t *a)
     } else if (v > 100) {
         v = 100;
     }
-    GAME_CALL(st, 0x00561A36u, 0x0078532C, (int32_t) FMT_PERCENT, v);
-    return 0x0078532C;
+    GAME_CALL(st, FN_CRT_SPRINTF, G_BUF_PERCENT_COMPLETE, (int32_t) G_FMT_PERCENT, v);
+    return G_BUF_PERCENT_COMPLETE;
 }
 
 static int32_t run_courses_complete(game_state *st, const int32_t *a)
 {
     (void) a;
-    return (int32_t) print_d(st, 0x00785320u, S32(st, 0x00EADC4Cu)); /* @bin 0x00447D60 */
+    return (int32_t) print_d(st, G_BUF_COURSES_COMPLETE, S32(st, G_PYRAMID_COURSES_DONE)); /* @bin 0x00447D60 */
 }
 
 /* @bin 0x00447D80, 0x00447DE0, 0x00447F70, 0x00448270: a course quantity "%d %s" with the
@@ -433,25 +425,25 @@ static int32_t course_quantity(game_state *st, uint32_t kind_at, uint32_t value_
 static int32_t run_needed_current_main(game_state *st, const int32_t *a)
 {
     (void) a;
-    return course_quantity(st, COURSE_MAIN, 0x00EADC60u, 1, 0x007852BCu); /* @bin 0x00447D80 */
+    return course_quantity(st, G_COURSE_MAIN, G_PYRAMID_NEEDED_MAIN, 1, G_BUF_NEEDED_CURRENT_MAIN); /* @bin 0x00447D80 */
 }
 
 static int32_t run_needed_current_second(game_state *st, const int32_t *a)
 {
     (void) a;
-    return course_quantity(st, COURSE_SECOND, 0x00EADC64u, 0, 0x00785258u); /* @bin 0x00447DE0 */
+    return course_quantity(st, G_COURSE_SECOND, G_PYRAMID_NEEDED_SECOND, 0, G_BUF_NEEDED_CURRENT_SECOND); /* @bin 0x00447DE0 */
 }
 
 static int32_t run_needed_remainder_second(game_state *st, const int32_t *a)
 {
     (void) a;
-    return course_quantity(st, COURSE_SECOND, 0x00EADC6Cu, 1, 0x00785190u); /* @bin 0x00447F70 */
+    return course_quantity(st, G_COURSE_SECOND, G_PYRAMID_REMAINDER_SECOND, 1, G_BUF_NEEDED_REMAINDER_SECOND); /* @bin 0x00447F70 */
 }
 
 static int32_t run_total_second(game_state *st, const int32_t *a)
 {
     (void) a;
-    return course_quantity(st, COURSE_SECOND, 0x00EADC74u, 0, 0x00784F38u); /* @bin 0x00448270 */
+    return course_quantity(st, G_COURSE_SECOND, G_PYRAMID_TOTAL_SECOND, 0, G_BUF_TOTAL_SECOND); /* @bin 0x00448270 */
 }
 
 static int32_t run_needed_remainder_main(game_state *st, const int32_t *a)
@@ -462,20 +454,20 @@ static int32_t run_needed_remainder_main(game_state *st, const int32_t *a)
      * it is above 800), 0xE4 [0x00EADB9C] / 100, 0xE1 by [0x00EADC04] (resource 0x1D: 3200 above 4000,
      * else - 800; others: 8 or 0 up to 4000 (800 and above: 8), above it (- 3200) / 100), 0xDE
      * [0x00EADB74] / 100; other types 0 */
-    int32_t kind = S32(st, COURSE_MAIN);
+    int32_t kind = S32(st, G_COURSE_MAIN);
     uint16_t type = msg_building_type(st);
     int32_t n;
     if (type == 0xB7) {
-        n = course_amount(kind, S32(st, 0x00EADC68u), 1);
+        n = course_amount(kind, S32(st, G_PYRAMID_REMAINDER_MAIN), 1);
     } else if (type == 0xD5) {
-        n = div_s(S32(st, 0x00EADC3Cu), 100);
+        n = div_s(S32(st, G_MON_D5_REMAINDER), 100);
     } else if (type == 0xE3) {
-        int32_t v = S32(st, 0x00EADBBCu);
+        int32_t v = S32(st, G_MON_E3_REMAINDER);
         n = (kind == 0x1A && v > 0x320) ? 8 : div_s(v, 100);
     } else if (type == 0xE4) {
-        n = div_s(S32(st, 0x00EADB9Cu), 100);
+        n = div_s(S32(st, G_MON_E4_REMAINDER), 100);
     } else if (type == 0xE1) {
-        int32_t v = S32(st, 0x00EADC04u);
+        int32_t v = S32(st, G_MON_E1_REMAINDER);
         if (kind == 0x1D) {
             n = v > 0xFA0 ? 0xC80 : v - 0x320;
         } else if (v > 0xFA0) {
@@ -484,7 +476,7 @@ static int32_t run_needed_remainder_main(game_state *st, const int32_t *a)
             n = v < 0x320 ? 0 : 8;
         }
     } else if (type == 0xDE) {
-        n = div_s(S32(st, 0x00EADB74u), 100);
+        n = div_s(S32(st, G_MON_DE_REMAINDER), 100);
     } else {
         return 0;
     }
@@ -492,33 +484,33 @@ static int32_t run_needed_remainder_main(game_state *st, const int32_t *a)
     if (s == 0) {
         return 0;
     }
-    return (int32_t) print_d_s(st, 0x007851F4u, n, s);
+    return (int32_t) print_d_s(st, G_BUF_NEEDED_REMAINDER_MAIN, n, s);
 }
 
 static int32_t run_loads_current_main(game_state *st, const int32_t *a)
 {
     (void) a;
     /* @bin 0x00448000 [0x00EADC60] "%d %s" with load(s); 0 when the word is missing */
-    int32_t n = S32(st, 0x00EADC60u);
+    int32_t n = S32(st, G_PYRAMID_NEEDED_MAIN);
     uint32_t s = loads_word(st, n);
     if (s == 0) {
         return 0;
     }
-    return (int32_t) print_d_s(st, 0x0078512Cu, n, s);
+    return (int32_t) print_d_s(st, G_BUF_LOADS_CURRENT_MAIN, n, s);
 }
 
 static int32_t run_loads_current_second(game_state *st, const int32_t *a)
 {
     (void) a;
-    int32_t n = S32(st, 0x00EADC64u); /* @bin 0x00448040 */
-    return (int32_t) print_d_s(st, 0x007850C8u, n, loads_word(st, n));
+    int32_t n = S32(st, G_PYRAMID_NEEDED_SECOND); /* @bin 0x00448040 */
+    return (int32_t) print_d_s(st, G_BUF_LOADS_CURRENT_SECOND, n, loads_word(st, n));
 }
 
 static int32_t run_loads_remainder_second(game_state *st, const int32_t *a)
 {
     (void) a;
-    int32_t n = S32(st, 0x00EADC6Cu); /* @bin 0x00448180 */
-    return (int32_t) print_d_s(st, 0x00785000u, n, loads_word(st, n));
+    int32_t n = S32(st, G_PYRAMID_REMAINDER_SECOND); /* @bin 0x00448180 */
+    return (int32_t) print_d_s(st, G_BUF_LOADS_REMAINDER_SECOND, n, loads_word(st, n));
 }
 
 static int32_t run_loads_remainder_main(game_state *st, const int32_t *a)
@@ -530,17 +522,17 @@ static int32_t run_loads_remainder_main(game_state *st, const int32_t *a)
     uint16_t type = msg_building_type(st);
     int32_t n;
     if (type == 0xB7) {
-        n = S32(st, 0x00EADC68u);
+        n = S32(st, G_PYRAMID_REMAINDER_MAIN);
     } else if (type == 0xD5) {
-        n = div_s(S32(st, 0x00EADC3Cu), 400);
+        n = div_s(S32(st, G_MON_D5_REMAINDER), 400);
     } else if (type == 0xE4) {
-        n = div_s(S32(st, 0x00EADB9Cu), 400);
+        n = div_s(S32(st, G_MON_E4_REMAINDER), 400);
     } else if (type == 0xE3) {
-        int32_t v = S32(st, 0x00EADBBCu);
-        n = (S32(st, COURSE_MAIN) == 0x1A && v > 0x320) ? 2 : div_s(v, 400);
+        int32_t v = S32(st, G_MON_E3_REMAINDER);
+        n = (S32(st, G_COURSE_MAIN) == 0x1A && v > 0x320) ? 2 : div_s(v, 400);
     } else if (type == 0xE1) {
-        int32_t v = S32(st, 0x00EADC04u);
-        if (S32(st, COURSE_MAIN) == 0x1D) {
+        int32_t v = S32(st, G_MON_E1_REMAINDER);
+        if (S32(st, G_COURSE_MAIN) == 0x1D) {
             n = v > 0xFA0 ? 8 : div_s(v - 0x320, 400);
         } else if (v > 0xFA0) {
             n = div_s(v - 0xC80, 400);
@@ -548,11 +540,11 @@ static int32_t run_loads_remainder_main(game_state *st, const int32_t *a)
             n = v < 0x320 ? 0 : 2;
         }
     } else if (type == 0xDE) {
-        n = div_s(S32(st, 0x00EADB74u), 400);
+        n = div_s(S32(st, G_MON_DE_REMAINDER), 400);
     } else {
         return 0;
     }
-    return (int32_t) print_d_s(st, 0x00785064u, n, loads_word(st, n));
+    return (int32_t) print_d_s(st, G_BUF_LOADS_REMAINDER_MAIN, n, loads_word(st, n));
 }
 
 static int32_t run_total_main(game_state *st, const int32_t *a)
@@ -560,15 +552,15 @@ static int32_t run_total_main(game_state *st, const int32_t *a)
     (void) a;
     /* @bin 0x004481B0 0xB7 [0x00EADC70] (x400 / x4), 0xD5 [0x00EADC44] / 100, 0xDE [0x00EADB7C] / 100;
      * other types 0 */
-    int32_t kind = S32(st, COURSE_MAIN);
+    int32_t kind = S32(st, G_COURSE_MAIN);
     uint16_t type = msg_building_type(st);
     int32_t n;
     if (type == 0xB7) {
-        n = course_amount(kind, S32(st, 0x00EADC70u), 1);
+        n = course_amount(kind, S32(st, G_PYRAMID_TOTAL_MAIN), 1);
     } else if (type == 0xD5) {
-        n = div_s(S32(st, 0x00EADC44u), 100);
+        n = div_s(S32(st, G_MON_D5_TOTAL), 100);
     } else if (type == 0xDE) {
-        n = div_s(S32(st, 0x00EADB7Cu), 100);
+        n = div_s(S32(st, G_MON_DE_TOTAL), 100);
     } else {
         return 0;
     }
@@ -576,7 +568,7 @@ static int32_t run_total_main(game_state *st, const int32_t *a)
     if (s == 0) {
         return 0;
     }
-    return (int32_t) print_d_s(st, 0x00784F9Cu, n, s);
+    return (int32_t) print_d_s(st, G_BUF_TOTAL_MAIN, n, s);
 }
 
 static int32_t run_loads_word(game_state *st, const int32_t *a)

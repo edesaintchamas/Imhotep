@@ -646,7 +646,7 @@ void empire_map_draw(game_state *st)
         int32_t sel = S32(st, G_EDITOR_OBJECT);
         uint32_t o = G_EMPIRE_OBJECTS + 0x62u * (uint32_t) sel;
         int32_t bx, by;
-        if (S32(st, G_U784CB4) == 0) {
+        if (S32(st, G_EMPIRE_ALT_POSITIONS) == 0) {
             bx = S16(st, o + 4);
             by = S16(st, o + 6);
         } else {

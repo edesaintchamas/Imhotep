@@ -11,32 +11,8 @@
 
 #include <stdint.h>
 
+#include "present_layout.h"
 #include "state/state.h"
-
-/* globals (docs/presentation.md 3.2, 5.2) */
-#define UI_WINDOW 0x00E38DDAu          /* u8 the current window */
-#define UI_REDRAW 0x00E38DCAu          /* u8 full redraw of the window this frame */
-#define UI_REDRAW_BUTTONS 0x00E38DC9u  /* u8 the windows' buttons are drawn this frame */
-#define UI_DX 0x00E38DA8u              /* i32 (screen width - 640) / 2 */
-#define UI_DY 0x00E38DA4u              /* i32 (screen height - 480) / 2 */
-#define UI_SCREEN_W 0x00E38DB0u        /* i32 */
-#define UI_SCREEN_H 0x00E38DACu        /* i32 */
-#define UI_MOUSE_X 0x00E38E34u         /* i32 */
-#define UI_MOUSE_Y 0x00E38E30u         /* i32 */
-#define UI_LEFT_PRESSED 0x00E38E03u    /* u8 */
-#define UI_LEFT_HELD 0x00E38E00u       /* u8 */
-#define UI_LEFT_RELEASED 0x00E38E04u   /* u8 */
-#define UI_RIGHT_PRESSED 0x00E38DF7u   /* u8 */
-#define UI_RIGHT_RELEASED 0x00E38DF8u  /* u8 */
-#define UI_HOVER_RECT 0x007056C8u      /* i32 the highlighted rectangle of a window's table (1-based) */
-#define UI_HOVER_RECT2 0x007056C4u     /* i32 a second one */
-#define UI_HOVER_RECT3 0x007056C0u     /* i32 a third one */
-#define UI_EDITOR 0x00605A3Cu          /* i32 1 in the scenario editor */
-#define UI_ADVISOR_X 0x00F53F0Cu       /* i32 the advisor windows' origin */
-#define UI_ADVISOR_Y 0x00F53F08u
-#define UI_SIDEBAR_X 0x00F53F64u       /* i32 */
-#define UI_SIDEBAR_X_COLLAPSED 0x00F53F60u
-#define UI_SIDEBAR_COLLAPSED 0x00F53F78u
 
 /* dispatchers (dispatch.c) */
 void ui_redraw(game_state *st, int32_t force);       /* @bin 0x004D71C0 */

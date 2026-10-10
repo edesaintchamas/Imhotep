@@ -27,12 +27,6 @@
 /* the message window's body scroll buttons (present/ui/messages, present/ui/msgwin.c) [g_ui_main.h] */
 
 /* the layout mode's element under the cursor (present/draw/layout.c 0x004D6480, present/ui/dispatch.c) [g_city_view.h] */
-#define G_UE945F8 0x00E945F8u /* @bin 0x004D6480 i32: the element's x less the layout origin (dispatch.c: the hit entry) */
-#define G_UE945FC 0x00E945FCu /* @bin 0x004D6480 i32: its y less the layout origin */
-#define G_UE94600 0x00E94600u /* @bin 0x004D6480 i32: its registered x */
-#define G_UE94604 0x00E94604u /* @bin 0x004D6480 i32: its registered y */
-#define G_UE94608 0x00E94608u /* @bin 0x004D6480 i32: its width */
-#define G_UE9460C 0x00E9460Cu /* @bin 0x004D6480 i32: its height */
 
 /* sound (core/frame/sound.c) [g_frame.h] */
 

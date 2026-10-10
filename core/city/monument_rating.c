@@ -650,7 +650,7 @@ int32_t monument_progress_parts(game_state *st, uint32_t self, int32_t b, int32_
     for (int32_t i = 0; i < n; i++) {
         sum = (int32_t) ((uint32_t) sum + U32(st, BUILDING_ADDR(b0 + i) + BLD_MONUMENT_WORK));
     }
-    x87_val t = x87_mul(x87_from_int(n), x87_from_float(U32(st, G_U56F550)));
+    x87_val t = x87_mul(x87_from_int(n), x87_from_float(U32(st, G_FLT_4)));
     t = x87_divv(x87_from_float(U32(st, G_K_100F)), t);
     t = x87_mul_int(t, sum);
     int32_t p = x87_cmp(t, x87_from_double(rd64(st, G_U5701E0))) > 0 ? 100 : x87_ftol(t);
