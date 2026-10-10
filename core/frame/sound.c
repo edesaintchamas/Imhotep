@@ -17,47 +17,37 @@
 #include "random/crt_rand.h"
 #include "sim/call.h"
 #include "sim/platform.h"
+#include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define FRAME_CLOCK 0x00E92E0Cu
-#define SOUND_ON 0x00F55B88u
-#define SOUND 0x00E92BF8u
-#define STREAMS (SOUND + 0x1D8)
-#define REQUEST 0x00E92DA8u
-#define CITY_SOUNDS 0x00E38EC0u  /* u8 option: city sounds */
-#define MUSIC_OPTION 0x00E38E64u /* u8 option: music */
-#define MUSIC_VOLUME 0x00E38EC8u
-#define SPEECH_VOLUME 0x00E38ECCu
-#define CITY_VOLUME 0x00E38ED0u
-#define MISSION 0x00E38EA8u      /* s8: the music.txt mission of the city */
-#define POPULATION(st) S32(st, CURRENT_CITY(st) + 0x24)
+#define STREAMS (G_SOUND + 0x1D8)
+#define POPULATION(st) S32(st, CURRENT_CITY(st) + CITY_POPULATION)
 
 /* ---- ambient slots (chunk 92: 70 slots of 0x80 bytes at 0x00702900) ----
  * slot +0 seen this frame, +4 frames seen, +8 frames needed, +0x0C .. +0x1C five counters (by the
  * ground pass's second argument), +0x20 the next sound, +0x24 sounds, +0x28 the sounds (8 at most),
  * +0x4C times played, +0x50 last played (frame clock), +0x54 interval, +0x58 ready */
-#define SLOTS 0x00702900u
 /* a - b as the original's 32-bit sub */
 #define SUB(a, b) ((int32_t) ((uint32_t) (a) - (uint32_t) (b)))
-#define SLOT(k) (SLOTS + 0x80u * (uint32_t) (k))
+#define SLOT(k) (G_SOUND_SLOTS + 0x80u * (uint32_t) (k))
 
 void ambient_building(game_state *st, int32_t building, int32_t counter)
 {
     /* @bin 0x0041D41F a building in use (+0 == 1) whose type (+0x10) has a slot (table 0x0057C780) */
     uint32_t b = BUILDING_ADDR(building);
-    if (U8(st, b) != 1) {
+    if (U8(st, b + BLD_STATE) != 1) {
         return;
     }
-    int16_t type = S16(st, b + 0x10);
-    int32_t slot = S32(st, 0x0057C780u + 4u * (uint32_t) (int32_t) type);
+    int16_t type = S16(st, b + BLD_TYPE);
+    int32_t slot = S32(st, G_AMBIENT_SLOT_BY_TYPE + 4u * (uint32_t) (int32_t) type);
     if (slot <= 0) {
         return;
     }
     /* @bin 0x0041D445 types 0x1E, 0x1F, 0x20, 0x21, 0xE2: only while the city +0x4634 is <= 0 and
      * the building's +0x40 is > 0 */
     if (type == 0x1F || type == 0x1E || type == 0x21 || type == 0x20 || type == 0xE2) {
-        if (S32(st, CURRENT_CITY(st) + 0x4634) > 0 || S16(st, b + 0x40) <= 0) {
+        if (S32(st, CURRENT_CITY(st) + CITY_U4634) > 0 || S16(st, b + BLD_WORKERS) <= 0) {
             return;
         }
     }
@@ -69,7 +59,7 @@ void ambient_building(game_state *st, int32_t building, int32_t counter)
 
 void ambient_step(game_state *st)
 {
-    int32_t now = S32(st, FRAME_CLOCK);
+    int32_t now = S32(st, G_FRAME_CLOCK);
     /* @bin 0x0041D576 slots 1..69: ready when seen this frame for long enough (+4 >= +8) and the
      * interval +0x54 has passed since +0x50; a slot not seen is reset */
     for (int32_t k = 1; k < 70; k++) {
@@ -88,7 +78,7 @@ void ambient_step(game_state *st)
         }
     }
     /* @bin 0x0041D5BE every 2000 ms (0x007028FC: the last time), the ready slot played longest ago */
-    if (SUB(now, S32(st, 0x007028FCu)) < 2000) {
+    if (SUB(now, S32(st, G_SOUND_LAST_TIME)) < 2000) {
         return;
     }
     int32_t best = 0, oldest = 0;
@@ -110,21 +100,21 @@ void ambient_step(game_state *st)
         if (S32(st, s + 0x20) >= S32(st, s + 0x24)) {
             S32(st, s + 0x20) = 0;
         }
-        S32(st, 0x007028F8u) = S32(st, s + 0x28 + 4u * (uint32_t) S32(st, s + 0x20));
-        if (return_zero(st, S32(st, 0x007028F8u)) != 0) {
+        S32(st, G_AMBIENT_SOUND) = S32(st, s + 0x28 + 4u * (uint32_t) S32(st, s + 0x20));
+        if (return_zero(st, S32(st, G_AMBIENT_SOUND)) != 0) {
             break;
         }
     }
     /* @bin 0x0041D656 the variant: counter +0x14 > 10: 2; +0x0C > 10: 0; else +0x1C <= 10: 2, else 4 */
     int32_t variant = S32(st, s + 0x14) > 10 ? 2 : S32(st, s + 0x0C) > 10 ? 0 : S32(st, s + 0x1C) <= 10 ? 2 : 4;
     (void) variant; /* the second argument of 0x0047D350, which plays nothing */
-    return_zero(st, S32(st, 0x007028F8u));
+    return_zero(st, S32(st, G_AMBIENT_SOUND));
     /* @bin 0x0041D69A */
-    now = S32(st, FRAME_CLOCK);
+    now = S32(st, G_FRAME_CLOCK);
     S32(st, s + 0x50) = now;
     S32(st, s + 4) = 0;
     S32(st, s + 0x0C) = 0;
-    S32(st, 0x007028FCu) = now;
+    S32(st, G_SOUND_LAST_TIME) = now;
     S32(st, s + 0x10) = 0;
     S32(st, s + 0x14) = 0;
     S32(st, s + 0x18) = 0;
@@ -136,9 +126,9 @@ void ambient_counters_clear(game_state *st)
 {
     /* @bin 0x0053B670 the 12 terrain counters 0x00F55B50 and 0x00F55B84 */
     for (uint32_t i = 0; i < 12; i++) {
-        S32(st, 0x00F55B50u + 4 * i) = 0;
+        S32(st, G_AMBIENT_COUNTERS + 4 * i) = 0;
     }
-    S32(st, 0x00F55B84u) = 0;
+    S32(st, G_AMBIENT_TOTAL) = 0;
 }
 
 int32_t ambient_class(int32_t type)
@@ -174,19 +164,19 @@ void stream_fade_out(game_state *st, int32_t channel)
     /* @bin 0x0053B6F0 while the channel's stream plays its volume goes down by 5 a frame; below 0 it
      * is closed. Once it is over (or there is none) the fade flag of channel 0 (0x00F55B8C) or 1
      * (0x00F55B90) is cleared */
-    if (S32(st, SOUND_ON) != 0 && S32(st, STREAMS + 4u * (uint32_t) channel) != 0 &&
-        GAME_CALLT(st, SOUND, 0x0055F5A1u, channel) != 0) {
-        int32_t v = GAME_CALLT(st, SOUND, 0x0055F5F4u, channel) - 5;
+    if (S32(st, G_SOUND_ON) != 0 && S32(st, STREAMS + 4u * (uint32_t) channel) != 0 &&
+        GAME_CALLT(st, G_SOUND, FN_PLATFORM_STREAM_PLAYING, channel) != 0) {
+        int32_t v = GAME_CALLT(st, G_SOUND, FN_PLATFORM_STREAM_VOLUME, channel) - 5;
         if (v >= 0) { /* jns */
-            GAME_CALLT(st, SOUND, 0x0055F639u, channel, v);
+            GAME_CALLT(st, G_SOUND, FN_PLATFORM_STREAM_VOLUME_SET, channel, v);
             return;
         }
-        GAME_CALLT(st, SOUND, 0x0055F561u, channel);
+        GAME_CALLT(st, G_SOUND, FN_SOUND_STOP_STREAM, channel);
     }
     if (channel == 0) {
-        S32(st, 0x00F55B8Cu) = 0;
+        S32(st, G_STREAM_FADE0) = 0;
     } else if (channel == 1) {
-        S32(st, 0x00F55B90u) = 0;
+        S32(st, G_STREAM_FADE1) = 0;
     }
 }
 
@@ -194,44 +184,44 @@ void stream_fade_in(game_state *st, int32_t channel)
 {
     /* @bin 0x0053B790 a playing stream's volume up by 5, to its option's volume at most (0: music
      * 0x00E38EC8 (the cap is applied, then set), 1: speech 0x00E38ECC, 2: city 0x00E38ED0) */
-    if (S32(st, SOUND_ON) == 0 || S32(st, STREAMS + 4u * (uint32_t) channel) == 0 ||
-        GAME_CALLT(st, SOUND, 0x0055F5A1u, channel) == 0) {
+    if (S32(st, G_SOUND_ON) == 0 || S32(st, STREAMS + 4u * (uint32_t) channel) == 0 ||
+        GAME_CALLT(st, G_SOUND, FN_PLATFORM_STREAM_PLAYING, channel) == 0) {
         return;
     }
-    int32_t v = GAME_CALLT(st, SOUND, 0x0055F5F4u, channel) + 5;
+    int32_t v = GAME_CALLT(st, G_SOUND, FN_PLATFORM_STREAM_VOLUME, channel) + 5;
     if (channel == 0 || channel == 1 || channel == 2) {
-        int32_t cap = channel == 0 ? S32(st, MUSIC_VOLUME) : channel == 1 ? S32(st, SPEECH_VOLUME) : S32(st, CITY_VOLUME);
+        int32_t cap = channel == 0 ? S32(st, G_MUSIC_VOLUME) : channel == 1 ? S32(st, G_SPEECH_VOLUME) : S32(st, G_CITY_VOLUME);
         if (v > cap) {
             v = cap;
         }
     }
-    GAME_CALLT(st, SOUND, 0x0055F639u, channel, v);
+    GAME_CALLT(st, G_SOUND, FN_PLATFORM_STREAM_VOLUME_SET, channel, v);
 }
 
 void ambient_stream(game_state *st)
 {
     /* @bin 0x0053B960 sound on, city sounds on */
-    if (S32(st, SOUND_ON) == 0 || U8(st, CITY_SOUNDS) == 0) {
+    if (S32(st, G_SOUND_ON) == 0 || U8(st, G_CITY_SOUNDS_ON) == 0) {
         return;
     }
     /* @bin 0x0053B988 the largest of the 12 counters 0x00F55B50 (the first one on a tie; -1 when
      * all are <= 0) */
     int32_t most = 0, which = -1;
     for (int32_t i = 0; i < 12; i++) {
-        int32_t n = S32(st, 0x00F55B50u + 4u * (uint32_t) i);
+        int32_t n = S32(st, G_AMBIENT_COUNTERS + 4u * (uint32_t) i);
         if (n > most) {
             most = n;
             which = i;
         }
     }
     /* @bin 0x0053B9A3 the same as before (0x00F55B80) and still playing: fade it in below 100 */
-    if (which == S32(st, 0x00F55B80u) && GAME_CALLT(st, SOUND, 0x0055F5A1u, 2) != 0) {
-        if (GAME_CALLT(st, SOUND, 0x0055F5F4u, 2) < 100) {
+    if (which == S32(st, G_AMBIENT_CHOICE) && GAME_CALLT(st, G_SOUND, FN_PLATFORM_STREAM_PLAYING, 2) != 0) {
+        if (GAME_CALLT(st, G_SOUND, FN_PLATFORM_STREAM_VOLUME, 2) < 100) {
             stream_fade_in(st, 2);
         }
         return;
     }
-    S32(st, 0x00F55B80u) = which;
+    S32(st, G_AMBIENT_CHOICE) = which;
     /* @bin 0x0053BC48 the jump table by counter: the file (strings 0x005FAB58 .. 0x005FACD0) on
      * stream 2 played forever (loops 0), at volume 0 (it fades in) */
     uint32_t file;
@@ -239,45 +229,45 @@ void ambient_stream(game_state *st)
     case 1: {
         /* @bin 0x0053BB05 housing by the population: < 500, < 2000, < 5000, < 8000, more */
         int32_t pop = POPULATION(st);
-        file = pop < 500 ? 0x005FAC08u : pop < 2000 ? 0x005FABECu : pop < 5000 ? 0x005FABD0u : pop < 8000 ? 0x005FABB4u : 0x005FAB98u;
+        file = pop < 500 ? G_STR_AMBIENT_HOUSING1 : pop < 2000 ? G_STR_AMBIENT_HOUSING2 : pop < 5000 ? G_STR_AMBIENT_HOUSING3 : pop < 8000 ? G_STR_AMBIENT_HOUSING4 : G_STR_AMBIENT_HOUSING5;
         break;
     }
     case 2:
         /* @bin 0x0053BAC3 industrial; the x87 test of 0x00F55B58 against 0.33 * 0x00F55B84 leads to the
          * same call on both sides */
-        file = 0x005FAC24u;
+        file = G_STR_AMBIENT_INDUSTRIAL;
         break;
     case 3:
     case 7:
-        file = 0x005FACB4u; /* meadow */
+        file = G_STR_AMBIENT_MEADOW; /* meadow */
         break;
     case 4:
         /* @bin 0x0053BBDD monument: 0x005F9058 >= 1000 monument_f, else monument_b */
-        file = S32(st, 0x005F9058u) >= 1000 ? 0x005FAB58u : 0x005FAB78u;
+        file = S32(st, G_U5F9058) >= 1000 ? G_STR_AMBIENT_MONUMENT_F : G_STR_AMBIENT_MONUMENT_B;
         break;
     case 6:
-        file = 0x005FACD0u; /* desert */
+        file = G_STR_AMBIENT_DESERT; /* desert */
         break;
     case 8:
-        file = 0x005FAC94u; /* floodplain */
+        file = G_STR_AMBIENT_FLOODPLAIN; /* floodplain */
         break;
     case 9:
-        file = 0x005FAC7Cu; /* rock */
+        file = G_STR_AMBIENT_ROCK; /* rock */
         break;
     case 10:
-        file = 0x005FAC44u; /* water */
+        file = G_STR_AMBIENT_WATER; /* water */
         break;
     case 11:
-        file = 0x005FAC5Cu; /* vegetation */
+        file = G_STR_AMBIENT_VEGETATION; /* vegetation */
         break;
     default:
         /* @bin 0x0053BC2B none (counter 5, or nothing counted): stream 2 closed */
-        GAME_CALLT(st, SOUND, 0x0055F561u, 2);
-        GAME_CALLT(st, SOUND, 0x0055F639u, 2, 0);
+        GAME_CALLT(st, G_SOUND, FN_SOUND_STOP_STREAM, 2);
+        GAME_CALLT(st, G_SOUND, FN_PLATFORM_STREAM_VOLUME_SET, 2, 0);
         return;
     }
-    GAME_CALLT(st, SOUND, 0x0055F449u, (int32_t) file, 2, 0);
-    GAME_CALLT(st, SOUND, 0x0055F639u, 2, 0);
+    GAME_CALLT(st, G_SOUND, FN_PLATFORM_STREAM_PLAY, (int32_t) file, 2, 0);
+    GAME_CALLT(st, G_SOUND, FN_PLATFORM_STREAM_VOLUME_SET, 2, 0);
 }
 
 /* ---- random city sounds ---- */
@@ -292,32 +282,32 @@ static int32_t rand_below(game_state *st, int32_t n)
 void city_random_sound(game_state *st)
 {
     /* @bin 0x0053ACF0 sound on, city sounds on */
-    if (S32(st, SOUND_ON) == 0 || U8(st, CITY_SOUNDS) == 0) {
+    if (S32(st, G_SOUND_ON) == 0 || U8(st, G_CITY_SOUNDS_ON) == 0) {
         return;
     }
     /* @bin 0x0053AD0C a random point of the city view (width: 0x00F53F60 when 0x00F53F78, else
      * 0x00F53F64; height 0x00E38D98) */
-    int32_t x = rand_below(st, S32(st, 0x00F53F78u) != 0 ? S32(st, 0x00F53F60u) : S32(st, 0x00F53F64u));
-    int32_t y = rand_below(st, S32(st, 0x00E38D98u));
+    int32_t x = rand_below(st, S32(st, G_SIDEBAR_COLLAPSED) != 0 ? S32(st, G_SIDEBAR_X_COLLAPSED) : S32(st, G_SIDEBAR_X));
+    int32_t y = rand_below(st, S32(st, G_DRAW_H));
     int32_t tile = view_screen_to_tile(st, x, y);
     if (tile >= 0x0FFF0000) {
         return;
     }
-    int32_t building = S16(st, 0x00B4E6FCu + 2u * (uint32_t) tile);
-    uint32_t terrain = U32(st, 0x00AF598Cu + 4u * (uint32_t) tile);
+    int32_t building = S16(st, G_BUILDING_GRID + 2u * (uint32_t) tile);
+    uint32_t terrain = U32(st, G_GRID_TERRAIN + 4u * (uint32_t) tile);
     int32_t id;
     if (building != 0) {
         uint32_t b = BUILDING_ADDR(building);
-        if (S16(st, b + 0x10) == 0x39) {
+        if (S16(st, b + BLD_TYPE) == 0x39) {
             /* @bin 0x0053AD9B type 0x39 by its +0x12: 0x0D, 0x0B, others (tables 0x00F54990,
              * 0x00F549E0, 0x00F549F4 with their counts after 4 entries) */
-            int16_t sub = S16(st, b + 0x12);
-            uint32_t table = sub == 0x0D ? 0x00F54990u : sub == 0x0B ? 0x00F549E0u : 0x00F549F4u;
+            int16_t sub = S16(st, b + BLD_SUBTYPE);
+            uint32_t table = sub == 0x0D ? G_SOUNDS_39_SUB0D : sub == 0x0B ? G_SOUNDS_39_SUB0B : G_SOUNDS_39_OTHER;
             id = S32(st, table + 4u * (uint32_t) rand_below(st, S32(st, table + 0x10)));
         } else {
             /* @bin 0x0053AE11 the building type's sounds: 0x00F54670 + 20 * type, count at +0x10 */
-            int32_t type = S16(st, b + 0x10);
-            uint32_t table = 0x00F54670u + 20u * (uint32_t) type;
+            int32_t type = S16(st, b + BLD_TYPE);
+            uint32_t table = G_BUILDING_SOUND_TABLE + 20u * (uint32_t) type;
             id = S32(st, table + 4u * (uint32_t) rand_below(st, S32(st, table + 0x10)));
         }
     } else {
@@ -341,19 +331,19 @@ void city_random_sound(game_state *st)
             return;
         }
         /* @bin 0x0053AED3 the class's sounds: 0x00F54550 + 48 * class, count at +0x2C */
-        uint32_t table = 0x00F54550u + 48u * (uint32_t) k;
+        uint32_t table = G_AMBIENT_SOUNDS + 48u * (uint32_t) k;
         id = S32(st, table + 4u * (uint32_t) rand_below(st, S32(st, table + 0x2C)));
     }
     if (id <= -1) {
         return;
     }
     /* @bin 0x0053AE49 pan from x (as a figure's), volume: city sounds 0x00E38ED0, once */
-    S32(st, REQUEST + 12) = platform_view_pan(st, x);
-    S32(st, REQUEST + 8) = S32(st, CITY_VOLUME);
-    S32(st, REQUEST + 4) = id;
-    S32(st, REQUEST) = -1;
-    S32(st, REQUEST + 16) = 1;
-    GAME_CALLT(st, SOUND, 0x0055F0E8u, (int32_t) REQUEST);
+    S32(st, G_REQUEST + 12) = platform_view_pan(st, x);
+    S32(st, G_REQUEST + 8) = S32(st, G_CITY_VOLUME);
+    S32(st, G_REQUEST + 4) = id;
+    S32(st, G_REQUEST) = -1;
+    S32(st, G_REQUEST + 16) = 1;
+    GAME_CALLT(st, G_SOUND, FN_PLATFORM_SAMPLE_PLAY, (int32_t) G_REQUEST);
 }
 
 /* ---- music (the object 0x00E39180, music.txt: 0x00539250) ----
@@ -363,7 +353,7 @@ void city_random_sound(game_state *st)
  * "M" tunes of the population, +0x59A5C the first one last chosen, +0x59A60 the next tune, +0x59A64 the
  * step (0 tune, 1 "A" tune, 2 start waiting, 3 wait), +0x59A68 the wait's start, +0x59A6C set after a
  * wait; 0x00F55B98 the wait in ms */
-#define MUSIC_BLOCK(st, self) ((self) + 0x1B10u * (uint32_t) (int32_t) S8(st, MISSION))
+#define MUSIC_BLOCK(st, self) ((self) + 0x1B10u * (uint32_t) (int32_t) S8(st, G_MISSION))
 #define TUNE(st, self, i) (MUSIC_BLOCK(st, self) + 0x70u * (uint32_t) (i))
 
 void music_set_window(game_state *st, uint32_t self, int32_t first, int32_t last)
@@ -410,14 +400,14 @@ void music_window(game_state *st, uint32_t self, int32_t force)
 void music_step(game_state *st, uint32_t self)
 {
     /* @bin 0x00539820 sound on, music on */
-    if (S32(st, SOUND_ON) == 0 || U8(st, MUSIC_OPTION) == 0) {
+    if (S32(st, G_SOUND_ON) == 0 || U8(st, G_MUSIC_ON) == 0) {
         return;
     }
     if (S32(st, self + 0x59A64) == 0) {
         music_window(st, self, 0);
     }
     /* @bin 0x0053984F the music volume option to stream 0 */
-    GAME_CALLT(st, SOUND, 0x0055F38Du, S32(st, MUSIC_VOLUME));
+    GAME_CALLT(st, G_SOUND, FN_PLATFORM_STREAM_VOLUME_MUSIC, S32(st, G_MUSIC_VOLUME));
     uint32_t block = MUSIC_BLOCK(st, self);
     switch (S32(st, self + 0x59A64)) { /* @bin 0x00539A28 */
     case 0:
@@ -425,8 +415,8 @@ void music_step(game_state *st, uint32_t self)
         if (S32(st, block + 0x1B08) <= 0) {
             return;
         }
-        GAME_CALLT(st, SOUND, 0x0055F449u, (int32_t) TUNE(st, self, S32(st, self + 0x59A60)), 0, 1);
-        S32(st, 0x00F55B98u) = S32(st, TUNE(st, self, S32(st, self + 0x59A60)) + 0x64) * 1000;
+        GAME_CALLT(st, G_SOUND, FN_PLATFORM_STREAM_PLAY, (int32_t) TUNE(st, self, S32(st, self + 0x59A60)), 0, 1);
+        S32(st, G_MUSIC_WAIT) = S32(st, TUNE(st, self, S32(st, self + 0x59A60)) + 0x64) * 1000;
         S32(st, self + 0x59A6C) = 0;
         S32(st, self + 0x59A60) += 1;
         S32(st, self + 0x59A64) =
@@ -436,7 +426,7 @@ void music_step(game_state *st, uint32_t self)
         /* @bin 0x00539946 a random "A" tune, once */
         if (S32(st, block + 0x1B0C) > 0) {
             int32_t a = rand_below(st, S32(st, block + 0x1B0C));
-            GAME_CALLT(st, SOUND, 0x0055F449u, (int32_t) TUNE(st, self, a + 50), 0, 1);
+            GAME_CALLT(st, G_SOUND, FN_PLATFORM_STREAM_PLAY, (int32_t) TUNE(st, self, a + 50), 0, 1);
         }
         S32(st, self + 0x59A64) = 2;
         return;
@@ -447,7 +437,7 @@ void music_step(game_state *st, uint32_t self)
         return;
     case 3:
         /* @bin 0x005399DA after the wait (unsigned compare): back to the first tune past the last */
-        if (platform_clock_ms(st) > (uint32_t) S32(st, self + 0x59A68) + (uint32_t) S32(st, 0x00F55B98u)) {
+        if (platform_clock_ms(st) > (uint32_t) S32(st, self + 0x59A68) + (uint32_t) S32(st, G_MUSIC_WAIT)) {
             if (S32(st, self + 0x59A60) > S32(st, self + 0x59A58)) {
                 S32(st, self + 0x59A60) = S32(st, self + 0x59A54);
             }
@@ -541,8 +531,8 @@ const ported_function frame_sound_ports[] = {
     {0x0053B790u, "stream_fade_in", 1, 0, 0, run_fade_in, 0},
     {0x0053B960u, "ambient_stream", 0, 0, 0, run_ambient_stream, 0},
     {0x0053ACF0u, "city_random_sound", 0, 0, 0, run_city_random_sound, 0},
-    {0x00539A50u, "music_set_window", 2, 0, 0x00E39180u, run_music_set_window, 0},
-    {0x00539730u, "music_window", 1, 0, 0x00E39180u, run_music_window, 0},
-    {0x00539820u, "music_step", 0, 0, 0x00E39180u, run_music_step, 0},
+    {0x00539A50u, "music_set_window", 2, 0, G_MUSIC, run_music_set_window, 0},
+    {0x00539730u, "music_window", 1, 0, G_MUSIC, run_music_window, 0},
+    {0x00539820u, "music_step", 0, 0, G_MUSIC, run_music_step, 0},
 };
 const int frame_sound_ports_count = sizeof(frame_sound_ports) / sizeof(frame_sound_ports[0]);

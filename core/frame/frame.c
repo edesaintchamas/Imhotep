@@ -11,19 +11,9 @@
 #include "sim/call.h"
 #include "sim/platform.h"
 #include "sim/tick.h"
+#include "state/layout.h"
 #include "state/ported.h"
 
-#define WINDOW 0x00E38DDAu       /* u8 the current window id */
-#define REDRAW 0x00E38DCAu       /* u8 full redraw of the window's background */
-#define PRESENT_NOW 0x00E38DC8u  /* u8 present at the next present call */
-#define FRAME_CLOCK 0x00E92E0Cu  /* the frame's timeGetTime */
-#define FAST_FORWARD 0x00E3908Cu /* u8 set by the day cascade 0x00452370 */
-#define SCROLLING 0x00E38DCCu    /* i32 the map scrolls (0x004CF660) */
-#define PLAYER 0x00EAAC28u
-#define CITY_SIZE 0x49D8u
-#define SOUND 0x00E92BF8u        /* the sound object (thiscall) */
-#define FORMATION 0x00BCB9C0u    /* i32 the current formation; records of 0x90 bytes from here */
-#define FIGURE_TYPE 0x00BCD630u  /* u8 figure type, records of 0x184 bytes */
 
 /* ---- clock, timers, pacing ---- */
 
@@ -31,14 +21,14 @@ void frame_timers(game_state *st)
 {
     /* @bin 0x0040F270 the 51 flags 0x00605B38 are cleared; timer k (0x00605A6C, i32) fires when the
      * frame clock reaches it + 20 * k (signed compare): flag 1, timer := clock */
-    int32_t now = S32(st, FRAME_CLOCK);
+    int32_t now = S32(st, G_FRAME_CLOCK);
     for (uint32_t k = 0; k < 51; k++) {
-        U8(st, 0x00605B38u + k) = 0;
+        U8(st, G_ANIM_FLAGS + k) = 0;
     }
     for (uint32_t k = 0; k < 51; k++) {
-        uint32_t t = 0x00605A6Cu + 4 * k;
+        uint32_t t = G_ANIM_TIMERS + 4 * k;
         if (now >= (int32_t) (U32(st, t) + 20 * k)) {
-            U8(st, 0x00605B38u + k) = 1;
+            U8(st, G_ANIM_FLAGS + k) = 1;
             S32(st, t) = now;
         }
     }
@@ -48,35 +38,35 @@ int32_t frame_pacing(game_state *st)
 {
     /* @bin 0x004DDCB0 */
     uint32_t now = platform_clock_ms(st); /* timeGetTime */
-    int32_t dt = (int32_t) (now - U32(st, 0x00E94DB8u));
+    int32_t dt = (int32_t) (now - U32(st, G_TICK_LAST_TIME));
     if (dt < 0) {
         dt = 10000; /* @bin 0x004DDCC3 the clock went back */
     }
     /* @bin 0x004DDCCA i = (100 - speed 0x00E38E6C) / 10, truncated (idiv by the 0x66666667 trick) */
-    int32_t i = (100 - S32(st, 0x00E38E6Cu)) / 10;
-    if (i >= 10 || U8(st, 0x00E38E60u) != 0) { /* @bin 0x00E38E60 the pause flag */
+    int32_t i = (100 - S32(st, G_GAME_SPEED)) / 10;
+    if (i >= 10 || U8(st, G_GATE) != 0) { /* @bin 0x00E38E60 the pause flag */
         return 0;
     }
-    uint8_t w = U8(st, WINDOW);
+    uint8_t w = U8(st, G_WINDOW);
     if (w == 0x12 || w == 0x23) {
-        if (S32(st, 0x00D3A6C4u) != 1) { /* @bin 0x004DDD17 */
+        if (S32(st, G_TIP_WINDOW) != 1) { /* @bin 0x004DDD17 */
             return 0;
         }
-    } else if (S32(st, 0x005E1C50u + 4u * w) != 0) { /* @bin 0x005E1C50 windows that stop time */
+    } else if (S32(st, G_WINDOW_STOPS_TIME + 4u * w) != 0) { /* @bin 0x005E1C50 windows that stop time */
         return 0;
     }
     /* @bin 0x004DDD20 a construction drag (0x006059E4) or a scroll stops time */
-    if (S32(st, 0x006059E4u) != 0 || S32(st, SCROLLING) != 0) {
+    if (S32(st, G_CONSTRUCTION_DRAG) != 0 || S32(st, G_SCROLLING) != 0) {
         return 0;
     }
     if (i < 0) {
         i = 0;
     }
     /* @bin 0x005E1DB4 the delay table {0, 20, 35, 55, 80, 110, 160, 240, 350, 500, 700} + 2 ms */
-    if (dt < S32(st, 0x005E1DB4u + 4u * (uint32_t) i) + 2) {
+    if (dt < S32(st, G_SPEED_DELAYS + 4u * (uint32_t) i) + 2) {
         return 0;
     }
-    U32(st, 0x00E94DB8u) = now;
+    U32(st, G_TICK_LAST_TIME) = now;
     return 10000;
 }
 
@@ -85,9 +75,9 @@ int32_t frame_pacing(game_state *st)
 void frame_clear_keys(game_state *st)
 {
     /* @bin 0x004CF1F0 */
-    S32(st, 0x00E38DFCu) = 0;
-    U8(st, 0x00E38E02u) = 0;
-    U8(st, 0x00E38DF6u) = 0;
+    S32(st, G_UE38DFC) = 0;
+    U8(st, G_LEFT_LATCH) = 0;
+    U8(st, G_UE38DF6) = 0;
 }
 
 void frame_mouse(game_state *st)
@@ -95,133 +85,133 @@ void frame_mouse(game_state *st)
     /* @bin 0x004CF210 */
     int32_t px, py;
     frame_cursor_pos(st, &px, &py); /* GetCursorPos */
-    S32(st, 0x00E38DC4u) = px;
-    S32(st, 0x00E38DC0u) = py;
-    if (S32(st, SCROLLING) != 0) { /* @bin 0x004CF23D the 16-bit position from GetCursorPos */
-        S16(st, 0x00E38E0Au) = (int16_t) px;
-        S16(st, 0x00E38E08u) = (int16_t) py;
+    S32(st, G_CURSOR_POS_X) = px;
+    S32(st, G_CURSOR_POS_Y) = py;
+    if (S32(st, G_SCROLLING) != 0) { /* @bin 0x004CF23D the 16-bit position from GetCursorPos */
+        S16(st, G_MSG_MOUSE_X) = (int16_t) px;
+        S16(st, G_MSG_MOUSE_Y) = (int16_t) py;
     }
-    int32_t old_y = S32(st, 0x00E38E30u);
-    int32_t old_x = S32(st, 0x00E38E34u);
-    if (S32(st, 0x00E38E14u) == 1) { /* @bin 0x004CF263 a drag past 50 px from its start */
-        int32_t sx = S32(st, 0x00E38E1Cu);
+    int32_t old_y = S32(st, G_MOUSE_Y);
+    int32_t old_x = S32(st, G_MOUSE_X);
+    if (S32(st, G_DRAG_STATE) == 1) { /* @bin 0x004CF263 a drag past 50 px from its start */
+        int32_t sx = S32(st, G_DRAG_START_X);
         if (old_x > sx + 50) {
-            S32(st, 0x00E38E14u) = 2;
+            S32(st, G_DRAG_STATE) = 2;
         }
         if (old_x < sx - 50) {
-            S32(st, 0x00E38E14u) = 2;
+            S32(st, G_DRAG_STATE) = 2;
         }
-        int32_t sy = S32(st, 0x00E38E18u);
+        int32_t sy = S32(st, G_DRAG_START_Y);
         if (old_y > sy + 50) {
-            S32(st, 0x00E38E14u) = 2;
+            S32(st, G_DRAG_STATE) = 2;
         }
         if (old_y < sy - 50) {
-            S32(st, 0x00E38E14u) = 2;
+            S32(st, G_DRAG_STATE) = 2;
         }
     }
-    uint8_t old_right = U8(st, 0x00E38DF4u);
-    int32_t now = S32(st, FRAME_CLOCK);
-    S32(st, 0x00E38E10u) = old_x;
-    U8(st, 0x00E38DEDu) = old_right;
-    S32(st, 0x00E38E0Cu) = old_y;
-    U8(st, 0x00E38DF9u) = U8(st, 0x00E38E00u);
-    S32(st, 0x00E38E40u) = 0;
+    uint8_t old_right = U8(st, G_RIGHT_HELD);
+    int32_t now = S32(st, G_FRAME_CLOCK);
+    S32(st, G_MOUSE_X_PREV) = old_x;
+    U8(st, G_RIGHT_HELD_PREV) = old_right;
+    S32(st, G_MOUSE_Y_PREV) = old_y;
+    U8(st, G_LEFT_HELD_PREV) = U8(st, G_LEFT_HELD);
+    S32(st, G_MOUSE_MOVED) = 0;
     /* @bin 0x004CF2DE the scale: 0x004CDE60(screen size, client size), 0x004CDE40(position, scale) */
-    int32_t kx = GAME_CALL(st, 0x004CDE60u, S32(st, 0x00E38D9Cu), S32(st, 0x00E39138u) - S32(st, 0x00E39130u));
-    int32_t ky = GAME_CALL(st, 0x004CDE60u, S32(st, 0x00E38D98u), S32(st, 0x00E3913Cu) - S32(st, 0x00E39134u));
-    S32(st, 0x00E38E34u) = GAME_CALL(st, 0x004CDE40u, (int16_t) S16(st, 0x00E38E0Au), kx);
-    int32_t y = GAME_CALL(st, 0x004CDE40u, (int16_t) S16(st, 0x00E38E08u), ky);
-    uint8_t buttons = U8(st, 0x00E38E07u);
-    S32(st, 0x00E38E30u) = y;
-    S32(st, 0x00E38E38u) = 0;
-    U8(st, 0x00E38E00u) = 0;
-    U8(st, 0x00E38DF4u) = 0;
-    U8(st, 0x00E38E03u) = 0;
-    U8(st, 0x00E38E04u) = 0;
-    U8(st, 0x00E38DF7u) = 0;
-    U8(st, 0x00E38DF8u) = 0;
+    int32_t kx = GAME_CALL(st, FN_CALC_RATIO_PERCENT, S32(st, G_UE38D9C), S32(st, G_CLIENT_RECT + 8) - S32(st, G_CLIENT_RECT));
+    int32_t ky = GAME_CALL(st, FN_CALC_RATIO_PERCENT, S32(st, G_DRAW_H), S32(st, G_CLIENT_RECT + 12) - S32(st, G_CLIENT_RECT + 4));
+    S32(st, G_MOUSE_X) = GAME_CALL(st, FN_CALC_PERCENTAGE, (int16_t) S16(st, G_MSG_MOUSE_X), kx);
+    int32_t y = GAME_CALL(st, FN_CALC_PERCENTAGE, (int16_t) S16(st, G_MSG_MOUSE_Y), ky);
+    uint8_t buttons = U8(st, G_BUTTONS);
+    S32(st, G_MOUSE_Y) = y;
+    S32(st, G_BUTTON_CHANGED) = 0;
+    U8(st, G_LEFT_HELD) = 0;
+    U8(st, G_RIGHT_HELD) = 0;
+    U8(st, G_LEFT_PRESSED) = 0;
+    U8(st, G_LEFT_RELEASED) = 0;
+    U8(st, G_RIGHT_PRESSED) = 0;
+    U8(st, G_RIGHT_RELEASED) = 0;
     uint8_t right = 0, left = 0;
     if (buttons & 2) {
         right = 1;
-        U8(st, 0x00E38DF4u) = 1;
+        U8(st, G_RIGHT_HELD) = 1;
     }
     if (buttons & 1) {
         left = 1;
-        U8(st, 0x00E38E00u) = 1;
+        U8(st, G_LEFT_HELD) = 1;
     }
-    if (S32(st, 0x00E38E10u) != S32(st, 0x00E38E34u)) {
-        S32(st, 0x00E38E40u) = 1;
+    if (S32(st, G_MOUSE_X_PREV) != S32(st, G_MOUSE_X)) {
+        S32(st, G_MOUSE_MOVED) = 1;
     }
-    if (S32(st, 0x00E38E0Cu) != y || S32(st, 0x00E38E40u) != 0) {
+    if (S32(st, G_MOUSE_Y_PREV) != y || S32(st, G_MOUSE_MOVED) != 0) {
         /* @bin 0x004CF3AA moved: the time of the last move 0x00E36C8C */
-        S32(st, 0x00E38E40u) = 1;
-        S32(st, 0x00E36C8Cu) = now;
-        S32(st, 0x00E38E3Cu) = 0;
+        S32(st, G_MOUSE_MOVED) = 1;
+        S32(st, G_MOUSE_MOVE_TIME) = now;
+        S32(st, G_MOUSE_STILL_TIME) = 0;
     } else {
-        S32(st, 0x00E38E3Cu) = now - S32(st, 0x00E36C8Cu);
+        S32(st, G_MOUSE_STILL_TIME) = now - S32(st, G_MOUSE_MOVE_TIME);
     }
-    if (left != U8(st, 0x00E38DF9u)) {
-        S32(st, 0x00E38E40u) = 1;
-        S32(st, 0x00E38E38u) = 1;
+    if (left != U8(st, G_LEFT_HELD_PREV)) {
+        S32(st, G_MOUSE_MOVED) = 1;
+        S32(st, G_BUTTON_CHANGED) = 1;
         if (left == 1) {
-            U8(st, 0x00E38E03u) = 1;
-            GAME_CALL(st, 0x0053B090u, 0); /* @bin 0x004CF403 the click sound */
-            right = U8(st, 0x00E38DF4u);
+            U8(st, G_LEFT_PRESSED) = 1;
+            GAME_CALL(st, FN_UI_SOUND, 0); /* @bin 0x004CF403 the click sound */
+            right = U8(st, G_RIGHT_HELD);
         } else {
-            U8(st, 0x00E38E04u) = 1;
+            U8(st, G_LEFT_RELEASED) = 1;
         }
     }
-    if (right != U8(st, 0x00E38DEDu)) {
-        S32(st, 0x00E38E40u) = 1;
-        S32(st, 0x00E38E38u) = 1;
+    if (right != U8(st, G_RIGHT_HELD_PREV)) {
+        S32(st, G_MOUSE_MOVED) = 1;
+        S32(st, G_BUTTON_CHANGED) = 1;
         if (right == 1) {
-            U8(st, 0x00E38E06u) = 0;
-            U8(st, 0x00E38DF7u) = 1;
+            U8(st, G_UE38E06) = 0;
+            U8(st, G_RIGHT_PRESSED) = 1;
             return;
         }
         if (right == 0) {
-            U8(st, 0x00E38DF8u) = 1;
+            U8(st, G_RIGHT_RELEASED) = 1;
         }
     }
-    U8(st, 0x00E38E06u) = 0;
+    U8(st, G_UE38E06) = 0;
 }
 
 void frame_cursor(game_state *st, int32_t n)
 {
     /* @bin 0x004CF460 the handle of cursor n (the 19 loaded by 0x004CF960; any other n: cursor 0)
      * becomes the current one 0x00E390DC; SetCursor itself is the platform's (no request yet) */
-    static const uint32_t handle[19] = {0x00E390D8u, 0x00E390B8u, 0x00E390D0u, 0x00E390CCu, 0x00E390C4u,
-                                        0x00E390C8u, 0x00E39094u, 0x00E390BCu, 0x00E390D4u, 0x00E390B4u,
-                                        0x00E390B0u, 0x00E390A8u, 0x00E390ACu, 0x00E390A0u, 0x00E390A4u,
-                                        0x00E3909Cu, 0x00E39098u, 0x00E390C0u, 0x00E39090u};
-    uint32_t a = (uint32_t) n <= 0x12u ? handle[n] : 0x00E390D8u;
-    U32(st, 0x00E390DCu) = U32(st, a);
+    static const uint32_t handle[19] = {G_CURSOR_66, G_CURSOR_96, G_CURSOR_82, G_CURSOR_8E, G_CURSOR_UNLOAD,
+                                        G_CURSOR_BOARD, G_CURSOR_92, G_CURSOR_93, G_CURSOR_88, G_CURSOR_94,
+                                        G_CURSOR_95, G_CURSOR_98, G_CURSOR_99, G_CURSOR_9A, G_CURSOR_9B,
+                                        G_CURSOR_9C, G_CURSOR_9D, G_CURSOR_9F, G_CURSOR_A0};
+    uint32_t a = (uint32_t) n <= 0x12u ? handle[n] : G_CURSOR_66;
+    U32(st, G_CURSOR) = U32(st, a);
 }
 
 static uint32_t hovered_offset(game_state *st)
 {
     /* the hovered tile's map offset: y * 228 + x + map start 0x00BCA2D8 */
-    return (uint32_t) (S32(st, 0x00BCA2CCu) * 228 + S32(st, 0x00BCA2C8u) + S32(st, 0x00BCA2D8u));
+    return (uint32_t) (S32(st, G_MOUSE_TILE_Y) * 228 + S32(st, G_MOUSE_TILE_X) + S32(st, G_MAP_START));
 }
 
 static int32_t cursor_attack_target(game_state *st, int32_t f)
 {
     /* @bin 0x004D6AA0 a figure that can attack (0x00D05708 set, figure +0xF8 clear) over a tile with
      * an enemy (0x004B5520) */
-    if (S32(st, 0x00D05708u) == 0 || U8(st, 0x00BCD728u + (uint32_t) f * 0x184u) != 0) {
+    if (S32(st, G_TRANSPORT_MODE) == 0 || U8(st, FIGURE_ADDR(f) + FIG_U130) != 0) {
         return 0;
     }
-    return GAME_CALL(st, 0x004B5520u, (int32_t) hovered_offset(st)) != 0;
+    return GAME_CALL(st, FN_TILE_SOLDIER_FORMATION, (int32_t) hovered_offset(st)) != 0;
 }
 
 static int32_t cursor_move_target(game_state *st, int32_t f)
 {
     /* @bin 0x004D6B00 a figure that moves (0x00D05708 set, figure +0xF8 set) over a tile whose
      * terrain (0x00AF598C) has no bit 4 */
-    if (S32(st, 0x00D05708u) == 0 || U8(st, 0x00BCD728u + (uint32_t) f * 0x184u) == 0) {
+    if (S32(st, G_TRANSPORT_MODE) == 0 || U8(st, FIGURE_ADDR(f) + FIG_U130) == 0) {
         return 0;
     }
-    return (U32(st, 0x00AF598Cu + 4 * hovered_offset(st)) & 4) != 4;
+    return (U32(st, G_GRID_TERRAIN + 4 * hovered_offset(st)) & 4) != 4;
 }
 
 static int32_t run_attack_target(game_state *st, const int32_t *a) { return cursor_attack_target(st, a[0]); }
@@ -230,10 +220,10 @@ static int32_t run_move_target(game_state *st, const int32_t *a) { return cursor
 /* @bin 0x004D6CF0 the cursor of the frame's window; -1: no change */
 static int32_t frame_cursor_choice(game_state *st)
 {
-    uint8_t w = U8(st, WINDOW);
+    uint8_t w = U8(st, G_WINDOW);
     if (w == 0x1E) { /* formation orders */
-        int32_t enemy = GAME_CALL(st, 0x004B5640u, S32(st, 0x00BCA2C4u));
-        uint32_t rec = FORMATION + (uint32_t) S32(st, FORMATION) * 0x90u;
+        int32_t enemy = GAME_CALL(st, FN_TILE_ENEMY_FIGURE, S32(st, G_MOUSE_OFFSET));
+        uint32_t rec = G_FORMATION + (uint32_t) S32(st, G_FORMATION) * 0x90u;
         if (enemy != 0) {
             return S16(st, rec + 0x0C) != 0x0C ? 9 : 8;
         }
@@ -251,15 +241,15 @@ static int32_t frame_cursor_choice(game_state *st)
         return 0x0A;
     }
     if (w == 1) {
-        return S32(st, 0x006059E8u) == 9 ? 2 : 0;
+        return S32(st, G_CONSTRUCTION_UI_TYPE) == 9 ? 2 : 0;
     }
     if (w == 0x1F) { /* @bin 0x004D6DA2 a ship or a transport chosen (0x00D05700) */
-        int32_t f = S32(st, 0x00D05700u);
+        int32_t f = S32(st, G_SEL_TRANSPORT);
         if (f <= 0) {
             frame_cursor(st, 0);
         }
         /* @bin 0x004D7058 by figure type 9..20 */
-        switch (U8(st, FIGURE_TYPE + (uint32_t) f * 0x184u)) {
+        switch (U8(st, FIGURE_ADDR(f) + FIG_ACTION)) {
         case 9:
             if (cursor_attack_target(st, f)) {
                 return 5;
@@ -267,7 +257,7 @@ static int32_t frame_cursor_choice(game_state *st)
             return cursor_move_target(st, f) ? 4 : 0x12;
         case 10: return 0x10;
         case 11:
-            if (S32(st, 0x00D05708u) != 0) {
+            if (S32(st, G_TRANSPORT_MODE) != 0) {
                 return 0x12;
             }
             if (cursor_attack_target(st, f)) {
@@ -276,21 +266,21 @@ static int32_t frame_cursor_choice(game_state *st)
             return cursor_move_target(st, f) ? 4 : -1;
         case 12: return cursor_attack_target(st, f) ? 5 : 0x12;
         case 13: return cursor_move_target(st, f) ? 4 : 0x12;
-        case 20: return S32(st, 0x00D05708u) != 0 ? 6 : -1;
+        case 20: return S32(st, G_TRANSPORT_MODE) != 0 ? 6 : -1;
         default: return 3;
         }
     }
     if (w == 0x20) {
-        if (GAME_CALL(st, 0x004B5640u, S32(st, 0x00BCA2C4u)) != 0) {
+        if (GAME_CALL(st, FN_TILE_ENEMY_FIGURE, S32(st, G_MOUSE_OFFSET)) != 0) {
             return 9;
         }
-        int32_t f = S32(st, 0x00D05704u);
+        int32_t f = S32(st, G_SEL_WARSHIP);
         if (f <= 0) {
             frame_cursor(st, 0);
         }
-        switch (U8(st, FIGURE_TYPE + (uint32_t) f * 0x184u)) {
+        switch (U8(st, FIGURE_ADDR(f) + FIG_ACTION)) {
         case 0x0A: return 0x11;
-        case 0x14: return S32(st, 0x00D0570Cu) != 0 ? 7 : -1;
+        case 0x14: return S32(st, G_WARSHIP_MODE) != 0 ? 7 : -1;
         case 0x17: return 3;
         default: return 0;
         }
@@ -306,68 +296,68 @@ int32_t frame_screen_to_tile(game_state *st)
      * view's x, y, tile width / height and the view-to-tile table 0x0070E494 (0xE7 per row);
      * 0 outside the view or on a tile >= 0x0FFF0000 (none). Writes the view column / row 0x0070E404 /
      * 0x0070E408, the table entry 0x0070E3F8 and the edge flags 0x0070E3FC / 0x0070E400 */
-    int32_t mx = S32(st, 0x00E38E34u);
-    int32_t vx = S32(st, 0x0070E490u);
-    if (mx < vx || mx >= (S32(st, 0x0070E458u) + 2) * S32(st, 0x0070E464u) + vx) {
+    int32_t mx = S32(st, G_MOUSE_X);
+    int32_t vx = S32(st, G_VIEW_X);
+    if (mx < vx || mx >= (S32(st, G_U70E458) + 2) * S32(st, G_VIEW_COLS) + vx) {
         return 0;
     }
-    int32_t my = S32(st, 0x00E38E30u);
-    int32_t vy = S32(st, 0x0070E48Cu);
-    int32_t th = S32(st, 0x0070E44Cu);
-    if (my < vy || my >= th * S32(st, 0x0070E460u) + vy) {
+    int32_t my = S32(st, G_MOUSE_Y);
+    int32_t vy = S32(st, G_VIEW_Y);
+    int32_t th = S32(st, G_TILE_H);
+    if (my < vy || my >= th * S32(st, G_VIEW_ROWS) + vy) {
         return 0;
     }
     my -= vy;
     mx -= vx;
     int32_t row = my / th;
-    S32(st, 0x0070E404u) = row;
-    int32_t tw = S32(st, 0x0070E45Cu) + 1;
+    S32(st, G_VIEW_CELL_ROW) = row;
+    int32_t tw = S32(st, G_TILE_W) + 1;
     int32_t col = mx / tw;
     int32_t col_odd = col & 1;
     int32_t row_odd = row & 1;
     int32_t parity = (row + col) & 1;
     int32_t half = (mx % tw) / 2;     /* @bin 0x0043084B cdq; sub; sar 1: toward 0 */
-    int32_t in_row = my % S32(st, 0x0070E44Cu);
+    int32_t in_row = my % S32(st, G_TILE_H);
     int32_t x = col / 2;
-    S32(st, 0x0070E408u) = x;
+    S32(st, G_VIEW_CELL_COL) = x;
     if (parity == 0) {
         if (in_row > half) {
             row++;
-            S32(st, 0x0070E404u) = row;
+            S32(st, G_VIEW_CELL_ROW) = row;
         } else if (col_odd != 0 && row_odd != 0) {
             x++;
-            S32(st, 0x0070E408u) = x;
+            S32(st, G_VIEW_CELL_COL) = x;
         }
     } else if (parity == 1) {
-        if (in_row + half >= S32(st, 0x0070E44Cu) - 1) {
+        if (in_row + half >= S32(st, G_TILE_H) - 1) {
             row++;
-            S32(st, 0x0070E404u) = row;
+            S32(st, G_VIEW_CELL_ROW) = row;
             if (col_odd != 0 && row_odd == 0) {
                 x++;
-                S32(st, 0x0070E408u) = x;
+                S32(st, G_VIEW_CELL_COL) = x;
             }
         }
     }
-    int32_t r = S32(st, 0x0070E474u) + row;
+    int32_t r = S32(st, G_VIEW_FIRST_ROW) + row;
     int32_t odd = row & 1;
     /* @bin 0x004308B7 rows of 0xE7 entries */
-    int32_t entry = S32(st, 0x0070E494u + 4u * (uint32_t) (r * 0xE7 + S32(st, 0x0070E478u) + x));
-    S32(st, 0x0070E3F8u) = entry;
+    int32_t entry = S32(st, G_VIEW_TABLE + 4u * (uint32_t) (r * 0xE7 + S32(st, G_VIEW_FIRST_COL) + x));
+    S32(st, G_VIEW_CELL_ENTRY) = entry;
     if (entry >= 0x0FFF0000) {
         return 0;
     }
-    S32(st, 0x0070E3FCu) = 0;
-    S32(st, 0x0070E400u) = 0;
+    S32(st, G_VIEW_CELL_ROW_EDGE) = 0;
+    S32(st, G_VIEW_CELL_COL_EDGE) = 0;
     if (row == 0) {
-        S32(st, 0x0070E3FCu) = 2;
-    } else if (row >= S32(st, 0x0070E460u)) {
-        S32(st, 0x0070E3FCu) = 1;
+        S32(st, G_VIEW_CELL_ROW_EDGE) = 2;
+    } else if (row >= S32(st, G_VIEW_ROWS)) {
+        S32(st, G_VIEW_CELL_ROW_EDGE) = 1;
     }
     if (odd != 0) {
         if (x == 0) {
-            S32(st, 0x0070E400u) = 2;
-        } else if (x >= S32(st, 0x0070E464u)) {
-            S32(st, 0x0070E400u) = 1;
+            S32(st, G_VIEW_CELL_COL_EDGE) = 2;
+        } else if (x >= S32(st, G_VIEW_COLS)) {
+            S32(st, G_VIEW_CELL_COL_EDGE) = 1;
         }
     }
     return entry;
@@ -376,35 +366,35 @@ int32_t frame_screen_to_tile(game_state *st)
 void frame_hover_tile(game_state *st)
 {
     /* @bin 0x00405F80 */
-    S32(st, 0x00BCA2CCu) = 0;
-    S32(st, 0x00BCA2C8u) = 0;
+    S32(st, G_MOUSE_TILE_Y) = 0;
+    S32(st, G_MOUSE_TILE_X) = 0;
     int32_t t = frame_screen_to_tile(st);
-    S32(st, 0x00BCA2C4u) = t;
+    S32(st, G_MOUSE_OFFSET) = t;
     if (t == 0) {
         return;
     }
-    int32_t d = t - S32(st, 0x00BCA2D8u);
+    int32_t d = t - S32(st, G_MAP_START);
     int32_t x = d % 228;
     int32_t y = d / 228;
-    S32(st, 0x00BCA2C8u) = x;
-    S32(st, 0x00BCA2CCu) = y;
-    if (U8(st, 0x00605A5Cu) != 0) { /* @bin 0x00605A5C 'M' freezes the hovered tile */
+    S32(st, G_MOUSE_TILE_X) = x;
+    S32(st, G_MOUSE_TILE_Y) = y;
+    if (U8(st, G_FROZEN) != 0) { /* @bin 0x00605A5C 'M' freezes the hovered tile */
         return;
     }
-    S32(st, 0x00BCA300u) = t;
-    S32(st, 0x00BCA304u) = x;
-    S32(st, 0x00BCA308u) = y;
+    S32(st, G_HOVER_TILE) = t;
+    S32(st, G_HOVER_X) = x;
+    S32(st, G_HOVER_Y) = y;
     /* @bin 0x00405F60 building type 0xB7 is being placed: 0x004ED330 */
-    if (S32(st, 0x006059E8u) == 0xB7) {
-        GAME_CALL0(st, 0x004ED330u);
+    if (S32(st, G_CONSTRUCTION_UI_TYPE) == 0xB7) {
+        GAME_CALL0(st, FN_PYRAMID_NEAREST_4ED330);
     }
 }
 
 static int32_t run_hover_0x00405F60(game_state *st, const int32_t *a)
 {
     (void) a;
-    if (S32(st, 0x006059E8u) == 0xB7) {
-        GAME_CALL0(st, 0x004ED330u);
+    if (S32(st, G_CONSTRUCTION_UI_TYPE) == 0xB7) {
+        GAME_CALL0(st, FN_PYRAMID_NEAREST_4ED330);
     }
     return 0;
 }
@@ -415,52 +405,52 @@ static int32_t present_elapsed(game_state *st)
 {
     /* @bin 0x004D0040 ms since the last call (timeGetTime; last 0x00E36C88) */
     uint32_t now = platform_clock_ms(st);
-    uint32_t d = now - U32(st, 0x00E36C88u);
-    U32(st, 0x00E36C88u) = now;
+    uint32_t d = now - U32(st, G_PRESENT_LAST_TIME);
+    U32(st, G_PRESENT_LAST_TIME) = now;
     return (int32_t) d;
 }
 
 void frame_present(game_state *st, int32_t force)
 {
     /* @bin 0x004D0280 */
-    if (S32(st, 0x005E06B0u) == 1) { /* DirectDraw not ready */
+    if (S32(st, G_PRESENT_WAIT) == 1) { /* DirectDraw not ready */
         return;
     }
-    if (S32(st, 0x00F54054u) != 0 && S32(st, 0x00E92E04u) != 0) { /* a video plays */
+    if (S32(st, G_VIDEO_PLAYING) != 0 && S32(st, G_UE92E04) != 0) { /* a video plays */
         return;
     }
-    int32_t shake = S32(st, 0x0078D7A0u);
-    if (U8(st, WINDOW) != 5 && shake > 0 && shake % 0x88 == 0) {
+    int32_t shake = S32(st, G_HAIL_TIMER);
+    if (U8(st, G_WINDOW) != 5 && shake > 0 && shake % 0x88 == 0) {
         /* @bin 0x004D035E the fade (0x004D05F0, eight steps of 0x004D0650 on the object 0x006DE518),
          * each step presented */
-        GAME_CALLT(st, 0x006DE518u, 0x004D05F0u, 1, 0x0F, 0, 1, 0);
-        GAME_CALL0(st, 0x004D03F0u);
+        GAME_CALLT(st, G_SURFACE_LOCK, FN_FADE_START_4D05F0, 1, 0x0F, 0, 1, 0);
+        GAME_CALL0(st, FN_PRESENT_COPY);
         for (int i = 0; i < 8; i++) {
-            GAME_CALLT(st, 0x006DE518u, 0x004D0650u, 1);
-            GAME_CALL0(st, 0x004D03F0u);
+            GAME_CALLT(st, G_SURFACE_LOCK, FN_FADE_STEP_4D0650, 1);
+            GAME_CALL0(st, FN_PRESENT_COPY);
         }
         return;
     }
     int32_t d = present_elapsed(st);
-    S32(st, 0x00E92E08u) += d;
+    S32(st, G_PRESENT_ELAPSED) += d;
     if (force == 1) {
-        S32(st, 0x00E92E08u) = 50;
+        S32(st, G_PRESENT_ELAPSED) = 50;
     }
     /* @bin 0x004D02F5 every 50 ms, or when 0x00E38DC8 asks */
-    if (U8(st, PRESENT_NOW) == 0 && S32(st, 0x00E92E08u) < 50) {
+    if (U8(st, G_PRESENT_NOW) == 0 && S32(st, G_PRESENT_ELAPSED) < 50) {
         return;
     }
-    uint8_t w = U8(st, WINDOW);
-    S32(st, 0x00E92E08u) = 0;
-    U8(st, PRESENT_NOW) = 0;
+    uint8_t w = U8(st, G_WINDOW);
+    S32(st, G_PRESENT_ELAPSED) = 0;
+    U8(st, G_PRESENT_NOW) = 0;
     /* @bin 0x004D039C the city windows 1, 3, 0x1E, 0x1F, 0x20, 0x49 redraw the sidebar first while
      * 0x0078D7A0 > 0 */
-    if (w != 5 && S32(st, 0x0078D7A0u) > 0 &&
+    if (w != 5 && S32(st, G_HAIL_TIMER) > 0 &&
         (w == 1 || w == 3 || w == 0x1E || w == 0x1F || w == 0x20 || w == 0x49)) {
-        GAME_CALL0(st, 0x0051E990u);
-        GAME_CALLT(st, 0x006DE518u, 0x004D05F0u, 1, 1, 0, 0, 1);
+        GAME_CALL0(st, FN_SIDEBAR_DRAW);
+        GAME_CALLT(st, G_SURFACE_LOCK, FN_FADE_START_4D05F0, 1, 1, 0, 0, 1);
     }
-    GAME_CALL0(st, 0x004D03F0u);
+    GAME_CALL0(st, FN_PRESENT_COPY);
 }
 
 static int32_t run_present_copy(game_state *st, const int32_t *a)
@@ -477,108 +467,108 @@ static int32_t run_present_copy(game_state *st, const int32_t *a)
 void frame_run(game_state *st)
 {
     /* @bin 0x004D6B60 */
-    S32(st, 0x00E390ECu) += 1;                       /* the frame counter */
-    U32(st, FRAME_CLOCK) = platform_clock_ms(st);  /* timeGetTime */
+    S32(st, G_FRAME_COUNTER) += 1;                       /* the frame counter */
+    U32(st, G_FRAME_CLOCK) = platform_clock_ms(st);  /* timeGetTime */
     frame_timers(st);
     int32_t n = frame_pacing(st);
     for (int32_t i = 0; i < n; i++) {
-        S32(st, 0x00E94DBCu) += 1;
+        S32(st, G_TICK_COUNTER) += 1;
         game_tick(st, st->env);
         /* @bin 0x004D6BA5 fast-forward: up to n ticks this frame, until a right button up is
          * pending (PeekMessageA, PM_NOREMOVE); then the pending mouse and key messages are dropped */
-        if (U8(st, FAST_FORWARD) == 0) {
+        if (U8(st, G_FAST_FORWARD) == 0) {
             n = 0;
         } else if (frame_peek_message(st, 0x205, 0x205, 0)) {
             while (frame_peek_message(st, 0x200, 0x209, 1)) {
             }
             while (frame_peek_message(st, 0x100, 0x108, 1)) {
             }
-            U8(st, FAST_FORWARD) = 0;
+            U8(st, G_FAST_FORWARD) = 0;
             n = 0;
-        } else if (U8(st, FAST_FORWARD) == 0) {
+        } else if (U8(st, G_FAST_FORWARD) == 0) {
             n = 0;
         }
         frame_autosave(st);
     }
     frame_mouse(st);
-    GAME_CALL(st, 0x004D71C0u, 0);   /* the window's background, when REDRAW */
-    if (S32(st, 0x00E94D98u) != 0) { /* @bin 0x004D6070 */
-        U8(st, REDRAW) = 1;
+    GAME_CALL(st, FN_UI_REDRAW, 0);   /* the window's background, when REDRAW */
+    if (S32(st, G_LAYOUT_MODE) != 0) { /* @bin 0x004D6070 */
+        U8(st, G_REDRAW) = 1;
     }
-    GAME_CALL0(st, 0x004D75D0u);     /* the window's per-frame draw */
-    GAME_CALL0(st, 0x004D8310u);     /* the window's input */
+    GAME_CALL0(st, FN_UI_DRAW_FRAME);     /* the window's per-frame draw */
+    GAME_CALL0(st, FN_UI_INPUT);     /* the window's input */
     frame_clear_keys(st);
-    GAME_CALL0(st, 0x004C8750u);     /* tooltips */
-    GAME_CALL0(st, 0x004C9750u);
-    GAME_CALL(st, 0x0051F0A0u, 0);   /* the top menu bar */
-    GAME_CALL(st, 0x0051F680u, 1);
-    GAME_CALL0(st, 0x004E2720u);     /* on-screen messages */
-    if (S32(st, 0x00D3A6E4u) != 0) {
-        GAME_CALL0(st, 0x004CABD0u);
-        if (S32(st, 0x00D3A6C0u) == 0x23) {
+    GAME_CALL0(st, FN_TOOLTIP_UPDATE);     /* tooltips */
+    GAME_CALL0(st, FN_TOOLTIP_OVERLAY_TEXT);
+    GAME_CALL(st, FN_TOPBAR_DRAW, 0);   /* the top menu bar */
+    GAME_CALL(st, FN_SIDEBAR_DRAW_MESSAGES, 1);
+    GAME_CALL0(st, FN_PLAY_SCREEN_MESSAGES);     /* on-screen messages */
+    if (S32(st, G_TIP_ID) != 0) {
+        GAME_CALL0(st, FN_TOOLTIP_DRAW);
+        if (S32(st, G_TIP_KIND) == 0x23) {
             frame_hover_tile(st);
         }
-        GAME_CALL0(st, 0x004CA930u);
+        GAME_CALL0(st, FN_TOOLTIP_END);
     }
-    GAME_CALL0(st, 0x00536620u);
+    GAME_CALL0(st, FN_PLAY_NETWORK_INFO);
     /* @bin 0x004D6CB7 a Bink video (0x006FDC40) is played instead of the present */
-    if (S32(st, 0x006FDC40u) != 0) {
-        if ((uint8_t) GAME_CALL(st, 0x005605A0u, S32(st, 0x006FDC38u)) != 0) {
+    if (S32(st, G_MOVIE) != 0) {
+        if ((uint8_t) GAME_CALL(st, 0x005605A0u, S32(st, G_U6FDC38)) != 0) {
             GAME_CALL0(st, 0x00416BC0u);
         }
     }
-    if (S32(st, 0x006FDC40u) == 0) {
+    if (S32(st, G_MOVIE) == 0) {
         frame_present(st, 0);
     }
-    GAME_CALL0(st, 0x0041D560u);     /* the ambient-sound slots */
+    GAME_CALL0(st, FN_AMBIENT_STEP);     /* the ambient-sound slots */
     int32_t c = frame_cursor_choice(st);
     if (c >= 0) {
         frame_cursor(st, c);
     }
     /* @bin 0x004D6ECF music: battle music while the city has more than 15 enemies (city +0x634) or
      * more than 4 (+0x9A0) */
-    uint32_t city = U32(st, PLAYER) * CITY_SIZE;
-    if (S32(st, city + 0x00EA5EA4u) <= 0x0F && S32(st, city + 0x00EA6210u) <= 4) {
-        if (S32(st, 0x00E92BF0u) == 1) {
-            S32(st, 0x00F55B8Cu) = 1;
-            S32(st, 0x00E92BF0u) = 0;
+    uint32_t city = CURRENT_CITY(st);
+    if (S32(st, city + CITY_U4634) <= 0x0F && S32(st, city + CITY_U49A0) <= 4) {
+        if (S32(st, G_BATTLE_MUSIC) == 1) {
+            S32(st, G_STREAM_FADE0) = 1;
+            S32(st, G_BATTLE_MUSIC) = 0;
         }
-        if (GAME_CALLT(st, SOUND, 0x0055F5A1u, 0) == 0 && S32(st, 0x00F55B94u) == 0) {
-            if (U8(st, WINDOW) != 1) {
+        if (GAME_CALLT(st, G_SOUND, FN_PLATFORM_STREAM_PLAYING, 0) == 0 && S32(st, G_UF55B94) == 0) {
+            if (U8(st, G_WINDOW) != 1) {
                 goto ambient;
             }
-            GAME_CALLT0(st, 0x00E39180u, 0x00539820u); /* the next tune */
+            GAME_CALLT0(st, G_MUSIC, FN_MUSIC_STEP); /* the next tune */
         }
-    } else if (S32(st, 0x00F55B88u) != 0 && S32(st, 0x00E92BF0u) == 0 && U8(st, 0x00E38E64u) != 0) {
-        GAME_CALLT(st, SOUND, 0x0055F449u, (int32_t) 0x005E1DE0u, 0, 0); /* "audio\music\battle.mp3" */
-        S32(st, 0x00E92BF0u) = 1;
+    } else if (S32(st, G_SOUND_ON) != 0 && S32(st, G_BATTLE_MUSIC) == 0 && U8(st, G_MUSIC_ON) != 0) {
+        GAME_CALLT(st, G_SOUND, FN_PLATFORM_STREAM_PLAY, (int32_t) G_STR_BATTLE_MP3, 0, 0); /* "audio\music\battle.mp3" */
+        S32(st, G_BATTLE_MUSIC) = 1;
     }
-    if (U8(st, WINDOW) == 1) {
+    if (U8(st, G_WINDOW) == 1) {
         /* @bin 0x004D6F7C the per-frame CRT rand draw of the city view: a random city sound when
          * rand() * 50 / 32768 == 1 */
         int32_t r = crt_rand(st);
         if ((r * 50) / 32768 == 1) {
-            GAME_CALL0(st, 0x0053ACF0u);
+            GAME_CALL0(st, FN_CITY_RANDOM_SOUND);
         }
     }
 ambient:
-    if (S32(st, 0x0078D79Cu) == 0 && S32(st, 0x0078D7A0u) == 0 && S32(st, 0x0078D7A8u) == 0) {
-        if (S32(st, SCROLLING) != 0) {
-            GAME_CALL(st, 0x0053B6F0u, 2);
+    if (S32(st, G_LOCUST_TIMER) == 0 && S32(st, G_HAIL_TIMER) == 0 && S32(st, G_FROGS_COUNTDOWN) == 0) {
+        if (S32(st, G_SCROLLING) != 0) {
+            GAME_CALL(st, FN_STREAM_FADE_OUT, 2);
         } else {
-            uint8_t w = U8(st, WINDOW);
+            uint8_t w = U8(st, G_WINDOW);
             if (w == 1 || w == 9 || w == 5) {
-                GAME_CALL0(st, 0x0053B960u);
-            } else if (GAME_CALLT(st, SOUND, 0x0055F5A1u, 2) != 0) {
-                GAME_CALLT(st, SOUND, 0x0055F561u, 2);
+                GAME_CALL0(st, FN_AMBIENT_STREAM);
+            } else if (GAME_CALLT(st, G_SOUND, FN_PLATFORM_STREAM_PLAYING, 2) != 0) {
+                GAME_CALLT(st, G_SOUND, FN_SOUND_STOP_STREAM, 2);
             }
         }
     }
-    if (S32(st, 0x00F55B8Cu) != 0) {
-        GAME_CALL(st, 0x0053B6F0u, 0);
+    if (S32(st, G_STREAM_FADE0) != 0) {
+        GAME_CALL(st, FN_STREAM_FADE_OUT, 0);
     }
-    if (S32(st, 0x00F55B90u) != 0) {
-        GAME_CALL(st, 0x0053B6F0u, 1);
+    if (S32(st, G_STREAM_FADE1) != 0) {
+        GAME_CALL(st, FN_STREAM_FADE_OUT, 1);
     }
 }
 
@@ -621,8 +611,8 @@ static int32_t run_clear_keys(game_state *st, const int32_t *a)
 static int32_t run_redraw_check(game_state *st, const int32_t *a)
 {
     (void) a;
-    if (S32(st, 0x00E94D98u) != 0) {
-        U8(st, REDRAW) = 1;
+    if (S32(st, G_LAYOUT_MODE) != 0) {
+        U8(st, G_REDRAW) = 1;
     }
     return 0;
 }

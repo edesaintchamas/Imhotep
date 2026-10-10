@@ -17,15 +17,9 @@
 #include "sim/call.h"
 #include "sim/platform.h"
 #include "sim/queue.h"
+#include "state/layout.h"
 #include "state/ported.h"
 
-#define PLAYER 0x00EAAC28u
-#define CITY_SIZE 0x49D8u
-#define SCHEMA 0x00E92E50u       /* chunk 6: 0x5DC dwords */
-#define SCHEMA_COUNT 0x00E945C4u
-#define CHUNKS 0x005E09A0u       /* 181 records of 20 bytes: compressed, address, size, count, - */
-#define WORKSPACE 0x01265188u    /* the compressor's globals: output pointer, size, input size, crc */
-#define ROUTES 0x00776FB0u       /* 50 route records of 0x144 bytes */
 
 typedef struct {
     uint8_t *data;
@@ -94,22 +88,22 @@ static void compressed_chunk(game_state *st, out_buf *o, const uint8_t *data, in
 {
     /* @bin 0x0055BC50 the output buffer is the spare screen [0x00E92E1C] (outside the state: only its
      * pointer is kept); nothing is written above 1,200,000 bytes */
-    U32(st, WORKSPACE) = U32(st, 0x00E92E1Cu);
+    U32(st, G_WORKSPACE) = U32(st, G_SPARE_SCREEN);
     if (n > 0x124F80) {
         return;
     }
-    S32(st, WORKSPACE + 8) = n;
+    S32(st, G_WORKSPACE + 8) = n;
     /* @bin 0x0055BF10 PKWARE implode, binary literals, the dictionary size 0x00603650, output room n;
      * u32 size then the data, or u32 0x80000000 then the raw bytes when it does not fit. The input's
      * CRC the original keeps in 0x01265194 is not computed (workspace, tools/oracle/excluded.py) */
     uint8_t *tmp = malloc(n > 0 ? (size_t) n : 1);
     size_t clen;
-    if (tmp && pkware_implode(data, (size_t) n, tmp, (size_t) n, &clen, S32(st, 0x00603650u)) == 0) {
-        U32(st, WORKSPACE + 4) = (uint32_t) clen;
+    if (tmp && pkware_implode(data, (size_t) n, tmp, (size_t) n, &clen, S32(st, G_PKWARE_DICTIONARY)) == 0) {
+        U32(st, G_WORKSPACE + 4) = (uint32_t) clen;
         put_u32(o, (uint32_t) clen);
         put(o, tmp, clen);
     } else {
-        U32(st, WORKSPACE + 4) = 0x80000000u;
+        U32(st, G_WORKSPACE + 4) = 0x80000000u;
         put_u32(o, 0x80000000u);
         put(o, data, (size_t) n);
     }
@@ -123,20 +117,20 @@ static void compressed_chunk(game_state *st, out_buf *o, const uint8_t *data, in
 static void routes_rebuild(game_state *st)
 {
     for (uint32_t k = 0; k < 50; k++) {
-        uint32_t r = ROUTES + 0x144u * k;
-        uint8_t n = U8(st, r + 0x141);
+        uint32_t r = G_ROUTES + ROUTE_SIZE * k;
+        uint8_t n = U8(st, r + ROUTE_U141);
         uint8_t type = U8(st, r);
-        if (U32(st, r + 4) != 0 || S32(st, r + 0x138) != 0 || n > 0x32 || U8(st, r + 0x140) > 2 || type < 1 ||
+        if (U32(st, r + ROUTE_POINTS) != 0 || S32(st, r + ROUTE_U138) != 0 || n > 0x32 || U8(st, r + ROUTE_KIND) > 2 || type < 1 ||
             type > 0x32) {
-            S32(st, r + 0x134) = 0;
-            U32(st, r + 4) = 0;
-            U8(st, r + 0x141) = 0;
-            S32(st, r + 0x138) = 0;
+            S32(st, r + ROUTE_U134) = 0;
+            U32(st, r + ROUTE_POINTS) = 0;
+            U8(st, r + ROUTE_U141) = 0;
+            S32(st, r + ROUTE_U138) = 0;
             U8(st, r) = 5;
             U8(st, r + 0x142) = 0;
             S16(st, r + 0x13C) = -1;
             S16(st, r + 0x13E) = -1;
-            U8(st, r + 0x140) = 1;
+            U8(st, r + ROUTE_KIND) = 1;
             continue;
         }
         int32_t total = 0;
@@ -148,28 +142,28 @@ static void routes_rebuild(game_state *st)
             int32_t dy = y0 - y1 > y1 - y0 ? y0 - y1 : y1 - y0;
             total += 1 + (dx > dy ? dx : dy);
         }
-        int32_t cap = S32(st, r + 0x138);
+        int32_t cap = S32(st, r + ROUTE_U138);
         if (total > cap && cap < total + 50) {
-            if (U32(st, r + 4) != 0) {
-                state_dealloc(st, U32(st, r + 4)); /* @bin 0x00561A2B operator delete */
-                U32(st, r + 4) = 0;
+            if (U32(st, r + ROUTE_POINTS) != 0) {
+                state_dealloc(st, U32(st, r + ROUTE_POINTS)); /* @bin 0x00561A2B operator delete */
+                U32(st, r + ROUTE_POINTS) = 0;
             }
-            U32(st, r + 4) = state_alloc(st, (uint32_t) ((total + 50) * 6)); /* @bin 0x00561A1D operator new */
-            S32(st, r + 0x138) = total + 50;
+            U32(st, r + ROUTE_POINTS) = state_alloc(st, (uint32_t) ((total + 50) * 6)); /* @bin 0x00561A1D operator new */
+            S32(st, r + ROUTE_U138) = total + 50;
         }
-        S32(st, r + 0x134) = total;
+        S32(st, r + ROUTE_U134) = total;
         int32_t done = 0;
         int complete = 1;
-        for (int32_t i = 1; i < (int32_t) U8(st, r + 0x141); i++) {
-            if (done > S32(st, r + 0x134)) {
+        for (int32_t i = 1; i < (int32_t) U8(st, r + ROUTE_U141); i++) {
+            if (done > S32(st, r + ROUTE_U134)) {
                 complete = 0;
                 break;
             }
-            done += GAME_CALLT(st, r, 0x00445D10u, i - 1, i, done);
+            done += GAME_CALLT(st, r, FN_ROUTE_SEGMENT_POINTS, i - 1, i, done);
         }
         if (complete) {
-            S32(st, r + 0x134) = done;
-            GAME_CALLT0(st, r, 0x00407F90u);
+            S32(st, r + ROUTE_U134) = done;
+            GAME_CALLT0(st, r, FN_ROUTE_FIND_CITIES);
         }
     }
 }
@@ -209,21 +203,21 @@ int32_t frame_save_game(game_state *st, const char *path)
     /* @bin 0x004D0A40(0) the 10 shipwright queues (0x009783C0, 0x1C each) into chunk 140's records
      * (0x009763B8, 0x334 each) */
     for (uint32_t j = 0; j < 10; j++) {
-        queue_pack(st, 0x009783C0u + 0x1Cu * j, 0x009763B8u + 0x334u * j);
+        queue_pack(st, G_SHIPWRIGHT_QUEUES + 0x1Cu * j, G_SHIPWRIGHT_QUEUES_SAVED + 0x334u * j);
     }
-    S32(st, 0x00E945C0u) = 0xA0;                   /* the save version */
-    str_copy(st, 0x005E17C4u, 0x005E17CCu);        /* "MAPS" */
-    str_copy(st, 0x00EA184Cu, 0x00E38E74u);        /* the player's name into chunk 30 */
-    GAME_CALL0(st, 0x004CE2D0u);                   /* the working directory */
-    GAME_CALL0(st, 0x004771C0u);                   /* terrain flag 0x10 */
-    U8(st, 0x007770F1u) = 0;
-    S32(st, 0x007770E4u) = 0;
+    S32(st, G_VERSION) = 0xA0;                   /* the save version */
+    str_copy(st, G_MAP_MAGIC, G_STR_MAPS);        /* "MAPS" */
+    str_copy(st, G_CITY_PLAYER_NAME, G_PLAYER_NAME);        /* the player's name into chunk 30 */
+    GAME_CALL0(st, FN_WORKING_DIRECTORY);                   /* the working directory */
+    GAME_CALL0(st, FN_TERRAIN_FLAG10_TO_1);                   /* terrain flag 0x10 */
+    U8(st, G_ROUTES + ROUTE_U141) = 0;
+    S32(st, G_ROUTES + ROUTE_U134) = 0;
     for (uint32_t k = 0; k < 50; k++) {            /* @bin 0x004D4EA2 the route point buffers */
-        uint32_t r = ROUTES + 4 + 0x144u * k;
+        uint32_t r = G_ROUTES + ROUTE_POINTS + ROUTE_SIZE * k;
         if (U32(st, r) != 0) {
             state_dealloc(st, U32(st, r)); /* @bin 0x00561A2B operator delete */
             U32(st, r) = 0;
-            S32(st, r + 0x134) = 0;
+            S32(st, r - ROUTE_POINTS + ROUTE_U138) = 0;
         }
     }
     /* @bin 0x004D4ED6 _open(path, O_WRONLY | O_CREAT | O_TRUNC | O_BINARY, 0600): -1 returns 1 before
@@ -234,15 +228,15 @@ int32_t frame_save_game(game_state *st, const char *path)
     if (!schema_before) {
         return 1;
     }
-    memcpy(schema_before, state_ptr(st, SCHEMA, 0x5DC * 4), 0x5DC * 4);
-    memcpy(schema_before + 0x5DC * 4, state_ptr(st, SCHEMA_COUNT, 4), 4);
-    memcpy(schema_before + 0x5DC * 4 + 4, state_ptr(st, WORKSPACE, 16), 16);
-    memset(state_ptr(st, SCHEMA, 0x5DC * 4), 0, 0x5DC * 4);
-    memcpy(state_ptr(st, SCHEMA, 0x389 * 4), state_ptr(st, CHUNKS, 0x389 * 4), 0x389 * 4);
-    S32(st, SCHEMA_COUNT) = 0xB5;
+    memcpy(schema_before, state_ptr(st, G_FILE_SCHEMA, 0x5DC * 4), 0x5DC * 4);
+    memcpy(schema_before + 0x5DC * 4, state_ptr(st, G_USE_FILE_SCHEMA, 4), 4);
+    memcpy(schema_before + 0x5DC * 4 + 4, state_ptr(st, G_WORKSPACE, 16), 16);
+    memset(state_ptr(st, G_FILE_SCHEMA, 0x5DC * 4), 0, 0x5DC * 4);
+    memcpy(state_ptr(st, G_FILE_SCHEMA, 0x389 * 4), state_ptr(st, G_CHUNKS, 0x389 * 4), 0x389 * 4);
+    S32(st, G_USE_FILE_SCHEMA) = 0xB5;
     out_buf o = {NULL, 0, 0, 0};
     for (uint32_t i = 0; i < 0xB5; i++) {
-        uint32_t rec = CHUNKS + 20u * i;
+        uint32_t rec = G_CHUNKS + 20u * i;
         int32_t n = (int32_t) (U32(st, rec + 12) * U32(st, rec + 8));
         const uint8_t *data = n > 0 ? state_ptr(st, U32(st, rec + 4), (uint32_t) n) : NULL;
         if (n > 0 && !data) {
@@ -258,14 +252,14 @@ int32_t frame_save_game(game_state *st, const char *path)
     int32_t written = o.failed ? -1 : platform_file_write(st, path, o.data, (uint32_t) o.len);
     free(o.data);
     if (written < 0) {
-        memcpy(state_ptr(st, SCHEMA, 0x5DC * 4), schema_before, 0x5DC * 4);
-        memcpy(state_ptr(st, SCHEMA_COUNT, 4), schema_before + 0x5DC * 4, 4);
-        memcpy(state_ptr(st, WORKSPACE, 16), schema_before + 0x5DC * 4 + 4, 16);
+        memcpy(state_ptr(st, G_FILE_SCHEMA, 0x5DC * 4), schema_before, 0x5DC * 4);
+        memcpy(state_ptr(st, G_USE_FILE_SCHEMA, 4), schema_before + 0x5DC * 4, 4);
+        memcpy(state_ptr(st, G_WORKSPACE, 16), schema_before + 0x5DC * 4 + 4, 16);
         free(schema_before);
         return 1;
     }
     free(schema_before);
-    GAME_CALL(st, 0x004E2970u, 0xD4, 0, 0); /* the "game saved" notice */
+    GAME_CALL(st, FN_NOTICE_ADD_4E2970, 0xD4, 0, 0); /* the "game saved" notice */
     routes_rebuild(st);
     return 0;
 }
@@ -273,40 +267,40 @@ int32_t frame_save_game(game_state *st, const char *path)
 void frame_autosave(game_state *st)
 {
     /* @bin 0x004D5C30 */
-    if (S32(st, 0x00605A3Cu) == 1) {
+    if (S32(st, G_EDITOR) == 1) {
         return;
     }
     /* @bin 0x004D5C4E the city's autosave flag (0x00EA5F8C + player * 0x49D8): 0 after a start, 2 set by
      * the month change in months 0 and 6 (core/sim/tick.c), 1 once saved */
-    uint32_t flag = 0x00EA5F8Cu + U32(st, PLAYER) * CITY_SIZE;
+    uint32_t flag = CURRENT_CITY(st) + CITY_U471C;
     int32_t f = S32(st, flag);
-    if ((f == 2 && S32(st, 0x00E38EECu) != 0) || f == 1) {
+    if ((f == 2 && S32(st, G_UE38EEC) != 0) || f == 1) {
         return;
     }
     /* @bin 0x004D5C79 a campaign mission (0x007027B4 = 1): "autosave_replay.sav" on its first frame,
      * "autosave_history.sav" after; otherwise "autosave.sav" */
-    uint32_t name = 0x005E1C14u;
-    if (U8(st, 0x007027B4u) == 1) {
-        name = f == 0 ? 0x0057BFC4u : 0x005E1BFCu;
+    uint32_t name = G_STR_AUTOSAVE_SAV;
+    if (U8(st, G_CAMPAIGN_KIND) == 1) {
+        name = f == 0 ? G_STR_AUTOSAVE_REPLAY : G_STR_AUTOSAVE_HISTORY;
     }
     S32(st, flag) = 1;
     char path[256] = "";
-    uint32_t dir = (uint32_t) GAME_CALL0(st, 0x005169C0u); /* the family's directory */
-    int ok = str_append(st, path, sizeof(path), dir) && str_append(st, path, sizeof(path), 0x005761D0u) &&
+    uint32_t dir = (uint32_t) GAME_CALL0(st, FN_FAMILY_DIR_PATH); /* the family's directory */
+    int ok = str_append(st, path, sizeof(path), dir) && str_append(st, path, sizeof(path), G_STR_BACKSLASH) &&
              str_append(st, path, sizeof(path), name);
     if (!ok) {
-        state_unported(st, 0x004D5C30u); /* a path longer than the original's 0x64-byte buffer */
+        state_unported(st, FN_FRAME_AUTOSAVE); /* a path longer than the original's 0x64-byte buffer */
         return;
     }
     frame_save_game(st, path);
-    if (U8(st, 0x007027B4u) == 1) {
+    if (U8(st, G_CAMPAIGN_KIND) == 1) {
         /* @bin 0x004D5D46 the path is kept in 0x00700998, the family's progress written */
         uint32_t i = 0;
         do {
-            U8(st, 0x00700998u + i) = (uint8_t) path[i];
+            U8(st, G_LAST_SAVE + i) = (uint8_t) path[i];
         } while (path[i++] != 0);
-        int32_t progress = GAME_CALL0(st, 0x00516A20u);
-        GAME_CALLT(st, 0x006FDD08u, 0x0041B8A0u, progress);
+        int32_t progress = GAME_CALL0(st, FN_CAMPAIGN_PROGRESS_PATH);
+        GAME_CALLT(st, G_CAMPAIGN_TABLE, FN_CAMPAIGN_PROGRESS_WRITE, progress);
     }
 }
 
@@ -326,7 +320,7 @@ static int32_t run_save_game(game_state *st, const int32_t *a)
     for (;; i++) {
         const uint8_t *c = state_ptr(st, (uint32_t) a[0] + i, 1);
         if (!c || i + 1 >= sizeof(path)) {
-            state_unported(st, 0x004D4E20u);
+            state_unported(st, FN_FRAME_SAVE_GAME);
             return 1;
         }
         path[i] = (char) *c;

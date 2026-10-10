@@ -198,7 +198,7 @@ void platform_figure_sound(game_state *st, int32_t figure, int32_t sound, int32_
     /* @bin 0x0053B4DF the city view's width: the sidebar's x (0x00F53F60 when the sidebar is
      * collapsed 0x00F53F78, else 0x00F53F64), its height 0x00E38D98 */
     int32_t width = S32(st, G_SIDEBAR_COLLAPSED) != 0 ? S32(st, G_SIDEBAR_X_COLLAPSED) : S32(st, G_SIDEBAR_X);
-    int32_t height = S32(st, G_UE38D98);
+    int32_t height = S32(st, G_DRAW_H);
     uint32_t f = FIGURE_ADDR(figure);
     /* @bin 0x0053B523 the figure's tile (+0x14, +0x16) on the screen; the outputs are the argument
      * slots of sound and figure, which keep their values for a rotation it does not handle */

@@ -14,6 +14,7 @@
 #include "frame/frame.h"
 
 #include "sim/platform.h"
+#include "state/layout.h"
 
 void frame_cursor_pos(game_state *st, int32_t *x, int32_t *y)
 {
@@ -21,8 +22,8 @@ void frame_cursor_pos(game_state *st, int32_t *x, int32_t *y)
         return;
     }
     /* @unverified fallback: the last mouse message's point (see above) */
-    *x = (int16_t) S16(st, 0x00E38E0Au);
-    *y = (int16_t) S16(st, 0x00E38E08u);
+    *x = (int16_t) S16(st, G_MSG_MOUSE_X);
+    *y = (int16_t) S16(st, G_MSG_MOUSE_Y);
 }
 
 int16_t frame_key_state(game_state *st, int32_t vk)

@@ -261,7 +261,7 @@ void view_geometry_set(game_state *st, int32_t a0, int32_t a1, int32_t a2, int32
     int32_t h7 = a7 / 2;
     S32(st, G_VIEW_ROWS) = a5;
     S32(st, G_U70E46C) = a1;
-    S32(st, G_U70E48C) = a3;
+    S32(st, G_VIEW_Y) = a3;
     S32(st, G_TILE_W) = h6;
     S32(st, G_CORNER_W3) = (int32_t) ((uint32_t) h6 + (uint32_t) a6);
     S32(st, G_CORNER_W4) = (int32_t) ((uint32_t) a6 * 2u);
@@ -274,12 +274,12 @@ void view_geometry_set(game_state *st, int32_t a0, int32_t a1, int32_t a2, int32
     S32(st, G_CV_VIEW_BOTTOM) = (int32_t) (((uint32_t) a5 - 1u) * (uint32_t) h7 + (uint32_t) a3);
     S32(st, G_U70E470) = a0;
     S32(st, G_U70E448) = a7;
-    S32(st, G_U70E478) = a0 / 2;
-    S32(st, G_U70E490) = a2;
+    S32(st, G_VIEW_FIRST_COL) = a0 / 2;
+    S32(st, G_VIEW_X) = a2;
     S32(st, G_CV_VIEW_LEFT) = a2;
     S32(st, G_VIEW_COLS) = a4;
     S32(st, G_CV_VIEW_TOP) = a3;
-    S32(st, G_U70E474) = a1;
+    S32(st, G_VIEW_FIRST_ROW) = a1;
 }
 
 static void view_geometry_a(game_state *st)
