@@ -86,6 +86,7 @@ prefix next to its base, e.g. `MSGTYPE_VIDEO` (entries of `G_MESSAGE_TYPES`), `N
 | P8a | present/ui (its own files), ui/messages, ui/empire | `present/layout/g_ui_main.h` |
 | P8b | present/ui/info | `present/layout/g_ui_info.h` |
 | P8c | present/ui/advisors, ui/frontend | `present/layout/g_ui_advisors.h` |
+| P8d | present/ui/frontend, ui/empire | `present/layout/g_ui_frontend.h` |
 | P9 | present/city, sidebar, draw | `present/layout/g_city_view.h` |
 
 A global used by core lives in a core header (the package that uses it most); present/ headers hold

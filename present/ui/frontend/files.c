@@ -21,52 +21,27 @@
 #include "frame/frame.h"
 #include "newgame/flow.h"
 #include "newgame/flow2.h"
+#include "present_layout.h"
 #include "sim/call.h"
 #include "sim/platform.h"
 #include "state/loader.h"
 #include "state/ported.h"
 
-#define LIST 0x006057C8u          /* the dialog's file list object */
-#define LIST_ROWS 0x006057CCu     /* u32 */
-#define LIST_COUNT 0x006057D0u    /* i32 */
-#define LIST_NAMES 0x006057D8u    /* u32 */
-#define ROWS 0x006059F8u          /* i32 */
-#define FIRST 0x006059F4u         /* i32 */
-#define CLICKED 0x006059F0u       /* i32 */
-#define BIG_LIST 0x006059ECu      /* i32 0: 12 rows, else 15 (the thumb's bar) */
-#define MODE 0x00D3B1C0u          /* u8 0 save, 1 load, 2 delete */
-#define BACK_WINDOW 0x00D3B1BCu   /* i32 */
-#define NOT_FOUND 0x00D3B1B3u     /* u8 frames of the "not found" title */
-#define NAME 0x00E37100u          /* char[0x40] the typed saved game's name (field 2) */
-#define LAST_NAME 0x00E370BCu     /* char[] the last saved game's name */
-#define MAP_NAME 0x00E37078u      /* char[0x40] the typed map's name (field 4) */
-#define EXT 0x00E38AECu           /* char[4] the current extension */
-#define FAMILY_DIR 0x00EADEA4u    /* char[0x104] built by 0x005169C0 */
-#define MOUSE_X 0x00E38E34u
-#define MOUSE_Y 0x00E38E30u
-#define LEFT_HELD 0x00E38E00u
-#define FONT_ROW 0x00F56F94u
-#define FONT_ROW_LIT 0x00F56F9Cu
-#define FONT_TITLE 0x00F56FB4u
-#define TEXT_PTR 0x00E20768u
-#define TEXT_PTR2 0x00E20764u
-#define CAMPAIGN_KIND 0x007027B4u /* u8 1 the Pharaoh campaign */
-#define LAST_SAVE 0x00700998u     /* char[] the path of the last game saved in the Pharaoh campaign */
 
 void text_caret_draw(game_state *st, int32_t x, int32_t y, int32_t colour);
 
 static void image(game_state *st, int32_t id, int32_t x, int32_t y)
 {
-    GAME_CALLT(st, FE_IMAGES, 0x0053E590u, id, x, y);
+    GAME_CALLT(st, G_GRAPHICS_GFX, FN_IMAGE_DRAW, id, x, y);
 }
 
 static uint32_t list_row(game_state *st, int32_t i)
 {
     /* the name of row i of the list (0 out of range) */
-    if (i < 0 || i >= S32(st, LIST_COUNT)) {
+    if (i < 0 || i >= S32(st, G_FILES_LIST_COUNT)) {
         return 0;
     }
-    return P32(st, U32(st, LIST_ROWS) + 4u * (uint32_t) i) + U32(st, LIST_NAMES);
+    return P32(st, U32(st, G_LIST_ROWS) + 4u * (uint32_t) i) + U32(st, G_LIST_NAMES);
 }
 
 static void state_strcpy(game_state *st, uint32_t dst, uint32_t src)
@@ -119,26 +94,26 @@ static int32_t fe_file_exists(game_state *st, const char *path)
     }
     const char *dot = strchr(path, '.');
     if (dot) {
-        U8(st, EXT) = (uint8_t) dot[1];
-        U8(st, EXT + 1) = (uint8_t) dot[2];
-        U8(st, EXT + 2) = (uint8_t) dot[3];
-        U8(st, EXT + 3) = 0;
+        U8(st, G_START_EXT) = (uint8_t) dot[1];
+        U8(st, G_START_EXT + 1) = (uint8_t) dot[2];
+        U8(st, G_START_EXT + 2) = (uint8_t) dot[3];
+        U8(st, G_START_EXT + 3) = 0;
     }
-    for (uint32_t a = EXT; P8(st, a) != 0; a++) {
+    for (uint32_t a = G_START_EXT; P8(st, a) != 0; a++) {
         uint8_t c = P8(st, a);
         if (c >= 'a' && c <= 'z') {
             P8(st, a) = (uint8_t) (c - 0x20);
         }
     }
-    if (state_str_eq(st, 0x005E06E8u, EXT) || state_str_eq(st, 0x005E06E4u, EXT) || state_str_eq(st, 0x005E06E0u, EXT)) {
+    if (state_str_eq(st, G_STR_WAV, G_START_EXT) || state_str_eq(st, G_STR_SMK, G_START_EXT) || state_str_eq(st, G_STR_555, G_START_EXT)) {
         for (uint32_t i = 0; i < 40; i++) {
-            U8(st, 0x00E36BF8u + i) = 0;
+            U8(st, G_CD_DIR + i) = 0;
         }
-        text_copy(st, 0x005E06DCu, 0x00E36BF8u, 10);
-        U8(st, 0x00E36BF8u) = U8(st, 0x00E38E62u);
+        text_copy(st, G_STR_C_ROOT, G_CD_DIR, 10);
+        U8(st, G_CD_DIR) = U8(st, G_DRIVE);
     }
     int32_t ok = platform_file_read(st, path, 0, NULL, 0) >= 0 ? 1 : 0;
-    GAME_CALL0(st, 0x004CE2D0u);
+    GAME_CALL0(st, FN_WORKING_DIRECTORY);
     return ok;
 }
 
@@ -149,7 +124,7 @@ void file_dialog_list(game_state *st, int32_t maps)
      * extensions cut (0x004CE3A0), sorted with _stricmp (0x00562370); the rows, the first row, the
      * clicked row, the title's count, 0x006059EC and 0x00E36EFC cleared */
     if ((uint8_t) maps != 0) {
-        file_list_fill(st, LIST, 0x00576260u, 0);
+        file_list_fill(st, G_FILES_LIST, G_STR_MAPS_PATTERN, 0);
     } else {
         /* the original copies the directory and the pattern into its frame: here the pattern is put
          * after the directory's string in its buffer for the call, and those bytes restored */
@@ -162,22 +137,22 @@ void file_dialog_list(game_state *st, int32_t maps)
         for (uint32_t i = 0; i < 8; i++) {
             saved[i] = P8(st, end + i);
         }
-        state_strcpy(st, end, 0x005761C4u);
-        file_list_fill(st, LIST, dir, 0);
+        state_strcpy(st, end, G_STR_SAV_PATTERN);
+        file_list_fill(st, G_FILES_LIST, dir, 0);
         for (uint32_t i = 0; i < 8; i++) {
             P8(st, end + i) = saved[i];
         }
     }
-    S32(st, ROWS) = S32(st, LIST_COUNT);
-    for (int32_t i = 0; i < S32(st, ROWS); i++) {
-        GAME_CALL(st, 0x004CE3A0u, (int32_t) list_row(st, i));
+    S32(st, G_FILES_ROWS) = S32(st, G_FILES_LIST_COUNT);
+    for (int32_t i = 0; i < S32(st, G_FILES_ROWS); i++) {
+        GAME_CALL(st, FN_FILE_NAME_STRIP_EXTENSION, (int32_t) list_row(st, i));
     }
-    file_list_sort(st, LIST, 0x00562370u);
-    S32(st, FIRST) = 0;
-    S32(st, CLICKED) = 0;
-    U8(st, NOT_FOUND) = 0;
-    S32(st, BIG_LIST) = 0;
-    S32(st, 0x00E36EFCu) = 0;
+    file_list_sort(st, G_FILES_LIST, FN_CRT_STRCMPI);
+    S32(st, G_FIRST) = 0;
+    S32(st, G_CLICKED) = 0;
+    U8(st, G_NOT_FOUND) = 0;
+    S32(st, G_BIG_LIST) = 0;
+    S32(st, G_UE36EFC) = 0;
 }
 
 static void dialog_open(game_state *st, int32_t mode)
@@ -186,22 +161,22 @@ static void dialog_open(game_state *st, int32_t mode)
      * 2 holding the last saved game's name */
     family_dir_path(st);
     file_dialog_list(st, 0);
-    S32(st, 0x00E20998u) = 0;
-    U8(st, FE_WINDOW) = 0x0D;
-    S32(st, BACK_WINDOW) = 1;
-    U8(st, MODE) = (uint8_t) mode;
-    GAME_CALL(st, 0x0040F8F0u, (int32_t) NAME, 0x40, 0);
-    state_strcpy(st, NAME, LAST_NAME);
-    GAME_CALL(st, 0x004CC500u, 2);
-    GAME_CALL0(st, 0x004CC3C0u);
-    GAME_CALL0(st, 0x004CC3E0u);
-    U8(st, FE_REDRAW) = 1;
+    S32(st, G_UE20998) = 0;
+    U8(st, G_WINDOW) = 0x0D;
+    S32(st, G_BACK_WINDOW) = 1;
+    U8(st, G_FILES_MODE) = (uint8_t) mode;
+    GAME_CALL(st, FN_FILL_BYTES, (int32_t) G_FILES_NAME, 0x40, 0);
+    state_strcpy(st, G_FILES_NAME, G_LAST_NAME);
+    GAME_CALL(st, FN_TEXT_BOX_FOCUS, 2);
+    GAME_CALL0(st, FN_TEXT_BOX_CURSOR_START);
+    GAME_CALL0(st, FN_TEXT_BOX_CURSOR_END);
+    U8(st, G_REDRAW) = 1;
 }
 
 void load_dialog_open(game_state *st)
 {
     /* @bin 0x00402450 the load dialog (mode 1); the chosen building type 0x006059E8 := 0 */
-    S32(st, 0x006059E8u) = 0;
+    S32(st, G_CONSTRUCTION_UI_TYPE) = 0;
     dialog_open(st, 1);
 }
 
@@ -221,8 +196,8 @@ void file_dialog_thumb(game_state *st)
 {
     /* @bin 0x00532830 the scroll bar's thumb: 12 rows (bar of 0x82 at 0x1D8, 0x91) or, with
      * 0x006059EC, 15 rows (0xA4 at 0x11C, 0xF5) */
-    int32_t rows = S32(st, ROWS), first = S32(st, FIRST);
-    int32_t shown = S32(st, BIG_LIST) == 0 ? 12 : 15;
+    int32_t rows = S32(st, G_FILES_ROWS), first = S32(st, G_FIRST);
+    int32_t shown = S32(st, G_BIG_LIST) == 0 ? 12 : 15;
     if (rows - shown <= 0) {
         return;
     }
@@ -230,16 +205,16 @@ void file_dialog_thumb(game_state *st)
     if (first < 1) {
         pct = 0;
     } else if (first + shown < rows) {
-        pct = GAME_CALL(st, 0x004CDE60u, first, rows - shown);
+        pct = GAME_CALL(st, FN_CALC_RATIO_PERCENT, first, rows - shown);
     } else {
         pct = 100;
     }
     if (shown == 12) {
-        int32_t d = GAME_CALL(st, 0x004CDE40u, 0x82, pct);
-        image(st, S32(st, FE_BUTTON_IMAGES) + 0x27, S32(st, FE_DX) + 0x1D8, S32(st, FE_DY) + 0x91 + d);
+        int32_t d = GAME_CALL(st, FN_CALC_PERCENTAGE, 0x82, pct);
+        image(st, S32(st, G_SCROLL_IMAGES) + 0x27, S32(st, G_LAYOUT_DX) + 0x1D8, S32(st, G_LAYOUT_DY) + 0x91 + d);
     } else {
-        int32_t d = GAME_CALL(st, 0x004CDE40u, 0xA4, pct);
-        image(st, S32(st, FE_BUTTON_IMAGES) + 0x27, S32(st, FE_DX) + 0x11C, S32(st, FE_DY) + 0xF5 + d);
+        int32_t d = GAME_CALL(st, FN_CALC_PERCENTAGE, 0xA4, pct);
+        image(st, S32(st, G_SCROLL_IMAGES) + 0x27, S32(st, G_LAYOUT_DX) + 0x11C, S32(st, G_LAYOUT_DY) + 0xF5 + d);
     }
 }
 
@@ -247,13 +222,13 @@ static void rows_draw(game_state *st, int32_t strip)
 {
     /* up to 12 rows from the first shown (lit font when hovered), each copied (and its extension cut
      * for the maps) */
-    int32_t n = S32(st, LIST_COUNT) > 12 ? 12 : S32(st, LIST_COUNT);
+    int32_t n = S32(st, G_FILES_LIST_COUNT) > 12 ? 12 : S32(st, G_FILES_LIST_COUNT);
     int32_t y = 0x10;
     for (int32_t k = 1; k <= n; k++, y += 0x10) {
-        int32_t font = S32(st, FE_HOVER) == k ? S32(st, FONT_ROW_LIT) : S32(st, FONT_ROW);
-        uint32_t row = list_row(st, S32(st, FIRST) - 1 + k);
+        int32_t font = S32(st, G_HOVER) == k ? S32(st, G_FONT_9C) : S32(st, G_FONT_ROW);
+        uint32_t row = list_row(st, S32(st, G_FIRST) - 1 + k);
         if (row == 0) {
-            state_unported(st, 0x00532340u); /* the original's strcpy reads address 0 */
+            state_unported(st, FN_FILE_DIALOG_DRAW); /* the original's strcpy reads address 0 */
             return;
         }
         char name[260];
@@ -261,20 +236,20 @@ static void rows_draw(game_state *st, int32_t strip)
         if (strip) {
             strip_ext_host(name);
         }
-        text_draw_host(st, name, S32(st, FE_DX) + 0xA0, S32(st, FE_DY) + 0x72 + y, font, 0);
+        text_draw_host(st, name, S32(st, G_LAYOUT_DX) + 0xA0, S32(st, G_LAYOUT_DY) + 0x72 + y, font, 0);
     }
 }
 
 static void dialog_panels(game_state *st)
 {
-    int32_t dx = S32(st, FE_DX), dy = S32(st, FE_DY);
-    GAME_CALL(st, 0x00536820u, dx + 0x80, dy + 0x28, 0x18, 0x15);
-    dx = S32(st, FE_DX);
-    dy = S32(st, FE_DY);
-    GAME_CALL(st, 0x004D65B0u, dx + 0x90, dy + 0x50, 0x14, 2, dx, dy);
-    dx = S32(st, FE_DX);
-    dy = S32(st, FE_DY);
-    GAME_CALL(st, 0x004D65B0u, dx + 0x90, dy + 0x78, 0x14, 0x0D, dx, dy);
+    int32_t dx = S32(st, G_LAYOUT_DX), dy = S32(st, G_LAYOUT_DY);
+    GAME_CALL(st, FN_PANEL_DRAW, dx + 0x80, dy + 0x28, 0x18, 0x15);
+    dx = S32(st, G_LAYOUT_DX);
+    dy = S32(st, G_LAYOUT_DY);
+    GAME_CALL(st, FN_LAYOUT_INNER_PANEL, dx + 0x90, dy + 0x50, 0x14, 2, dx, dy);
+    dx = S32(st, G_LAYOUT_DX);
+    dy = S32(st, G_LAYOUT_DY);
+    GAME_CALL(st, FN_LAYOUT_INNER_PANEL, dx + 0x90, dy + 0x78, 0x14, 0x0D, dx, dy);
 }
 
 void file_dialog_draw(game_state *st)
@@ -283,30 +258,30 @@ void file_dialog_draw(game_state *st)
      * bar's (2 x 10); the title (group 0x2B: "not found" 2 in red while 0x00D3B1B3 counts down, else
      * the mode: save 0, load 1, delete 6), the label 5, the rows, the buttons 0x005C79F0, the typed
      * name and its caret, the thumb */
-    U8(st, 0x00E38DC9u) = 1;
+    U8(st, G_REDRAW_SIDEBAR) = 1;
     dialog_panels(st);
-    int32_t dx = S32(st, FE_DX), dy = S32(st, FE_DY);
-    GAME_CALL(st, 0x004D65B0u, dx + 0x1D3, dy + 0x90, 2, 10, dx, dy);
+    int32_t dx = S32(st, G_LAYOUT_DX), dy = S32(st, G_LAYOUT_DY);
+    GAME_CALL(st, FN_LAYOUT_INNER_PANEL, dx + 0x1D3, dy + 0x90, 2, 10, dx, dy);
     int32_t index, colour;
-    if (U8(st, NOT_FOUND) != 0) {
-        U8(st, NOT_FOUND) = (uint8_t) (U8(st, NOT_FOUND) - 1);
+    if (U8(st, G_NOT_FOUND) != 0) {
+        U8(st, G_NOT_FOUND) = (uint8_t) (U8(st, G_NOT_FOUND) - 1);
         index = 2;
         colour = 0xF800;
     } else {
         colour = 0xFFFF;
-        index = U8(st, MODE) == 2 ? 6 : U8(st, MODE);
+        index = U8(st, G_FILES_MODE) == 2 ? 6 : U8(st, G_FILES_MODE);
     }
-    dx = S32(st, FE_DX);
-    dy = S32(st, FE_DY);
-    GAME_CALL(st, 0x004D6250u, 0x2B, index, dx + 0xA0, dy + 0x32, 0x130, S32(st, FONT_TITLE), colour, dx, dy);
-    dx = S32(st, FE_DX);
-    dy = S32(st, FE_DY);
-    GAME_CALL(st, 0x004D62F0u, 0x2B, 5, dx + 0xE0, dy + 0x156, S32(st, FE_FONT_LARGE), 0xF800, dx, dy);
+    dx = S32(st, G_LAYOUT_DX);
+    dy = S32(st, G_LAYOUT_DY);
+    GAME_CALL(st, FN_LAYOUT_GROUP_CENTRED, 0x2B, index, dx + 0xA0, dy + 0x32, 0x130, S32(st, G_FONT_TITLE), colour, dx, dy);
+    dx = S32(st, G_LAYOUT_DX);
+    dy = S32(st, G_LAYOUT_DY);
+    GAME_CALL(st, FN_LAYOUT_GROUP, 0x2B, 5, dx + 0xE0, dy + 0x156, S32(st, G_FONT_LARGE), 0xF800, dx, dy);
     rows_draw(st, 0);
-    GAME_CALL(st, 0x00425730u, S32(st, FE_DX), S32(st, FE_DY), 0x005C79F0, 4);
-    GAME_CALL0(st, 0x004CC540u);
-    GAME_CALL(st, 0x004CC770u, (int32_t) NAME, S32(st, FE_DX) + 0xA0, S32(st, FE_DY) + 0x5A, S32(st, FONT_ROW_LIT), 0);
-    text_caret_draw(st, S32(st, FE_DX) + 0xA0, S32(st, FE_DY) + 0x5B, 0xFFFF);
+    GAME_CALL(st, FN_BUTTONS_DRAW, S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY), G_FILE_DIALOG_BUTTONS, 4);
+    GAME_CALL0(st, FN_TEXT_RUN_RESET);
+    GAME_CALL(st, FN_TEXT_DRAW, (int32_t) G_FILES_NAME, S32(st, G_LAYOUT_DX) + 0xA0, S32(st, G_LAYOUT_DY) + 0x5A, S32(st, G_FONT_9C), 0);
+    text_caret_draw(st, S32(st, G_LAYOUT_DX) + 0xA0, S32(st, G_LAYOUT_DY) + 0x5B, 0xFFFF);
     file_dialog_thumb(st);
 }
 
@@ -315,18 +290,18 @@ void map_dialog_draw(game_state *st)
     /* @bin 0x005325F0 window 0x10 (the scenario editor's maps): as 0x00532340 without the scroll
      * bar's panel; title group 0x2B, 3 + mode at x 0x80; the rows without their extension; the
      * buttons 0x005C7A80; the map's name (field 4) */
-    U8(st, 0x00E38DC9u) = 1;
+    U8(st, G_REDRAW_SIDEBAR) = 1;
     dialog_panels(st);
-    int32_t dx = S32(st, FE_DX), dy = S32(st, FE_DY);
-    GAME_CALL(st, 0x004D6250u, 0x2B, U8(st, MODE) + 3, dx + 0x80, dy + 0x32, 0x130, S32(st, FONT_TITLE), 0xFFFF, dx, dy);
-    dx = S32(st, FE_DX);
-    dy = S32(st, FE_DY);
-    GAME_CALL(st, 0x004D62F0u, 0x2B, 5, dx + 0xE0, dy + 0x156, S32(st, FE_FONT_LARGE), 0xF800, dx, dy);
+    int32_t dx = S32(st, G_LAYOUT_DX), dy = S32(st, G_LAYOUT_DY);
+    GAME_CALL(st, FN_LAYOUT_GROUP_CENTRED, 0x2B, U8(st, G_FILES_MODE) + 3, dx + 0x80, dy + 0x32, 0x130, S32(st, G_FONT_TITLE), 0xFFFF, dx, dy);
+    dx = S32(st, G_LAYOUT_DX);
+    dy = S32(st, G_LAYOUT_DY);
+    GAME_CALL(st, FN_LAYOUT_GROUP, 0x2B, 5, dx + 0xE0, dy + 0x156, S32(st, G_FONT_LARGE), 0xF800, dx, dy);
     rows_draw(st, 1);
-    GAME_CALL(st, 0x00425730u, S32(st, FE_DX), S32(st, FE_DY), 0x005C7A80, 4);
-    GAME_CALL0(st, 0x004CC540u);
-    GAME_CALL(st, 0x004CC770u, (int32_t) MAP_NAME, S32(st, FE_DX) + 0xA0, S32(st, FE_DY) + 0x5A, S32(st, FONT_ROW_LIT), 0);
-    text_caret_draw(st, S32(st, FE_DX) + 0xA0, S32(st, FE_DY) + 0x5B, 0xFFFF);
+    GAME_CALL(st, FN_BUTTONS_DRAW, S32(st, G_LAYOUT_DX), S32(st, G_LAYOUT_DY), G_MAP_DIALOG_BUTTONS, 4);
+    GAME_CALL0(st, FN_TEXT_RUN_RESET);
+    GAME_CALL(st, FN_TEXT_DRAW, (int32_t) G_MAP_NAME, S32(st, G_LAYOUT_DX) + 0xA0, S32(st, G_LAYOUT_DY) + 0x5A, S32(st, G_FONT_9C), 0);
+    text_caret_draw(st, S32(st, G_LAYOUT_DX) + 0xA0, S32(st, G_LAYOUT_DY) + 0x5B, 0xFFFF);
     file_dialog_thumb(st);
 }
 
@@ -334,41 +309,41 @@ void file_dialog_arrows(game_state *st)
 {
     /* @bin 0x00402980 the arrows (0x00D3B198: 0 up, 1 down) of a list of more than 12 rows; the
      * "not found" title cleared */
-    int32_t rows = S32(st, ROWS);
+    int32_t rows = S32(st, G_FILES_ROWS);
     if (rows <= 12) {
         return;
     }
-    int32_t p = S32(st, FE_PARAM1);
+    int32_t p = S32(st, G_PARAM1);
     if (p == 0) {
-        if (S32(st, FIRST) > 0) {
-            U8(st, NOT_FOUND) = 0;
-            S32(st, FIRST) = S32(st, FIRST) - 1;
+        if (S32(st, G_FIRST) > 0) {
+            U8(st, G_NOT_FOUND) = 0;
+            S32(st, G_FIRST) = S32(st, G_FIRST) - 1;
         }
         return;
     }
     if (p == 1) {
-        if (S32(st, FIRST) + 12 >= rows) {
+        if (S32(st, G_FIRST) + 12 >= rows) {
             return;
         }
-        S32(st, FIRST) = S32(st, FIRST) + 1;
+        S32(st, G_FIRST) = S32(st, G_FIRST) + 1;
     }
-    U8(st, NOT_FOUND) = 0;
+    U8(st, G_NOT_FOUND) = 0;
 }
 
 int32_t file_dialog_drag(game_state *st)
 {
     /* @bin 0x004029D0 the left button held on the scroll bar (x 0x1D0..0x1F0, y 0x91..0x12C) of a
      * list of more than 12: the first row by the place; a full redraw; 1 when it took the input */
-    int32_t rows = S32(st, ROWS);
-    if (rows <= 12 || U8(st, LEFT_HELD) == 0) {
+    int32_t rows = S32(st, G_FILES_ROWS);
+    if (rows <= 12 || U8(st, G_LEFT_HELD) == 0) {
         return 0;
     }
     int32_t range = rows - 12;
-    int32_t mx = S32(st, MOUSE_X), dx = S32(st, FE_DX);
+    int32_t mx = S32(st, G_MOUSE_X), dx = S32(st, G_LAYOUT_DX);
     if (mx < dx + 0x1D0 || mx > dx + 0x1F0) {
         return 0;
     }
-    int32_t my = S32(st, MOUSE_Y), dy = S32(st, FE_DY);
+    int32_t my = S32(st, G_MOUSE_Y), dy = S32(st, G_LAYOUT_DY);
     if (my < dy + 0x91 || my > dy + 0x12C) {
         return 0;
     }
@@ -376,9 +351,9 @@ int32_t file_dialog_drag(game_state *st)
     if (pos > 0x82) {
         pos = 0x82;
     }
-    int32_t pct = GAME_CALL(st, 0x004CDE60u, pos, 0x82);
-    S32(st, FIRST) = GAME_CALL(st, 0x004CDE40u, range, pct);
-    U8(st, FE_REDRAW) = 1;
+    int32_t pct = GAME_CALL(st, FN_CALC_RATIO_PERCENT, pos, 0x82);
+    S32(st, G_FIRST) = GAME_CALL(st, FN_CALC_PERCENTAGE, range, pct);
+    U8(st, G_REDRAW) = 1;
     return 1;
 }
 
@@ -387,34 +362,34 @@ void file_dialog_row_click(game_state *st)
     /* @bin 0x00402A80 a row (0x00D3B198 < rows): clicked; its name into the field (window 0x0D: the
      * saved game's 0x00E37100, field 2; else the map's 0x00E37078, field 4), the caret at its end; the
      * "not found" title cleared */
-    int32_t p = S32(st, FE_PARAM1);
-    if (p >= S32(st, ROWS)) {
+    int32_t p = S32(st, G_PARAM1);
+    if (p >= S32(st, G_FILES_ROWS)) {
         return;
     }
-    S32(st, CLICKED) = p;
+    S32(st, G_CLICKED) = p;
     uint32_t dst;
     int32_t field;
     uint32_t row;
-    if (U8(st, FE_WINDOW) == 0x0D) {
-        dst = NAME;
+    if (U8(st, G_WINDOW) == 0x0D) {
+        dst = G_FILES_NAME;
         field = 2;
-        GAME_CALL(st, 0x0040F8F0u, (int32_t) dst, 0x40, 0);
-        row = list_row(st, S32(st, CLICKED) + S32(st, FIRST));
+        GAME_CALL(st, FN_FILL_BYTES, (int32_t) dst, 0x40, 0);
+        row = list_row(st, S32(st, G_CLICKED) + S32(st, G_FIRST));
     } else {
-        dst = MAP_NAME;
+        dst = G_MAP_NAME;
         field = 4;
-        GAME_CALL(st, 0x0040F8F0u, (int32_t) dst, 0x40, 0);
-        row = list_row(st, S32(st, FIRST) + S32(st, CLICKED));
+        GAME_CALL(st, FN_FILL_BYTES, (int32_t) dst, 0x40, 0);
+        row = list_row(st, S32(st, G_FIRST) + S32(st, G_CLICKED));
     }
     if (row == 0) {
-        state_unported(st, 0x00402A80u); /* the original's strcpy reads address 0 */
+        state_unported(st, FN_FILE_DIALOG_ROW_CLICK); /* the original's strcpy reads address 0 */
         return;
     }
     state_strcpy(st, dst, row);
-    GAME_CALL(st, 0x004CC500u, field);
-    GAME_CALL0(st, 0x004CC3C0u);
-    GAME_CALL0(st, 0x004CC3E0u);
-    U8(st, NOT_FOUND) = 0;
+    GAME_CALL(st, FN_TEXT_BOX_FOCUS, field);
+    GAME_CALL0(st, FN_TEXT_BOX_CURSOR_START);
+    GAME_CALL0(st, FN_TEXT_BOX_CURSOR_END);
+    U8(st, G_NOT_FOUND) = 0;
 }
 
 /* a += b, truncated to cap - 1 characters (strncat(a, b, cap - strlen(a) - 1)) */
@@ -431,9 +406,9 @@ static void typed_path(game_state *st, uint32_t name, uint32_t ext, uint32_t dir
 {
     /* the typed name with its extension replaced (0x004CE3A0, 0x004CBEA0 into 0x00E38AEC, 0x004CE3C0);
      * the path: the family's directory + "\" + name, or "maps\" + name */
-    GAME_CALL(st, 0x004CE3A0u, (int32_t) name);
-    GAME_CALL(st, 0x004CBEA0u, (int32_t) ext, (int32_t) EXT, 3);
-    GAME_CALL(st, 0x004CE3C0u, (int32_t) name);
+    GAME_CALL(st, FN_FILE_NAME_STRIP_EXTENSION, (int32_t) name);
+    GAME_CALL(st, FN_TEXT_COPY, (int32_t) ext, (int32_t) G_START_EXT, 3);
+    GAME_CALL(st, FN_FILE_NAME_ADD_EXTENSION, (int32_t) name);
     char a[260], b[260];
     if (family) {
         host_strcpy(st, a, family_dir_path(st), sizeof(a));
@@ -453,19 +428,19 @@ void crt_dosmaperr(game_state *st, uint32_t error)
     /* @bin 0x005672C8 _dosmaperr: _doserrno 0x01266434 := the Win32 error; errno 0x01266430 from the
      * table 0x00604F30 (0x2D pairs error, errno), else EACCES (0xD) for 0x13..0x24, ENOEXEC (8) for
      * 0xBC..0xCA, EINVAL (0x16) */
-    U32(st, 0x01266434u) = error;
-    for (uint32_t e = 0x00604F30u; e < 0x00605098u; e += 8) {
+    U32(st, G_CRT_DOSERRNO) = error;
+    for (uint32_t e = G_CRT_ERRNO_TABLE; e < G_CRT_ERRNO_TABLE + 0x2Du * 8u; e += 8) {
         if (U32(st, e) == error) {
-            U32(st, 0x01266430u) = U32(st, e + 4);
+            U32(st, G_CRT_ERRNO) = U32(st, e + 4);
             return;
         }
     }
     if (error >= 0x13 && error <= 0x24) {
-        U32(st, 0x01266430u) = 0xD;
+        U32(st, G_CRT_ERRNO) = 0xD;
     } else if (error >= 0xBC && error <= 0xCA) {
-        U32(st, 0x01266430u) = 8;
+        U32(st, G_CRT_ERRNO) = 8;
     } else {
-        U32(st, 0x01266430u) = 0x16;
+        U32(st, G_CRT_ERRNO) = 0x16;
     }
 }
 
@@ -503,63 +478,63 @@ void file_dialog_ok(game_state *st)
      * existing file is confirmed first (message 0x6E / 0x6F, 7 = no), the game saved (0x004D4E20), in
      * the Pharaoh campaign its path kept (0x00700998) and the progress file written (0x0041B8A0); the
      * name kept as the last one (0x00E370BC); the city unless deleting */
-    int32_t p = S32(st, FE_PARAM1);
-    S32(st, 0x007056C4u) = 0;
-    S32(st, FE_HOVER) = 0;
-    S32(st, 0x007056B8u) = 0;
-    S32(st, 0x007056C0u) = 0;
+    int32_t p = S32(st, G_PARAM1);
+    S32(st, G_HOVER_2) = 0;
+    S32(st, G_HOVER) = 0;
+    S32(st, G_HOVER_BUTTON) = 0;
+    S32(st, G_HOVER_3) = 0;
     if (p == 0) {
-        U8(st, FE_WINDOW) = (uint8_t) S32(st, BACK_WINDOW);
-        U8(st, FE_REDRAW) = 1;
+        U8(st, G_WINDOW) = (uint8_t) S32(st, G_BACK_WINDOW);
+        U8(st, G_REDRAW) = 1;
         return;
     }
     if (p != 1) {
         return;
     }
     char path[100];
-    typed_path(st, NAME, 0x005761D4u, 0x005761D0u, 1, path, sizeof(path));
-    uint8_t mode = U8(st, MODE);
+    typed_path(st, G_FILES_NAME, G_STR_SAV, G_STR_BACKSLASH, 1, path, sizeof(path));
+    uint8_t mode = U8(st, G_FILES_MODE);
     if (mode >= 1) {
         if (fe_file_exists(st, path) == 0) {
-            GAME_CALL(st, 0x004CE3A0u, (int32_t) NAME);
-            U8(st, NOT_FOUND) = 100;
+            GAME_CALL(st, FN_FILE_NAME_STRIP_EXTENSION, (int32_t) G_FILES_NAME);
+            U8(st, G_NOT_FOUND) = 100;
             return;
         }
-        if (U8(st, MODE) == 1) {
-            GAME_CALLT(st, 0x00E92BF8u, 0x0055F561u, 0);
+        if (U8(st, G_FILES_MODE) == 1) {
+            GAME_CALLT(st, G_SOUND, FN_SOUND_STOP_STREAM, 0);
             loader_load_save_path(st, path, 0);
             goto done;
         }
-        mode = U8(st, MODE);
+        mode = U8(st, G_FILES_MODE);
     }
     if (mode == 2) {
         saved_game_delete(st, path);
     } else {
         if (platform_file_read(st, path, 0, NULL, 0) >= 0) {
             /* @bin 0x0040288F fopen(path, "r") (0x005761CC) succeeded: fclose, the question */
-            GAME_CALL(st, 0x004CC110u, 5, 0x6E);
-            GAME_CALL(st, 0x004CC160u, 5, 0x6F);
-            if (GAME_CALL(st, 0x00538CD0u, S32(st, TEXT_PTR), S32(st, TEXT_PTR2), 4) == 7) {
-                GAME_CALL(st, 0x004CE3A0u, (int32_t) NAME);
+            GAME_CALL(st, FN_TEXT_SEEK, 5, 0x6E);
+            GAME_CALL(st, FN_TEXT_SEEK2, 5, 0x6F);
+            if (GAME_CALL(st, FN_PLATFORM_MESSAGE_BOX, S32(st, G_TEXT_CURSOR), S32(st, G_TEXT_PTR2), 4) == 7) {
+                GAME_CALL(st, FN_FILE_NAME_STRIP_EXTENSION, (int32_t) G_FILES_NAME);
                 return;
             }
         }
         frame_save_game(st, path);
-        if (U8(st, CAMPAIGN_KIND) == 1) {
+        if (U8(st, G_CAMPAIGN_KIND) == 1) {
             size_t n = strlen(path);
             for (size_t i = 0; i <= n; i++) {
-                P8(st, LAST_SAVE + (uint32_t) i) = (uint8_t) path[i];
+                P8(st, G_LAST_SAVE + (uint32_t) i) = (uint8_t) path[i];
             }
-            GAME_CALLT(st, 0x006FDD08u, 0x0041B8A0u, (int32_t) campaign_progress_path(st));
+            GAME_CALLT(st, G_CAMPAIGN_TABLE, FN_CAMPAIGN_PROGRESS_WRITE, (int32_t) campaign_progress_path(st));
         }
     }
 done:
-    GAME_CALL(st, 0x004CE3A0u, (int32_t) NAME);
-    state_strcpy(st, LAST_NAME, NAME);
-    if (U8(st, MODE) < 2) {
-        U8(st, FE_WINDOW) = 1;
+    GAME_CALL(st, FN_FILE_NAME_STRIP_EXTENSION, (int32_t) G_FILES_NAME);
+    state_strcpy(st, G_LAST_NAME, G_FILES_NAME);
+    if (U8(st, G_FILES_MODE) < 2) {
+        U8(st, G_WINDOW) = 1;
     }
-    U8(st, FE_REDRAW) = 1;
+    U8(st, G_REDRAW) = 1;
 }
 
 void map_dialog_ok(game_state *st)
@@ -567,36 +542,36 @@ void map_dialog_ok(game_state *st)
     /* @bin 0x004099B0 the map dialog's buttons: 0 cancel (the city); 1 OK: the path maps\<name>.map;
      * open (mode 1) needs the file (else "not found"), then 0x004DE600 loads it; else the map is saved
      * (0x004D5520 on the path in the caller's frame: not ported); the name's extension cut, the city */
-    int32_t p = S32(st, FE_PARAM1);
+    int32_t p = S32(st, G_PARAM1);
     if (p == 0) {
-        U8(st, FE_WINDOW) = 1;
-        U8(st, FE_REDRAW) = 1;
+        U8(st, G_WINDOW) = 1;
+        U8(st, G_REDRAW) = 1;
         return;
     }
     if (p != 1) {
         return;
     }
     char path[100];
-    typed_path(st, MAP_NAME, 0x00576274u, 0x0057626Cu, 0, path, sizeof(path));
-    if (U8(st, MODE) == 1) {
+    typed_path(st, G_MAP_NAME, G_STR_MAP, G_STR_MAPS_DIR, 0, path, sizeof(path));
+    if (U8(st, G_FILES_MODE) == 1) {
         if (fe_file_exists(st, path) == 0) {
-            GAME_CALL(st, 0x004CE3A0u, (int32_t) MAP_NAME);
-            U8(st, NOT_FOUND) = 100;
+            GAME_CALL(st, FN_FILE_NAME_STRIP_EXTENSION, (int32_t) G_MAP_NAME);
+            U8(st, G_NOT_FOUND) = 100;
             return;
         }
-        if (U8(st, MODE) == 1) {
-            GAME_CALL0(st, 0x004DE600u);
+        if (U8(st, G_FILES_MODE) == 1) {
+            GAME_CALL0(st, FN_SCENARIO_MAP_LOAD);
         } else {
-            state_unported(st, 0x004099B0u);
+            state_unported(st, FN_MAP_DIALOG_OK);
             return;
         }
     } else {
-        state_unported(st, 0x004099B0u); /* 0x004D5520(path): the map's save */
+        state_unported(st, FN_MAP_DIALOG_OK); /* 0x004D5520(path): the map's save */
         return;
     }
-    GAME_CALL(st, 0x004CE3A0u, (int32_t) MAP_NAME);
-    U8(st, FE_WINDOW) = 1;
-    U8(st, FE_REDRAW) = 1;
+    GAME_CALL(st, FN_FILE_NAME_STRIP_EXTENSION, (int32_t) G_MAP_NAME);
+    U8(st, G_WINDOW) = 1;
+    U8(st, G_REDRAW) = 1;
 }
 
 static int32_t run_list(game_state *st, const int32_t *a) { file_dialog_list(st, a[1]); return 0; }

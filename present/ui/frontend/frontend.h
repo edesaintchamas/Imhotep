@@ -13,23 +13,10 @@
 
 #include <stdint.h>
 
+#include "present_layout.h"
 #include "state/state.h"
 
 /* globals (docs/presentation.md 2.1, 3.2, 5.2) */
-#define FE_WINDOW 0x00E38DDAu        /* u8 the current window */
-#define FE_WINDOW_PREV 0x00E38DD9u   /* u8 */
-#define FE_REDRAW 0x00E38DCAu        /* u8 full redraw of the window this frame */
-#define FE_DX 0x00E38DA8u            /* i32 (screen width - 640) / 2 */
-#define FE_DY 0x00E38DA4u            /* i32 (screen height - 480) / 2 */
-#define FE_SCREEN_W 0x00E38DB0u      /* i32 */
-#define FE_SCREEN_H 0x00E38DACu      /* i32 */
-#define FE_HOVER 0x007056C8u         /* i32 the hovered entry of a rectangle table, 1-based (0x004D6740) */
-#define FE_HOVER_BUTTON 0x007056B8u  /* i32 the hovered button (0x00425BC0) */
-#define FE_PARAM1 0x00D3B198u        /* i32 the clicked button's parameter */
-#define FE_PARAM2 0x00D3B194u        /* i32 */
-#define FE_IMAGES 0x00F55BB0u        /* `this` of the image draw 0x0053E590 */
-#define FE_FONT_LARGE 0x00F56F8Cu    /* i32 first image of the large font */
-#define FE_BUTTON_IMAGES 0x00F56494u /* i32 first image of the large buttons' pieces */
 
 void fe_button_draw(game_state *st, int32_t kind, int32_t x, int32_t y, int32_t width, int32_t lit);
 
