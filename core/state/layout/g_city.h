@@ -32,7 +32,6 @@
 #define G_U56F4C8 0x0056F4C8u /* @bin 0x0040D940 f64: 1 / 21, the stages (core/city/monument_rating.c) */
 #define G_U56F568 0x0056F568u /* @bin 0x00469B90 f32: the population factor of the spawn pass (0.02 in its port) */
 #define G_K_0_01 0x0056F598u /* @bin 0x0047A049 f64 0.01 (core/map/terrain_flood.c), 0x004BE7DB */
-#define G_U56F5B8 0x0056F5B8u /* @bin 0x0045EA30 i32 month table: ten rows of four months, -1 ends a row (core/city/day_buildings.c) */
 #define G_U56F688 0x0056F688u /* @bin 0x004BEA51 f64: the sixths of a flood day (core/city/day_flood.c) */
 #define G_K_100F 0x0056F6DCu /* @bin 0x004E5F3C f32 100.0 (present/city/parts.c), 0x00546790 */
 #define G_U56F720 0x0056F720u /* @bin 0x004C47A0 i32[5]: a god's blessing / wrath table, mood >= 0x5A (core/city/day_city.c) */
@@ -169,8 +168,6 @@
 #define G_UEA1380 0x00EA1380u /* @bin 0x004EA920 u8: := 0x004183D0() (present/ui/frontend/victory.c) */
 #define G_UEA17FC 0x00EA17FCu /* @bin 0x004EA2C0 u8 (present/ui/frontend/victory.c) */
 #define G_UEAAC2C 0x00EAAC2Cu /* @bin 0x004E81D0 u8: passed to house_mood_month, then cleared */
-#define G_UEAAE84 0x00EAAE84u /* @bin 0x004ED360 u8: the building G_UEAAE88 was reached */
-#define G_UEAAE88 0x00EAAE88u /* @bin 0x004ED360 i32: the building looked for */
 #define G_UEAAE94 0x00EAAE94u /* @bin 0x004ED360 i32 := 2 */
 #define G_UEAAE98 0x00EAAE98u /* @bin 0x004ED360 i32: the steps, at most 20 */
 #define G_UEAAEA0 0x00EAAEA0u /* @bin 0x004ED360 i32: the step eastwards, x 2 */

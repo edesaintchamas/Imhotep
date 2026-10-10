@@ -10,15 +10,11 @@
  * Each function is ported as its own entry point calling the shared layout with its constants. */
 #include "info.h"
 
+#include "present_layout.h"
 #include "sim/call.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define IMAGES 0x00F55BB0u          /* `this` of the image draw 0x0053E590 */
-#define TEXT_X 0x00E20778u          /* i32 text cursor x after a draw */
-#define PANEL_ICONS 0x00F571FCu     /* i32 first image of the panels' resource icons */
-#define SUFFIX_PROGRESS 0x007027D4u /* the suffix string of the raw producers' progress number */
-#define SUFFIX_PERCENT 0x005E03FCu  /* the suffix string of the workshops' progress number */
 
 enum { PROGRESS_NONE, PROGRESS_RAW, PROGRESS_SCALED };
 
@@ -43,13 +39,13 @@ typedef struct {
     int trailer;          /* the text 1 at the panel's bottom */
 } panel_desc;
 
-static int32_t x0(game_state *st) { return S32(st, INFO_X); }
-static int32_t y0(game_state *st) { return S32(st, INFO_Y); }
-static int32_t font_text(game_state *st) { return S32(st, INFO_FONT_TEXT); }
+static int32_t x0(game_state *st) { return S32(st, G_INFO_X); }
+static int32_t y0(game_state *st) { return S32(st, G_INFO_Y); }
+static int32_t font_text(game_state *st) { return S32(st, G_FONT_LARGE); }
 
 static int16_t building_i16(game_state *st, uint32_t offset)
 {
-    return S16(st, BUILDING_ADDR(S32(st, INFO_BUILDING)) + offset);
+    return S16(st, BUILDING_ADDR(S32(st, G_INFO_BUILDING)) + offset);
 }
 
 static void draw_icon(game_state *st, int32_t icon, int32_t dx, int32_t dy)
@@ -57,13 +53,13 @@ static void draw_icon(game_state *st, int32_t icon, int32_t dx, int32_t dy)
     /* @bin 0x0053E590 thiscall on 0x00F55BB0 (image, x, y) */
     int32_t y = y0(st) + dy;
     int32_t x = x0(st) + dx;
-    GAME_CALLT(st, IMAGES, 0x0053E590u, S32(st, PANEL_ICONS) + icon, x, y);
+    GAME_CALLT(st, G_GRAPHICS_GFX, FN_IMAGE_DRAW, S32(st, G_RESOURCE_ICONS) + icon, x, y);
 }
 
 static void text_at(game_state *st, int32_t group, int32_t index, int32_t x, int32_t y)
 {
     /* @bin 0x004D62F0 (group, index, x, y, font, colour 0, origin x, origin y) */
-    GAME_CALL(st, 0x004D62F0u, group, index, x, y, font_text(st), 0, x0(st), y0(st));
+    GAME_CALL(st, FN_LAYOUT_GROUP, group, index, x, y, font_text(st), 0, x0(st), y0(st));
 }
 
 static void input_line(game_state *st, const panel_desc *d, int32_t icon, int32_t text, uint32_t stock,
@@ -72,11 +68,11 @@ static void input_line(game_state *st, const panel_desc *d, int32_t icon, int32_
     /* @bin 0x0050B2B7 an input: its icon at (icon_dx, 0x38), its name at (text_dx, 0x3C) after
      * clearing the text cursor, then the amount (below 1 shown as 0) through 0x004CCC30(8, 10, ...) */
     draw_icon(st, icon, icon_dx, 0x38);
-    S32(st, TEXT_X) = 0;
+    S32(st, G_TEXT_X) = 0;
     text_at(st, d->group, text, x0(st) + text_dx, y0(st) + 0x3C);
     int16_t amount = building_i16(st, stock);
     int32_t value = amount < 1 ? 0 : amount;
-    GAME_CALL(st, 0x004CCC30u, 8, 10, value, S32(st, TEXT_X) + text_dx + x0(st), y0(st) + 0x3C, font_text(st), 0);
+    GAME_CALL(st, FN_TEXT_COUNT_DRAW, 8, 10, value, S32(st, G_TEXT_X) + text_dx + x0(st), y0(st) + 0x3C, font_text(st), 0);
 }
 
 static int32_t status_text(game_state *st, const panel_desc *d, int32_t *group)
@@ -85,7 +81,7 @@ static int32_t status_text(game_state *st, const panel_desc *d, int32_t *group)
      * (index 4); no workers (building +0x40 <= 0); input missing (+0x3C, +0xCC <= 0); then the
      * workers' percentage 0x00EADD5C: >= 100, >= 75, >= 50, >= 25, below. The indices follow
      * status_base (5: 5, 0xB, 0xC, 6..10; 2 for 0x0050DBE0: 2, 8, 9, 3..7) */
-    if (S32(st, INFO_ROAD) <= 0) {
+    if (S32(st, G_INFO_ROAD) <= 0) {
         *group = 0x45;
         return 0x19;
     }
@@ -103,7 +99,7 @@ static int32_t status_text(game_state *st, const panel_desc *d, int32_t *group)
     if (d->check_in2 && building_i16(st, 0xCC) <= 0) {
         return b + 7;
     }
-    int32_t pct = S32(st, INFO_WORKERS);
+    int32_t pct = S32(st, G_INFO_WORKERS);
     if (pct >= 100) {
         return b + 1;
     }
@@ -121,39 +117,39 @@ static int32_t status_text(game_state *st, const panel_desc *d, int32_t *group)
 
 static void panel_draw(game_state *st, const panel_desc *d)
 {
-    S32(st, INFO_HELP) = d->help;
-    if (S32(st, INFO_SOUND) != 0) {
-        GAME_CALL(st, 0x0047D350u, (int32_t) d->sound, 1, 0); /* @bin 0x0047D350 empty (sound) */
-        S32(st, INFO_SOUND) = 0;
+    S32(st, G_INFO_HELP) = d->help;
+    if (S32(st, G_INFO_SOUND) != 0) {
+        GAME_CALL(st, FN_RETURN_ZERO, (int32_t) d->sound, 1, 0); /* @bin 0x0047D350 empty (sound) */
+        S32(st, G_INFO_SOUND) = 0;
     }
-    GAME_CALL(st, 0x00536820u, x0(st), y0(st), S32(st, INFO_W), S32(st, INFO_H));
+    GAME_CALL(st, FN_PANEL_DRAW, x0(st), y0(st), S32(st, G_INFO_W), S32(st, G_INFO_H));
     if (d->icon >= 0) {
         draw_icon(st, d->icon, 10, 10);
     }
-    GAME_CALL(st, 0x004D6250u, d->group, 0, x0(st), y0(st) + 10, (int32_t) ((uint32_t) S32(st, INFO_W) << 4),
-              S32(st, INFO_FONT_LARGE), 0, x0(st), y0(st));
+    GAME_CALL(st, FN_LAYOUT_GROUP_CENTRED, d->group, 0, x0(st), y0(st) + 10, (int32_t) ((uint32_t) S32(st, G_INFO_W) << 4),
+              S32(st, G_FONT_TITLE), 0, x0(st), y0(st));
     if (d->progress != PROGRESS_NONE) {
         int32_t value;
         uint32_t suffix;
         if (d->progress == PROGRESS_RAW) {
             /* @bin 0x00509D76 the raw producers: building +0x3C as is */
-            S32(st, TEXT_X) = 0;
+            S32(st, G_TEXT_X) = 0;
             value = building_i16(st, 0x3C);
-            suffix = SUFFIX_PROGRESS;
+            suffix = G_GOAL_SEPARATOR;
         } else {
             /* @bin 0x0050B205 the workshops: 0x004CDE60(building +0x54, divisor) */
-            value = GAME_CALL(st, 0x004CDE60u, (int32_t) building_i16(st, 0x54), d->divisor);
-            S32(st, TEXT_X) = 0;
-            suffix = SUFFIX_PERCENT;
+            value = GAME_CALL(st, FN_CALC_RATIO_PERCENT, (int32_t) building_i16(st, 0x54), d->divisor);
+            S32(st, G_TEXT_X) = 0;
+            suffix = G_PERCENT_STRING;
         }
         int32_t y = y0(st) + d->progress_y;
         text_at(st, d->group, 2, x0(st) + 0x20, y);
-        GAME_CALL(st, 0x004D6860u, value, 0x40, (int32_t) suffix, S32(st, TEXT_X) + x0(st) + 0x20, y0(st) + d->progress_y,
+        GAME_CALL(st, FN_LAYOUT_NUMBER_AT, value, 0x40, (int32_t) suffix, S32(st, G_TEXT_X) + x0(st) + 0x20, y0(st) + d->progress_y,
                   font_text(st), 0, x0(st), y0(st));
-        text_at(st, d->group, 3, S32(st, TEXT_X) + x0(st) + 0x20, y0(st) + d->progress_y);
+        text_at(st, d->group, 3, S32(st, G_TEXT_X) + x0(st) + 0x20, y0(st) + d->progress_y);
     }
     if (d->clear_before_in1) {
-        S32(st, TEXT_X) = 0;
+        S32(st, G_TEXT_X) = 0;
     }
     if (d->in1_icon >= 0) {
         input_line(st, d, d->in1_icon, d->in1_text, 0x3C, 0x20, 0x3C);
@@ -163,16 +159,16 @@ static void panel_draw(game_state *st, const panel_desc *d)
     }
     int32_t group;
     int32_t index = status_text(st, d, &group);
-    int32_t width = (int32_t) ((uint32_t) (S32(st, INFO_W) - 4) << 4);
-    GAME_CALL(st, 0x004D6160u, group, index, x0(st) + 0x20, y0(st) + d->status_y, width, font_text(st), 0, x0(st),
+    int32_t width = (int32_t) ((uint32_t) (S32(st, G_INFO_W) - 4) << 4);
+    GAME_CALL(st, FN_LAYOUT_GROUP_LINES, group, index, x0(st) + 0x20, y0(st) + d->status_y, width, font_text(st), 0, x0(st),
               y0(st));
-    GAME_CALL(st, 0x004D65B0u, x0(st) + 0x10, y0(st) + 0x88, S32(st, INFO_W) - 2, 4, x0(st), y0(st));
-    GAME_CALL(st, 0x004FC5C0u, y0(st) + 0x8E);
+    GAME_CALL(st, FN_LAYOUT_INNER_PANEL, x0(st) + 0x10, y0(st) + 0x88, S32(st, G_INFO_W) - 2, 4, x0(st), y0(st));
+    GAME_CALL(st, FN_INFO_WORKERS_LINE, y0(st) + 0x8E);
     if (d->trailer) {
         /* @bin 0x0050A018 text 1 at the bottom: y + 16 h - 0x71 */
-        int32_t y = (int32_t) ((uint32_t) S32(st, INFO_H) << 4) + y0(st) - 0x71;
-        width = (int32_t) ((uint32_t) (S32(st, INFO_W) - 4) << 4);
-        GAME_CALL(st, 0x004D6160u, d->group, 1, x0(st) + 0x20, y, width, font_text(st), 0, x0(st), y0(st));
+        int32_t y = (int32_t) ((uint32_t) S32(st, G_INFO_H) << 4) + y0(st) - 0x71;
+        width = (int32_t) ((uint32_t) (S32(st, G_INFO_W) - 4) << 4);
+        GAME_CALL(st, FN_LAYOUT_GROUP_LINES, d->group, 1, x0(st) + 0x20, y, width, font_text(st), 0, x0(st), y0(st));
     }
 }
 
@@ -180,55 +176,55 @@ static void panel_draw(game_state *st, const panel_desc *d)
  * flag's city offset, ladder) */
 
 /* @bin 0x00509CD0 type 0x6C ("wavs\\timber.wav") */
-static const panel_desc P_509CD0 = {0x5E, 0x005F7D54u, 0x14, 0x78, PROGRESS_RAW, 0, 0x2C, 0, -1, 0, -1, 0,
+static const panel_desc P_509CD0 = {0x5E, G_WAV_TIMBER, 0x14, 0x78, PROGRESS_RAW, 0, 0x2C, 0, -1, 0, -1, 0,
                                     0x28DE, 0, 0, 5, 0x46, 1};
 /* @bin 0x0050A060 type 0x6D ("wavs\\clay.wav") */
-static const panel_desc P_50A060 = {0x5C, 0x005F7D64u, 0x0B, 0x79, PROGRESS_SCALED, 200, 0x2C, 0, -1, 0, -1, 0,
+static const panel_desc P_50A060 = {0x5C, G_WAV_CLAY, 0x0B, 0x79, PROGRESS_SCALED, 200, 0x2C, 0, -1, 0, -1, 0,
                                     0x28CC, 0, 0, 5, 0x46, 1};
 /* @bin 0x0050A400 type 0x6E ("wavs\\wine_workshop.wav") */
-static const panel_desc P_50A400 = {0x60, 0x005F7D74u, 0x0F, 0x7A, PROGRESS_SCALED, 400, 0x28, 0, 0x0E, 0x0C, -1, 0,
+static const panel_desc P_50A400 = {0x60, G_WAV_WINE_WORKSHOP, 0x0F, 0x7A, PROGRESS_SCALED, 400, 0x28, 0, 0x0E, 0x0C, -1, 0,
                                     0x28D4, 1, 0, 5, 0x56, 0};
 /* @bin 0x0050A870 type 0x6F ("wavs\\oil_workshop.wav") */
-static const panel_desc P_50A870 = {0x3C, 0x005F7D8Cu, 0x11, 0x7B, PROGRESS_SCALED, 400, 0x28, 0, 0x10, 0x0C, -1, 0,
+static const panel_desc P_50A870 = {0x3C, G_WAV_OIL_WORKSHOP, 0x11, 0x7B, PROGRESS_SCALED, 400, 0x28, 0, 0x10, 0x0C, -1, 0,
                                     0x28D8, 1, 0, 5, 0x56, 0};
 /* @bin 0x0050ACE0 type 0xCB ("wavs\\oil_workshop.wav") */
-static const panel_desc P_50ACE0 = {0x61, 0x005F7D8Cu, 0x17, 0xBE, PROGRESS_SCALED, 400, 0x28, 0, 0x16, 0x0C, -1, 0,
+static const panel_desc P_50ACE0 = {0x61, G_WAV_OIL_WORKSHOP, 0x17, 0xBE, PROGRESS_SCALED, 400, 0x28, 0, 0x16, 0x0C, -1, 0,
                                     0x28E4, 1, 0, 5, 0x56, 0};
 /* @bin 0x0050B160 type 0xE8 ("wavs\\lamp_maker.wav") */
-static const panel_desc P_50B160 = {0x1D9, 0x005F7DA4u, 0x22, 0x13A, PROGRESS_SCALED, 400, 0x28, 0, 0x1F, 0x0D, 0x0D,
+static const panel_desc P_50B160 = {0x1D9, G_WAV_LAMP_MAKER, 0x22, 0x13A, PROGRESS_SCALED, 400, 0x28, 0, 0x1F, 0x0D, 0x0D,
                                     0x0E, 0x28FA, 1, 1, 5, 0x56, 0};
 /* @bin 0x0050B6D0 type 0xE9 ("wavs\\paint_maker.wav") */
-static const panel_desc P_50B6D0 = {0x1D6, 0x005F7DB8u, 0x21, 0x139, PROGRESS_SCALED, 400, 0x28, 0, 0x20, 0x0C, -1, 0,
+static const panel_desc P_50B6D0 = {0x1D6, G_WAV_PAINT_MAKER, 0x21, 0x139, PROGRESS_SCALED, 400, 0x28, 0, 0x20, 0x0C, -1, 0,
                                     0x28F8, 1, 0, 5, 0x56, 0};
 /* @bin 0x0050BB50 type 0xCD ("wavs\\oil_workshop.wav") */
-static const panel_desc P_50BB50 = {0x62, 0x005F7D8Cu, 0x1C, 0xB9, PROGRESS_SCALED, 400, 0x28, 0, 0x14, 0x0C, -1, 0,
+static const panel_desc P_50BB50 = {0x62, G_WAV_OIL_WORKSHOP, 0x1C, 0xB9, PROGRESS_SCALED, 400, 0x28, 0, 0x14, 0x0C, -1, 0,
                                     0x28DE, 1, 0, 5, 0x56, 0};
 /* @bin 0x0050BFD0 type 0xCC ("wavs\\oil_workshop.wav") */
-static const panel_desc P_50BFD0 = {0x16C, 0x005F7D8Cu, 0x0C, 0xB4, PROGRESS_SCALED, 400, 0x28, 0, 0x0B, 0x0D, 0x09,
+static const panel_desc P_50BFD0 = {0x16C, G_WAV_OIL_WORKSHOP, 0x0C, 0xB4, PROGRESS_SCALED, 400, 0x28, 0, 0x0B, 0x0D, 0x09,
                                     0x0E, 0x28CE, 1, 1, 5, 0x56, 0};
 /* @bin 0x0050C540 type 0x70 ("wavs\\weapons_workshop.wav") */
-static const panel_desc P_50C540 = {0x62, 0x005F7DD0u, 0x0A, 0x7C, PROGRESS_SCALED, 400, 0x28, 0, 0x1D, 0x0C, -1, 0,
+static const panel_desc P_50C540 = {0x62, G_WAV_WEAPONS_WORKSHOP, 0x0A, 0x7C, PROGRESS_SCALED, 400, 0x28, 0, 0x1D, 0x0C, -1, 0,
                                     0x28CA, 1, 0, 5, 0x56, 0};
 /* @bin 0x0050C9B0 type 0x71 ("wavs\\furniture_workshop.wav") */
-static const panel_desc P_50C9B0 = {0x63, 0x005F7DECu, 0x13, 0x7D, PROGRESS_SCALED, 400, 0x28, 0, 0x12, 0x0C, -1, 0,
+static const panel_desc P_50C9B0 = {0x63, G_WAV_FURNITURE_WORKSHOP, 0x13, 0x7D, PROGRESS_SCALED, 400, 0x28, 0, 0x12, 0x0C, -1, 0,
                                     0x28DC, 1, 0, 5, 0x56, 0};
 /* @bin 0x0050CE20 type 0x72 ("wavs\\pottery_workshop.wav") */
-static const panel_desc P_50CE20 = {0x01, 0x005F7E08u, 0x0D, 0x7E, PROGRESS_SCALED, 400, 0x28, 0, 0x0B, 0x0C, -1, 0,
+static const panel_desc P_50CE20 = {0x01, G_WAV_POTTERY_WORKSHOP, 0x0D, 0x7E, PROGRESS_SCALED, 400, 0x28, 0, 0x0B, 0x0C, -1, 0,
                                     0x28D0, 1, 0, 5, 0x56, 0};
 /* @bin 0x0050D290 type 0xB1 ("wavs\\carpenter_lodge.wav"): no halted flag */
-static const panel_desc P_50D290 = {0x16B, 0x005F7E24u, 0x14, 0xAB, PROGRESS_SCALED, 400, 0x28, 0, 0x14, 0x0C, -1, 0,
+static const panel_desc P_50D290 = {0x16B, G_WAV_CARPENTER_LODGE, 0x14, 0xAB, PROGRESS_SCALED, 400, 0x28, 0, 0x14, 0x0C, -1, 0,
                                     0, 1, 0, 5, 0x56, 0};
 /* @bin 0x0050D6C0 type 0xB2 ("wavs\\bricklayer_lodge.wav"): no production or input line */
-static const panel_desc P_50D6C0 = {0x16B, 0x005F7E40u, 0x0C, 0xAC, PROGRESS_NONE, 0, 0, 0, -1, 0, -1, 0,
+static const panel_desc P_50D6C0 = {0x16B, G_WAV_BRICKLAYER_LODGE, 0x0C, 0xAC, PROGRESS_NONE, 0, 0, 0, -1, 0, -1, 0,
                                     0, 0, 0, 5, 0x56, 0};
 /* @bin 0x0050D930 type 0xB3 ("wavs\\bricklayer_lodge.wav"): no input line, but its stock tested */
-static const panel_desc P_50D930 = {0x16B, 0x005F7E40u, 0x18, 0xAD, PROGRESS_NONE, 0, 0, 0, -1, 0, -1, 0,
+static const panel_desc P_50D930 = {0x16B, G_WAV_BRICKLAYER_LODGE, 0x18, 0xAD, PROGRESS_NONE, 0, 0, 0, -1, 0, -1, 0,
                                     0, 1, 0, 5, 0x56, 0};
 /* @bin 0x0050DBE0 type 0xE7 ("wavs\\artisans_guild.wav"): no title icon, the ladder from 2 */
-static const panel_desc P_50DBE0 = {0x1D8, 0x005F7E5Cu, -1, 0x138, PROGRESS_NONE, 0, 0, 1, 0x21, 0x0A, 0x0B, 0x0B,
+static const panel_desc P_50DBE0 = {0x1D8, G_WAV_ARTISANS_GUILD, -1, 0x138, PROGRESS_NONE, 0, 0, 1, 0x21, 0x0A, 0x0B, 0x0B,
                                     0, 1, 1, 2, 0x56, 0};
 /* @bin 0x0050E030 type 0x73 ("wavs\\pottery_workshop.wav"): no title icon */
-static const panel_desc P_50E030 = {0x167, 0x005F7E08u, -1, 0x9A, PROGRESS_NONE, 0, 0, 0, 0x08, 0x0D, -1, 0,
+static const panel_desc P_50E030 = {0x167, G_WAV_POTTERY_WORKSHOP, -1, 0x9A, PROGRESS_NONE, 0, 0, 0, 0x08, 0x0D, -1, 0,
                                     0x28C6, 1, 0, 5, 0x56, 0};
 
 #define PANEL(addr) \

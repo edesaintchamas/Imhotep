@@ -382,7 +382,7 @@ void ramp_walk(game_state *st, int32_t x, int32_t y, int32_t mode, int32_t arg4)
         state_unported(st, FN_RAMP_WALK);
         return;
     }
-    U8(st, G_UEAAE84) = 0;
+    U8(st, G_RAMP_FOUND) = 0;
     S32(st, G_UEAAEA0) = 1;
     S32(st, G_UEAAE94) = 2;
     uint32_t m14 = 0xEEFFD76Eu, m8 = 0xFBFFFF7Bu;
@@ -439,8 +439,8 @@ void ramp_walk(game_state *st, int32_t x, int32_t y, int32_t mode, int32_t arg4)
         break;
     }
     case 6:
-        if (BUILDING_AT(st, t) == S32(st, G_UEAAE88)) {
-            U8(st, G_UEAAE84) = 1;
+        if (BUILDING_AT(st, t) == S32(st, G_RAMP_TARGET)) {
+            U8(st, G_RAMP_FOUND) = 1;
             return;
         }
         break;
@@ -503,8 +503,8 @@ void ramp_walk(game_state *st, int32_t x, int32_t y, int32_t mode, int32_t arg4)
                 return;
             }
             case 6:
-                if (BUILDING_AT(st, t) == S32(st, G_UEAAE88)) {
-                    U8(st, G_UEAAE84) = 1;
+                if (BUILDING_AT(st, t) == S32(st, G_RAMP_TARGET)) {
+                    U8(st, G_RAMP_FOUND) = 1;
                     return;
                 }
                 S32(st, G_RAMP_LAST_TILE) = t;
@@ -540,8 +540,8 @@ void ramp_walk(game_state *st, int32_t x, int32_t y, int32_t mode, int32_t arg4)
             break;
         }
         case 6:
-            if (BUILDING_AT(st, t) == S32(st, G_UEAAE88)) {
-                U8(st, G_UEAAE84) = 1;
+            if (BUILDING_AT(st, t) == S32(st, G_RAMP_TARGET)) {
+                U8(st, G_RAMP_FOUND) = 1;
                 return;
             }
             break;

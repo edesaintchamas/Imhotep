@@ -757,7 +757,7 @@ void farms_season_488630(game_state *st, uint32_t self)
     }
     for (int32_t row = 0; row < 10; row++) {
         for (int32_t col = 0; col < 4; col++) {
-            int32_t m = S32(st, G_U56F5B8 + 4u * (uint32_t) (col + 4 * row));
+            int32_t m = S32(st, G_HARVEST_MONTHS + 4u * (uint32_t) (col + 4 * row));
             if (m == prev && P8(st, self + (uint32_t) row) != 0) {
                 P8(st, self + (uint32_t) row) = 0;
                 row = 0;

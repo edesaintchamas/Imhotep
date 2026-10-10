@@ -42,10 +42,15 @@ def sources():
 
 
 def rename_everywhere(old, new, files, dry):
+    """old -> new in files, except a file that defines old itself (a local macro of that name, not the
+    layout's: e.g. present/city/ghost.h's own G_EDGE)"""
     pat = re.compile(r'\b%s\b' % re.escape(old))
+    local = re.compile(r'^\s*#define\s+%s\b' % re.escape(old), re.M)
     n = 0
     for f in files:
         s = open(f).read()
+        if local.search(s) and '/layout/' not in f.replace(os.sep, '/'):
+            continue
         t, k = pat.subn(new, s)
         if k:
             n += k
@@ -169,6 +174,13 @@ def main():
             if n:
                 print('repaired %s: %d stray comment lines removed' % (os.path.relpath(path, ROOT), n))
     for old, new in aliases:
+        # a local macro of the same name somewhere (not the layout's): the alias is ambiguous there;
+        # leave it (a branch that still needs it gets an undeclared name, which --from settles by address)
+        local = re.compile(r'^\s*#define\s+%s\b' % re.escape(old), re.M)
+        where = [f for f in files if '/layout/' not in f.replace(os.sep, '/') and local.search(open(f).read())]
+        if where:
+            print('alias %s -> %s skipped: a local macro %s in %s' % (old, new, old, ', '.join(os.path.relpath(f, ROOT) for f in where)))
+            continue
         print('alias %s -> %s: %d uses' % (old, new, rename_everywhere(old, new, files, dry)))
     by_addr = {}
     order = 0

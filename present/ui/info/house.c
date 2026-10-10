@@ -7,31 +7,26 @@
  * what it needs to evolve, or the services (temples, entertainment) it lacks (0x0050E3C0). */
 #include "info.h"
 
+#include "present_layout.h"
 #include "sim/call.h"
 #include "state/ported.h"
 #include "state/records.h"
 
-#define GFX 0x00F55BB0u          /* `this` of the image draws */
-#define IMG_DRAW 0x0053E590u     /* image id at (x, y) */
-#define PANEL 0x00536820u        /* the window panel (x, y, w, h in blocks) */
-#define TEXT_CENTRED 0x004D6250u /* layout text centred (group, index, x, y, width, font, colour, dx, dy) */
-#define TEXT_LINES 0x004D6160u   /* layout text wrapped (group, index, x, y, width, font, colour, dx, dy) */
-#define TEXT 0x004D62F0u         /* layout text (group, index, x, y, font, colour, dx, dy) */
-#define NUMBER 0x004D6860u       /* layout number (value, prefix, suffix, x, y, font, colour, dx, dy) */
-#define INNER 0x004D65B0u        /* layout inner panel (x, y, w, h, dx, dy) */
-#define STRING 0x004CC770u       /* a string at (x, y): (string, x, y, font, colour) */
-#define COUNT_TEXT 0x004CCC30u   /* "count string" (group, index, count, x, y, font, colour) */
-#define SOUND 0x0047D350u        /* the panels' sound call (empty in this build) */
+#define IMG_DRAW FN_IMAGE_DRAW     /* image id at (x, y) */
+#define PANEL FN_PANEL_DRAW        /* the window panel (x, y, w, h in blocks) */
+#define TEXT_CENTRED FN_LAYOUT_GROUP_CENTRED /* layout text centred (group, index, x, y, width, font, colour, dx, dy) */
+#define TEXT_LINES FN_LAYOUT_GROUP_LINES   /* layout text wrapped (group, index, x, y, width, font, colour, dx, dy) */
+#define TEXT FN_LAYOUT_GROUP         /* layout text (group, index, x, y, font, colour, dx, dy) */
+#define NUMBER FN_LAYOUT_NUMBER_AT       /* layout number (value, prefix, suffix, x, y, font, colour, dx, dy) */
+#define INNER FN_LAYOUT_INNER_PANEL        /* layout inner panel (x, y, w, h, dx, dy) */
+#define STRING FN_TEXT_DRAW       /* a string at (x, y): (string, x, y, font, colour) */
+#define COUNT_TEXT FN_TEXT_COUNT_DRAW   /* "count string" (group, index, count, x, y, font, colour) */
+#define SOUND FN_RETURN_ZERO        /* the panels' sound call (empty in this build) */
 
-#define TEXT_WIDTH 0x00E20778u   /* i32 the width of the last layout text (written by the texts) */
-#define TEXT_LINE 0x00E20774u    /* i32 the y of the last wrapped text's end */
-#define FONT_SMALL_TEXT 0x00F56F94u /* i32 */
-#define RESOURCE_IMAGES 0x00F571FCu /* i32 the resource icons' first image */
-#define NUMBER_SUFFIX 0x0057C048u   /* the empty suffix string of the numbers */
 
-static int32_t px(game_state *st) { return S32(st, INFO_X); }
-static int32_t py(game_state *st) { return S32(st, INFO_Y); }
-static uint32_t house(game_state *st) { return BUILDING_ADDR(S32(st, INFO_BUILDING)); }
+static int32_t px(game_state *st) { return S32(st, G_INFO_X); }
+static int32_t py(game_state *st) { return S32(st, G_INFO_Y); }
+static uint32_t house(game_state *st) { return BUILDING_ADDR(S32(st, G_INFO_BUILDING)); }
 
 static void text(game_state *st, int32_t group, int32_t index, int32_t x, int32_t y, int32_t font, int32_t colour)
 {
@@ -47,27 +42,27 @@ static void text_lines_font(game_state *st, int32_t group, int32_t index, int32_
 
 static void text_lines(game_state *st, int32_t group, int32_t index, int32_t dx, int32_t dy, int32_t wblocks)
 {
-    text_lines_font(st, group, index, dx, dy, wblocks, INFO_FONT_TEXT);
+    text_lines_font(st, group, index, dx, dy, wblocks, G_FONT_LARGE);
 }
 
 void info_house_people(game_state *st, int32_t y)
 {
     /* @bin 0x004FC150 the occupants and the room left (+0x1E < 0) or the excess (> 0) */
-    int32_t font = S32(st, FONT_SMALL_TEXT);
-    S32(st, TEXT_WIDTH) = 0;
-    GAME_CALLT(st, GFX, IMG_DRAW, S32(st, 0x00F5684Cu) + 0xD, px(st) + 0x22, y + 4);
+    int32_t font = S32(st, G_FONT_ROW);
+    S32(st, G_TEXT_X) = 0;
+    GAME_CALLT(st, G_GRAPHICS_GFX, IMG_DRAW, S32(st, G_SIDE_IMAGES) + 0xD, px(st) + 0x22, y + 4);
     int32_t ty = y + 0xE;
-    GAME_CALL(st, NUMBER, S16(st, house(st) + 0x1C), 0x40, NUMBER_SUFFIX, px(st) + S32(st, TEXT_WIDTH) + 0x32, ty, font,
+    GAME_CALL(st, NUMBER, S16(st, house(st) + BLD_POPULATION), 0x40, G_NUMBER_SUFFIX, px(st) + S32(st, G_TEXT_X) + 0x32, ty, font,
               0, px(st), py(st));
-    text(st, 0x7F, 0x14, px(st) + S32(st, TEXT_WIDTH) + 0x32, ty, font, 0);
-    int16_t room = S16(st, house(st) + 0x1E);
+    text(st, 0x7F, 0x14, px(st) + S32(st, G_TEXT_X) + 0x32, ty, font, 0);
+    int16_t room = S16(st, house(st) + BLD_ROOM_LEFT);
     if (room < 0) {
-        GAME_CALL(st, NUMBER, -(int32_t) room, 0x40, NUMBER_SUFFIX, px(st) + S32(st, TEXT_WIDTH) + 0x32, ty, font, 0,
+        GAME_CALL(st, NUMBER, -(int32_t) room, 0x40, G_NUMBER_SUFFIX, px(st) + S32(st, G_TEXT_X) + 0x32, ty, font, 0,
                   px(st), py(st));
-        text(st, 0x7F, 0x15, px(st) + S32(st, TEXT_WIDTH) + 0x32, ty, font, 0);
+        text(st, 0x7F, 0x15, px(st) + S32(st, G_TEXT_X) + 0x32, ty, font, 0);
     } else if (room > 0) {
-        text(st, 0x7F, 0x16, px(st) + S32(st, TEXT_WIDTH) + 0x32, ty, font, 0);
-        GAME_CALL(st, NUMBER, S16(st, house(st) + 0x1E), 0x40, NUMBER_SUFFIX, px(st) + S32(st, TEXT_WIDTH) + 0x32, ty,
+        text(st, 0x7F, 0x16, px(st) + S32(st, G_TEXT_X) + 0x32, ty, font, 0);
+        GAME_CALL(st, NUMBER, S16(st, house(st) + BLD_ROOM_LEFT), 0x40, G_NUMBER_SUFFIX, px(st) + S32(st, G_TEXT_X) + 0x32, ty,
                   font, 0, px(st), py(st));
     }
 }
@@ -75,26 +70,26 @@ void info_house_people(game_state *st, int32_t y)
 void info_house_tax(game_state *st, int32_t y)
 {
     /* @bin 0x004FC2D0 the tax line: not registered (+0x4E 0), or the taxes paid (0x0046F1C0) */
-    int32_t b = S32(st, INFO_BUILDING);
-    int32_t font = S32(st, FONT_SMALL_TEXT);
-    S32(st, TEXT_WIDTH) = 0;
-    if (U8(st, BUILDING_ADDR(b) + 0x4E) == 0) {
+    int32_t b = S32(st, G_INFO_BUILDING);
+    int32_t font = S32(st, G_FONT_ROW);
+    S32(st, G_TEXT_X) = 0;
+    if (U8(st, BUILDING_ADDR(b) + BLD_TAX_COVERAGE) == 0) {
         text(st, 0x7F, 0x17, px(st) + 0x24, y, font, 0);
         return;
     }
-    int32_t tax = GAME_CALL(st, 0x0046F1C0u, b);
-    text(st, 0x7F, 0x18, px(st) + S32(st, TEXT_WIDTH) + 0x24, y, font, 0);
-    int32_t w = S32(st, TEXT_WIDTH);
+    int32_t tax = GAME_CALL(st, FN_BUILDING_0X46F1C0, b);
+    text(st, 0x7F, 0x18, px(st) + S32(st, G_TEXT_X) + 0x24, y, font, 0);
+    int32_t w = S32(st, G_TEXT_X);
     GAME_CALL(st, COUNT_TEXT, 8, 0, tax, px(st) + w + 0x24, y, font, 0);
-    S32(st, TEXT_WIDTH) = S32(st, TEXT_WIDTH) + w;
-    text(st, 0x7F, 0x19, px(st) + S32(st, TEXT_WIDTH) + 0x24, y, font, 0);
+    S32(st, G_TEXT_X) = S32(st, G_TEXT_X) + w;
+    text(st, 0x7F, 0x19, px(st) + S32(st, G_TEXT_X) + 0x24, y, font, 0);
 }
 
 void info_house_happiness(game_state *st, int32_t y)
 {
     /* @bin 0x004FC3B0 the happiness text by +0xC2 (signed byte): 50, 40, 30, 20, 10, 1 */
-    int32_t font = S32(st, FONT_SMALL_TEXT);
-    int8_t c = S8(st, house(st) + 0xC2);
+    int32_t font = S32(st, G_FONT_ROW);
+    int8_t c = S8(st, house(st) + BLD_SENTIMENT);
     int32_t k;
     if (c >= 0x32) {
         k = 0x1A;
@@ -122,15 +117,15 @@ int32_t info_house_needs(game_state *st, int32_t *needs, int32_t entertainment)
     uint32_t p;
     int32_t id;
     if (!entertainment) {
-        if (GAME_CALL(st, 0x00443D90u, 0x12) != 0) {
+        if (GAME_CALL(st, FN_GOODS_CHAIN_D90, 0x12) != 0) {
             needs[0] = 1;
         }
-    } else if (S32(st, 0x0078D728u) <= 0) {
+    } else if (S32(st, G_U78D728) <= 0) {
         needs[0] = 1;
     }
     /* @bin 0x0050E3EF the walker table 0x0077DE6A (0x6A bytes): +0 in use, +2 kind 1, 3 or 5, +0x3D,
      * reaching the house (0x00447790(id, 0x13)); +3 its type */
-    for (id = 1, p = 0x0077DE6Cu; p < 0x0077F744u; p += 0x6A, id++) {
+    for (id = 1, p = G_EMPIRE_CITIES + 0x6Au + 2u; p < G_EMPIRE_CITY_END + 2u; p += 0x6A, id++) {
         if (U8(st, p - 2) == 0) {
             continue;
         }
@@ -141,28 +136,28 @@ int32_t info_house_needs(game_state *st, int32_t *needs, int32_t entertainment)
         if (U8(st, p + 0x3B) == 0) {
             continue;
         }
-        if ((uint8_t) GAME_CALL(st, 0x00447790u, id, 0x13) == 0) {
+        if ((uint8_t) GAME_CALL(st, FN_EMPIRE_CITY_TRADES, id, 0x13) == 0) {
             continue;
         }
-        needs[S32(st, 0x005D2A3Cu + 8u * U8(st, p + 1)) - 0x26]++;
+        needs[S32(st, G_U5D2A3C + 8u * U8(st, p + 1)) - 0x26]++;
     }
     if (entertainment) {
         /* @bin 0x0050E4D9 the kinds the city has (city +0x284C 1 or 3) cleared */
-        for (id = 1, p = 0x0077DE6Du; p < 0x0077F745u; p += 0x6A, id++) {
+        for (id = 1, p = G_EMPIRE_CITIES + 0x6Au + 3u; p < G_EMPIRE_CITY_END + 3u; p += 0x6A, id++) {
             if (U8(st, p - 3) == 0) {
                 continue;
             }
-            int16_t t = S16(st, CURRENT_CITY(st) + 0x284C);
+            int16_t t = S16(st, CURRENT_CITY(st) + CITY_U284C);
             if (t != 1 && t != 3) {
                 continue;
             }
             if (U8(st, p + 0x3A) == 0) {
                 continue;
             }
-            if ((uint8_t) GAME_CALL(st, 0x00447790u, id, 0x13) == 0) {
+            if ((uint8_t) GAME_CALL(st, FN_EMPIRE_CITY_TRADES, id, 0x13) == 0) {
                 continue;
             }
-            int32_t *n = &needs[S32(st, 0x005D2A3Cu + 8u * U8(st, p)) - 0x26];
+            int32_t *n = &needs[S32(st, G_U5D2A3C + 8u * U8(st, p)) - 0x26];
             if (*n != 0) {
                 *n = 0;
             }
@@ -180,23 +175,23 @@ int32_t info_house_needs(game_state *st, int32_t *needs, int32_t entertainment)
 void info_house_vacant(game_state *st)
 {
     /* @bin 0x0050EFB0 the vacant lot: title, the lot's text by its access (0x0047FE60) */
-    GAME_CALL0(st, 0x004FA3C0u);
-    GAME_CALL(st, PANEL, px(st), py(st), S32(st, INFO_W), S32(st, INFO_H));
+    GAME_CALL0(st, FN_INFO_FIGURE_THUMBNAILS);
+    GAME_CALL(st, PANEL, px(st), py(st), S32(st, G_INFO_W), S32(st, G_INFO_H));
     {
         int32_t x = px(st), y = py(st);
-        GAME_CALL(st, TEXT_CENTRED, 0x80, 0, x, y + 8, S32(st, INFO_W) << 4, S32(st, INFO_FONT_LARGE), 0, x, y);
+        GAME_CALL(st, TEXT_CENTRED, 0x80, 0, x, y + 8, S32(st, G_INFO_W) << 4, S32(st, G_FONT_TITLE), 0, x, y);
     }
     {
         int32_t x = px(st), y = py(st);
-        GAME_CALL(st, TEXT_CENTRED, 0xD, 1, x, (S32(st, INFO_H) << 4) + y - 0x16, S32(st, INFO_W) << 4,
-                  S32(st, INFO_FONT_TEXT), 0, x, y);
+        GAME_CALL(st, TEXT_CENTRED, 0xD, 1, x, (S32(st, G_INFO_H) << 4) + y - 0x16, S32(st, G_INFO_W) << 4,
+                  S32(st, G_FONT_LARGE), 0, x, y);
     }
-    GAME_CALL0(st, 0x004FA780u);
+    GAME_CALL0(st, FN_INFO_FIGURE_LIST);
     uint32_t b = house(st);
-    int32_t r = GAME_CALL(st, 0x0047FE60u, S16(st, b + 6), S16(st, b + 8), 1, 2);
+    int32_t r = GAME_CALL(st, FN_BUILDING_ROAD_WITHIN, S16(st, b + BLD_X), S16(st, b + BLD_Y), 1, 2);
     int32_t x = px(st), y = py(st);
-    GAME_CALL(st, TEXT_LINES, 0x80, r != 0 ? 1 : 2, x + 0x20, (S32(st, INFO_H) << 4) + y - 0x71,
-              (S32(st, INFO_W) - 4) << 4, S32(st, INFO_FONT_TEXT), 0, x, y);
+    GAME_CALL(st, TEXT_LINES, 0x80, r != 0 ? 1 : 2, x + 0x20, (S32(st, G_INFO_H) << 4) + y - 0x71,
+              (S32(st, G_INFO_W) - 4) << 4, S32(st, G_FONT_LARGE), 0, x, y);
 }
 
 /* @bin 0x0050E7B8 jump table 0x0050EEEC (0x0050E8BA 0x0050EF38): a resource's inventory slot */
@@ -221,12 +216,12 @@ static int32_t inventory_slot(int32_t resource)
 
 static void goods(game_state *st, int32_t resource, int32_t dx, int32_t dy)
 {
-    GAME_CALLT(st, GFX, IMG_DRAW, S32(st, RESOURCE_IMAGES) + resource, px(st) + dx + 0x20, py(st) + dy);
-    int32_t font = S32(st, INFO_FONT_TEXT);
+    GAME_CALLT(st, G_GRAPHICS_GFX, IMG_DRAW, S32(st, G_RESOURCE_ICONS) + resource, px(st) + dx + 0x20, py(st) + dy);
+    int32_t font = S32(st, G_FONT_LARGE);
     int32_t slot = inventory_slot(resource);
     int32_t x = px(st), y = py(st);
-    uint32_t b = BUILDING_ADDR(S32(st, INFO_BUILDING));
-    GAME_CALL(st, NUMBER, S16(st, b + 0x54 + 2u * (uint32_t) slot), 0x40, NUMBER_SUFFIX, x + dx + 0x40, y + dy, font, 0,
+    uint32_t b = BUILDING_ADDR(S32(st, G_INFO_BUILDING));
+    GAME_CALL(st, NUMBER, S16(st, b + BLD_HOUSE_INVENTORY + 2u * (uint32_t) slot), 0x40, G_NUMBER_SUFFIX, x + dx + 0x40, y + dy, font, 0,
               x, y);
 }
 
@@ -245,12 +240,12 @@ static void lacks(game_state *st, int32_t entertainment)
             needs[0] = 1;
         }
     }
-    S32(st, TEXT_WIDTH) = 0;
-    S32(st, TEXT_LINE) = 0;
-    text_lines(st, 0x7F, U8(st, house(st) + 0x85) + 0x28, 0x20, 0x24, S32(st, INFO_W) - 4);
-    int32_t line = S32(st, TEXT_LINE) + 0x10;
-    S32(st, TEXT_WIDTH) = 0;
-    S32(st, TEXT_LINE) = line;
+    S32(st, G_TEXT_X) = 0;
+    S32(st, G_TEXT_Y) = 0;
+    text_lines(st, 0x7F, U8(st, house(st) + BLD_EVOLVE_STATUS) + 0x28, 0x20, 0x24, S32(st, G_INFO_W) - 4);
+    int32_t line = S32(st, G_TEXT_Y) + 0x10;
+    S32(st, G_TEXT_X) = 0;
+    S32(st, G_TEXT_Y) = line;
     int32_t done = 0;
     for (int32_t j = 0; j < 16; j++) {
         if (needs[j] == 0) {
@@ -258,16 +253,16 @@ static void lacks(game_state *st, int32_t entertainment)
         }
         /* the gods' list reads the line back after each text (0x0050ED16), the entertainment's
          * keeps it (0x0050EDBB) */
-        int32_t ly = entertainment ? line : S32(st, TEXT_LINE);
-        int32_t font = S32(st, INFO_FONT_TEXT);
+        int32_t ly = entertainment ? line : S32(st, G_TEXT_Y);
+        int32_t font = S32(st, G_FONT_LARGE);
         if (shown > 1 && done == shown - 1) {
-            GAME_CALL(st, STRING, 0x005F7E74, S32(st, TEXT_WIDTH) + px(st) + 0x20, ly + py(st) + 0x17, font, 0);
+            GAME_CALL(st, STRING, G_STR_OR, S32(st, G_TEXT_X) + px(st) + 0x20, ly + py(st) + 0x17, font, 0);
         } else if (done > 0) {
-            GAME_CALL(st, STRING, 0x005E0400, S32(st, TEXT_WIDTH) + px(st) + 0x20, ly + py(st) + 0x17, font, 0);
+            GAME_CALL(st, STRING, G_STR_COMMA, S32(st, G_TEXT_X) + px(st) + 0x20, ly + py(st) + 0x17, font, 0);
         }
-        ly = entertainment ? line : S32(st, TEXT_LINE);
+        ly = entertainment ? line : S32(st, G_TEXT_Y);
         int32_t x = px(st), y = py(st);
-        GAME_CALL(st, TEXT, 0x17, j + 0x27, S32(st, TEXT_WIDTH) + x + 0x20, ly + y + 0x17, S32(st, INFO_FONT_TEXT), 0, x,
+        GAME_CALL(st, TEXT, 0x17, j + 0x27, S32(st, G_TEXT_X) + x + 0x20, ly + y + 0x17, S32(st, G_FONT_LARGE), 0, x,
                   y);
         done++;
         if (done >= shown) {
@@ -279,39 +274,39 @@ static void lacks(game_state *st, int32_t entertainment)
 void info_house(game_state *st)
 {
     /* @bin 0x0050E570 the house panel (building types 0x0A..0x1D), help 0x38 */
-    int32_t type = S16(st, house(st) + 0x10) - 0xA;
-    S32(st, INFO_HELP) = 0x38;
-    if (S32(st, INFO_SOUND) != 0) {
-        GAME_CALL(st, SOUND, 0x005F7E7C, 1, 0); /* "wavs\housing.wav" */
-        S32(st, INFO_SOUND) = 0;
+    int32_t type = S16(st, house(st) + BLD_TYPE) - 0xA;
+    S32(st, G_INFO_HELP) = 0x38;
+    if (S32(st, G_INFO_SOUND) != 0) {
+        GAME_CALL(st, SOUND, G_WAV_HOUSING, 1, 0); /* "wavs\housing.wav" */
+        S32(st, G_INFO_SOUND) = 0;
     }
     uint32_t b = house(st);
-    if (S16(st, b + 0x1C) <= 0 && U8(st, b + 0x87) == 0) {
+    if (S16(st, b + BLD_POPULATION) <= 0 && U8(st, b + BLD_NO_ROOM) == 0) {
         /* @bin 0x0050E62A no occupant and not evolving: the vacant lot */
         info_house_vacant(st);
         return;
     }
-    GAME_CALL(st, PANEL, px(st), py(st), S32(st, INFO_W), S32(st, INFO_H));
+    GAME_CALL(st, PANEL, px(st), py(st), S32(st, G_INFO_W), S32(st, G_INFO_H));
     {
         int32_t x = px(st), y = py(st);
-        GAME_CALL(st, TEXT_CENTRED, 0x1D, type, x, y + 0xA, S32(st, INFO_W) << 4, S32(st, INFO_FONT_LARGE), 0, x, y);
+        GAME_CALL(st, TEXT_CENTRED, 0x1D, type, x, y + 0xA, S32(st, G_INFO_W) << 4, S32(st, G_FONT_TITLE), 0, x, y);
     }
     {
         int32_t x = px(st), y = py(st);
-        S32(st, INFO_DISTRIBUTION) = 0;
-        GAME_CALL(st, INNER, x + 0x10, y + 0x94, S32(st, INFO_W) - 2, 0xA, x, y);
+        S32(st, G_DISTRIBUTION) = 0;
+        GAME_CALL(st, INNER, x + 0x10, y + 0x94, S32(st, G_INFO_W) - 2, 0xA, x, y);
     }
     info_house_people(st, py(st) + 0x9A);
     info_house_tax(st, py(st) + 0xC2);
     info_house_happiness(st, py(st) + 0xD6);
     /* @bin 0x0050E70A the house level table 0x0070CDE8 (0x58 bytes per +0x12 level): +0xC 0, the
      * "no room to grow" text */
-    if (S32(st, 0x0070CDF4u + 0x58u * (uint32_t) S16(st, house(st) + 0x12)) == 0) {
-        text_lines_font(st, 0x7F, 0x21, 0x24, 0xEA, S32(st, INFO_W) - 6, FONT_SMALL_TEXT);
+    if (S32(st, G_HOUSE_LEVEL_U28 + 0x58u * (uint32_t) S16(st, house(st) + BLD_SUBTYPE)) == 0) {
+        text_lines_font(st, 0x7F, 0x21, 0x24, 0xEA, S32(st, G_INFO_W) - 6, G_FONT_ROW);
     }
     /* @bin 0x0050E759 the goods of the order rows (0x00F53DD8), 0x6E apart */
-    for (int32_t i = 0, dx = 0; i < S32(st, STORAGE_ROWS); i++, dx += 0x6E) {
-        int32_t resource = S32(st, STORAGE_ROWS + 4 + 4u * (uint32_t) i);
+    for (int32_t i = 0, dx = 0; i < S32(st, G_GOODS_COUNT); i++, dx += 0x6E) {
+        int32_t resource = S32(st, G_GOODS_COUNT + 4 + 4u * (uint32_t) i);
         if (resource != 0) {
             goods(st, resource, dx, 0x6E);
         }
@@ -322,36 +317,36 @@ void info_house(game_state *st)
         goods(st, fixed[k], k * 0x6E, 0x82);
     }
     b = house(st);
-    uint8_t evolve = U8(st, b + 0x87);
+    uint8_t evolve = U8(st, b + BLD_NO_ROOM);
     if (evolve == 1 || evolve == 2) {
         /* @bin 0x0050E979 evolving (1) or devolving (2): the text and the days left (+0xF0) */
         int32_t x = px(st), y = py(st);
-        S32(st, TEXT_WIDTH) = 0;
-        GAME_CALL(st, TEXT_LINES, 0x7F, evolve == 1 ? 0x6B : 0x6D, x + 0x20, y + 0x4C, (S32(st, INFO_W) - 4) << 4,
-                  S32(st, INFO_FONT_TEXT), 0, x, y);
-        int32_t font = S32(st, INFO_FONT_TEXT);
-        GAME_CALL(st, COUNT_TEXT, 8, 4, S32(st, house(st) + 0xF0), S32(st, TEXT_WIDTH) + px(st) + 0x20, py(st) + 0x4C,
+        S32(st, G_TEXT_X) = 0;
+        GAME_CALL(st, TEXT_LINES, 0x7F, evolve == 1 ? 0x6B : 0x6D, x + 0x20, y + 0x4C, (S32(st, G_INFO_W) - 4) << 4,
+                  S32(st, G_FONT_LARGE), 0, x, y);
+        int32_t font = S32(st, G_FONT_LARGE);
+        GAME_CALL(st, COUNT_TEXT, 8, 4, S32(st, house(st) + BLD_UF0), S32(st, G_TEXT_X) + px(st) + 0x20, py(st) + 0x4C,
                   font, 0);
         return;
     }
-    int32_t c = U8(st, b + 0x85);
+    int32_t c = U8(st, b + BLD_EVOLVE_STATUS);
     switch (c) {
     case 0x3E: {
         /* @bin 0x0050EA73 needs a bigger lot: the neighbour 0x00EADCD4 that blocks it */
         int32_t x = px(st), y = py(st);
-        S32(st, TEXT_WIDTH) = 0;
-        S32(st, TEXT_LINE) = 0;
-        GAME_CALL(st, TEXT, 0x7F, c + 0x28, x + 0x20, y + 0x24, S32(st, INFO_FONT_TEXT), 0, x, y);
-        uint32_t n = BUILDING_ADDR(S32(st, 0x00EADCD4u));
-        int16_t nt = S16(st, n + 0x10);
-        if (nt == 0xA && S16(st, n + 0x1C) == 0) {
-            text(st, 0x80, 0, S32(st, TEXT_WIDTH) + px(st) + 0x20, py(st) + 0x24, S32(st, INFO_FONT_TEXT), 0xF800);
+        S32(st, G_TEXT_X) = 0;
+        S32(st, G_TEXT_Y) = 0;
+        GAME_CALL(st, TEXT, 0x7F, c + 0x28, x + 0x20, y + 0x24, S32(st, G_FONT_LARGE), 0, x, y);
+        uint32_t n = BUILDING_ADDR(S32(st, G_WORST_NEIGHBOUR));
+        int16_t nt = S16(st, n + BLD_TYPE);
+        if (nt == 0xA && S16(st, n + BLD_POPULATION) == 0) {
+            text(st, 0x80, 0, S32(st, G_TEXT_X) + px(st) + 0x20, py(st) + 0x24, S32(st, G_FONT_LARGE), 0xF800);
         } else {
-            text(st, 0x29, nt, S32(st, TEXT_WIDTH) + px(st) + 0x20, py(st) + 0x24, S32(st, INFO_FONT_TEXT), 0xF800);
+            text(st, 0x29, nt, S32(st, G_TEXT_X) + px(st) + 0x20, py(st) + 0x24, S32(st, G_FONT_LARGE), 0xF800);
         }
-        GAME_CALL(st, STRING, 0x005F7E78, S32(st, TEXT_WIDTH) + px(st) + 0x20, py(st) + 0x24, S32(st, INFO_FONT_TEXT),
+        GAME_CALL(st, STRING, G_STR_CLOSE_PAREN, S32(st, G_TEXT_X) + px(st) + 0x20, py(st) + 0x24, S32(st, G_FONT_LARGE),
                   0);
-        text_lines(st, 0x7F, U8(st, house(st) + 0x85) + 0x29, 0x20, 0x34, S32(st, INFO_W) - 4);
+        text_lines(st, 0x7F, U8(st, house(st) + BLD_EVOLVE_STATUS) + 0x29, 0x20, 0x34, S32(st, G_INFO_W) - 4);
         return;
     }
     case 0x44: case 0x48:
@@ -362,7 +357,7 @@ void info_house(game_state *st)
         return;
     default:
         /* @bin 0x0050EEA8 the evolution's text by +0x85 */
-        text_lines(st, 0x7F, c + 0x28, 0x20, 0x24, S32(st, INFO_W) - 4);
+        text_lines(st, 0x7F, c + 0x28, 0x20, 0x24, S32(st, G_INFO_W) - 4);
         return;
     }
 }
