@@ -6,6 +6,7 @@
  * variables that are not saved are dropped (counted in stats). docs/formats/save.md §2, §4. */
 #include "io/save_load.h"
 
+#include "state/layout.h"
 #include "state/vec.h"
 
 #include <string.h>
@@ -13,25 +14,8 @@
 #include "io/save_relayout.h"
 #include "io/save_tables.h"
 
-/* Variables (save.md §3) */
-#define A_ROUTES 0x00776FB0u     /* chunk 143, 50 x 324 */
-#define A_EMPIRE_OBJ 0x0077F748u /* chunk 142, 200 x 98 */
-#define A_EMPIRE_CITY 0x0077DE00u /* chunk 50, 61 x 106 */
-#define A_SCENARIO 0x007848D8u   /* chunk 75 */
-#define A_EVENTS 0x00785D70u     /* chunk 136 */
-#define A_STORAGE 0x007900B8u    /* chunk 113, 200 x 196 */
-#define A_BUILDINGS 0x007999D8u  /* chunk 32, 4000 x 264 */
-#define A_FORMATIONS 0x00BCB9C8u /* chunk 24, 50 x 144 */
-#define A_FIGURES 0x00BCD5F8u    /* chunk 21, 2000 x 388 */
-#define A_FLOOD 0x00D38360u      /* chunk 147 */
-#define A_MESSAGES 0x00E95228u   /* chunk 77, 1000 x 48 */
-#define A_CITY 0x00EA1870u       /* chunk 28, 2 x 0x49D8 */
-#define A_CURRENT_PLAYER 0x00EAAC28u
-#define A_DIFFICULTY 0x00E39080u
-#define BUILDING(id) (A_BUILDINGS + 0x108u * (uint32_t) (id))
-#define FIGURE(id) (A_FIGURES + 0x184u * (uint32_t) (id))
-#define FORMATION(id) (A_FORMATIONS + 0x90u * (uint32_t) (id))
-#define CITY(p) (A_CITY + 0x49D8u * (uint32_t) (p))
+/* Variables (save.md §3): state/layout.h; the formations (chunk 24, 50 x 144) */
+#define FORMATION(id) (G_FORMATION_BASE + 0x90u * (uint32_t) (id))
 
 typedef struct {
     save_file *s;
@@ -170,7 +154,7 @@ static int route_rebuild(ctx *c, uint32_t r)
      * holds the first / last point */
     int32_t fx = rd16(c, r + 8), fy = rd16(c, r + 10), lx = rd16(c, r + 6 * n + 2), ly = rd16(c, r + 6 * n + 4);
     for (int j = 0; n != 0 && j < 200; j++) { /* object scan only when the route has points */
-        uint32_t o = A_EMPIRE_OBJ + 0x62u * (uint32_t) j;
+        uint32_t o = G_EMPIRE_OBJECTS + 0x62u * (uint32_t) j;
         if (rd8(c, o + 1) == 0 || rd8(c, o) != 1) {
             continue;
         }
@@ -193,10 +177,10 @@ static int route_rebuild(ctx *c, uint32_t r)
 
 static void routes(ctx *c)
 {
-    wr8(c, A_ROUTES + 0x141, 0); /* @bin 0x004D41E0 DAT_007770f1 := 0, DAT_007770e4 := 0 */
-    wr32(c, A_ROUTES + 0x134, 0);
+    wr8(c, G_ROUTES + 0x141, 0); /* @bin 0x004D41E0 DAT_007770f1 := 0, DAT_007770e4 := 0 */
+    wr32(c, G_ROUTES + 0x134, 0);
     for (int k = 0; k < 50; k++) {
-        uint32_t r = A_ROUTES + 324u * (uint32_t) k;
+        uint32_t r = G_ROUTES + 324u * (uint32_t) k;
         if (rd32(c, r + 4) == 0 && rd32(c, r + 0x138) == 0 && rd8(c, r + 0x141) < 0x33 && rd8(c, r + 0x140) < 3 &&
             rd8(c, r) != 0 && rd8(c, r) < 0x33) {
             route_rebuild(c, r);
@@ -271,7 +255,7 @@ static void cleanup(ctx *c, const save_cleanup_entry *prog, int count)
 
 static void name(ctx *c, uint32_t f, int32_t group, uint32_t counter, int32_t limit)
 {
-    wr32(c, f + 0x98, group);
+    wr32(c, f + FIG_NAME_GROUP, group);
     if (rd32(c, counter) > limit) {
         wr32(c, counter, 0);
     }
@@ -283,59 +267,59 @@ static void figure_name(ctx *c, uint32_t f, int type)
     case 1: case 2: case 4: case 5: case 9: case 0x23: case 0x26: case 0x36: case 0x37: case 0x38:
     case 0x4B: case 0x4F: case 0x50: case 0x51: case 0x55: case 0x57: case 0x5A: case 0x60: case 0x62:
     case 0x6C:
-        name(c, f, 0xFE, 0x00D056E0, 0x7F);
+        name(c, f, 0xFE, G_NAME_COUNTER_FE, 0x7F);
         break;
-    case 3: name(c, f, 0xFF, 0x00D056DC, 0x1F); break;
-    case 7: name(c, f, 0x115, 0x00D05684, 0xF); break;
-    case 8: name(c, f, 0x113, 0x00D0568C, 0xF); break;
-    case 10: name(c, f, 0x112, 0x00D05690, 0xF); break;
-    case 0xF: case 0x12: case 0x69: name(c, f, 0x107, 0x00D056BC, 0x1F); break;
-    case 0x10: name(c, f, 0x108, 0x00D056B8, 0x1F); break;
-    case 0x11: name(c, f, 0x109, 0x00D056B4, 0xF); break;
-    case 0x13: case 0x15: name(c, f, 0x106, 0x00D056C0, 0xF); break;
-    case 0x14: name(c, f, 0x105, 0x00D056C4, 0xF); break;
-    case 0x16: case 0x17: case 0x18: name(c, f, 0x100, 0x00D056D8, 0xF); break;
-    case 0x1A: case 0x27: name(c, f, 0x103, 0x00D056CC, 0x1F); break;
+    case 3: name(c, f, 0xFF, G_NAME_COUNTER_FF, 0x1F); break;
+    case 7: name(c, f, 0x115, G_NAME_COUNTER_115, 0xF); break;
+    case 8: name(c, f, 0x113, G_NAME_COUNTER_113, 0xF); break;
+    case 10: name(c, f, 0x112, G_NAME_COUNTER_112, 0xF); break;
+    case 0xF: case 0x12: case 0x69: name(c, f, 0x107, G_NAME_COUNTER_107, 0x1F); break;
+    case 0x10: name(c, f, 0x108, G_NAME_COUNTER_108, 0x1F); break;
+    case 0x11: name(c, f, 0x109, G_NAME_COUNTER_109, 0xF); break;
+    case 0x13: case 0x15: name(c, f, 0x106, G_NAME_COUNTER_106, 0xF); break;
+    case 0x14: name(c, f, 0x105, G_NAME_COUNTER_105, 0xF); break;
+    case 0x16: case 0x17: case 0x18: name(c, f, 0x100, G_NAME_COUNTER_100, 0xF); break;
+    case 0x1A: case 0x27: name(c, f, 0x103, G_NAME_COUNTER_103, 0x1F); break;
     case 0x1B: {
         /* @bin 0x004C5120 god of the home building (+0x5A): temples 0x3C-0x40, complexes 0x41-0x45 */
-        int bt = rd16(c, BUILDING(rd16(c, f + 0x5A)) + 0x10);
+        int bt = rd16(c, BUILDING_ADDR(rd16(c, f + FIG_HOME)) + BLD_TYPE);
         int god = bt >= 0x3C && bt <= 0x40 ? bt - 0x3C : bt >= 0x41 && bt <= 0x45 ? bt - 0x41 : -1;
-        static const uint32_t COUNTER[5] = {0x00D056B0, 0x00D056AC, 0x00D056A8, 0x00D056A4, 0x00D056A0};
+        static const uint32_t COUNTER[5] = {G_NAME_COUNTER_10A, G_NAME_COUNTER_10B, G_NAME_COUNTER_10C, G_NAME_COUNTER_10D, G_NAME_COUNTER_10E};
         if (god >= 0) {
             name(c, f, 0x10A + god, COUNTER[god], 0xF);
         }
         break;
     }
-    case 0x1D: case 0x1E: name(c, f, 0x10F, 0x00D0569C, 0x1F); break;
-    case 0x1F: case 0x20: case 0x21: name(c, f, 0x110, 0x00D05698, 0x1F); break;
-    case 0x22: name(c, f, 0x111, 0x00D05694, 0xF); break;
-    case 0x28: name(c, f, 0x101, 0x00D056D4, 0x1F); break;
-    case 0x2A: name(c, f, 0x118, 0x00D05678, 0x1F); break;
+    case 0x1D: case 0x1E: name(c, f, 0x10F, G_NAME_COUNTER_10F, 0x1F); break;
+    case 0x1F: case 0x20: case 0x21: name(c, f, 0x110, G_NAME_COUNTER_110, 0x1F); break;
+    case 0x22: name(c, f, 0x111, G_NAME_COUNTER_111, 0xF); break;
+    case 0x28: name(c, f, 0x101, G_NAME_COUNTER_101, 0x1F); break;
+    case 0x2A: name(c, f, 0x118, G_NAME_COUNTER_118, 0x1F); break;
     case 0x2B: case 0x2C: case 0x2D: {
         /* enemy class: formation (+0x60) byte +0x6A */
         static const struct { int32_t group; uint32_t counter; int32_t limit; } E[12] = {
-            {0x11D, 0x00D05664, 0xF}, {0x11F, 0x00D0565C, 0xF}, {0x11E, 0x00D05660, 0xF},
-            {0x120, 0x00D05658, 0x10}, {0x11C, 0x00D05668, 0xF}, {0x11B, 0x00D0566C, 0xF},
-            {0x11A, 0x00D05670, 0xF}, {0x119, 0x00D05674, 0xF}, {300, 0x00D0564C, 0xF},
-            {0x12D, 0x00D05648, 0xF}, {0x12E, 0x00D05644, 0xF}, {0x12F, 0x00D05640, 0xF},
+            {0x11D, G_NAME_COUNTER_11D, 0xF}, {0x11F, G_NAME_COUNTER_11F, 0xF}, {0x11E, G_NAME_COUNTER_11E, 0xF},
+            {0x120, G_NAME_COUNTER_120, 0x10}, {0x11C, G_NAME_COUNTER_11C, 0xF}, {0x11B, G_NAME_COUNTER_11B, 0xF},
+            {0x11A, G_NAME_COUNTER_11A, 0xF}, {0x119, G_NAME_COUNTER_119, 0xF}, {300, G_NAME_COUNTER_12C, 0xF},
+            {0x12D, G_NAME_COUNTER_12D, 0xF}, {0x12E, G_NAME_COUNTER_12E, 0xF}, {0x12F, G_NAME_COUNTER_12F, 0xF},
         };
-        int cls = rd8(c, FORMATION(rd16(c, f + 0x60)) + 0x6A);
+        int cls = rd8(c, FORMATION(rd16(c, f + FIG_FORMATION)) + 0x6A);
         if (cls < 12) {
             name(c, f, E[cls].group, E[cls].counter, E[cls].limit);
         } else {
-            wr32(c, f + 0x98, -1);
+            wr32(c, f + FIG_NAME_GROUP, -1);
         }
         break;
     }
-    case 0x42: name(c, f, 0x104, 0x00D056C8, 0xF); break;
-    case 0x49: name(c, f, 0x102, 0x00D056D0, 0xF); break;
-    case 0x4C: name(c, f, 0x117, 0x00D0567C, 0xF); break;
-    case 0x58: name(c, f, 0x114, 0x00D05688, 0xF); break;
-    case 0x59: name(c, f, 0x116, 0x00D05680, 0xF); break;
+    case 0x42: name(c, f, 0x104, G_NAME_COUNTER_104, 0xF); break;
+    case 0x49: name(c, f, 0x102, G_NAME_COUNTER_102, 0xF); break;
+    case 0x4C: name(c, f, 0x117, G_NAME_COUNTER_117, 0xF); break;
+    case 0x58: name(c, f, 0x114, G_NAME_COUNTER_114, 0xF); break;
+    case 0x59: name(c, f, 0x116, G_NAME_COUNTER_116, 0xF); break;
     case 0x5B: {
         /* +0x0B := the walker kind for the home building's type, then named as that type
          * (second jump table at 0x004D3BCC: 0xF, 0x10, 0x11, 0x1B, 0x1D, 0x28; others -1) */
-        int bt = (uint16_t) rd16(c, BUILDING(rd16(c, f + 0x5A)) + 0x10);
+        int bt = (uint16_t) rd16(c, BUILDING_ADDR(rd16(c, f + FIG_HOME)) + BLD_TYPE);
         int k;
         switch (bt) {
         case 0x1E: case 0x22: k = 0x10; break;
@@ -346,19 +330,19 @@ static void figure_name(ctx *c, uint32_t f, int type)
         case 0x45: case 0x97: case 0x9C: k = 0x1B; break;
         default: k = 0x28; break;
         }
-        wr8(c, f + 0x0B, k);
+        wr8(c, f + FIG_RESOURCE, k);
         if (k == 0xF || k == 0x10 || k == 0x11 || k == 0x1B || k == 0x1D || k == 0x28) {
             figure_name(c, f, k);
         } else {
-            wr32(c, f + 0x98, -1);
+            wr32(c, f + FIG_NAME_GROUP, -1);
         }
         break;
     }
-    case 0x5C: case 0x5D: case 100: case 0x65: name(c, f, 0x121, 0x00D05654, 0xF); break;
-    case 99: name(c, f, 0x122, 0x00D05650, 0xF); break;
+    case 0x5C: case 0x5D: case 100: case 0x65: name(c, f, 0x121, G_NAME_COUNTER_121, 0xF); break;
+    case 99: name(c, f, 0x122, G_NAME_COUNTER_122, 0xF); break;
     default:
-        wr32(c, f + 0x98, -2);
-        wr16(c, f + 0x70, 0xFFFF);
+        wr32(c, f + FIG_NAME_GROUP, -2);
+        wr16(c, f + FIG_NAME_INDEX, 0xFFFF);
         break;
     }
 }
@@ -385,51 +369,51 @@ static void upgrade_124(ctx *c)
 {
     /* @bin 0x004D18F0, 0x004D1AD0, 0x004D2FA0, 0x004D3200 (tables from their disassembly) */
     for (uint32_t k = 0; k < 61; k++) {
-        relayout(c, A_EMPIRE_CITY + 0x6Au * k, 0x6A, save_relayout_chunk50, save_relayout_chunk50_count);
+        relayout(c, G_EMPIRE_CITIES + 0x6Au * k, 0x6A, save_relayout_chunk50, save_relayout_chunk50_count);
     }
     for (uint32_t p = 0; p < 2; p++) {
-        relayout(c, CITY(p), 0x49D8, save_relayout_city, save_relayout_city_count);
+        relayout(c, CITY_ADDR(p), CITY_REC_SIZE, save_relayout_city, save_relayout_city_count);
     }
     for (uint32_t id = 0; id < 4000; id++) {
-        int16_t t = rd16(c, BUILDING(id) + 0x10);
+        int16_t t = rd16(c, BUILDING_ADDR(id) + BLD_TYPE);
         int keep = (t >= 10 && t <= 0x1D) || t == 0xB7 || t == 0xD2;
-        relayout(c, BUILDING(id), 0x108, keep ? save_relayout_building_house : save_relayout_building_other,
+        relayout(c, BUILDING_ADDR(id), BUILDING_REC_SIZE, keep ? save_relayout_building_house : save_relayout_building_other,
                  keep ? save_relayout_building_house_count : save_relayout_building_other_count);
     }
     for (uint32_t k = 0; k < 200; k++) {
-        relayout(c, A_STORAGE + 0xC4u * k, 0xC4, save_relayout_chunk113, save_relayout_chunk113_count);
+        relayout(c, G_STORAGE + 0xC4u * k, 0xC4, save_relayout_chunk113, save_relayout_chunk113_count);
     }
 }
 
 static void upgrade_146_buildings(ctx *c)
 {
     /* @bin 0x004D3DA0 */
-    int32_t cur = rd32(c, A_CURRENT_PLAYER);
+    int32_t cur = rd32(c, CURRENT_PLAYER_ADDR);
     int guard = 0;
     for (int32_t id = 1; id < 4000 && guard < 100000; id++, guard++) {
-        uint32_t b = BUILDING(id);
-        if (rd8(c, b) != 1) {
+        uint32_t b = BUILDING_ADDR(id);
+        if (rd8(c, b + BLD_STATE) != 1) {
             continue;
         }
-        switch (rd16(c, b + 0x10)) {
+        switch (rd16(c, b + BLD_TYPE)) {
         case 0xB7: {
-            wr8(c, b + 0x80, 0);
+            wr8(c, b + BLD_MON_ANNOUNCED_80, 0);
             const int32_t *t = c->env->previous_pyramid_kind == 5 ? save_pyramid_slots_kind5 : save_pyramid_slots;
-            id += t[rd8(c, b + 0x54)] - 1;
+            id += t[rd8(c, b + BLD_MONUMENT_KIND)] - 1;
             break;
         }
-        case 0xCF: case 0xD0: wr8(c, b + 0x80, 0); break;
-        case 0xD2: wr32(c, CITY(cur) + 0x2988, 0); break;
-        case 0xD5: wr8(c, b + 0x68, 0); id += 99; break;
-        case 0xDE: wr8(c, b + 0x74, 0); id += 0x73; break;
-        case 0xE1: wr8(c, b + 0x68, 0); id += 0x18; break;
-        case 0xE3: wr8(c, b + 0x68, 0); id += 8; break;
-        case 0xE4: wr8(c, b + 0x68, 0); break;
-        case 0xE5: wr8(c, b + 0x9D, 0); id += 0xA6; break;
-        case 0xE6: wr8(c, b + 0x60, 0); id += 0xF; break;
-        case 0xEA: wr8(c, b + 0x9D, 0); id += 0x9D; break;
-        case 0xEB: wr8(c, b + 0x9D, 0); id += 0x1B4; break;
-        case 0xEC: wr8(c, b + 0x9D, 0); id += 0x200; break;
+        case 0xCF: case 0xD0: wr8(c, b + BLD_MON_ANNOUNCED_80, 0); break;
+        case 0xD2: wr32(c, CITY_ADDR(cur) + CITY_U2988, 0); break;
+        case 0xD5: wr8(c, b + BLD_MON_ANNOUNCED_68, 0); id += 99; break;
+        case 0xDE: wr8(c, b + BLD_MON_ANNOUNCED_74, 0); id += 0x73; break;
+        case 0xE1: wr8(c, b + BLD_MON_ANNOUNCED_68, 0); id += 0x18; break;
+        case 0xE3: wr8(c, b + BLD_MON_ANNOUNCED_68, 0); id += 8; break;
+        case 0xE4: wr8(c, b + BLD_MON_ANNOUNCED_68, 0); break;
+        case 0xE5: wr8(c, b + BLD_MON_ANNOUNCED_9D, 0); id += 0xA6; break;
+        case 0xE6: wr8(c, b + BLD_MON_ANNOUNCED_60, 0); id += 0xF; break;
+        case 0xEA: wr8(c, b + BLD_MON_ANNOUNCED_9D, 0); id += 0x9D; break;
+        case 0xEB: wr8(c, b + BLD_MON_ANNOUNCED_9D, 0); id += 0x1B4; break;
+        case 0xEC: wr8(c, b + BLD_MON_ANNOUNCED_9D, 0); id += 0x200; break;
         default: break;
         }
     }
@@ -438,9 +422,9 @@ static void upgrade_146_buildings(ctx *c)
 static void upgrade_152_events(ctx *c)
 {
     /* @bin 0x004D40C0: events of a flagged kind (0x004493C0: table 0x005D9C78[event +2]) */
-    int n = rd16(c, A_EVENTS);
+    int n = rd16(c, G_EVENTS);
     for (int k = 0; k < n; k++) {
-        uint32_t e = A_EVENTS + 4 + 0x7Cu * (uint32_t) k;
+        uint32_t e = G_EVENTS + 4 + 0x7Cu * (uint32_t) k;
         if (!save_event_flags[rd8(c, e + 2)]) {
             continue;
         }
@@ -477,7 +461,7 @@ static void upgrade_152_events(ctx *c)
         wr16(c, e + 0xA, cx);
     }
     for (int k = 0; k < 10; k++) { /* 5 price pairs 0x005D2E60 -> 0x005D2D40 (chunk 53) */
-        wr32(c, 0x005D2D40u + 4u * (uint32_t) k, save_default_prices[k]);
+        wr32(c, G_PRICE_BUY + 8u * 31u + 4u * (uint32_t) k, save_default_prices[k]);
     }
 }
 
@@ -486,7 +470,7 @@ static void upgrade_153_empire_objects(ctx *c)
     /* @bin 0x004D19E0: three bit masks (+0x40, +0x44, +0x48) -> u8[32] at +0x3E (3/2/1/0), then
      * 4 bytes of 2 at +0x5E */
     for (uint32_t j = 0; j < 200; j++) {
-        uint32_t o = A_EMPIRE_OBJ + 0x62u * j;
+        uint32_t o = G_EMPIRE_OBJECTS + 0x62u * j;
         uint32_t m0 = (uint32_t) rd32(c, o + 0x40), m1 = (uint32_t) rd32(c, o + 0x44), m2 = (uint32_t) rd32(c, o + 0x48);
         uint8_t *p = mem(c, o, 0x62), buf[0x62] = {0};
         if (!p) {
@@ -508,17 +492,17 @@ static void upgrades(ctx *c)
     save_load_stats *st = c->st;
     if (v < 0x75) { /* scenario info +0x408: u16[100] := 1 for the first 50, 0 after */
         for (uint32_t k = 0; k < 100; k++) {
-            wr16(c, A_SCENARIO + 0x408 + 2 * k, k < 50);
+            wr16(c, G_START_YEAR + 0x408 + 2 * k, k < 50);
         }
         st->upgrades++;
     }
     if (v < 0x97) {
-        wr16(c, A_SCENARIO + 0x2BC, 0); /* 0x00784B94 (word store, 0x004D4370) */
+        wr16(c, G_INVASION_SUB, 0); /* 0x00784B94, scenario info +0x2BC (word store, 0x004D4370) */
         st->upgrades++;
     }
     if (v < 0x76) { /* @bin 0x004D17E0 */
         for (uint32_t j = 0; j < 200; j++) {
-            uint32_t o = A_EMPIRE_OBJ + 0x62u * j;
+            uint32_t o = G_EMPIRE_OBJECTS + 0x62u * j;
             if (rd8(c, o + 1) != 0 && rd8(c, o) == 1) {
                 static const int8_t MAP[7] = {4, 0, 1, 4, 6, 4, 6};
                 int t = rd8(c, o + 0x18);
@@ -537,16 +521,16 @@ static void upgrades(ctx *c)
     }
     if (v < 0x79) { /* @bin 0x004D1860 messages */
         for (uint32_t k = 0; k < 1000; k++) {
-            wr16(c, A_MESSAGES + 48 * k + 0x10, 0xFFFF);
-            wr16(c, A_MESSAGES + 48 * k + 0x12, 0xFFFF);
-            wr16(c, A_MESSAGES + 48 * k + 0x14, 0xFFFF);
+            wr16(c, MESSAGE_ADDR(k) + MSG_DATA, 0xFFFF);
+            wr16(c, MESSAGE_ADDR(k) + MSG_DATA + 2, 0xFFFF);
+            wr16(c, MESSAGE_ADDR(k) + MSG_DATA + 4, 0xFFFF);
         }
         st->upgrades++;
     }
     if (v < 0x7A) { /* @bin 0x004D1880 both city records: 7 dwords +0x2900 -> +0x483C */
         for (uint32_t p = 0; p < 2; p++) {
             for (uint32_t k = 0; k < 7; k++) {
-                wr32(c, CITY(p) + 0x483C + 4 * k, rd32(c, CITY(p) + 0x2900 + 4 * k));
+                wr32(c, CITY_ADDR(p) + CITY_U483C + 4 * k, rd32(c, CITY_ADDR(p) + CITY_U2900 + 4 * k));
             }
         }
         st->upgrades++;
@@ -554,8 +538,8 @@ static void upgrades(ctx *c)
     if (v < 0x7B) { /* @bin 0x004D18B0 i16[30] +0x2796 -> i32 +0x4860, +0x27DE -> +0x48F0 */
         for (uint32_t p = 0; p < 2; p++) {
             for (uint32_t k = 0; k < 30; k++) {
-                wr32(c, CITY(p) + 0x48F0 + 4 * k, rd16(c, CITY(p) + 0x27DE + 2 * k));
-                wr32(c, CITY(p) + 0x4860 + 4 * k, rd16(c, CITY(p) + 0x2796 + 2 * k));
+                wr32(c, CITY_ADDR(p) + CITY_U48F0 + 4 * k, rd16(c, CITY_ADDR(p) + CITY_U27DE + 2 * k));
+                wr32(c, CITY_ADDR(p) + CITY_U4860 + 4 * k, rd16(c, CITY_ADDR(p) + CITY_U2796 + 2 * k));
             }
         }
         st->upgrades++;
@@ -567,12 +551,12 @@ static void upgrades(ctx *c)
     if (v < 0x7D) { /* @bin 0x004BD330 on the floodplain settings */
         static const int32_t F[8] = {180, 70, 100, 180, 70, 100, 0, 100};
         for (uint32_t k = 0; k < 8; k++) {
-            wr32(c, A_FLOOD + 4 * k, F[k]);
+            wr32(c, G_FLOODPLAIN + 4 * k, F[k]);
         }
         st->upgrades++;
     }
     if (v < 0x84) { /* @bin 0x004BD5D0 */
-        wr32(c, A_FLOOD + 0x1C, rd32(c, A_FLOOD + 8));
+        wr32(c, G_FLOODPLAIN + 0x1C, rd32(c, G_FLOODPLAIN + 8));
         st->upgrades++;
     }
     /* @bin 0x004D0A40(1): the 10 shipwright queues (0x009783C0 + j * 0x1C) from chunk 140's
@@ -580,7 +564,7 @@ static void upgrades(ctx *c)
      * the saved capacity (zeroed: the saved elements are not restored), then +0x0C, +0x00 (byte),
      * +0x08, +0x04 from the record's dwords 0, 4, 3, 2. Outside every chunk: state mode only. */
     for (uint32_t j = 0; c->gs && j < 10; j++) {
-        uint32_t q = 0x009783C0u + 0x1Cu * j, d = 0x009763B8u + 0x334u * j;
+        uint32_t q = G_SHIPWRIGHT_QUEUES + G_SHIPWRIGHT_QUEUE_STRIDE * j, d = G_SHIPWRIGHT_QUEUES_SAVED + 0x334u * j;
         vec_reserve(c->gs, q, rd32(c, d + 4));
         wr32(c, q + 0x0C, rd32(c, d));
         wr8(c, q, rd8(c, d + 0x10));
@@ -589,13 +573,13 @@ static void upgrades(ctx *c)
     }
     if (v < 0x7F) { /* @bin 0x004D32D0 figures 1-1999 */
         for (uint32_t id = 1; id < 2000; id++) {
-            wr8(c, FIGURE(id) + 0x02, 0);
-            wr16(c, FIGURE(id) + 0x132, 0xFFFF);
+            wr8(c, FIGURE_ADDR(id) + FIG_U02, 0);
+            wr16(c, FIGURE_ADDR(id) + FIG_U132, 0xFFFF);
         }
         st->upgrades++;
     }
     if (v < 0x80) { /* chunk 148 (0x00978D9C) := 0 */
-        uint8_t *p = mem(c, 0x00978D9C, 4 * 51984);
+        uint8_t *p = mem(c, G_TILE_VISITS, 4 * 51984);
         if (p) {
             memset(p, 0, 4 * 51984);
         }
@@ -603,36 +587,36 @@ static void upgrades(ctx *c)
     }
     if (v < 0x81) { /* @bin 0x004D32A0 message type +0x0A remap until the first 0 (0x004E1600) */
         for (uint32_t k = 0; k < 1000; k++) {
-            int16_t t = rd16(c, A_MESSAGES + 48 * k + 0x0A);
+            int16_t t = rd16(c, MESSAGE_ADDR(k) + MSG_ID);
             if (t == 0) {
                 break;
             }
-            wr16(c, A_MESSAGES + 48 * k + 0x0A, t < 0x33 ? t + 99 : t + 199);
+            wr16(c, MESSAGE_ADDR(k) + MSG_ID, t < 0x33 ? t + 99 : t + 199);
         }
         st->upgrades++;
     }
     for (uint32_t id = 1; id < 2000; id++) { /* @bin 0x004D32F0, every load */
-        figure_name(c, FIGURE(id), rd8(c, FIGURE(id) + 0x0A));
+        figure_name(c, FIGURE_ADDR(id), rd8(c, FIGURE_ADDR(id) + FIG_TYPE));
     }
     if (v < 0x85) {
-        wr8(c, 0x007027B4, 0);
+        wr8(c, G_CAMPAIGN_KIND, 0);
         st->upgrades++;
     }
     if (v < 0x86) { /* current player's city data +0x47A8 := difficulty */
-        wr32(c, CITY(rd32(c, A_CURRENT_PLAYER)) + 0x47A8, rd32(c, A_DIFFICULTY));
+        wr32(c, CITY_ADDR(rd32(c, CURRENT_PLAYER_ADDR)) + CITY_DIFFICULTY, rd32(c, G_DIFFICULTY));
         st->upgrades++;
     }
     if (v < 0x88) { /* @bin 0x004D3C20 -> 0x004E59C0, 0x004E5B90 */
-        int32_t cur = rd32(c, A_CURRENT_PLAYER), found = 0;
+        int32_t cur = rd32(c, CURRENT_PLAYER_ADDR), found = 0;
         for (uint32_t k = 0; k < 3 && !found; k++) {
-            int32_t id = rd32(c, CITY(cur) + 0x473C + 4 * k);
-            int16_t t = rd16(c, BUILDING(id) + 0x10);
-            if (id != 0 && rd8(c, BUILDING(id)) == 1 && (t == 0xCF || t == 0xD0) && rd8(c, BUILDING(id) + 0x55) != 100) {
+            int32_t id = rd32(c, CITY_ADDR(cur) + CITY_U473C + 4 * k);
+            int16_t t = rd16(c, BUILDING_ADDR(id) + BLD_TYPE);
+            if (id != 0 && rd8(c, BUILDING_ADDR(id) + BLD_STATE) == 1 && (t == 0xCF || t == 0xD0) && rd8(c, BUILDING_ADDR(id) + BLD_U55) != 100) {
                 found = id;
             }
         }
         if (found) {
-            int small = rd16(c, BUILDING(found) + 0x10) == 0xCF;
+            int small = rd16(c, BUILDING_ADDR(found) + BLD_TYPE) == 0xCF;
             cleanup(c, small ? save_cleanup_obelisk_small : save_cleanup_obelisk_large,
                     small ? save_cleanup_obelisk_small_count : save_cleanup_obelisk_large_count);
         }
@@ -640,24 +624,24 @@ static void upgrades(ctx *c)
     }
     if (v < 0x8B) { /* @bin 0x004D3CC0 Warships (0x4E) */
         for (uint32_t id = 1; id < 2000; id++) {
-            uint32_t f = FIGURE(id);
-            if (rd8(c, f + 0x0A) == 0x4E && rd8(c, f + 0x0E) == 1 && rd8(c, f + 0x38) != 4) {
-                wr16(c, f + 0x14C, rd16(c, f + 0x14));
-                wr16(c, f + 0x14E, rd16(c, f + 0x16));
+            uint32_t f = FIGURE_ADDR(id);
+            if (rd8(c, f + FIG_TYPE) == 0x4E && rd8(c, f + FIG_STATE) == 1 && rd8(c, f + FIG_ACTION) != 4) {
+                wr16(c, f + FIG_U14C, rd16(c, f + FIG_X));
+                wr16(c, f + FIG_U14E, rd16(c, f + FIG_Y));
             }
         }
         st->upgrades++;
     }
     if (v < 0x8F) { /* @bin 0x004DE140 chunk 130 := -1 */
         for (uint32_t k = 0; k < 8; k++) {
-            wr32(c, 0x00E94DDC + 4 * k, -1);
+            wr32(c, G_VIEW_BOOKMARKS + 4 * k, -1);
         }
         st->upgrades++;
     }
     if (v < 0x90) { /* @bin 0x004D3D80 4 bytes at event +0x6A := 6 (150 events from chunk +4) */
         for (uint32_t k = 0; k < 150; k++) {
             for (uint32_t b = 0; b < 4; b++) {
-                wr8(c, A_EVENTS + 0x6E + 0x7C * k + b, 6);
+                wr8(c, G_EVENTS + 0x6E + 0x7C * k + b, 6);
             }
         }
         st->upgrades++;
@@ -670,54 +654,54 @@ static void upgrades(ctx *c)
         st->upgrades++;
     }
     if (v < 0x93) {
-        wr32(c, A_FLOOD + 0x20, rd32(c, A_FLOOD + 0x14));
+        wr32(c, G_FLOODPLAIN + 0x20, rd32(c, G_FLOODPLAIN + 0x14));
         st->upgrades++;
     }
     if (v < 0x94) { /* @bin 0x004D3D00 formation +0x84: transport figure */
         for (uint32_t k = 0; k < 50; k++) {
-            int t = rd8(c, FIGURE(rd32(c, FORMATION(k) + 0x84)) + 0x0A);
+            int t = rd8(c, FIGURE_ADDR(rd32(c, FORMATION(k) + 0x84)) + FIG_TYPE);
             if (t != 0x4D && t != 0x5C && t != 0x65) {
                 wr32(c, FORMATION(k) + 0x84, 0);
             }
         }
         for (uint32_t id = 1; id < 2000; id++) {
-            uint32_t f = FIGURE(id);
-            if (rd8(c, f + 0x0A) == 0x4D && rd8(c, f + 0x0E) == 1 && rd8(c, f + 0x38) != 4 && rd8(c, f + 0x130) != 0) {
-                wr32(c, FORMATION(rd8(c, f + 0x92)) + 0x84, (int32_t) id);
+            uint32_t f = FIGURE_ADDR(id);
+            if (rd8(c, f + FIG_TYPE) == 0x4D && rd8(c, f + FIG_STATE) == 1 && rd8(c, f + FIG_ACTION) != 4 && rd8(c, f + FIG_U130) != 0) {
+                wr32(c, FORMATION(rd8(c, f + FIG_U92)) + 0x84, (int32_t) id);
             }
         }
         st->upgrades++;
     }
     if (v < 0x95) { /* @bin 0x004D3F60 buildings 1-3999 (in use or not) */
         for (uint32_t id = 1; id < 4000; id++) {
-            uint32_t b = BUILDING(id) + 0xC1;
-            switch ((uint16_t) rd16(c, BUILDING(id) + 0x10)) {
+            uint32_t b = BUILDING_ADDR(id) + BLD_STORAGE_ID; /* the byte moved between +0xC1, +0xCA, +0xCB */
+            switch ((uint16_t) rd16(c, BUILDING_ADDR(id) + BLD_TYPE)) {
             case 0x46: case 0x47: case 0x48: case 0xBE: case 0xBF: case 0xC1:
-                wr8(c, b + 10, 0);
-                wr8(c, b + 9, 0);
+                wr8(c, b + (BLD_UCB - BLD_STORAGE_ID), 0);
+                wr8(c, b + (BLD_UCA - BLD_STORAGE_ID), 0);
                 break;
             case 0x4A:
-                wr8(c, b + 10, rd8(c, b));
+                wr8(c, b + (BLD_UCB - BLD_STORAGE_ID), rd8(c, b));
                 wr8(c, b, 0);
-                wr8(c, b + 9, 0);
+                wr8(c, b + (BLD_UCA - BLD_STORAGE_ID), 0);
                 break;
             case 0x88:
-                wr8(c, b + 9, rd8(c, b));
+                wr8(c, b + (BLD_UCA - BLD_STORAGE_ID), rd8(c, b));
                 wr8(c, b, 0);
-                wr8(c, b + 10, 0);
+                wr8(c, b + (BLD_UCB - BLD_STORAGE_ID), 0);
                 break;
             default:
                 wr8(c, b, 0);
-                wr8(c, b + 10, 0);
-                wr8(c, b + 9, 0);
+                wr8(c, b + (BLD_UCB - BLD_STORAGE_ID), 0);
+                wr8(c, b + (BLD_UCA - BLD_STORAGE_ID), 0);
                 break;
             }
         }
         st->upgrades++;
     }
     if (v < 0x96) { /* @bin 0x004D4040 current player's city data +0x298C..+0x29B8 := 0 */
-        uint32_t base = CITY(rd32(c, A_CURRENT_PLAYER));
-        for (uint32_t k = 0x298C; k < 0x29B9; k++) {
+        uint32_t base = CITY_ADDR(rd32(c, CURRENT_PLAYER_ADDR));
+        for (uint32_t k = CITY_U298C; k < CITY_U298C + 0x2D; k++) {
             wr8(c, base + k, 0);
         }
         st->upgrades++;
@@ -732,53 +716,53 @@ static void upgrades(ctx *c)
     }
     if (v < 0x9B) { /* @bin 0x004D4080, 0x004D40A0, scenario info +0x462 (110 bytes) */
         for (uint32_t id = 0; id < 4000; id++) {
-            wr8(c, BUILDING(id) + 0x86, 0);
+            wr8(c, BUILDING_ADDR(id) + BLD_ACCESS_ZOOKEEPER, 0);
         }
         for (uint32_t p = 0; p < 2; p++) {
-            wr32(c, CITY(p) + 0x44C8, 0);
-            wr32(c, CITY(p) + 0x44CC, 0);
+            wr32(c, CITY_ADDR(p) + CITY_U44C8, 0);
+            wr32(c, CITY_ADDR(p) + CITY_U44CC, 0);
         }
         for (uint32_t k = 0; k < 110; k++) {
-            wr8(c, A_SCENARIO + 0x462 + k, 0);
+            wr8(c, G_START_YEAR + 0x462 + k, 0);
         }
         st->upgrades++;
     }
     if (v < 0x9C) { /* @bin 0x004D1A70 i16[20] +0x291C / +0x2944 -> i32 +0x3C64 / +0x3D04, upper halves 0 */
         for (uint32_t p = 0; p < 2; p++) {
             for (uint32_t k = 0; k < 20; k++) {
-                wr32(c, CITY(p) + 0x3D04 + 4 * k, rd16(c, CITY(p) + 0x2944 + 2 * k));
-                wr32(c, CITY(p) + 0x3C64 + 4 * k, rd16(c, CITY(p) + 0x291C + 2 * k));
+                wr32(c, CITY_ADDR(p) + CITY_U3D04 + 4 * k, rd16(c, CITY_ADDR(p) + CITY_U2944 + 2 * k));
+                wr32(c, CITY_ADDR(p) + CITY_U3C64 + 4 * k, rd16(c, CITY_ADDR(p) + CITY_U291C + 2 * k));
             }
             for (uint32_t k = 0; k < 20; k++) {
-                wr32(c, CITY(p) + 0x3CB4 + 4 * k, 0);
-                wr32(c, CITY(p) + 0x3D54 + 4 * k, 0);
+                wr32(c, CITY_ADDR(p) + CITY_U3C64 + 0x50 + 4 * k, 0);
+                wr32(c, CITY_ADDR(p) + CITY_U3D04 + 0x50 + 4 * k, 0);
             }
         }
         st->upgrades++;
     }
     if (v < 0x9D) {
-        wr32(c, 0x0078D7B0, 0); /* chunk 131, blood river region */
-        wr32(c, 0x0078D7A8, 0);
-        wr32(c, 0x0078D7A4, 0);
-        wr8(c, A_SCENARIO + 0x3E4, 1);
+        wr32(c, G_U78D7B0, 0); /* chunk 131, blood river region */
+        wr32(c, G_FROGS_COUNTDOWN, 0);
+        wr32(c, G_PYRAMID_CURSE_COUNTDOWN, 0);
+        wr8(c, G_MONUMENT_MODE, 1); /* scenario info +0x3E4 */
         st->upgrades++;
     }
     if (v < 0x9E) {
-        wr32(c, 0x0078D7AC, 0);
+        wr32(c, G_BLOOD_RIVER_DURATION, 0);
         st->upgrades++;
     }
     if (v < 0x9F) {
-        wr8(c, A_SCENARIO + 0x3E5, 0);
+        wr8(c, G_START_YEAR + 0x3E5, 0);
         st->upgrades++;
     }
     if (v < 0xA0) { /* @bin 0x004D4180 statues; its flag is never reset between statues */
-        wr32(c, 0x0078D79C, 0);
+        wr32(c, G_LOCUST_TIMER, 0);
         int flag = 0;
         for (uint32_t id = 1; id < 4000; id++) {
-            uint32_t b = BUILDING(id);
-            int16_t t = rd16(c, b + 0x10);
-            if (rd8(c, b) == 1 && (t == 0x29 || t == 0x2A || t == 0x2B)) {
-                int u = rd8(c, b + 0xAA);
+            uint32_t b = BUILDING_ADDR(id);
+            int16_t t = rd16(c, b + BLD_TYPE);
+            if (rd8(c, b + BLD_STATE) == 1 && (t == 0x29 || t == 0x2A || t == 0x2B)) {
+                int u = rd8(c, b + BLD_ORIENTATION);
                 if (u & 0x40) {
                     flag = 1;
                     u -= 0x40;
@@ -787,11 +771,11 @@ static void upgrades(ctx *c)
                 if (n == 4) {
                     n = 0;
                 }
-                wr8(c, b + 0xAA, flag * 16 + n);
+                wr8(c, b + BLD_ORIENTATION, flag * 16 + n);
             }
         }
-        wr32(c, 0x0078D798, 10);
-        wr32(c, 0x0078D7A0, 0);
+        wr32(c, G_MUMMY_ATTACK_PARAM, 10);
+        wr32(c, G_HAIL_TIMER, 0);
         st->upgrades++;
     }
 }
@@ -806,19 +790,19 @@ int save_file_load_state(game_state *gs, save_file *s, save_load_env *env, save_
      * of the tables 0x005E45B0 (10), 0x005E46A0 (18), 0x005C1140 (22), 0x005C1350 (13) kept on the
      * stack (restored after the load: step 7); the empire routes' point buffers released (+0x04 :=
      * 0, +0x138 := 0) */
-    static const uint32_t T[4] = {0x005E45B0u, 0x005E46A0u, 0x005C1140u, 0x005C1350u};
+    static const uint32_t T[4] = {G_WORKSTEPS_OBELISK_SMALL, G_WORKSTEPS_OBELISK_LARGE, G_WORKSTEPS_SPHINX, G_WORKSTEPS_SUN_TEMPLE};
     static const int N[4] = {10, 18, 22, 13};
     int32_t keep[4][22];
-    S32(gs, 0x00E945C0u) = 0xA0;
-    S32(gs, 0x00E945C4u) = 0;
+    S32(gs, G_VERSION) = 0xA0;
+    S32(gs, G_USE_FILE_SCHEMA) = 0;
     for (int t = 0; t < 4; t++) {
         for (int k = 0; k < N[t]; k++) {
-            keep[t][k] = S32(gs, T[t] + 24u * (uint32_t) k);
+            keep[t][k] = S32(gs, T[t] + G_WORKSTEP_STRIDE * (uint32_t) k);
         }
         c.restore[t] = keep[t];
     }
     for (uint32_t k = 0; k < 50; k++) {
-        uint32_t r = A_ROUTES + 324u * k;
+        uint32_t r = G_ROUTES + 324u * k;
         if (U32(gs, r + 4) != 0) {
             state_dealloc(gs, U32(gs, r + 4)); /* @bin 0x00561A2B */
             U32(gs, r + 4) = 0;
@@ -840,18 +824,19 @@ int save_file_load_state(game_state *gs, save_file *s, save_load_env *env, save_
         /* @bin 0x004D3C40 also writes the carry-over records around chunk 175: at 0x006FDCBC,
          * 0x006FDCC8, 0x006FDCD4, 0x006FDCE4 (chunk 175 +4), 0x006FDCF0, 0x006FDCFC: byte := 0xFF,
          * dword +4 := -1, byte +8 := 0; chunk 175 +0 := 0 */
-        static const uint32_t E[6] = {0x006FDCBCu, 0x006FDCC8u, 0x006FDCD4u, 0x006FDCE4u, 0x006FDCF0u, 0x006FDCFCu};
+        static const uint32_t E[6] = {G_CARRY + 4u, G_CARRY + 0x10u, G_CARRY + 0x1Cu,
+                                      G_CARRY_COPY + 4u, G_CARRY_COPY + 0x10u, G_CARRY_COPY + 0x1Cu};
         for (int k = 0; k < 6; k++) {
             U8(gs, E[k]) = 0xFF;
             S32(gs, E[k] + 4) = -1;
             U8(gs, E[k] + 8) = 0;
         }
-        S32(gs, 0x006FDCE0u) = 0;
+        S32(gs, G_CARRY_COPY) = 0;
     }
     /* @bin 0x00562348 the CRT rand() state is the game's variable 0x00604950 */
-    env->crt_rand = U32(gs, 0x00604950u);
+    env->crt_rand = U32(gs, G_CRT_RAND_STATE);
     load_steps(&c);
-    U32(gs, 0x00604950u) = env->crt_rand;
+    U32(gs, G_CRT_RAND_STATE) = env->crt_rand;
     return 0;
 }
 
@@ -888,10 +873,10 @@ static void load_steps(ctx *cp)
     /* @bin 0x004D41E0 step 6: clean-ups for the Cleopatra monuments not present (buildings 1-3999) */
     int caesareum = 0, pharos = 0, library = 0, abu_simbel = 0, tomb = 0;
     for (uint32_t id = 1; id < 4000; id++) {
-        if (rd8(&c, BUILDING(id)) != 1) {
+        if (rd8(&c, BUILDING_ADDR(id) + BLD_STATE) != 1) {
             continue;
         }
-        int16_t t = rd16(&c, BUILDING(id) + 0x10);
+        int16_t t = rd16(&c, BUILDING_ADDR(id) + BLD_TYPE);
         caesareum |= t == 0xE3;
         pharos |= t == 0xE4;
         library |= t == 0xE1;
@@ -921,9 +906,9 @@ static void load_steps(ctx *cp)
     };
     for (int t = 0; t < 4; t++) {
         for (int k = 0; k < R[t].count; k++) {
-            wr32(&c, save_schema[R[t].chunk].address + 24u * (uint32_t) k, c.restore[t] ? c.restore[t][k] : R[t].v[k]);
+            wr32(&c, save_schema[R[t].chunk].address + G_WORKSTEP_STRIDE * (uint32_t) k, c.restore[t] ? c.restore[t][k] : R[t].v[k]);
         }
     }
     /* @bin 0x004D41E0 0x00EAAF5C := (0x0078D7A4 > 0): not saved (dropped in chunk mode) */
-    wr8(&c, 0x00EAAF5C, rd32(&c, 0x0078D7A4) > 0);
+    wr8(&c, G_PYRAMID_CURSE_FLAG, rd32(&c, G_PYRAMID_CURSE_COUNTDOWN) > 0);
 }

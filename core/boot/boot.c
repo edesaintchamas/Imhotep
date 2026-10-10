@@ -10,6 +10,7 @@
 #include "newgame/reset.h"
 #include "sim/call.h"
 #include "sim/platform.h"
+#include "state/layout.h"
 #include "state/ported.h"
 
 /* ---- the steps, in WinMain's order (@bin 0x00413ED0) ---- */
@@ -88,7 +89,7 @@ const char *boot_step_name(const boot_display *display, int sound, int step)
  * reads it, and each function runs through sim_call (its port). */
 static void step_ctors(game_state *st, const boot_host *host)
 {
-    for (uint32_t p = 0x00576000u; p < 0x0057607Cu; p += 4) {
+    for (uint32_t p = G_CTOR_TABLE; p < G_CTOR_TABLE_END; p += 4) {
         uint32_t fn = U32(st, p);
         if (fn) {
             boot_ctor(st, host, fn);
@@ -115,8 +116,8 @@ static int step_run(game_state *st, const boot_host *host, const boot_display *d
         break;
     case STEP_SETTINGS:
         /* @bin 0x00413F09 WinMain clears 0x44 dwords at 0x006FDB38 and the byte 0x00E38DD6 first */
-        memset(st->mem + (0x006FDB38u - STATE_BASE), 0, 0x44 * 4);
-        U8(st, 0x00E38DD6u) = 0;
+        memset(st->mem + (G_U6FDB38 - STATE_BASE), 0, 0x44 * 4);
+        U8(st, G_UE38DD6) = 0;
         r = boot_settings(st, host, screen_width(display)); /* @bin 0x00413F25 */
         break;
     case STEP_TEXT:
@@ -128,7 +129,7 @@ static int step_run(game_state *st, const boot_host *host, const boot_display *d
          * only when it finds the game's disc (its five files with their sizes). The GOG build ignores
          * the search's result (dis 0x00413F9C: an unconditional jump to 0x00414000), which stores the
          * letter in 0x00E38E62. assumed: no disc (tools/oracle/game.py 'cd' does the same) */
-        U8(st, 0x00E38E62u) = 0x44;
+        U8(st, G_DRIVE) = 0x44;
         break;
     case STEP_NAMES:
         boot_names(st); /* @bin 0x00414009 */
@@ -153,7 +154,7 @@ static int step_run(game_state *st, const boot_host *host, const boot_display *d
     case STEP_CAMPAIGN: {
         /* @bin 0x0041410F campaign_load("campaign.txt", 0x00578D98) on the table 0x006FDD08 (its low
          * byte tested); the path is a string of the state */
-        r = campaign_load(st, CAMPAIGN_TABLE_ADDR, 0x00578D98u) & 0xFF;
+        r = campaign_load(st, G_CAMPAIGN_TABLE, G_STR_CAMPAIGN) & 0xFF;
         break;
     }
     case STEP_541310:
@@ -166,39 +167,39 @@ static int step_run(game_state *st, const boot_host *host, const boot_display *d
         boot_sound_start(st, host); /* @bin 0x00414167 */
         break;
     case STEP_51F780:
-        GAME_CALL0(st, 0x0051F780u); /* @bin 0x0041416C */
+        GAME_CALL0(st, FN_NOTHING); /* @bin 0x0041416C */
         break;
     case STEP_GLOBALS:
         /* @bin 0x00414180 .. 0x004141C4 */
-        S32(st, 0x00605A3Cu) = 0;
-        S32(st, 0x00605A38u) = 0;
-        S32(st, 0x00605A34u) = 2;
-        S32(st, 0x00605A30u) = 0;
-        U8(st, 0x006DE515u) = 0;
-        U8(st, 0x006DE514u) = 0;
-        S32(st, 0x00605A0Cu) = 0;
-        S32(st, 0x00605A08u) = 0;
-        S32(st, 0x00605A04u) = 1;
-        S32(st, 0x00605A00u) = 0;
-        S32(st, 0x006059FCu) = -1;
+        S32(st, G_EDITOR) = 0;
+        S32(st, G_U605A38) = 0;
+        S32(st, G_U605A34) = 2;
+        S32(st, G_EDITOR_TOOL) = 0;
+        U8(st, G_NO_GROUND) = 0;
+        U8(st, G_MONUMENT_FLAG) = 0;
+        S32(st, G_FREE_BUILD) = 0;
+        S32(st, G_DEBUG_EVENT) = 0;
+        S32(st, G_DEBUG_EVENT_LEVEL) = 1;
+        S32(st, G_DEBUG_EVENT_KIND) = 0;
+        S32(st, G_NAME_PICK) = -1;
         break;
     case STEP_VIEW:
         newgame_view_reset(st); /* @bin 0x004141CE */
         break;
     case STEP_GLOBALS2:
-        S32(st, 0x006FDCB8u) = 0; /* @bin 0x0041422D */
+        S32(st, G_CARRY) = 0; /* @bin 0x0041422D */
         break;
     case STEP_SIDEBAR:
-        GAME_CALL0(st, 0x0051E930u); /* @bin 0x00414233 (present/sidebar) */
+        GAME_CALL0(st, FN_SIDEBAR_SET_X); /* @bin 0x00414233 (present/sidebar) */
         break;
     case STEP_GLOBALS3:
-        U8(st, 0x00E38DDAu) = 0x44; /* @bin 0x00414238 the first window */
-        U8(st, 0x00E38DCAu) = 1;    /* @bin 0x0041423F a redraw */
+        U8(st, G_WINDOW) = 0x44; /* @bin 0x00414238 the first window */
+        U8(st, G_REDRAW) = 1;    /* @bin 0x0041423F a redraw */
         break;
     case STEP_4CF8E0:
         boot_4cf8e0(st); /* @bin 0x00414246 */
         /* @bin 0x0041424B WinMain marks the start-up done (tools/oracle/game.py does not: docs) */
-        U8(st, 0x00E38DD6u) = 1;
+        U8(st, G_UE38DD6) = 1;
         break;
     case STEP_VIDEO:
         r = boot_bink_object(st, host);
@@ -311,23 +312,23 @@ boot_host boot_arena_host(boot_arena *arena)
 const ported_function boot_ports[] = {
     {0x00413ED0u, "WinMain initialisation (game_boot)", 4, 32, 0, NULL, 0},
     {0x00414420u, "boot_graphics", 0, 32, 0, NULL, 0},
-    {0x0053DD10u, "boot_graphics load_next", 1, 8, 0x00F55BB0u, NULL, 0},
-    {0x0053DD40u, "boot_graphics load_rest", 1, 8, 0x00F55BB0u, NULL, 0},
+    {0x0053DD10u, "boot_graphics load_next", 1, 8, G_GRAPHICS_GFX, NULL, 0},
+    {0x0053DD40u, "boot_graphics load_rest", 1, 8, G_GRAPHICS_GFX, NULL, 0},
     {0x004CF7B0u, "boot_graphics loading_text", 1, 0, 0, NULL, 0},
     {0x004CF960u, "boot_display_setup display_create", 1, 32, 0, NULL, 0},
     {0x004133D0u, "boot_bink_object (Bink object constructor)", 1, 32, 0, NULL, 0},
     {0x005394F0u, "boot_sound_start", 0, 0, 0, NULL, 0},
-    {0x0055E6C4u, "boot_sound_start driver_open", 0, 32, 0x00E92BF8u, NULL, 0},
-    {0x0055DEA2u, "boot_sound_start voices", 1, 32, 0x00E92BF8u, NULL, 0},
-    {0x0055E5D2u, "boot_sound_start voice_reset", 1, 0, 0x00E92BF8u, NULL, 0},
-    {0x0055DC63u, "boot_sound_start registry_create", 1, 32, 0x00E92BF8u, NULL, 0},
-    {0x0055DC18u, "boot_sound_start registry_release", 0, 0, 0x00E92BF8u, NULL, 0},
+    {0x0055E6C4u, "boot_sound_start driver_open", 0, 32, G_SOUND, NULL, 0},
+    {0x0055DEA2u, "boot_sound_start voices", 1, 32, G_SOUND, NULL, 0},
+    {0x0055E5D2u, "boot_sound_start voice_reset", 1, 0, G_SOUND, NULL, 0},
+    {0x0055DC63u, "boot_sound_start registry_create", 1, 32, G_SOUND, NULL, 0},
+    {0x0055DC18u, "boot_sound_start registry_release", 0, 0, G_SOUND, NULL, 0},
     {0x00560280u, "boot_sound_start registry_entry", 0, 32, 0, NULL, 0},
     {0x005602B0u, "boot_sound_start registry_entry_release (frees a name only the CD path strdups)", 0, 0, 0, NULL, 0},
-    {0x0055DD3Fu, "boot_sound_start registry_add", 2, 32, 0x00E92BF8u, NULL, 0},
-    {0x00539A40u, "boot_sound_start music_mode", 1, 0, 0x00E39180u, NULL, 0},
-    {0x00539250u, "music_read", 0, 0, 0x00E39180u, NULL, 0},
-    {0x005395E0u, "tune_add", 6, 32, 0x00E39180u, NULL, 0},
+    {0x0055DD3Fu, "boot_sound_start registry_add", 2, 32, G_SOUND, NULL, 0},
+    {0x00539A40u, "boot_sound_start music_mode", 1, 0, G_MUSIC, NULL, 0},
+    {0x00539250u, "music_read", 0, 0, G_MUSIC, NULL, 0},
+    {0x005395E0u, "tune_add", 6, 32, G_MUSIC, NULL, 0},
     {0x00539CF0u, "building_sound", 3, 0, 0, NULL, 0},
     {0x00539D60u, "building_sounds", 0, 0, 0, NULL, 0},
     {0x0053BC80u, "ambient_sound", 3, 0, 0, NULL, 0},

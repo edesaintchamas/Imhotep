@@ -7,16 +7,10 @@
 
 #include "newgame/map_load.h"
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 
-#define CITY_INDEX 0x00EAAC28u
-#define CITY_BASE 0x00EA1870u
-#define CITY_SIZE 0x49D8u
-#define EDITOR 0x00605A3Cu
-#define MAP_NAME 0x00E37078u     /* char[65] */
-#define EMPIRE_OBJECTS 0x0077F748u /* 200 x 0x62 */
-#define EMPIRE_OBJECTS_END 0x007843D8u
-#define OBJECT(j) (EMPIRE_OBJECTS + 0x62u * (uint32_t) (j))
+#define OBJECT(j) (G_EMPIRE_OBJECTS + 0x62u * (uint32_t) (j))
 
 /* ---- empire ---------------------------------------------------------------------------------- */
 
@@ -25,7 +19,7 @@ int32_t empire_route_is_kind2(game_state *st, int32_t route)
     if (route < 0 || route >= 0x32) {
         return 0;
     }
-    return U8(st, 0x007770F0u + 0x144u * (uint32_t) route) == 2;
+    return U8(st, G_ROUTES + ROUTE_KIND + ROUTE_SIZE * (uint32_t) route) == 2;
 }
 
 int32_t empire_object_trade_amount(game_state *st, int32_t obj, int32_t good)
@@ -68,7 +62,7 @@ void empire_trade_amounts_setup(game_state *st)
             }
         }
         for (int32_t g = 1; g < 0x24; g++) {
-            if (GAME_CALL(st, 0x00443000u, j, g) == 0 && GAME_CALL(st, 0x00443040u, j, g) == 0) {
+            if (GAME_CALL(st, FN_EMPIRE_OBJECT_SELLS, j, g) == 0 && GAME_CALL(st, FN_EMPIRE_OBJECT_BUYS, j, g) == 0) {
                 empire_object_trade_amount_set(st, j, g, 0);
             }
         }
@@ -79,14 +73,14 @@ void empire_cities_setup(game_state *st)
 {
     /* @bin 0x00444720 the empire cities 1..60 (0x0077DE00 + 0x6A k) from the objects in use of
      * kind 1, in object order; `c` is the city's +3 as in the original's register */
-    GAME_CALL(st, 0x0040F8F0u, 0x0077DE00, 0x1942, 0);
-    uint32_t c = 0x0077DE6Du;
+    GAME_CALL(st, FN_FILL_BYTES, G_EMPIRE_CITIES, 0x1942, 0);
+    uint32_t c = G_EMPIRE_CITIES + 0x6Au + 3u;
     for (int32_t j = 0; j < 200; j++) {
         uint32_t o = OBJECT(j);
         if (U8(st, o + 1) == 0 || U8(st, o) != 1) {
             continue;
         }
-        if (c >= 0x0077F745u) {
+        if (c >= G_EMPIRE_CITY_END + 3u) {
             return;
         }
         U8(st, c - 3) = 1;
@@ -105,18 +99,18 @@ void empire_cities_setup(game_state *st)
             uint8_t kind = U8(st, c - 1);
             /* @bin 0x004447BA kinds 1, 3, 5 and 0: goods sold / bought */
             if (kind == 1 || kind == 3 || kind == 5 || kind == 0) {
-                if (GAME_CALL(st, 0x00443000u, j, g) != 0) {
+                if (GAME_CALL(st, FN_EMPIRE_OBJECT_SELLS, j, g) != 0) {
                     U8(st, c + (uint32_t) g + 0x27) = 1;
                 }
-                if (GAME_CALL(st, 0x00443040u, j, g) != 0) {
+                if (GAME_CALL(st, FN_EMPIRE_OBJECT_BUYS, j, g) != 0) {
                     U8(st, c + (uint32_t) g + 3) = 1;
                 }
             }
             int32_t v = empire_object_trade_amount(st, j, g);
             /* @bin 0x0044480B route limits per good: amount 1 / 2 / 3 -> 15 / 25 / 40, else 0 */
             uint32_t slot = 4u * ((uint32_t) g + 36u * U8(st, c + 1));
-            U32(st, 0x0077646Cu + slot) = v == 1 ? 0xF : v == 2 ? 0x19 : v == 3 ? 0x28 : 0;
-            U32(st, 0x0077592Cu + slot) = 0;
+            U32(st, G_TRADE_ROUTE_LIMITS + slot) = v == 1 ? 0xF : v == 2 ? 0x19 : v == 3 ? 0x28 : 0;
+            U32(st, G_TRADE_DONE + slot) = 0;
         }
         U16(st, c + 0x4D) = 0xA;
         U16(st, c + 0x4F) = 4;
@@ -131,31 +125,31 @@ void empire_cities_setup(game_state *st)
 
 void empire_0x77af00_clear(game_state *st)
 {
-    GAME_CALL(st, 0x0040F8F0u, 0x0077AF00, 0x2260, 0);
-    U32(st, 0x0077AEFCu) = 0;
+    GAME_CALL(st, FN_FILL_BYTES, G_TRADER_RECORDS, 0x2260, 0);
+    U32(st, G_TRADER_NEXT) = 0;
 }
 
 void empire_scroll_clamp(game_state *st)
 {
     /* @bin 0x00442800 x in [0, 0x005D2A10 + 2 * 0x005D2A18 - 0x00E38D9C), y in [0, 0x005D2A14 +
      * 0x005D2A20 - 0x00E38D98 + 0x005D2A1C) */
-    int32_t x = S32(st, 0x00775910u);
+    int32_t x = S32(st, G_SCROLL_X);
     if (x < 0) {
         x = 0;
-        S32(st, 0x00775910u) = 0;
+        S32(st, G_SCROLL_X) = 0;
     }
-    int32_t lim = S32(st, 0x005D2A10u) + (2 * S32(st, 0x005D2A18u) - S32(st, 0x00E38D9Cu));
+    int32_t lim = S32(st, G_MAP_W) + (2 * S32(st, G_MAP_X) - S32(st, G_UE38D9C));
     if (x >= lim) {
-        S32(st, 0x00775910u) = lim - 1;
+        S32(st, G_SCROLL_X) = lim - 1;
     }
-    int32_t y = S32(st, 0x0077590Cu);
+    int32_t y = S32(st, G_SCROLL_Y);
     if (y < 0) {
         y = 0;
-        S32(st, 0x0077590Cu) = 0;
+        S32(st, G_SCROLL_Y) = 0;
     }
-    lim = S32(st, 0x005D2A14u) + (S32(st, 0x005D2A20u) - S32(st, 0x00E38D98u) + S32(st, 0x005D2A1Cu));
+    lim = S32(st, G_MAP_H) + (S32(st, G_MAP_BOTTOM) - S32(st, G_UE38D98) + S32(st, G_MAP_Y));
     if (y >= lim) {
-        S32(st, 0x0077590Cu) = lim - 1;
+        S32(st, G_SCROLL_Y) = lim - 1;
     }
 }
 
@@ -163,17 +157,17 @@ void empire_scroll_clamp(game_state *st)
 
 void scenario_map_load(game_state *st)
 {
-    GAME_CALL0(st, 0x0046FA40u); /* grids cleared */
-    file_name_strip_extension(st, MAP_NAME);
-    GAME_CALL(st, 0x004CBEA0u, 0x00576274, 0x00E38AEC, 3); /* "map" */
-    file_name_add_extension(st, MAP_NAME);
+    GAME_CALL0(st, FN_PRE_LOAD_CLEAR); /* grids cleared */
+    file_name_strip_extension(st, G_MAP_NAME);
+    GAME_CALL(st, FN_TEXT_COPY, G_STR_MAP, G_START_EXT, 3); /* "map" */
+    file_name_add_extension(st, G_MAP_NAME);
     /* @bin 0x004DE631 local := "maps\\" (0x0057626C) + the name (strcpy, strcat) */
     char path[100 + 256];
     size_t n = 0;
-    for (uint32_t a = 0x0057626Cu; U8(st, a) != 0 && n < 99; a++) {
+    for (uint32_t a = G_STR_MAPS_DIR; U8(st, a) != 0 && n < 99; a++) {
         path[n++] = (char) U8(st, a);
     }
-    for (uint32_t a = MAP_NAME; n < sizeof(path) - 1; a++) {
+    for (uint32_t a = G_MAP_NAME; n < sizeof(path) - 1; a++) {
         const uint8_t *c = state_ptr(st, a, 1);
         if (!c || *c == 0) {
             break;
@@ -182,114 +176,114 @@ void scenario_map_load(game_state *st)
     }
     path[n] = 0;
     map_file_load(st, path, 0);
-    file_name_strip_extension(st, MAP_NAME);
+    file_name_strip_extension(st, G_MAP_NAME);
     empire_trade_amounts_setup(st);
     /* @bin 0x004DE6A2 the map size from the scenario info */
-    U32(st, 0x00BCA2D0u) = U32(st, 0x00784904u);
-    U32(st, 0x00BCA2D4u) = U32(st, 0x00784908u);
-    U32(st, 0x00BCA2D8u) = U32(st, 0x0078490Cu);
-    U32(st, 0x00BCA2DCu) = U32(st, 0x00784910u);
-    GAME_CALL0(st, 0x0046F7B0u);
+    U32(st, G_MAP_WIDTH) = U32(st, G_SCENARIO_MAP_WIDTH);
+    U32(st, G_MAP_HEIGHT) = U32(st, G_SCENARIO_MAP_HEIGHT);
+    U32(st, G_MAP_START) = U32(st, G_SCENARIO_MAP_START);
+    U32(st, G_MAP_STRIDE_EXTRA) = U32(st, G_SCENARIO_MAP_STRIDE_EXTRA);
+    GAME_CALL0(st, FN_MAP_ROW_RANGES);
     /* @bin 0x004DE6D5 the 16 map points (x 0x00784BC0, y 0x00784BE0): off the map -> -1, -1
      * (checked twice) */
-    for (uint32_t p = 0x00784BE0u; p < 0x00784C00u; p += 2) {
+    for (uint32_t p = G_MAP_POINTS_Y; p < G_MAP_POINTS_Y + 0x20u; p += 2) {
         for (int k = 0; k < 2; k++) {
-            int32_t x = S32(st, 0x00BCA2E8u) + S16(st, p - 0x20), y = S32(st, 0x00BCA2ECu) + S16(st, p);
-            if ((GAME_CALL(st, 0x0046F930u, x, y) & 0xFF) == 0) {
+            int32_t x = S32(st, G_VIEW_DX) + S16(st, p - 0x20), y = S32(st, G_VIEW_DY) + S16(st, p);
+            if ((GAME_CALL(st, FN_MAP_TILE_INSIDE, x, y) & 0xFF) == 0) {
                 U16(st, p - 0x20) = 0xFFFF;
                 U16(st, p) = 0xFFFF;
             }
         }
     }
-    GAME_CALL(st, 0x004CC560u, 5, 0x00784914, 0x18, 0x118, 0, (int32_t) U32(st, 0x00F56F84u));
-    GAME_CALL(st, 0x004CC560u, 6, 0x00784954, 500, 400, 0, (int32_t) U32(st, 0x00F56F84u));
-    GAME_CALL(st, 0x00430530u, (int32_t) U32(st, 0x00E94E04u), 1);
-    if (U32(st, EDITOR) == 1) {
+    GAME_CALL(st, FN_TEXT_BOX_SET, 5, G_SCENARIO_TITLE, 0x18, 0x118, 0, (int32_t) U32(st, G_FONT_SMALL));
+    GAME_CALL(st, FN_TEXT_BOX_SET, 6, G_U784954, 500, 400, 0, (int32_t) U32(st, G_FONT_SMALL));
+    GAME_CALL(st, FN_VIEW_TABLE_BUILD, (int32_t) U32(st, G_UE94E04), 1);
+    if (U32(st, G_EDITOR) == 1) {
         GAME_CALL0(st, 0x004BB090u);
-        if (S16(st, 0x00784C8Cu) != -1 && S16(st, 0x00784C8Eu) != -1 && S16(st, 0x00784C90u) != -1 &&
-            S16(st, 0x00784C92u) != -1) {
-            GAME_CALL(st, 0x004BBD40u, S16(st, 0x00784C8Cu), S16(st, 0x00784C8Eu), 1);
+        if (S16(st, G_ENTRY_X) != -1 && S16(st, G_ENTRY_Y) != -1 && S16(st, G_EXIT_X) != -1 &&
+            S16(st, G_EXIT_Y) != -1) {
+            GAME_CALL(st, FN_NEWGAME_POINTS_41_CREATE, S16(st, G_ENTRY_X), S16(st, G_ENTRY_Y), 1);
         }
     }
-    GAME_CALL0(st, 0x004BBC10u);
-    GAME_CALL0(st, 0x004BB3F0u);
+    GAME_CALL0(st, FN_NEWGAME_POINTS_5F_CREATE);
+    GAME_CALL0(st, FN_NEWGAME_HERDS_CREATE);
     map_setup_grids(st);
-    GAME_CALL0(st, 0x004DEA50u); /* terrain rebuild */
+    GAME_CALL0(st, FN_TERRAIN_REBUILD); /* terrain rebuild */
     map_flagged_buildings(st);
-    GAME_CALL0(st, 0x004DDF90u);
-    GAME_CALL0(st, 0x004DE080u);
-    GAME_CALL0(st, 0x00517A20u);
-    GAME_CALL0(st, 0x005178B0u);
-    GAME_CALL0(st, 0x00517370u);
-    GAME_CALL0(st, 0x00517660u);
-    GAME_CALL0(st, 0x005178E0u);
+    GAME_CALL0(st, FN_VIEW_BOUNDS);
+    GAME_CALL0(st, FN_CAMERA_CLAMP);
+    GAME_CALL0(st, FN_ROUTING_CLEAR_EE0C50);
+    GAME_CALL0(st, FN_ROUTING_REBUILD_ED4140);
+    GAME_CALL0(st, FN_ROUTING_REBUILD_EE0C50);
+    GAME_CALL0(st, FN_ROUTING_REBUILD_EC7630);
+    GAME_CALL0(st, FN_ROUTING_REBUILD_EBAB20);
 }
 
 /* ---- 0x004DE820 ------------------------------------------------------------------------------ */
 
 void scenario_setup(game_state *st)
 {
-    U32(st, CITY_INDEX) = 1;
+    U32(st, CURRENT_PLAYER_ADDR) = 1;
     scenario_map_load(st);
-    GAME_CALL(st, 0x0040F860u, 0x007848D8, 0x007848D8, 0x638); /* the scenario info onto itself */
-    if (U32(st, EDITOR) == 0) {
-        int16_t ax = S16(st, 0x00784C8Cu), cx = S16(st, 0x00784C8Eu);
-        int32_t all = ax != -1 && cx != -1 && S16(st, 0x00784C90u) != -1 && S16(st, 0x00784C92u) != -1;
-        GAME_CALL(st, 0x004BBD40u, ax, cx, all); /* initial figures */
+    GAME_CALL(st, FN_COPY_BYTES, G_START_YEAR, G_START_YEAR, 0x638); /* the scenario info onto itself */
+    if (U32(st, G_EDITOR) == 0) {
+        int16_t ax = S16(st, G_ENTRY_X), cx = S16(st, G_ENTRY_Y);
+        int32_t all = ax != -1 && cx != -1 && S16(st, G_EXIT_X) != -1 && S16(st, G_EXIT_Y) != -1;
+        GAME_CALL(st, FN_NEWGAME_POINTS_41_CREATE, ax, cx, all); /* initial figures */
     }
-    GAME_CALL0(st, 0x005178B0u);
-    GAME_CALL0(st, 0x00517370u);
-    GAME_CALL0(st, 0x00517660u);
-    GAME_CALL0(st, 0x005178E0u);
+    GAME_CALL0(st, FN_ROUTING_REBUILD_ED4140);
+    GAME_CALL0(st, FN_ROUTING_REBUILD_EE0C50);
+    GAME_CALL0(st, FN_ROUTING_REBUILD_EC7630);
+    GAME_CALL0(st, FN_ROUTING_REBUILD_EBAB20);
     /* @bin 0x004DE8A9 entry point (0x00784C64 / 0x00784C66; -1: the middle of the east edge) and
      * exit point (0x00784C68 / 0x00784C6A; -1: the entry point) into the city record */
-    int16_t ex = S16(st, 0x00784C64u), ey = S16(st, 0x00784C66u);
+    int16_t ex = S16(st, G_ENTRY_POINT_X), ey = S16(st, G_ENTRY_POINT_Y);
     if (ex == -1 || ey == -1) {
-        ex = (int16_t) (S32(st, 0x00BCA2D0u) - 1);
-        ey = (int16_t) (S32(st, 0x00BCA2D4u) / 2);
-        S16(st, 0x00784C64u) = ex;
-        S16(st, 0x00784C66u) = ey;
+        ex = (int16_t) (S32(st, G_MAP_WIDTH) - 1);
+        ey = (int16_t) (S32(st, G_MAP_HEIGHT) / 2);
+        S16(st, G_ENTRY_POINT_X) = ex;
+        S16(st, G_ENTRY_POINT_Y) = ey;
     }
-    uint32_t c = CITY_BASE + CITY_SIZE * U32(st, CITY_INDEX);
-    int32_t grid = S32(st, 0x00BCA2D8u);
-    U16(st, c + 0x2778u) = U8(st, 0x00784C64u);
-    U16(st, c + 0x277Au) = U8(st, 0x00784C66u);
-    S32(st, c + 0x277Cu) = grid + S16(st, c + 0x2778u) + S16(st, c + 0x277Au) * 0xE4;
-    if (S16(st, 0x00784C68u) == -1 || S16(st, 0x00784C6Au) == -1) {
-        S16(st, 0x00784C68u) = ex;
-        S16(st, 0x00784C6Au) = ey;
+    uint32_t c = CURRENT_CITY(st);
+    int32_t grid = S32(st, G_MAP_START);
+    U16(st, c + CITY_ENTRY_X) = U8(st, G_ENTRY_POINT_X);
+    U16(st, c + CITY_ENTRY_Y) = U8(st, G_ENTRY_POINT_Y);
+    S32(st, c + CITY_ENTRY_OFFSET) = grid + S16(st, c + CITY_ENTRY_X) + S16(st, c + CITY_ENTRY_Y) * 0xE4;
+    if (S16(st, G_EXIT_POINT_X) == -1 || S16(st, G_EXIT_POINT_Y) == -1) {
+        S16(st, G_EXIT_POINT_X) = ex;
+        S16(st, G_EXIT_POINT_Y) = ey;
     }
-    U16(st, c + 0x2780u) = U8(st, 0x00784C68u);
-    U16(st, c + 0x2782u) = U8(st, 0x00784C6Au);
-    S32(st, c + 0x2784u) = grid + S16(st, c + 0x2780u) + S16(st, c + 0x2782u) * 0xE4;
+    U16(st, c + CITY_EXIT_X) = U8(st, G_EXIT_POINT_X);
+    U16(st, c + CITY_EXIT_Y) = U8(st, G_EXIT_POINT_Y);
+    S32(st, c + CITY_EXIT_OFFSET) = grid + S16(st, c + CITY_EXIT_X) + S16(st, c + CITY_EXIT_Y) * 0xE4;
     /* @bin 0x004DE98C treasury: scenario funds 0x007848F8 scaled by the difficulty's percentage
      * 0x005D1960[d] (0x004CDE40) into +0x0C and +0x2CBC */
-    int32_t money = GAME_CALL(st, 0x004CDE40u, S32(st, 0x007848F8u), S32(st, 0x005D1960u + 4u * U32(st, 0x00E39080u)));
-    c = CITY_BASE + CITY_SIZE * U32(st, CITY_INDEX);
-    S32(st, c + 0x0Cu) = money;
-    S32(st, c + 0x2CBCu) = money;
+    int32_t money = GAME_CALL(st, FN_CALC_PERCENTAGE, S32(st, G_SCENARIO_FUNDS), S32(st, G_TREASURY_PCT + 4u * U32(st, G_DIFFICULTY)));
+    c = CURRENT_CITY(st);
+    S32(st, c + CITY_TREASURY) = money;
+    S32(st, c + CITY_BALANCE_LAST_YEAR) = money;
     /* @bin 0x004DE9C8 start year, deadline: +0x00784C4C when 0x00784C48, else +0x00784C54 when
      * 0x00784C50, else +1000000 */
-    int32_t year = S16(st, 0x007848D8u);
-    S32(st, 0x0078D7BCu) = year;
-    if (U32(st, 0x00784C48u) != 0) {
-        year += S32(st, 0x00784C4Cu);
-    } else if (U32(st, 0x00784C50u) != 0) {
-        year += S32(st, 0x00784C54u);
+    int32_t year = S16(st, G_START_YEAR);
+    S32(st, G_YEAR) = year;
+    if (U32(st, G_TIME_LIMIT_ON) != 0) {
+        year += S32(st, G_TIME_LIMIT_YEARS);
+    } else if (U32(st, G_SURVIVE_ON) != 0) {
+        year += S32(st, G_SURVIVE_YEARS);
     } else {
         year += 1000000;
     }
-    S32(st, 0x0078D7B8u) = year;
-    S32(st, 0x00784F10u) = S16(st, 0x007848DCu);
+    S32(st, G_DEADLINE_YEAR) = year;
+    S32(st, G_EMPIRE_CURRENT) = S16(st, G_SCENARIO_EMPIRE);
     empire_cities_setup(st);
     empire_0x77af00_clear(st);
     /* @bin 0x004DEA1C the empire map scroll from the empire's record (0x007843D8 + 0x20 e) */
-    uint32_t e = 0x007843D8u + 0x20u * U32(st, 0x00784F10u);
-    S32(st, 0x00775910u) = S16(st, e);
-    S32(st, 0x0077590Cu) = S16(st, e + 2);
+    uint32_t e = G_EMPIRE_OBJECTS_END + 0x20u * U32(st, G_EMPIRE_CURRENT);
+    S32(st, G_SCROLL_X) = S16(st, e);
+    S32(st, G_SCROLL_Y) = S16(st, e + 2);
     empire_scroll_clamp(st);
-    GAME_CALL0(st, 0x00404350u);
-    GAME_CALL0(st, 0x004051A0u);
+    GAME_CALL0(st, FN_BUILD_MENU_UPDATE);
+    GAME_CALL0(st, FN_BUILD_BUTTONS_UPDATE);
 }
 
 /* ---- registration ---------------------------------------------------------------------------- */

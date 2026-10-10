@@ -8,111 +8,109 @@
 
 #include "graphics/last_graphics.h"
 #include "sim/call.h"
+#include "state/layout.h"
 #include "state/ported.h"
 
-#define GRAPHICS 0x00F55BB0u     /* @bin 0x004F456F mov ecx, 0xF55BB0 */
-#define MONUMENT_MODE 0x00784CBCu /* @bin 0x004F4520 byte */
-#define MISSION 0x00E38EA8u       /* @bin 0x004F46D0 i8 */
 
 static void slot(game_state *st, uint32_t name, int32_t n)
 {
-    graphics_load_slot(st, GRAPHICS, name, n);
+    graphics_load_slot(st, G_GRAPHICS_GFX, name, n);
 }
 
 /* @bin 0x004F4520 */
 void newgame_monument_slots(game_state *st)
 {
-    uint8_t mode = U8(st, MONUMENT_MODE);
+    uint8_t mode = U8(st, G_MONUMENT_MODE);
     if (mode < 2) {
         /* @bin 0x004F452D mode := 1; the pyramid kind 0x004F44E0 picks slot 0x11 (jump table
          * 0x004F4918: 1 bent, 2 mudbrick, 3 stepped, 5 mastaba, otherwise pyramid) */
-        U8(st, MONUMENT_MODE) = 1;
-        int32_t kind = GAME_CALL0(st, 0x004F44E0u);
-        S32(st, 0x005E4EF4u) = kind;
+        U8(st, G_MONUMENT_MODE) = 1;
+        int32_t kind = GAME_CALL0(st, FN_PYRAMID_KIND_4F44E0);
+        S32(st, G_PYRAMID_KIND) = kind;
         uint32_t name;
         switch (kind) {
-        case 1: name = 0x005F763Cu; break; /* BENT_PYRAMID */
-        case 2: name = 0x005F7628u; break; /* MUDBRICK_PYRAMID */
-        case 3: name = 0x005F7618u; break; /* STEPPED_PYRAMID */
-        case 5: name = 0x005F7610u; break; /* MASTABA */
-        default: name = 0x005F7608u; break; /* PYRAMID */
+        case 1: name = G_STR_BENT_PYRAMID; break; /* BENT_PYRAMID */
+        case 2: name = G_STR_MUDBRICK_PYRAMID; break; /* MUDBRICK_PYRAMID */
+        case 3: name = G_STR_STEPPED_PYRAMID; break; /* STEPPED_PYRAMID */
+        case 5: name = G_STR_MASTABA; break; /* MASTABA */
+        default: name = G_STR_PYRAMID; break; /* PYRAMID */
         }
         slot(st, name, 0x11);
-        slot(st, 0x00579134u, 0x12); /* CaesareumDummy */
-        slot(st, 0x00579124u, 0x13); /* LtHouseDummy */
-        slot(st, 0x0057922Cu, 0x14); /* LibMainDummy */
-        slot(st, 0x0057922Cu, 0x15);
-        slot(st, 0x0057922Cu, 0x16);
-        slot(st, 0x005F75F8u, 0x17); /* LibExtraDummy */
-        slot(st, 0x00579110u, 0x18); /* MausCarryoverDummy */
-        slot(st, 0x00579100u, 0x19); /* TombThutDummy */
-        slot(st, 0x005790E0u, 0x1B); /* TombTutDummy */
-        slot(st, 0x005790D0u, 0x1C); /* TombSetiDummy */
-        slot(st, 0x005790C0u, 0x1D); /* TombRamDummy */
-        slot(st, 0x005790F0u, 0x1A); /* AbuSimbelDummy */
+        slot(st, G_STR_CAESAREUM_DUMMY, 0x12); /* CaesareumDummy */
+        slot(st, G_STR_LT_HOUSE_DUMMY, 0x13); /* LtHouseDummy */
+        slot(st, G_STR_LIB_MAIN_DUMMY, 0x14); /* LibMainDummy */
+        slot(st, G_STR_LIB_MAIN_DUMMY, 0x15);
+        slot(st, G_STR_LIB_MAIN_DUMMY, 0x16);
+        slot(st, G_STR_LIB_EXTRA_DUMMY, 0x17); /* LibExtraDummy */
+        slot(st, G_STR_MAUS_CARRYOVER_DUMMY, 0x18); /* MausCarryoverDummy */
+        slot(st, G_STR_TOMB_THUT_DUMMY, 0x19); /* TombThutDummy */
+        slot(st, G_STR_TOMB_TUT_DUMMY, 0x1B); /* TombTutDummy */
+        slot(st, G_STR_TOMB_SETI_DUMMY, 0x1C); /* TombSetiDummy */
+        slot(st, G_STR_TOMB_RAM_DUMMY, 0x1D); /* TombRamDummy */
+        slot(st, G_STR_ABU_SIMBEL_DUMMY, 0x1A); /* AbuSimbelDummy */
         return;
     }
     if (mode == 2) {
         /* @bin 0x004F4637 the tombs; missions 0x27..0x29 (signed byte) the finished ones */
-        slot(st, 0x00579144u, 0x11); /* PyramidDummy */
-        slot(st, 0x00579134u, 0x12);
-        slot(st, 0x00579124u, 0x13);
-        slot(st, 0x0057922Cu, 0x14);
-        slot(st, 0x0057922Cu, 0x15);
-        slot(st, 0x0057922Cu, 0x16);
-        slot(st, 0x005F75F8u, 0x17);
-        slot(st, 0x00579110u, 0x18);
-        slot(st, 0x005790F0u, 0x1A);
-        int8_t m = S8(st, MISSION);
-        slot(st, m < 0x27 || m > 0x29 ? 0x005F75E0u : 0x005F75ECu, 0x19); /* TombThut / TombThutFin */
-        m = S8(st, MISSION);
-        slot(st, m == 0x28 || m == 0x29 ? 0x005F75CCu : 0x005F75D8u, 0x1B); /* TombTutFin / TombTut */
-        m = S8(st, MISSION);
-        slot(st, m == 0x29 ? 0x005F75C0u : 0x005F75B4u, 0x1C); /* TombSetiFin / TombSeti */
-        slot(st, 0x005F75ACu, 0x1D); /* TombRam */
+        slot(st, G_STR_PYRAMID_DUMMY, 0x11); /* PyramidDummy */
+        slot(st, G_STR_CAESAREUM_DUMMY, 0x12);
+        slot(st, G_STR_LT_HOUSE_DUMMY, 0x13);
+        slot(st, G_STR_LIB_MAIN_DUMMY, 0x14);
+        slot(st, G_STR_LIB_MAIN_DUMMY, 0x15);
+        slot(st, G_STR_LIB_MAIN_DUMMY, 0x16);
+        slot(st, G_STR_LIB_EXTRA_DUMMY, 0x17);
+        slot(st, G_STR_MAUS_CARRYOVER_DUMMY, 0x18);
+        slot(st, G_STR_ABU_SIMBEL_DUMMY, 0x1A);
+        int8_t m = S8(st, G_MISSION);
+        slot(st, m < 0x27 || m > 0x29 ? G_STR_TOMB_THUT : G_STR_TOMB_THUT_FIN, 0x19); /* TombThut / TombThutFin */
+        m = S8(st, G_MISSION);
+        slot(st, m == 0x28 || m == 0x29 ? G_STR_TOMB_TUT_FIN : G_STR_TOMB_TUT, 0x1B); /* TombTutFin / TombTut */
+        m = S8(st, G_MISSION);
+        slot(st, m == 0x29 ? G_STR_TOMB_SETI_FIN : G_STR_TOMB_SETI, 0x1C); /* TombSetiFin / TombSeti */
+        slot(st, G_STR_TOMB_RAM, 0x1D); /* TombRam */
         return;
     }
     if (mode == 4) {
-        slot(st, 0x005760B0u, 0x1A); /* @bin 0x004F4759 AbuSimbel */
-        slot(st, 0x00579144u, 0x11);
-        slot(st, 0x00579134u, 0x12);
-        slot(st, 0x00579124u, 0x13);
-        slot(st, 0x0057922Cu, 0x14);
-        slot(st, 0x0057922Cu, 0x15);
-        slot(st, 0x0057922Cu, 0x16);
-        slot(st, 0x005F75F8u, 0x17);
-        slot(st, 0x00579110u, 0x18);
-        slot(st, 0x00579100u, 0x19);
-        slot(st, 0x005790D0u, 0x1C);
-        slot(st, 0x005790E0u, 0x1B);
-        slot(st, 0x005790C0u, 0x1D);
+        slot(st, G_STR_ABU_SIMBEL, 0x1A); /* @bin 0x004F4759 AbuSimbel */
+        slot(st, G_STR_PYRAMID_DUMMY, 0x11);
+        slot(st, G_STR_CAESAREUM_DUMMY, 0x12);
+        slot(st, G_STR_LT_HOUSE_DUMMY, 0x13);
+        slot(st, G_STR_LIB_MAIN_DUMMY, 0x14);
+        slot(st, G_STR_LIB_MAIN_DUMMY, 0x15);
+        slot(st, G_STR_LIB_MAIN_DUMMY, 0x16);
+        slot(st, G_STR_LIB_EXTRA_DUMMY, 0x17);
+        slot(st, G_STR_MAUS_CARRYOVER_DUMMY, 0x18);
+        slot(st, G_STR_TOMB_THUT_DUMMY, 0x19);
+        slot(st, G_STR_TOMB_SETI_DUMMY, 0x1C);
+        slot(st, G_STR_TOMB_TUT_DUMMY, 0x1B);
+        slot(st, G_STR_TOMB_RAM_DUMMY, 0x1D);
         return;
     }
     /* @bin 0x004F4837 any other mode: the Cleopatra monuments */
-    slot(st, 0x00579144u, 0x11);
-    slot(st, 0x00579100u, 0x19);
-    slot(st, 0x005790E0u, 0x1B);
-    slot(st, 0x005790D0u, 0x1C);
-    slot(st, 0x005790C0u, 0x1D);
-    slot(st, 0x005F75A0u, 0x12); /* Caesareum1 */
-    slot(st, 0x005E4934u, 0x13); /* LtHouse1 */
-    slot(st, 0x005762FCu, 0x14); /* LibMaina1 */
-    slot(st, 0x00576338u, 0x15); /* LibMainb1 */
-    slot(st, 0x005762B4u, 0x16); /* LibMainc1 */
-    slot(st, 0x00576284u, 0x17); /* LibExtra */
-    slot(st, 0x005F7590u, 0x18); /* MausCarryover */
-    slot(st, 0x005790F0u, 0x1A); /* AbuSimbelDummy */
+    slot(st, G_STR_PYRAMID_DUMMY, 0x11);
+    slot(st, G_STR_TOMB_THUT_DUMMY, 0x19);
+    slot(st, G_STR_TOMB_TUT_DUMMY, 0x1B);
+    slot(st, G_STR_TOMB_SETI_DUMMY, 0x1C);
+    slot(st, G_STR_TOMB_RAM_DUMMY, 0x1D);
+    slot(st, G_STR_CAESAREUM1, 0x12); /* Caesareum1 */
+    slot(st, G_STR_LT_HOUSE1, 0x13); /* LtHouse1 */
+    slot(st, G_LIB_MAIN_A1, 0x14); /* LibMaina1 */
+    slot(st, G_LIB_MAIN_B1, 0x15); /* LibMainb1 */
+    slot(st, G_LIB_MAIN_C1, 0x16); /* LibMainc1 */
+    slot(st, G_LIB_EXTRA, 0x17); /* LibExtra */
+    slot(st, G_STR_MAUS_CARRYOVER, 0x18); /* MausCarryover */
+    slot(st, G_STR_ABU_SIMBEL_DUMMY, 0x1A); /* AbuSimbelDummy */
 }
 
 /* @bin 0x0053D8E0 */
 int32_t newgame_monument_kind2(game_state *st)
 {
     for (uint32_t i = 0; i < 2; i++) {
-        int32_t e = S16(st, 0x00784DE0u + 2u * i);
+        int32_t e = S16(st, G_MONUMENT_SLOTS + 2u * i);
         if (e == 0) {
             continue;
         }
-        uint32_t r = 0x005D19C8u + 16u * (uint32_t) e;
+        uint32_t r = G_MONUMENT_MODELS + 16u * (uint32_t) e;
         if (S16(st, r) == 2 && S16(st, r + 2) < 5) { /* @bin 0x0053D8FB signed */
             return S16(st, r + 2);
         }
@@ -126,7 +124,7 @@ void newgame_extra_slot(game_state *st)
     /* @bin 0x0053D972 strcmp(0x00784914, "The Glory of Ptolemy" 0x00601840): that scenario gets 4 */
     int equal = 1;
     for (uint32_t k = 0;; k++) {
-        uint8_t a = U8(st, 0x00784914u + k), b = U8(st, 0x00601840u + k);
+        uint8_t a = U8(st, G_SCENARIO_TITLE + k), b = U8(st, G_STR_GLORY_OF_PTOLEMY + k);
         if (a != b) {
             equal = 0;
             break;
@@ -136,27 +134,27 @@ void newgame_extra_slot(game_state *st)
         }
     }
     int32_t kind = equal ? 4 : newgame_monument_kind2(st);
-    S32(st, 0x00F55BACu) = kind;
+    S32(st, G_EXTRA_SLOT_KIND) = kind;
     if (kind == 2) {
-        slot(st, 0x006017E0u, 9); /* OBELISK_EXTRA */
+        slot(st, G_STR_OBELISK_EXTRA, 9); /* OBELISK_EXTRA */
         return;
     }
     if (kind == 3) {
-        slot(st, 0x006017F0u, 9); /* SUN_TEMPLE_EXTRA */
+        slot(st, G_STR_SUN_TEMPLE_EXTRA, 9); /* SUN_TEMPLE_EXTRA */
         return;
     }
     if (kind != 4) {
-        slot(st, 0x005791A8u, 9); /* SPHINX_EXTRA */
+        slot(st, G_STR_SPHINX_EXTRA, 9); /* SPHINX_EXTRA */
         return;
     }
-    int32_t v = GAME_CALL0(st, 0x0053D930u);
-    S32(st, 0x00E94E18u) = v;
+    int32_t v = GAME_CALL0(st, FN_MASTABA_VARIANT_53D930);
+    S32(st, G_MASTABA_VARIANT) = v;
     if (v == 1) {
-        slot(st, 0x00601804u, 9); /* MAUSOLEUM1_EXTRA */
+        slot(st, G_STR_MAUSOLEUM1_EXTRA, 9); /* MAUSOLEUM1_EXTRA */
     } else if (v == 2) {
-        slot(st, 0x00601818u, 9); /* MAUSOLEUM2_EXTRA */
+        slot(st, G_STR_MAUSOLEUM2_EXTRA, 9); /* MAUSOLEUM2_EXTRA */
     } else {
-        slot(st, 0x0060182Cu, 9); /* MAUSOLEUM0_EXTRA */
+        slot(st, G_STR_MAUSOLEUM0_EXTRA, 9); /* MAUSOLEUM0_EXTRA */
     }
 }
 
