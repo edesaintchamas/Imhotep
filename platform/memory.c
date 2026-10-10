@@ -4,7 +4,11 @@
 
 #include <stdlib.h>
 #include <string.h>
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <sys/mman.h>
+#endif
 
 typedef struct {
     uint32_t offset, size; /* size 0: the entry is unused */
@@ -23,10 +27,18 @@ int pmem_init(void)
     if (mem) {
         return 0;
     }
+#ifdef _WIN32
+    /* committed at once (pages are zero-filled and backed only when first touched) */
+    void *p = VirtualAlloc(NULL, PMEM_SIZE, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+    if (!p) {
+        return -1;
+    }
+#else
     void *p = mmap(NULL, PMEM_SIZE, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | MAP_NORESERVE, -1, 0);
     if (p == MAP_FAILED) {
         return -1;
     }
+#endif
     mem = p;
     top = 0x10; /* address 0 of the range is never handed out */
     return 0;
@@ -124,9 +136,11 @@ void pmem_free(uint32_t address)
     blocks[lo].used = 0;
     in_use -= blocks[lo].size;
     /* large freed blocks give their pages back to the system */
+#ifdef MADV_FREE
     if (blocks[lo].size >= (1u << 20)) {
         madvise(mem + off, blocks[lo].size, MADV_FREE);
     }
+#endif
     /* merge with free neighbours */
     if (lo + 1 < nblocks && !blocks[lo + 1].used) {
         blocks[lo].size += blocks[lo + 1].size;

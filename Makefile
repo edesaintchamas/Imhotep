@@ -18,7 +18,7 @@ export IMHOTEP_GAME_DIR
 # pipefail: a check piped into `tail -1` fails the build when it fails (in the SHELL itself: GNU Make
 # 3.81, macOS's, has no .SHELLFLAGS)
 SHELL := /bin/bash -o pipefail
-.PHONY: game present-check help verify fingerprint extract refs analyze provenance check-files core tools unit differential oracle-env oracle-check corpus test
+.PHONY: game present check-tools build-all present-check help verify fingerprint extract refs analyze provenance check-files core tools unit differential oracle-env oracle-check corpus test
 
 help:
 	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | sed 's/:.*##/ —/'
@@ -90,33 +90,41 @@ $(BUILD)/libimhotep_core.a: $(CORE_OBJ)
 	ar rcs $@ $^
 
 PLATFORM_SRC := platform/game_files.c platform/exe_image.c
-TOOL_CFLAGS := $(CORE_CFLAGS) -I.
+# the platform and the tools use POSIX calls (strdup, open_memstream, madvise): glibc declares them
+# under -std=c11 only with _DEFAULT_SOURCE (macOS and MinGW ignore it)
+TOOL_CFLAGS := $(CORE_CFLAGS) -I. -D_DEFAULT_SOURCE
+# executables: .exe on Windows (MSYS2 / MinGW), where the compiler adds it to -o NAME
+EXE := $(if $(filter Windows_NT,$(OS)),.exe,)
 
-$(BUILD)/terrain_check: tests/differential/terrain_check.c $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a
+$(BUILD)/terrain_check$(EXE): tests/differential/terrain_check.c $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a
 	$(CC) $(TOOL_CFLAGS) $< $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a -o $@
 
-$(BUILD)/save_check: tests/differential/save_check.c $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a
+$(BUILD)/save_check$(EXE): tests/differential/save_check.c $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a
 	$(CC) $(TOOL_CFLAGS) $< $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a -o $@
 
-$(BUILD)/desirability_check: tests/differential/desirability_check.c $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a
+$(BUILD)/desirability_check$(EXE): tests/differential/desirability_check.c $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a
 	$(CC) $(TOOL_CFLAGS) $< $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a -o $@
 
-$(BUILD)/save_dump: tools/extract/save_dump.c $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a
+$(BUILD)/save_dump$(EXE): tools/extract/save_dump.c $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a
 	$(CC) $(TOOL_CFLAGS) $< $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a -o $@
 
-$(BUILD)/terrain_dump: tools/extract/terrain_dump.c $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a
+$(BUILD)/terrain_dump$(EXE): tools/extract/terrain_dump.c $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a
 	$(CC) $(TOOL_CFLAGS) $< $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a -o $@
 
-$(BUILD)/state_run: tools/oracle/state_run.c $(BUILD)/libimhotep_present.a $(BUILD)/libimhotep_core.a
+$(BUILD)/state_run$(EXE): tools/oracle/state_run.c $(BUILD)/libimhotep_present.a $(BUILD)/libimhotep_core.a
 	$(CC) $(TOOL_CFLAGS) $< $(BUILD)/libimhotep_present.a $(BUILD)/libimhotep_core.a -o $@
 
-$(BUILD)/state_load: tools/oracle/state_load.c $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a
+$(BUILD)/state_load$(EXE): tools/oracle/state_load.c $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a
 	$(CC) $(TOOL_CFLAGS) $< $(PLATFORM_SRC) $(BUILD)/libimhotep_core.a -o $@
 
-$(BUILD)/state_save: tools/oracle/state_save.c $(BUILD)/libimhotep_core.a
+$(BUILD)/state_save$(EXE): tools/oracle/state_save.c $(BUILD)/libimhotep_core.a
 	$(CC) $(TOOL_CFLAGS) $< $(BUILD)/libimhotep_core.a -o $@
 
-$(BUILD)/state_replay: tools/oracle/state_replay.c $(BUILD)/libimhotep_present.a $(BUILD)/libimhotep_core.a
+# the port's side of tests/differential/oracle_boot_check.py (which also builds it, with the same flags)
+$(BUILD)/oracle_boot_run$(EXE): tests/differential/oracle_boot_run.c $(PLATFORM_SRC) $(BUILD)/libimhotep_present.a $(BUILD)/libimhotep_core.a
+	$(CC) $(TOOL_CFLAGS) $< $(PLATFORM_SRC) $(BUILD)/libimhotep_present.a $(BUILD)/libimhotep_core.a -o $@
+
+$(BUILD)/state_replay$(EXE): tools/oracle/state_replay.c $(BUILD)/libimhotep_present.a $(BUILD)/libimhotep_core.a
 	$(CC) $(TOOL_CFLAGS) $< $(BUILD)/libimhotep_present.a $(BUILD)/libimhotep_core.a -o $@
 
 # ---- build/imhotep: the game (SDL2 window, input, sound; FFmpeg for MP3 and Bink), make game ----
@@ -125,27 +133,33 @@ GAME_SRC := platform/main.c platform/memory.c platform/files.c platform/audio.c 
 GAME_LIBS_CFLAGS := $(shell pkg-config --cflags sdl2 libavformat libavcodec libswresample libswscale libavutil 2>/dev/null)
 GAME_LIBS := $(shell pkg-config --libs sdl2 libavformat libavcodec libswresample libswscale libavutil 2>/dev/null)
 
-$(BUILD)/imhotep: $(GAME_SRC) $(wildcard platform/*.h) $(BUILD)/libimhotep_present.a $(BUILD)/libimhotep_core.a
+$(BUILD)/imhotep$(EXE): $(GAME_SRC) $(wildcard platform/*.h) $(BUILD)/libimhotep_present.a $(BUILD)/libimhotep_core.a
 	@test -n "$(GAME_LIBS)" || (echo "make game needs SDL2 and FFmpeg (pkg-config sdl2 libavformat ...)" && exit 1)
 	$(CC) $(TOOL_CFLAGS) -Ipresent -Wno-error=deprecated-declarations $(GAME_LIBS_CFLAGS) $(GAME_SRC) \
 		$(BUILD)/libimhotep_present.a $(BUILD)/libimhotep_core.a $(GAME_LIBS) -o $@
 
-game: $(BUILD)/imhotep ## Build the game, build/imhotep (needs SDL2 and FFmpeg, and the game files in IMHOTEP_GAME_DIR)
+game: $(BUILD)/imhotep$(EXE) ## Build the game, build/imhotep (needs SDL2 and FFmpeg, and the game files in IMHOTEP_GAME_DIR)
 
-tools: $(BUILD)/terrain_dump $(BUILD)/save_dump $(BUILD)/state_run $(BUILD)/state_load $(BUILD)/state_save $(BUILD)/state_replay ## Build the C tools used by tools/extract (terrain_dump, save_dump)
+tools: $(BUILD)/terrain_dump$(EXE) $(BUILD)/save_dump$(EXE) $(BUILD)/state_run$(EXE) $(BUILD)/state_load$(EXE) $(BUILD)/state_save$(EXE) $(BUILD)/state_replay$(EXE) ## Build the C tools used by tools/extract (terrain_dump, save_dump)
 
 core: $(BUILD)/libimhotep_core.a ## Build core/ (static library)
+
+present: $(BUILD)/libimhotep_present.a ## Build present/ (static library)
+
+check-tools: $(BUILD)/terrain_check$(EXE) $(BUILD)/save_check$(EXE) $(BUILD)/desirability_check$(EXE) $(BUILD)/oracle_boot_run$(EXE) ## Build the C drivers of the differential checks
+
+build-all: core present tools check-tools game ## Everything CI builds (warnings are errors)
 
 unit: core ## Unit tests (none yet; builds core/)
 	@echo "unit: core/ builds; no unit tests yet"
 
-differential: $(BUILD)/terrain_check $(BUILD)/save_check $(BUILD)/desirability_check ## Differential tests against data produced by the original game
+differential: $(BUILD)/terrain_check$(EXE) $(BUILD)/save_check$(EXE) $(BUILD)/desirability_check$(EXE) ## Differential tests against data produced by the original game
 	@if [ -d "$(IMHOTEP_GAME_DIR)/Maps" ]; then ./$(BUILD)/terrain_check && ./$(BUILD)/terrain_check --campaign && ./$(BUILD)/save_check && ./$(BUILD)/desirability_check; \
 	else echo "differential: skipped ($(IMHOTEP_GAME_DIR) not found)"; fi
 	@if [ -x local/venv/bin/python ] && [ -d "$(IMHOTEP_GAME_DIR)/Maps" ]; then $(MAKE) -s oracle-check; \
 	else echo "oracle checks: skipped (make oracle-env)"; fi
 
-oracle-check: $(BUILD)/save_dump $(BUILD)/desirability_check $(BUILD)/state_run $(BUILD)/state_load $(BUILD)/state_save $(BUILD)/state_replay ## Differential tests against the original run by the oracle (needs make oracle-env)
+oracle-check: $(BUILD)/save_dump$(EXE) $(BUILD)/desirability_check$(EXE) $(BUILD)/state_run$(EXE) $(BUILD)/state_load$(EXE) $(BUILD)/state_save$(EXE) $(BUILD)/state_replay$(EXE) ## Differential tests against the original run by the oracle (needs make oracle-env)
 	local/venv/bin/python tests/differential/oracle_load_check.py --pak | tail -1
 	local/venv/bin/python tests/differential/oracle_load_check.py | tail -1
 	local/venv/bin/python tests/differential/oracle_function_check.py | tail -1
@@ -160,7 +174,7 @@ oracle-check: $(BUILD)/save_dump $(BUILD)/desirability_check $(BUILD)/state_run 
 	local/venv/bin/python tools/oracle/lockstep.py local/saves/downloaded/1592/39-Actium-Dec30c.sav --ticks 51 --chained | tail -1
 	local/venv/bin/python tools/oracle/lockstep.py local/saves/downloaded/1564/CaesarAlan-Iken.sav --ticks 51 --chained | tail -1
 
-present-check: $(BUILD)/state_run $(BUILD)/state_replay ## The presentation port's full per-package matrices against the original (long; make test runs the frame, draw and boot checks)
+present-check: $(BUILD)/state_run$(EXE) $(BUILD)/state_replay$(EXE) ## The presentation port's full per-package matrices against the original (long; make test runs the frame, draw and boot checks)
 	local/venv/bin/python tests/differential/oracle_cityview_check.py -j 8 | tail -1
 	local/venv/bin/python tests/differential/oracle_info_check.py -j 8 | tail -1
 	local/venv/bin/python tests/differential/oracle_frontend_check.py -j 8 | tail -1
@@ -175,7 +189,7 @@ oracle-env: ## Python venv in local/venv with Unicorn and Capstone (tools/oracle
 	python3 -m venv local/venv
 	local/venv/bin/pip install -q unicorn==2.1.4 capstone
 
-corpus: $(BUILD)/save_dump ## Reference save corpus: player saves advanced 12 months by the original, headless (tools/oracle/corpus.py)
+corpus: $(BUILD)/save_dump$(EXE) ## Reference save corpus: player saves advanced 12 months by the original, headless (tools/oracle/corpus.py)
 	find local/saves/downloaded -name '*.sav' -print0 | xargs -0 -n 1 -P 8 local/venv/bin/python tools/oracle/corpus.py --months 12
 
 test: check-files provenance unit differential ## All checks

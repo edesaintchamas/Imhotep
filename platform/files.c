@@ -10,7 +10,13 @@
 #include <string.h>
 #include <strings.h>
 #include <sys/stat.h>
+#ifdef _WIN32
+#include <direct.h>
+#define make_dir(path) _mkdir(path)
+#else
 #include <unistd.h>
+#define make_dir(path) mkdir(path, 0755)
+#endif
 
 static char game_root[1024] = "local/game/app";
 static char player_root[1024] = "local/player";
@@ -23,7 +29,7 @@ void files_init(const char *game, const char *player)
     if (player) {
         snprintf(player_root, sizeof(player_root), "%s", player);
     }
-    mkdir(player_root, 0755);
+    make_dir(player_root);
 }
 
 const char *files_player_dir(void)
@@ -169,8 +175,10 @@ static int writable_path(const char *gpath, char *out, size_t size)
             return -1;
         }
         if (lookup(cur, parts[i], next, sizeof(next)) != 0) {
-            snprintf(next, sizeof(next), "%s/%s", cur, parts[i]);
-            if (i < n - 1 && mkdir(next, 0755) != 0 && errno != EEXIST) {
+            if (snprintf(next, sizeof(next), "%s/%s", cur, parts[i]) >= (int) sizeof(next)) {
+                return -1;
+            }
+            if (i < n - 1 && make_dir(next) != 0 && errno != EEXIST) {
                 return -1;
             }
         }

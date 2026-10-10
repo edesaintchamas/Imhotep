@@ -962,7 +962,7 @@ void figure_action_55(game_state *st)
         id = cur(st);
         U8(st, FIGURE_ADDR(id) + 0x38) = 0x11;
     }
-    /* fall through: state 0x11 (0x004AAC66) */
+    /* fall through - state 0x11 (0x004AAC66) */
     case 0x11: {
         f = FIGURE_ADDR(id);
         U8(st, f + 0x72) = 7;

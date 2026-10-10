@@ -244,7 +244,11 @@ void family_delete(game_state *st)
             state_cstr(st, dir, family_dir_path(st), sizeof(dir));
             strcpy(path, dir);
             state_cstr(st, path + strlen(path), 0x005761D0u, sizeof(path) - strlen(path));
-            strncat(path, name, sizeof(path) - strlen(path) - 1);
+            size_t l = strlen(path); /* strncat(path, name, sizeof(path) - l - 1) */
+            for (const char *c = name; *c && l + 1 < sizeof(path); c++) {
+                path[l++] = *c;
+            }
+            path[l] = 0;
             crt_remove(st, path);
             name += strlen(name) + 1;
         }

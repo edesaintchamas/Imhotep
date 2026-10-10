@@ -14,6 +14,11 @@
 #include "state/ported.h"
 #include "state/records.h"
 
+/* the original compares a byte with 500, 600 and 800 (always false, see below): kept as it is */
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic ignored "-Wtype-limits"
+#endif
+
 #define PHRASE 0x00EADCDCu      /* i32 the phrase chosen (figure +0x7D) */
 #define SPEECH_KIND 0x00EADCE0u /* i32 the speech table's entry for the figure's type, - 0xC9 */
 #define MOOD 0x00F55BA4u        /* u8[8] the city's mood per category (0x0053D3A0) */
