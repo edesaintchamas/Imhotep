@@ -294,7 +294,7 @@ everything the game can reach and looks for what scripted sessions miss.
       inside ports (which were silent before: nothing read them) are printed once each and appended
       to `$IMHOTEP_PLAYER_DIR/gaps.log` with the window and frame; the game goes on (the call answers
       0).
-- [ ] 8.1 Frontier: every function reachable from WinMain through direct calls, function addresses in
+- [x] 8.1 Frontier: every function reachable from WinMain through direct calls, function addresses in
       code (callbacks, `GAME_CALL` targets) and the function tables in the data sections, minus the
       ported ones (`tools/oracle/reach.py`, written to docs/provenance/frontier.md, each entry with its
       callers and a group). Out of scope, listed as such: the map editor (`0x00605A3C`), and code the
@@ -310,7 +310,7 @@ everything the game can reach and looks for what scripted sessions miss.
       editor code (reached only with the editor flag `0x00605A3C` set), 84 never called in the shipped
       game (table entries no index selects, objects nothing sets, flags only ever written 0), each
       with its evidence in `tools/oracle/frontier_notes.txt`; 2 gaps left (below).
-- [ ] 8.2 Port the frontier by package, each function checked against the original (harness,
+- [x] 8.2 Port the frontier by package, each function checked against the original (harness,
       framestep, frame cases); with it the `state_unported` stops left inside ported functions
       (paths the sessions never took).
 
