@@ -122,6 +122,7 @@ static struct {
     SDL_Renderer *ren;
     SDL_Texture *tex;
     int tex_fmt;
+    int tex_w, tex_h; /* the texture's size: the back buffer's when it was made (a mode change makes another) */
     int w, h;
     int quit;
     int frames;
@@ -251,18 +252,26 @@ static void present_copy(void)
     int w = S32(st, 0x00E38DB0u), h = S32(st, 0x00E38DACu), pitch = S32(st, 0x00E38D94u);
     int fmt = S32(st, 0x00E92DFCu) == 2 ? SDL_PIXELFORMAT_RGB565 : SDL_PIXELFORMAT_RGB555;
     const uint8_t *px = pmem_ptr(U32(st, 0x00E92E18u), (uint32_t) (pitch * h));
-    if (!px || w <= 0 || h <= 0) {
+    if (!px || w <= 0 || h <= 0 || !app.ren) { /* no renderer yet: the boot's presents, before the window */
         return;
     }
-    if (!app.tex || w != app.w || h != app.h || fmt != app.tex_fmt) {
+    /* compared with the texture's own size: app.w / app.h already hold the new mode (cb_set_display), so
+     * comparing with them kept the old texture after a mode change, which showed the old-size corner of
+     * the frame stretched over the window while clicks went to the new layout */
+    if (!app.tex || w != app.tex_w || h != app.tex_h || fmt != app.tex_fmt) {
         if (app.tex) {
             SDL_DestroyTexture(app.tex);
         }
         app.tex = SDL_CreateTexture(app.ren, (Uint32) fmt, SDL_TEXTUREACCESS_STREAMING, w, h);
+        app.tex_w = w;
+        app.tex_h = h;
         app.w = w;
         app.h = h;
         app.tex_fmt = fmt;
         SDL_RenderSetLogicalSize(app.ren, w, h);
+        if (app.verbose) {
+            fprintf(stderr, "imhotep: texture %dx%d\n", w, h);
+        }
     }
     if (app.tex) {
         SDL_UpdateTexture(app.tex, NULL, px, pitch);
