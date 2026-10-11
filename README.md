@@ -22,9 +22,11 @@ Release 1.0.0 is for macOS; the Windows and Linux builds will follow once they a
 
 - **macOS** (Apple silicon, macOS 11 or later): `imhotep-VERSION-macos-arm64.zip` holds
   `Imhotep.app`; move it to Applications. The app is not signed with an Apple Developer ID, so the
-  first time Gatekeeper refuses to open it: right-click (or Control-click) `Imhotep.app` > Open, then
-  Open in the dialog (or System Settings > Privacy & Security > Open Anyway). Later starts open it
-  normally.
+  first time macOS says it "could not verify Imhotep is free of malware" and does not open it. Choose
+  Done, then open System Settings > Privacy & Security, scroll to Security and click Open Anyway next
+  to Imhotep (macOS 15 and later; on macOS 14 and earlier, right-click `Imhotep.app` > Open also
+  works). Or, in Terminal: `xattr -dr com.apple.quarantine /Applications/Imhotep.app`. Later starts
+  open it normally.
 - **Windows** (64-bit): unzip `imhotep-VERSION-windows-x64.zip` anywhere and run `imhotep.exe`
   (`SDL2.dll` must stay next to it). The executable is not signed: if SmartScreen says "Windows
   protected your PC", click More info > Run anyway.
