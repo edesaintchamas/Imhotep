@@ -494,9 +494,12 @@ void sidebar_draw(game_state *st)
     } else if (d > 0) {
         /* @imhotep enhanced fit: the right border after the panel (x + 162, 1000 at 1024) up to the
          * screen's edge */
+        int32_t top = S32(st, G_CLIP_TOP);
+        S32(st, G_CLIP_TOP) = 0x1E; /* below the top bar, which these copies would cover */
         for (int32_t ex = S32(st, G_SIDEBAR_X) + 162; ex < w - 24; ex += 24) {
             draw_image_down(st, S32(st, G_SIDEBAR_IMAGES) + 2, ex, 0, 0x1E);
         }
+        S32(st, G_CLIP_TOP) = top;
         draw_image_down(st, S32(st, G_SIDEBAR_IMAGES) + 2, w - 24, 0, 0x1E);
     }
     w = S32(st, G_SCREEN_W);

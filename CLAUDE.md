@@ -38,6 +38,7 @@ in a comment on the line above or at the end of the line:
 | `@diff <test name>` | Confirmed by a differential test against the original (stored data or the oracle) | confirmed |
 | `@hint akhenaten:<path>` / `@hint julius:<path>` | Taken from a reference project, not yet confirmed | hint |
 | `@unverified <reason>` | Origin unknown; listed in `docs/unverified.md` | unverified |
+| `@imhotep enhanced <what>` | A display extension that is not a rule of the original (docs/enhanced.md); never in the simulation's rules | extension |
 
 Code **origin** (licence matter) is a separate tag:
 
@@ -174,5 +175,9 @@ When unsure, stop and write down the question in `docs/unverified.md` rather tha
 
 - [x] Readability (phase 10): core/ and present/ written with names (core/state/layout/,
       present/layout/, docs/naming.md); object code identical to before (`tools/check_same_code.py`)
+
+- [x] Enhanced display (Imhotep's own, not the original's): the game fits its window at any size from
+      1024 x 768, resizable, sharp; city zoom 50-200 %; the original modes unchanged
+      (docs/enhanced.md, `@imhotep` tags)
 
 Next steps: `docs/roadmap.md` (carried-over items under 4.8, 5.3, 6.1, 7.9, 8.4 and 9.6).
