@@ -159,9 +159,9 @@ void rotate_view(game_state *st, int dir)
 
 static int enhanced_view(game_state *st)
 {
-    /* @imhotep enhanced fit: a view the original's sizes never have (another screen size, a zoom) */
-    int32_t w = S32(st, G_SCREEN_W);
-    return platform_display_zoom(st) != 100 || (w != 0x280 && w != 0x320 && w != 0x400);
+    /* @imhotep enhanced fit: a view the original's sizes never have: a zoom, or a fitted screen (always
+     * wider than 1024 unless 1024 x 768: core/sim/platform.c platform_display_fit) */
+    return platform_display_zoom(st) != 100 || S32(st, G_SCREEN_W) > 0x400;
 }
 
 void camera_clamp(game_state *st)
