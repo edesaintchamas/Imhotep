@@ -47,6 +47,12 @@ Ubuntu 22.04, Ubuntu 24.04, Debian 12 and Fedora containers.
    Edit the notes (what changed, known issues).
 4. Publish the draft.
 
+A release for some systems only (1.0.0 was macOS only): before publishing, delete the other
+packages from the draft (`gh release delete-asset vX.Y.Z FILE`), replace `SHA256SUMS.txt` with the
+checksums of the packages kept (`shasum -a 256 FILE > SHA256SUMS.txt`,
+`gh release upload vX.Y.Z SHA256SUMS.txt --clobber`), and say so in the notes. The other systems'
+packages come with a later version.
+
 To try the workflow without releasing: Actions > Release > Run workflow (on any branch; the file
 must be on the default branch for the button to appear). Such runs upload the packages as workflow
 artifacts, versioned `dev-<commit>`, and create no release.
