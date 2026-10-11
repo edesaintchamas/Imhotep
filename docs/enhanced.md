@@ -61,6 +61,17 @@ the simulation's code.
 - **Choosing a mode.** In fit mode, F9 and the options' 1024 x 768 button mean "fit"; F7 and F8 and
   their buttons give 640 x 480 and 800 x 600. `display=original` gives the true 1024 x 768.
 
+## The simulation and the screen
+
+None of the simulation's rules read the size globals: the only ones that read the display are in
+core/frame, core/boot, core/newgame (the view and the start's videos) and core/command (the camera).
+One effect crosses over, and the original has it too: the random city sound (0x0053ACF0,
+core/frame/sound.c) draws a random point of the view, then more draws by what is on that tile, from
+the C library's generator (crt_rand). Some of the simulation (figures, gods, events) uses the same
+generator, so the size of the view, the camera and the frame timing change later random outcomes. They
+do this in the original between its three modes as well. A mode therefore does not promise the same
+random outcomes as another, only the same rules.
+
 ## Tests
 
 - **Unit tests.** `make unit` (tests/unit/display_test.c) checks the fit size and its clamps, and

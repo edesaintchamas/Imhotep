@@ -84,8 +84,11 @@ a Retina screen).
   - `scale=1`, `2` or `3` sets the size of a game pixel (default `auto`: the screen's pixel ratio).
     For example, `scale=1` on a Retina screen shows far more of the city in smaller print.
 
-In every mode the simulation is the original's: the display only changes what is drawn
-([docs/enhanced.md](docs/enhanced.md)).
+In every mode the rules are the original's; the display changes what is drawn
+([docs/enhanced.md](docs/enhanced.md)). As in the original, what is on screen nudges the random draws:
+each frame, a city sound is picked from a random point of the view with the same C-library generator
+some of the simulation uses. So a larger view gives other random outcomes later, just as switching the
+original between 800 x 600 and 1024 x 768 does.
 
 ### If something goes wrong
 
