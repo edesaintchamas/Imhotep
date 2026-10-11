@@ -305,7 +305,6 @@ static void view_geometry_fit(game_state *st, int32_t right)
     int32_t x, y;
     view_tiles(right, S32(st, G_SCREEN_H), &x, &y);
     view_geometry_set(st, 0xE4, 0xE4, right + 2 - 60 * x, 0x1E, x, y, 0x3A, 0x1E);
-    S32(st, G_CV_VIEW_LEFT) = 0; /* the clip within the screen (left of it a pixel lands on the row above) */
 }
 
 static void view_geometry_a(game_state *st)

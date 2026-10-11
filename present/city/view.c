@@ -14,6 +14,12 @@ void city_view_draw(game_state *st, int32_t camera_x, int32_t camera_y, int32_t 
     S32(st, G_VIEW_FIRST_ROW) = camera_y;
     S32(st, G_CV_MAP_START) = map_start;
     S32(st, G_CLIP_LEFT) = S32(st, G_CV_VIEW_LEFT);
+    if (S32(st, G_CLIP_LEFT) < 0) {
+        /* @imhotep enhanced fit: a view starting left of the screen (core/newgame/reset.c
+         * view_geometry_fit) is clipped at the screen's edge: left of it a pixel would land at the end
+         * of the row above */
+        S32(st, G_CLIP_LEFT) = 0;
+    }
     S32(st, G_CLIP_RIGHT) = S32(st, G_CV_VIEW_RIGHT);
     S32(st, G_CLIP_TOP) = S32(st, G_CV_VIEW_TOP);
     S32(st, G_CLIP_BOTTOM) = S32(st, G_CV_VIEW_BOTTOM);
