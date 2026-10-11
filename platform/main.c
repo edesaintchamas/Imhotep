@@ -718,7 +718,9 @@ static int cb_video_play(void *ctx, const char *name, int32_t a, int32_t b, int3
 {
     (void) ctx;
     /* Smacker: no .smk file is in the GOG install (docs/presentation.md 7); not decoded here */
-    fprintf(stderr, "imhotep: Smacker video %s (%d %d %d) not played\n", name, a, b, c);
+    if (app.verbose) {
+        fprintf(stderr, "imhotep: Smacker video %s (%d %d %d) not played\n", name, a, b, c);
+    }
     return 0;
 }
 
