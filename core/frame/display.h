@@ -16,6 +16,9 @@ int display_has_memory(game_state *st);
 void display_resolution_set(game_state *st, int32_t mode);
 /* @bin 0x004CFDC0 the resolution and the drawing globals made from it */
 void display_mode_set(game_state *st, int32_t mode);
+/* @imhotep enhanced zoom: the view again after a zoom change from old_zoom, the screen point (px, py)
+ * kept in place (px < 0: the view's centre) */
+void display_zoom_apply(game_state *st, int32_t old_zoom, int32_t px, int32_t py);
 /* @imhotep enhanced fit: the mode redone at the platform's fit size (a resize), when it may be */
 void display_fit_apply(game_state *st);
 /* @bin 0x00414BD0 the sidebar, the spare screen and the view after a resolution change */

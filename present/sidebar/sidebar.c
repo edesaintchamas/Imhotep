@@ -83,9 +83,13 @@ void sidebar_set_x(game_state *st)
     } else if (w == 0x400) {
         S32(st, G_SIDEBAR_X) = 0x346;
         S32(st, G_SIDEBAR_X_COLLAPSED) = 0x3BE;
-    } else if (fit_dx(st) > 0) { /* @imhotep enhanced fit: 1024's distances from the right edge */
-        S32(st, G_SIDEBAR_X) = w - 186;
-        S32(st, G_SIDEBAR_X_COLLAPSED) = w - 66;
+    } else if (fit_dx(st) > 0) {
+        /* @imhotep enhanced fit: 1024's distances from the right edge, less up to 29 pixels so that the
+         * city view's width is a multiple of 30 (core/newgame/reset.c view_tiles); the right border
+         * fills the strip left */
+        int32_t r = (w - 186 + 2) % 30;
+        S32(st, G_SIDEBAR_X) = w - 186 - r;
+        S32(st, G_SIDEBAR_X_COLLAPSED) = w - 66 - r;
     }
 }
 
@@ -488,7 +492,12 @@ void sidebar_draw(game_state *st)
     } else if (w == 0x320) {
         draw_image(st, S32(st, G_SIDEBAR_IMAGES) + 3, 0x2F8, 0); /* @bin 0x00537100 */
     } else if (d > 0) {
-        draw_image_down(st, S32(st, G_SIDEBAR_IMAGES) + 2, 1000 + d, 0, 0x1E); /* @imhotep enhanced fit */
+        /* @imhotep enhanced fit: the right border after the panel (x + 162, 1000 at 1024) up to the
+         * screen's edge */
+        for (int32_t ex = S32(st, G_SIDEBAR_X) + 162; ex < w - 24; ex += 24) {
+            draw_image_down(st, S32(st, G_SIDEBAR_IMAGES) + 2, ex, 0, 0x1E);
+        }
+        draw_image_down(st, S32(st, G_SIDEBAR_IMAGES) + 2, w - 24, 0, 0x1E);
     }
     w = S32(st, G_SCREEN_W);
     if (w == 0x400 || d > 0) { /* @imhotep enhanced fit: the full width */
@@ -593,7 +602,7 @@ void sidebar_slide(game_state *st)
     } else if (w == 0x320) {
         S32(st, G_CLIP_RIGHT) = 0x2F8;
     } else if (fit_dx(st) > 0) {
-        S32(st, G_CLIP_RIGHT) = 1000 + fit_dx(st); /* @imhotep enhanced fit */
+        S32(st, G_CLIP_RIGHT) = S32(st, G_SIDEBAR_X) + 162; /* @imhotep enhanced fit: the right border */
     }
     U8(st, G_REDRAW_SIDEBAR) = 1;
     draw_image(st, S32(st, G_SIDEBAR_IMAGES) + 1, S32(st, G_SIDEBAR_X_COLLAPSED), 0x1E);

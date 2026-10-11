@@ -163,6 +163,9 @@ static struct {
     int desk_w, desk_h;
     Uint32 resize_at;
     boot_display *boot_disp;
+    /* @imhotep enhanced zoom: the city view's zoom in percent; a change waits for the next frame
+     * (zoom_to, about the screen point zoom_x, zoom_y; -1: the view's centre) */
+    int zoom, zoom_to, zoom_x, zoom_y;
 } app;
 
 /* ---- the unported calls ---- */
@@ -568,6 +571,47 @@ static void set_mouse(int x, int y)
     app.mouse_y = y;
 }
 
+/* @imhotep enhanced zoom: the zoom steps */
+static const int ZOOMS[] = {50, 75, 100, 125, 150, 200};
+
+static void zoom_step(int dir, int x, int y)
+{
+    /* dir 1 in, -1 out, 0 back to 100 %: the next frame applies it (zoom_apply) */
+    int cur = app.zoom_to ? app.zoom_to : app.zoom, i = 0, n = (int) (sizeof(ZOOMS) / sizeof(ZOOMS[0]));
+    while (i < n - 1 && ZOOMS[i] < cur) {
+        i++;
+    }
+    int to = dir == 0 ? 100 : ZOOMS[dir > 0 ? (i + 1 < n ? i + 1 : i) : (i > 0 ? i - 1 : 0)];
+    if (to != app.zoom) {
+        app.zoom_to = to, app.zoom_x = x, app.zoom_y = y;
+    }
+}
+
+static void zoom_apply(void)
+{
+    int old = app.zoom;
+    app.zoom = app.zoom_to;
+    app.zoom_to = 0;
+    if (app.zoom == old) {
+        return;
+    }
+    display_zoom_apply(&app.st, old, app.zoom_x, app.zoom_y);
+    char v[16];
+    snprintf(v, sizeof(v), "%d", app.zoom);
+    if (!app.det_step && !app.hidden) {
+        install_set_setting("zoom", v);
+    }
+    if (app.verbose) {
+        fprintf(stderr, "imhotep: zoom %d %%\n", app.zoom);
+    }
+}
+
+static int32_t cb_display_zoom(void *ctx)
+{
+    (void) ctx;
+    return app.zoom;
+}
+
 /* Windows' messages for an SDL event (TranslateMessage included: WM_CHAR) */
 static void translate(const SDL_Event *e)
 {
@@ -631,9 +675,26 @@ static void translate(const SDL_Event *e)
         post(msg, mk_flags(), mouse_lparam(app.mouse_x, app.mouse_y));
         break;
     }
+    case SDL_MOUSEWHEEL:
+        /* @imhotep enhanced zoom: the wheel over the city view zooms about the mouse (the original
+         * reads no wheel) */
+        if (!app.det_step && e->wheel.y != 0 && U8(&app.st, WINDOW_ID) == 1) {
+            zoom_step(e->wheel.y > 0 ? 1 : -1, app.mouse_x, app.mouse_y);
+        }
+        break;
     case SDL_KEYDOWN:
     case SDL_KEYUP: {
         int down = e->type == SDL_KEYDOWN;
+        SDL_Keycode sym = e->key.keysym.sym;
+        if ((e->key.keysym.mod & (KMOD_CTRL | KMOD_GUI)) && (sym == SDLK_EQUALS || sym == SDLK_PLUS ||
+                                                            sym == SDLK_MINUS || sym == SDLK_0)) {
+            /* @imhotep enhanced zoom: Cmd / Ctrl + = - 0, not given to the game ('-' and '=' are
+             * advisor keys) */
+            if (down && !app.det_step) {
+                zoom_step(sym == SDLK_MINUS ? -1 : sym == SDLK_0 ? 0 : 1, -1, -1);
+            }
+            break;
+        }
         int vk = vk_of(e->key.keysym.sym);
         if (!vk) {
             break;
@@ -1404,6 +1465,25 @@ static void script_step(void)
                         app.mouse_y);
             }
         }
+    } else if (strcmp(cmd, "tile") == 0) {
+        /* tile X Y: the city view's tile under the screen point (X, Y), printed (tests); takes no frame */
+        int x = 0, y = 0;
+        if (sscanf(arg, "%d %d", &x, &y) == 2) {
+            int32_t mx = S32(&app.st, 0x00E38E34u), my = S32(&app.st, 0x00E38E30u);
+            S32(&app.st, 0x00E38E34u) = x;
+            S32(&app.st, 0x00E38E30u) = y;
+            printf("tile %d %d %d\n", x, y, frame_screen_to_tile(&app.st));
+            fflush(stdout);
+            S32(&app.st, 0x00E38E34u) = mx;
+            S32(&app.st, 0x00E38E30u) = my;
+        }
+    } else if (strcmp(cmd, "zoom") == 0) {
+        /* @imhotep enhanced zoom: zoom Z [X Y]: the city view at Z %, about the screen point (X, Y) */
+        int z = 0, x = -1, y = -1;
+        if (sscanf(arg, "%d %d %d", &z, &x, &y) >= 1 && z >= 50 && z <= 200) {
+            app.zoom_to = z, app.zoom_x = x, app.zoom_y = y;
+            zoom_apply();
+        }
     } else if (strcmp(cmd, "resize") == 0) {
         /* @imhotep enhanced fit: resize W H, fit mode: the game resized to W x H, as a window resize
          * (tests: window events are ignored with --det-clock) */
@@ -1605,6 +1685,7 @@ int main(int argc, char **argv)
     app.scale = scale;
     app.desk_w = SCREEN_W;
     app.desk_h = SCREEN_H;
+    app.zoom = 100;
     if (fps < 0) {
         /* played: 60 frames a second, the usual display refresh (the original's game speed and
          * edge scrolling step once per frame at 100 %: a 120 Hz display would double both). Scripted
@@ -1639,6 +1720,10 @@ int main(int argc, char **argv)
         } else if (strcmp(disp, "fit") != 0) {
             fprintf(stderr, "imhotep: --display fit, original or WxH, not %s\n", disp);
             return 2;
+        }
+        char zs[16];
+        if (!hidden && !script_path && install_setting("zoom", zs, sizeof(zs)) == 0) {
+            app.zoom = atoi(zs); /* @imhotep enhanced zoom */
         }
         char sc[16];
         if (install_setting("scale", sc, sizeof(sc)) == 0) {
@@ -1698,6 +1783,7 @@ int main(int argc, char **argv)
         .window_state = cb_window_state,
         .memory = cb_memory,
         .display_fit = cb_display_fit,
+        .display_zoom = cb_display_zoom,
     };
     app.st.platform = &app.plat;
     pmem_map(&app.st);
@@ -1780,6 +1866,9 @@ int main(int argc, char **argv)
         }
         if (app.resize_at && SDL_GetTicks() >= app.resize_at) {
             fit_resize(); /* @imhotep enhanced fit */
+        }
+        if (app.zoom_to) {
+            zoom_apply(); /* @imhotep enhanced zoom */
         }
         if (U32(&app.st, 0x00E39128u) == 0 && U32(&app.st, 0x00E3912Cu) != 0) {
             if (app.det_step) {

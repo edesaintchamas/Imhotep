@@ -75,6 +75,8 @@ screens show more of the city; the sidebar stays on the right, and the full-scre
 briefings) are centred. Pixels stay sharp: each game pixel is a whole number of screen pixels (2 x 2 on
 a Retina screen).
 
+- The mouse wheel over the city zooms in and out (50 % to 200 %), as do Cmd + `=` / `-`, and Cmd + `0`
+  for 100 % (Ctrl on Windows and Linux).
 - F6 or Options > Display switches between window and full screen.
 - F7 and F8 give the original 640 x 480 and 800 x 600; F9 (or the 1024 x 768 button) goes back to
   fitting the window.

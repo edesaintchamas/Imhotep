@@ -37,6 +37,8 @@ int install_game_dir(const char *arg, int quiet, int verbose, char *out, size_t 
 
 /* A setting of imhotep.cfg (a line "key=value") into out: 0, or -1 when it is not set */
 int install_setting(const char *key, char *out, size_t size);
+/* A setting written to imhotep.cfg (the others kept): 0, or -1 */
+int install_set_setting(const char *key, const char *value);
 
 /* The player directory into out (see above), created if needed; 0, or -1 */
 int install_player_dir(char *out, size_t size);

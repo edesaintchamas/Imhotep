@@ -50,17 +50,19 @@ static void test_mode(game_state *st)
 
 static void test_view_tiles(void)
 {
-    static const int32_t cases[][4] = {
-        /* sidebar x, screen height, columns, rows: the original's table (0x004DDEC0, 0x004DDF20) */
-        {0x1DE, 480, 8, 31},   {0x256, 480, 10, 31}, {0x256, 600, 10, 39}, {0x2CE, 600, 12, 39},
-        {0x346, 768, 14, 50},  {0x3BE, 768, 16, 50}, {1734, 1080, 29, 71}, {1326, 982, 23, 64},
+    static const int32_t cases[][5] = {
+        /* sidebar x, screen height, columns, rows, first x: the original's table (0x004DDEC0,
+         * 0x004DDF20) at x 0; other widths on the 30-pixel grid, ending at the sidebar */
+        {0x1DE, 480, 8, 31, 0},     {0x256, 480, 10, 31, 0},  {0x256, 600, 10, 39, 0}, {0x2CE, 600, 12, 39, 0},
+        {0x346, 768, 14, 50, 0},    {0x3BE, 768, 16, 50, 0},  {1708, 1080, 29, 71, -30}, {1738, 1080, 29, 71, 0},
+        {1318, 982, 22, 64, 0},
     };
     for (unsigned i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
-        int32_t c, r;
-        view_tiles(cases[i][0], cases[i][1], &c, &r);
-        if (c != cases[i][2] || r != cases[i][3]) {
-            fprintf(stderr, "display_test: view_tiles(%d, %d) = %d x %d, expected %d x %d\n", cases[i][0],
-                    cases[i][1], c, r, cases[i][2], cases[i][3]);
+        int32_t c, r, x0;
+        view_tiles(cases[i][0], cases[i][1], &c, &r, &x0);
+        if (c != cases[i][2] || r != cases[i][3] || x0 != cases[i][4] || x0 + 60 * c - 2 != cases[i][0]) {
+            fprintf(stderr, "display_test: view_tiles(%d, %d) = %d x %d from %d, expected %d x %d from %d\n",
+                    cases[i][0], cases[i][1], c, r, x0, cases[i][2], cases[i][3], cases[i][4]);
             failures++;
         }
     }

@@ -37,6 +37,34 @@ the simulation's code.
 | info panel place, present/ui/info/info.c | per screen height | 768's rule: centred over the city view, at the top when the mouse is below the middle, else at the bottom |
 | high-score list, present/ui/dispatch.c, present/ui/frontend/highscore.c | per resolution | resolution 3's place + the centring offset |
 
+## Zoom
+
+Zoom (`@imhotep enhanced zoom`) has steps of 50, 75, 100, 125, 150 and 200 %. At 100 % nothing
+changes.
+
+- **Geometry.** `view_geometry_a/b` give the view the geometry of a virtual view of
+  (size x 100 / zoom) pixels, rounded up to the 30-pixel grid. The camera's bounds, the minimap's
+  frame and the camera's moves follow.
+- **Drawing.** The original's city draw (0x00430D30) draws into a buffer of the platform's memory
+  (present/city/zoom.c): the back buffer's globals point at it while it runs. The buffer is then
+  scaled into the view's rectangle: the nearest pixel when zoomed in, the average of the covered
+  pixels when zoomed out. The sidebar and the windows are drawn after it, as before.
+- **The mouse.** `zoom_point` (core/sim/platform.c) maps a screen point inside the view to the view's
+  own pixels before the original's tile lookups (0x00430790, 0x00430960).
+- **Camera.** `display_zoom_apply` redoes the geometry and moves the camera so the point under the
+  mouse (the wheel) or the view's centre (the keys) stays in place, to the nearest tile.
+  `camera_clamp` (0x004DE080, core/command/rotate.c) centres a map smaller than the view. This only
+  happens with a zoom or a size the original does not have; the original's sizes keep its clamp.
+- **The view's grid.** The tile draw cuts tiles at the clip's edges only at their middle
+  (present/draw/footprint.c), so the view's edges stay on a 30-pixel grid. For this, the sidebar is
+  placed up to 29 pixels left of 1024's distance from the right edge, and the right border fills the
+  strip that leaves.
+- **Controls.** The mouse wheel over the city view (the original reads no wheel), and Cmd/Ctrl + `=`,
+  `-` and `0` (in, out, 100 %), which the platform keeps from the game: `-` and `=` are advisor keys.
+- **Storage.** The zoom is kept in `imhotep.cfg` (`zoom=`), never in saves.
+- **Test commands.** The script command `zoom Z [X Y]` zooms; `tile X Y` prints the tile under a
+  point.
+
 ## Platform (platform/main.c)
 
 - **Settings.** `imhotep.cfg` holds `display=fit` (the default) or `display=original`, and

@@ -2,6 +2,7 @@
  * Copyright (C) 2026 Imhotep contributors. Licensed under the GNU AGPL-3.0. */
 #include "frame/view.h"
 
+#include "sim/platform.h"
 #include "state/layout.h"
 #include "state/ported.h"
 
@@ -71,6 +72,9 @@ void view_tile_to_screen(game_state *st, int32_t tile_x, int32_t tile_y, int32_t
 
 int32_t view_screen_to_tile(game_state *st, int32_t x, int32_t y)
 {
+    if (!zoom_point(st, &x, &y)) { /* @imhotep enhanced zoom: the view's own pixels */
+        return 0;
+    }
     /* @bin 0x0043096F outside the view's pixels: 0 */
     int32_t x0 = S32(st, G_VIEW_X), y0 = S32(st, G_VIEW_Y);
     int32_t h = S32(st, G_TILE_H), w = S32(st, G_TILE_W) + 1;

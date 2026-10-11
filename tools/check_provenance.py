@@ -16,6 +16,8 @@ ROOT = Path(__file__).resolve().parent.parent
 CORE = ROOT / "core"
 SRC_EXT = {".c", ".h", ".cpp", ".hpp", ".cc", ".hh"}
 RULE_TAG = re.compile(r"@(bin|diff|hint|unverified|imhotep)\b")
+# the camera's code (core/command), which the display extensions may change (docs/enhanced.md)
+VIEW_FILES = ("core/command/rotate.c",)
 SIM_DIRS = ("core/sim/tick", "core/city", "core/building", "core/figure", "core/map", "core/command")
 FROM_TAG = re.compile(r"@from\b")
 UNVERIFIED_DOC = ROOT / "docs" / "unverified.md"
@@ -40,7 +42,8 @@ def report() -> int:
         if logic and not tags:
             untagged.append(p.relative_to(ROOT).as_posix())
     in_sim = [p.relative_to(ROOT).as_posix() for p in source_files()
-              if p.relative_to(ROOT).as_posix().startswith(SIM_DIRS) and "@imhotep" in p.read_text(errors="replace")]
+              if p.relative_to(ROOT).as_posix().startswith(SIM_DIRS) and p.relative_to(ROOT).as_posix() not in VIEW_FILES
+              and "@imhotep" in p.read_text(errors="replace")]
     confirmed = counts["bin"] + counts["diff"]
     total = confirmed + counts["hint"] + counts["unverified"]
     print("Provenance report (core/)")

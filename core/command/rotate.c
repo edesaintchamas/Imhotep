@@ -5,6 +5,7 @@
 #include "command/orders.h"
 
 #include "sim/call.h"
+#include "sim/platform.h"
 #include "state/layout.h"
 #include "state/ported.h"
 #include "state/records.h"
@@ -156,6 +157,13 @@ void rotate_view(game_state *st, int dir)
     }
 }
 
+static int enhanced_view(game_state *st)
+{
+    /* @imhotep enhanced fit: a view the original's sizes never have (another screen size, a zoom) */
+    int32_t w = S32(st, G_SCREEN_W);
+    return platform_display_zoom(st) != 100 || (w != 0x280 && w != 0x320 && w != 0x400);
+}
+
 void camera_clamp(game_state *st)
 {
     /* @bin 0x004DE080 the camera kept inside the view bounds 0x00E94DC4..0x00E94DD0 (widened in
@@ -178,10 +186,19 @@ void camera_clamp(game_state *st)
         S32(st, G_CAMERA_X) = x1 - view_height(st);
         moved = 1;
     }
+    int enhanced = enhanced_view(st);
+    if (enhanced && S32(st, G_CAMERA_X) < x0) {
+        /* @imhotep enhanced zoom: a view taller than the map (zoomed out, or a large screen) shows the
+         * map in its middle; the original's sizes keep its clamp */
+        S32(st, G_CAMERA_X) = (x0 + x1 - view_height(st)) / 2;
+    }
     int32_t y = S32(st, G_CAMERA_Y);
     if (view_width(st) + y > y1) {
         y = y1 - view_width(st);
         moved = 1;
+    }
+    if (enhanced && y < y0) {
+        y = (y0 + y1 - view_width(st)) / 2; /* @imhotep enhanced zoom: as above, wider than the map */
     }
     if (moved && S32(st, G_EDITOR) == 1) {
         U8(st, G_REDRAW) = 1;

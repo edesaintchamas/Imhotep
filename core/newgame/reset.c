@@ -282,13 +282,18 @@ void view_geometry_set(game_state *st, int32_t a0, int32_t a1, int32_t a2, int32
     S32(st, G_VIEW_FIRST_ROW) = a1;
 }
 
-void view_tiles(int32_t right, int32_t h, int32_t *cols, int32_t *rows)
+void view_tiles(int32_t right, int32_t h, int32_t *cols, int32_t *rows, int32_t *x0)
 {
-    /* @imhotep enhanced fit: the view's size in tiles for a screen of another size: columns of 60
-     * pixels up to the sidebar's x `right` (rounded up), half-rows of 15 pixels from y 30 down to the
-     * screen's height (the last within the 9-pixel bottom strip). For the original sizes this gives the
-     * tables of 0x004DDEC0 / 0x004DDF20 (tests/unit/display_test.c) */
-    *cols = (right + 2 + 59) / 60;
+    /* @imhotep enhanced fit: the view for a screen of another size. The tile draw cuts a tile at the
+     * clip's edges only at its middle (present/draw/footprint.c: whole tiles or halves), so the view's
+     * edges are on that 30-pixel grid: its width (right + 2) rounded up to 30 (the sidebar is placed so
+     * that it already is: present/sidebar/sidebar.c), the view starting at x 0 (a whole number of
+     * 60-pixel columns) or at -30, half a column left of the screen; half-rows of 15 pixels from y 30
+     * down to the screen's height (the last within the 9-pixel bottom strip). For the original sizes
+     * this gives the tables of 0x004DDEC0 / 0x004DDF20 at x 0 (tests/unit/display_test.c) */
+    int32_t width = (right + 2 + 29) / 30 * 30;
+    *x0 = width % 60 == 0 ? 0 : -30;
+    *cols = (width - *x0) / 60;
     *rows = (h - 24) / 15 + 1;
 }
 
@@ -299,12 +304,17 @@ static int original_width(int32_t w)
 
 static void view_geometry_fit(game_state *st, int32_t right)
 {
-    /* @imhotep enhanced fit: the geometry for another width. The view is whole tiles wide (the city
-     * draw skips a tile past its right edge rather than cutting it), so it starts left of the screen by
-     * less than a tile and ends at the sidebar's x, as the original sizes' views do (their x 0) */
-    int32_t x, y;
-    view_tiles(right, S32(st, G_SCREEN_H), &x, &y);
-    view_geometry_set(st, 0xE4, 0xE4, right + 2 - 60 * x, 0x1E, x, y, 0x3A, 0x1E);
+    /* @imhotep enhanced fit: the geometry for another width, up to the sidebar's x `right`.
+     * @imhotep enhanced zoom: zoomed, the view is (size * 100 / zoom) pixels, drawn scaled
+     * (present/city/zoom.c) */
+    int32_t z = platform_display_zoom(st), h = S32(st, G_SCREEN_H);
+    if (z != 100) {
+        right = right * 100 / z;
+        h = 0x1E + (h - 0x1E) * 100 / z;
+    }
+    int32_t x, y, x0;
+    view_tiles(right, h, &x, &y, &x0);
+    view_geometry_set(st, 0xE4, 0xE4, x0, 0x1E, x, y, 0x3A, 0x1E);
 }
 
 static void view_geometry_a(game_state *st)
@@ -312,8 +322,9 @@ static void view_geometry_a(game_state *st)
     /* @bin 0x004DDEC0 the geometry for the screen width (640 / 800 / 1024; others as 640's
      * fallback 8, 0x1F) */
     int32_t w = S32(st, G_SCREEN_W), x, y;
-    if (w >= 0x400 && !original_width(w)) {
-        view_geometry_fit(st, w - 66); /* @imhotep enhanced fit: collapsed, the sidebar at w - 66 */
+    if ((w >= 0x400 && !original_width(w)) || platform_display_zoom(st) != 100) {
+        /* @imhotep enhanced fit: collapsed, up to the collapsed sidebar (w - 66 when fitted) */
+        view_geometry_fit(st, S32(st, G_SIDEBAR_X_COLLAPSED));
         return;
     }
     if (w == 0x280) {
@@ -332,8 +343,9 @@ static void view_geometry_b(game_state *st)
 {
     /* @bin 0x004DDF20 as 0x004DDEC0 with other values (640 and others: 8, 0x1F) */
     int32_t w = S32(st, G_SCREEN_W), x, y;
-    if (w >= 0x400 && !original_width(w)) {
-        view_geometry_fit(st, w - 186); /* @imhotep enhanced fit: expanded, the sidebar at w - 186 */
+    if ((w >= 0x400 && !original_width(w)) || platform_display_zoom(st) != 100) {
+        /* @imhotep enhanced fit: expanded, up to the sidebar (w - 186 when fitted) */
+        view_geometry_fit(st, S32(st, G_SIDEBAR_X));
         return;
     }
     if (w == 0x320) {

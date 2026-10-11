@@ -10,6 +10,9 @@ void city_view_draw(game_state *st, int32_t camera_x, int32_t camera_y, int32_t 
 {
     /* @bin 0x00430D30 (camera x, camera y, map start): the camera into 0x0070E478 / 0x0070E474 /
      * 0x0070E484, the clip to the viewport 0x0070E430..0x0070E43C */
+    if (city_view_draw_zoomed(st, camera_x, camera_y, map_start)) {
+        return; /* @imhotep enhanced zoom: drawn off the screen, then scaled (present/city/zoom.c) */
+    }
     S32(st, G_VIEW_FIRST_COL) = camera_x;
     S32(st, G_VIEW_FIRST_ROW) = camera_y;
     S32(st, G_CV_MAP_START) = map_start;

@@ -167,6 +167,30 @@ void display_resolution_check(game_state *st)
     }
 }
 
+void display_zoom_apply(game_state *st, int32_t old_zoom, int32_t px, int32_t py)
+{
+    /* @imhotep enhanced zoom: the zoom changed from old_zoom: the view's geometry again (0x004DDEC0 /
+     * 0x004DDF20 by the sidebar), its bounds 0x004DDF90; the camera moved so that the screen point
+     * (px, py) shows the same place (px < 0: the view's centre), clamped 0x004DE080; a full redraw.
+     * Columns are 60 pixels, the camera's rows 15 */
+    int32_t z = platform_display_zoom(st);
+    int32_t right = S32(st, G_SIDEBAR_COLLAPSED) == 1 ? S32(st, G_SIDEBAR_X_COLLAPSED) : S32(st, G_SIDEBAR_X);
+    if (px < 0 || px >= right || py < 0x1E) {
+        px = right / 2;
+        py = 0x1E + (S32(st, G_SCREEN_H) - 0x1E) / 2;
+    }
+    int32_t dx = px * 100 / old_zoom - px * 100 / z;
+    int32_t dy = (py - 0x1E) * 100 / old_zoom - (py - 0x1E) * 100 / z;
+    GAME_CALL0(st, S32(st, G_SIDEBAR_COLLAPSED) == 1 ? FN_VIEW_GEOMETRY_A : FN_VIEW_GEOMETRY_B);
+    GAME_CALL0(st, FN_VIEW_BOUNDS);
+    /* to the nearest column (60 pixels) and pair of rows (30: the rows' parity kept) */
+    S32(st, G_CAMERA_X) = S32(st, G_CAMERA_X) + (dx >= 0 ? dx + 30 : dx - 30) / 60;
+    S32(st, G_CAMERA_Y) = S32(st, G_CAMERA_Y) + (dy >= 0 ? dy + 15 : dy - 15) / 30 * 2;
+    GAME_CALL0(st, FN_CAMERA_CLAMP);
+    U8(st, G_REDRAW) = 1;
+    GAME_CALL(st, FN_UI_REDRAW, 1);
+}
+
 /* ---- DirectDraw: release, set-up ---- */
 
 int32_t display_surfaces_release(game_state *st, int32_t all)

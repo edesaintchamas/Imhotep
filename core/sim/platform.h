@@ -129,6 +129,8 @@ typedef struct sim_platform {
      * pixels (the window's) when the platform fits the game to its window: resolution 3 then takes
      * that size instead of 1024 x 768. 0 (or NULL): the original modes only */
     int (*display_fit)(void *ctx, int32_t *width, int32_t *height);
+    /* @imhotep enhanced zoom: the city view's zoom in percent (50 .. 200); NULL: 100 */
+    int32_t (*display_zoom)(void *ctx);
 } sim_platform;
 
 /* @bin 0x00538E30 the video player (Smacker): returns 1 when the video plays */
@@ -202,6 +204,12 @@ uint32_t platform_set_display(game_state *st, int32_t width, int32_t height, int
 /* @imhotep enhanced fit: 1 and the fit size (clamped to 1024..4096 x 768..4096) when the platform fits
  * the game to its window (sim_platform.display_fit), else 0 */
 int platform_display_fit(game_state *st, int32_t *width, int32_t *height);
+/* @imhotep enhanced zoom: the city view's zoom in percent, 100 without a platform that zooms */
+int32_t platform_display_zoom(game_state *st);
+/* @imhotep enhanced zoom: a point (x, y) of the screen inside the zoomed city view (x below the sidebar,
+ * y from 30) mapped to the view's own pixels (x * 100 / zoom, 30 + (y - 30) * 100 / zoom); 0 for a point
+ * outside the view when zoomed, else 1 (at 100 the point is left as it is) */
+int zoom_point(game_state *st, int32_t *x, int32_t *y);
 
 /* @bin 0x00538CD0 a modal message box (title, text, kind): the platform shows it and returns the
  * pressed button; without a platform the first button is pressed (tools/oracle/game.py does the

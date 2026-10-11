@@ -18,6 +18,8 @@
 #define TERRAIN_PLAIN_MASK 0xEEFED77Fu /* @bin 0x00436C62 terrain bits that make a tile "not plain" for the top redraws */
 
 void city_view_draw(game_state *st, int32_t camera_x, int32_t camera_y, int32_t map_start); /* 0x00430D30 */
+/* @imhotep enhanced zoom: the city view drawn zoomed (present/city/zoom.c): 1 when it was, 0 at 100 % */
+int city_view_draw_zoomed(game_state *st, int32_t camera_x, int32_t camera_y, int32_t map_start);
 void city_ground_draw(game_state *st);                   /* 0x00430EF0 */
 void city_upper_draw(game_state *st, int32_t param);     /* 0x00436B60 */
 void city_overlay_ground_draw(game_state *st);           /* 0x004316F0 */

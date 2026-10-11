@@ -113,34 +113,30 @@ static int remembered(char *out, size_t size)
     return install_setting("game", out, size);
 }
 
-static void remember(const char *game, int verbose)
+int install_set_setting(const char *key, const char *value)
 {
-    char abs[1024], old[1024], path[1200], tmp[1300];
-    absolute(game, abs, sizeof(abs));
-    if (remembered(old, sizeof(old)) == 0 && strcmp(old, abs) == 0) {
-        return;
-    }
+    char path[1200], tmp[1300], line[1200];
+    size_t n = strlen(key);
     if (config_path(path, sizeof(path)) != 0) {
-        return;
+        return -1;
     }
-    /* written whole then renamed, so concurrent starts never read half a file */
+    /* written whole then renamed, so concurrent starts never read half a file; the other settings kept */
     put(tmp, sizeof(tmp), "%s.%d.tmp", path, (int) getpid());
     FILE *f = fopen(tmp, "w");
     if (!f) {
-        return;
+        return -1;
     }
-    fprintf(f, "# Imhotep: the game directory found at the last start (see imhotep --help)\ngame=%s\n", abs);
-    /* the other settings kept (display, scale: README) */
-    char line[1200];
+    fprintf(f, "# Imhotep's settings (see imhotep --help and the README)\n");
     FILE *in = fopen(path, "r");
     while (in && fgets(line, sizeof(line), in)) {
-        if (line[0] != '#' && strncmp(line, "game=", 5) != 0) {
+        if (line[0] != '#' && !(strncmp(line, key, n) == 0 && line[n] == '=')) {
             fputs(line, f);
         }
     }
     if (in) {
         fclose(in);
     }
+    fprintf(f, "%s=%s\n", key, value);
     int bad = fclose(f) != 0;
 #ifdef _WIN32
     if (!bad) {
@@ -153,8 +149,20 @@ static void remember(const char *game, int verbose)
 #endif
     if (bad) {
         remove(tmp);
-    } else if (verbose) {
-        fprintf(stderr, "imhotep: game directory remembered in %s\n", path);
+        return -1;
+    }
+    return 0;
+}
+
+static void remember(const char *game, int verbose)
+{
+    char abs[1024], old[1024];
+    absolute(game, abs, sizeof(abs));
+    if (remembered(old, sizeof(old)) == 0 && strcmp(old, abs) == 0) {
+        return;
+    }
+    if (install_set_setting("game", abs) == 0 && verbose) {
+        fprintf(stderr, "imhotep: game directory remembered in the player directory's imhotep.cfg\n");
     }
 }
 

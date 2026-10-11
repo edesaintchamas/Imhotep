@@ -361,6 +361,28 @@ int platform_display_fit(game_state *st, int32_t *width, int32_t *height)
     return 1;
 }
 
+int32_t platform_display_zoom(game_state *st)
+{
+    const sim_platform *p = st->platform;
+    int32_t z = p && p->display_zoom ? p->display_zoom(p->ctx) : 100;
+    return z < 50 ? 50 : z > 200 ? 200 : z;
+}
+
+int zoom_point(game_state *st, int32_t *x, int32_t *y)
+{
+    int32_t z = platform_display_zoom(st);
+    if (z == 100) {
+        return 1;
+    }
+    int32_t right = S32(st, G_SIDEBAR_COLLAPSED) == 1 ? S32(st, G_SIDEBAR_X_COLLAPSED) : S32(st, G_SIDEBAR_X);
+    if (*x < 0 || *x >= right || *y < 0x1E || *y >= S32(st, G_SCREEN_H)) {
+        return 0;
+    }
+    *x = *x * 100 / z;
+    *y = 0x1E + (*y - 0x1E) * 100 / z;
+    return 1;
+}
+
 uint32_t platform_clock_ms(game_state *st)
 {
     const sim_platform *p = st->platform;

@@ -297,11 +297,14 @@ int32_t frame_screen_to_tile(game_state *st)
      * 0 outside the view or on a tile >= 0x0FFF0000 (none). Writes the view column / row 0x0070E404 /
      * 0x0070E408, the table entry 0x0070E3F8 and the edge flags 0x0070E3FC / 0x0070E400 */
     int32_t mx = S32(st, G_MOUSE_X);
+    int32_t my = S32(st, G_MOUSE_Y);
+    if (!zoom_point(st, &mx, &my)) { /* @imhotep enhanced zoom: the view's own pixels */
+        return 0;
+    }
     int32_t vx = S32(st, G_VIEW_X);
     if (mx < vx || mx >= (S32(st, G_U70E458) + 2) * S32(st, G_VIEW_COLS) + vx) {
         return 0;
     }
-    int32_t my = S32(st, G_MOUSE_Y);
     int32_t vy = S32(st, G_VIEW_Y);
     int32_t th = S32(st, G_TILE_H);
     if (my < vy || my >= th * S32(st, G_VIEW_ROWS) + vy) {
