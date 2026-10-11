@@ -24,6 +24,8 @@ void city_records_init_9ee0(game_state *st);
 void ambient_slots_reset(game_state *st);
 
 /* @bin 0x004303A0 the view geometry (eight values) */
+/* @imhotep enhanced fit: the view's columns and rows for a sidebar at x `right` and a screen height h */
+void view_tiles(int32_t right, int32_t h, int32_t *cols, int32_t *rows);
 void view_geometry_set(game_state *st, int32_t a0, int32_t a1, int32_t a2, int32_t a3, int32_t a4,
                        int32_t a5, int32_t a6, int32_t a7);
 

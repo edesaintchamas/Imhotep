@@ -174,6 +174,12 @@ int32_t boot_settings(game_state *st, const boot_host *host, int32_t screen_widt
     boot_file_read(st, "Pharaoh.inf", G_OPTIONS);
     U8(st, G_CHECK_CD) = 1; /* @bin 0x00414924 */
     boot_ini_read(st, host); /* @bin 0x0041492A */
+    int32_t fit_w, fit_h;
+    if (platform_display_fit(st, &fit_w, &fit_h)) {
+        /* @imhotep enhanced fit: the game fits its window at resolution 3, confirmed (docs/enhanced.md) */
+        S32(st, G_RESOLUTION) = 3;
+        S32(st, G_RESOLUTION_SAVED) = 3;
+    }
     S32(st, G_UE36C6C) = 1;
     U8(st, G_PAUSED) = 0;
     /* @bin 0x0041493A the words 0x005C9022 / 0x005C9062 by 0x00E38EAC (2: 4, 1: 3) */

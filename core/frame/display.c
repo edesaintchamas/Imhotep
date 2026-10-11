@@ -63,7 +63,34 @@ void display_resolution_set(game_state *st, int32_t mode)
     } else if (mode == 3) {
         S32(st, G_SCREEN_W) = 0x400;
         S32(st, G_SCREEN_H) = 0x300;
+        int32_t w, h;
+        if (platform_display_fit(st, &w, &h)) { /* @imhotep enhanced fit: the window's size */
+            S32(st, G_SCREEN_W) = w;
+            S32(st, G_SCREEN_H) = h;
+        }
     }
+}
+
+void display_fit_apply(game_state *st)
+{
+    /* @imhotep enhanced fit: the window's size changed (a resize, the full screen): F9's sequence
+     * (core/frame/wndproc.c resolution_key) for resolution 3 at the new size, without the confirmation
+     * window (the resolution stays the confirmed one). Not in the windows where F9 does nothing (0x0E,
+     * 0x0F, 0x48), nor when the size is already the fit size */
+    int32_t w, h;
+    uint8_t win = U8(st, G_WINDOW);
+    if (S32(st, G_RESOLUTION) != 3 || win == 0x0E || win == 0x0F || win == 0x48 ||
+        !platform_display_fit(st, &w, &h) || (w == S32(st, G_SCREEN_W) && h == S32(st, G_SCREEN_H))) {
+        return;
+    }
+    S32(st, G_PRESENT_WAIT) = 1;
+    GAME_CALL(st, FN_DISPLAY_END, 1);
+    GAME_CALL(st, FN_DISPLAY_MODE_SET, 3);
+    GAME_CALL0(st, FN_DISPLAY_BUFFERS_LAYOUT);
+    GAME_CALL0(st, FN_VIEW_ROWS_RESET);
+    GAME_CALL0(st, FN_DISPLAY_BEGIN);
+    S32(st, G_PRESENT_WAIT) = 0;
+    U8(st, G_REDRAW) = 1;
 }
 
 void display_mode_set(game_state *st, int32_t mode)

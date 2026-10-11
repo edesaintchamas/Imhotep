@@ -156,8 +156,12 @@ check-tools: $(BUILD)/terrain_check$(EXE) $(BUILD)/save_check$(EXE) $(BUILD)/des
 
 build-all: core present tools check-tools game ## Everything CI builds (warnings are errors)
 
-unit: core ## Unit tests (none yet; builds core/)
-	@echo "unit: core/ builds; no unit tests yet"
+unit: $(BUILD)/display_test$(EXE) ## Unit tests (tests/unit)
+	./$(BUILD)/display_test
+
+$(BUILD)/display_test$(EXE): tests/unit/display_test.c $(BUILD)/libimhotep_core.a
+	@mkdir -p $(BUILD)
+	$(CC) $(TOOL_CFLAGS) $< $(BUILD)/libimhotep_core.a -o $@
 
 differential: $(BUILD)/terrain_check$(EXE) $(BUILD)/save_check$(EXE) $(BUILD)/desirability_check$(EXE) ## Differential tests against data produced by the original game
 	@if [ -d "$(IMHOTEP_GAME_DIR)/Maps" ]; then ./$(BUILD)/terrain_check && ./$(BUILD)/terrain_check --campaign && ./$(BUILD)/save_check && ./$(BUILD)/desirability_check; \

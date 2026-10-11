@@ -125,6 +125,10 @@ typedef struct sim_platform {
      * the oracle's boot image). Without it, the ports that need it are replayed in comparisons
      * (partial ports) */
     uint32_t (*memory)(void *ctx, uint32_t address, uint32_t size);
+    /* @imhotep enhanced fit: the enhanced display (docs/enhanced.md). Returns 1 and the game's size in
+     * pixels (the window's) when the platform fits the game to its window: resolution 3 then takes
+     * that size instead of 1024 x 768. 0 (or NULL): the original modes only */
+    int (*display_fit)(void *ctx, int32_t *width, int32_t *height);
 } sim_platform;
 
 /* @bin 0x00538E30 the video player (Smacker): returns 1 when the video plays */
@@ -195,6 +199,9 @@ void platform_present(game_state *st);
 /* a display mode change (sim_platform.set_display): the new back buffer's address, 0 when the
  * platform cannot set the mode or without a platform */
 uint32_t platform_set_display(game_state *st, int32_t width, int32_t height, int32_t rgb565);
+/* @imhotep enhanced fit: 1 and the fit size (clamped to 1024..4096 x 768..4096) when the platform fits
+ * the game to its window (sim_platform.display_fit), else 0 */
+int platform_display_fit(game_state *st, int32_t *width, int32_t *height);
 
 /* @bin 0x00538CD0 a modal message box (title, text, kind): the platform shows it and returns the
  * pressed button; without a platform the first button is pressed (tools/oracle/game.py does the

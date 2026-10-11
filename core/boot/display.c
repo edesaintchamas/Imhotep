@@ -254,6 +254,7 @@ static int32_t display_create(game_state *st, const boot_host *host, const boot_
     } else if (S32(st, G_RESOLUTION) == 3) {
         w = 1024;
         h = 768;
+        platform_display_fit(st, &w, &h); /* @imhotep enhanced fit: the window's size */
     }
     S32(st, G_SCREEN_W) = w;
     S32(st, G_LAYOUT_DX) = (w - 640) / 2;

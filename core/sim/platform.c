@@ -344,6 +344,23 @@ uint32_t platform_set_display(game_state *st, int32_t width, int32_t height, int
     return p && p->set_display ? p->set_display(p->ctx, width, height, rgb565) : 0;
 }
 
+int platform_display_fit(game_state *st, int32_t *width, int32_t *height)
+{
+    const sim_platform *p = st->platform;
+    int32_t w = 0, h = 0;
+    if (!p || !p->display_fit || !p->display_fit(p->ctx, &w, &h)) {
+        return 0;
+    }
+    *width = w < 0x400 ? 0x400 : w > 4096 ? 4096 : w;
+    *height = h < 0x300 ? 0x300 : h > 4096 ? 4096 : h;
+    if (*width == 0x400 && *height != 0x300) {
+        /* the original's layout tests the width alone: 1024 wide is 1024 x 768's layout, so a taller
+         * 1024-wide window is drawn 1026 wide (the general layout, docs/enhanced.md) */
+        *width = 0x402;
+    }
+    return 1;
+}
+
 uint32_t platform_clock_ms(game_state *st)
 {
     const sim_platform *p = st->platform;

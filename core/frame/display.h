@@ -16,6 +16,8 @@ int display_has_memory(game_state *st);
 void display_resolution_set(game_state *st, int32_t mode);
 /* @bin 0x004CFDC0 the resolution and the drawing globals made from it */
 void display_mode_set(game_state *st, int32_t mode);
+/* @imhotep enhanced fit: the mode redone at the platform's fit size (a resize), when it may be */
+void display_fit_apply(game_state *st);
 /* @bin 0x00414BD0 the sidebar, the spare screen and the view after a resolution change */
 void display_buffers_layout(game_state *st);
 /* @bin 0x00402DA0 the confirmation window 0x3E for a resolution not confirmed yet */
