@@ -17,7 +17,7 @@ Imhotep does not include any game content. You need a legitimate copy of
 
 Ready-made builds are on the [Releases page](https://github.com/edesaintchamas/Imhotep/releases).
 None of them contains anything from the game: you still need your own installation (see below).
-Release 1.0.0 is for macOS; the Windows and Linux builds will follow once they are play-tested
+The 1.0.x releases are for macOS; the Windows and Linux builds will follow once they are play-tested
 (until then, build them from source: see Playing).
 
 - **macOS** (Apple silicon, macOS 11 or later): `imhotep-VERSION-macos-arm64.zip` holds
