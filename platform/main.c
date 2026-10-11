@@ -44,7 +44,7 @@
  *   pending, one frame (frame_run, the port of 0x004D6B60; through 0x004143C0 when 0x00E39128 is 0
  *   and 0x00E3912C is set); after each, a quit request 0x00D3B43D == 1 becomes WM_CLOSE. The frame
  *   reads the clock itself (platform_clock_ms) and paces the ticks (docs/presentation.md 1.2); the
- *   loop runs one frame per display refresh (vsync; --fps caps it). At 100 % speed the original ticks
+ *   loop runs one frame per display refresh (vsync), at most 60 a second (--fps). At 100 % speed the original ticks
  *   once per frame (2 ms minimum), so the game's speed follows the frame rate, as on the original;
  * - the present: 0x004D03F0 (the copy of the back buffer to the screen, a platform request without a
  *   callback yet) is taken over through the call environment: the back buffer (565 or 555 by
@@ -1340,7 +1340,8 @@ static void usage(FILE *out)
             "  --game DIR       the game's installation folder (the one holding Pharaoh.exe); else IMHOTEP_GAME_DIR,\n"
             "                   else the folder found at the last start, else the usual install locations\n"
             "  --scale N        window size: N times the game's resolution\n"
-            "  --fps N          cap the frame rate (the game's speed follows it, as on the original)\n"
+            "  --fps N          the frame rate cap, default 60 (the game's speed and the edge scrolling follow\n"
+            "                   it, as on the original); 0: the display's refresh rate\n"
             "  --no-intro       skip the intro video\n"
             "  --no-video       play no video\n"
             "  --no-sound       no sound\n"
@@ -1360,7 +1361,7 @@ static void usage(FILE *out)
 int main(int argc, char **argv)
 {
     const char *boot = NULL, *script_path = NULL, *load = NULL, *game_arg = NULL;
-    int fps = 0;
+    int fps = -1;
     int scale = 1, hidden = 0, intro = 1, sound = 1, max_frames = 0;
     for (int i = 1; i < argc; i++) {
         const char *a = argv[i];
@@ -1423,6 +1424,12 @@ int main(int argc, char **argv)
         scale = 1;
     }
     app.scale = scale;
+    if (fps < 0) {
+        /* played: 60 frames a second, the usual display refresh (the original's game speed and
+         * edge scrolling step once per frame at 100 %: a 120 Hz display would double both). Scripted
+         * or hidden runs are not capped */
+        fps = hidden || script_path ? 0 : 60;
+    }
 
     /* the game directory, checked against the reference; the player directory (platform/install.h) */
     static char game_path[1024], player_path[1024];
@@ -1584,12 +1591,18 @@ int main(int argc, char **argv)
         script_step();
         render();
         if (fps > 0) { /* a frame-rate cap on top of the display's refresh (vsync) */
-            static Uint32 last;
-            Uint32 now = SDL_GetTicks(), period = 1000u / (Uint32) fps;
-            if (now - last < period) {
-                SDL_Delay(period - (now - last));
+            static Uint64 next;
+            Uint64 freq = SDL_GetPerformanceFrequency(), now = SDL_GetPerformanceCounter();
+            Uint64 period = freq / (Uint64) fps;
+            if (next == 0 || now > next + period) {
+                next = now; /* the first frame, or behind by more than a frame: start again from now */
             }
-            last = SDL_GetTicks();
+            if (next > now) {
+                SDL_Delay((Uint32) ((next - now) * 1000 / freq));
+                while (SDL_GetPerformanceCounter() < next) {
+                }
+            }
+            next += period;
         }
         if (max_frames && app.frames >= max_frames) {
             break;
