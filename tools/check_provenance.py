@@ -4,7 +4,9 @@
   python3 tools/check_provenance.py            # report + fail on untagged core files
   python3 tools/check_provenance.py --diff REF # also require a tag in every changed hunk vs REF
 
-Tags: @bin, @diff (confirmed), @hint (hint), @unverified (unverified), @from (code origin).
+Tags: @bin, @diff (confirmed), @hint (hint), @unverified (unverified), @from (code origin),
+@imhotep (a display extension that is not a rule of the original: docs/enhanced.md; never in the
+simulation's directories, SIM_DIRS).
 """
 import re, subprocess, sys
 from collections import Counter
@@ -13,7 +15,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CORE = ROOT / "core"
 SRC_EXT = {".c", ".h", ".cpp", ".hpp", ".cc", ".hh"}
-RULE_TAG = re.compile(r"@(bin|diff|hint|unverified)\b")
+RULE_TAG = re.compile(r"@(bin|diff|hint|unverified|imhotep)\b")
+SIM_DIRS = ("core/sim/tick", "core/city", "core/building", "core/figure", "core/map", "core/command")
 FROM_TAG = re.compile(r"@from\b")
 UNVERIFIED_DOC = ROOT / "docs" / "unverified.md"
 # Lines that are not logic: blanks, comments, braces, includes, declarations-only noise.
@@ -36,6 +39,8 @@ def report() -> int:
         logic = [l for l in text.splitlines() if not NON_LOGIC.match(l)]
         if logic and not tags:
             untagged.append(p.relative_to(ROOT).as_posix())
+    in_sim = [p.relative_to(ROOT).as_posix() for p in source_files()
+              if p.relative_to(ROOT).as_posix().startswith(SIM_DIRS) and "@imhotep" in p.read_text(errors="replace")]
     confirmed = counts["bin"] + counts["diff"]
     total = confirmed + counts["hint"] + counts["unverified"]
     print("Provenance report (core/)")
@@ -43,6 +48,11 @@ def report() -> int:
     print(f"  hint      : {counts['hint']}")
     print(f"  unverified: {counts['unverified']}")
     print(f"  @from     : {counts['from']} (code origin, licence)")
+    print(f"  @imhotep  : {counts['imhotep']} (display extensions, docs/enhanced.md; not rules)")
+    if in_sim:
+        print("FAIL: @imhotep (display extensions) in the simulation's code:")
+        print("\n".join(f"  {u}" for u in in_sim))
+        return 1
     if total:
         print(f"  confirmed ratio: {100 * confirmed / total:.1f}%")
     if counts["unverified"] and UNVERIFIED_DOC.exists():

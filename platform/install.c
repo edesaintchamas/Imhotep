@@ -89,15 +89,16 @@ static int config_path(char *out, size_t size)
     return 0;
 }
 
-static int remembered(char *out, size_t size)
+int install_setting(const char *key, char *out, size_t size)
 {
     char path[1200], line[1200];
+    size_t n = strlen(key);
     FILE *f = config_path(path, sizeof(path)) == 0 ? fopen(path, "r") : NULL;
     int found = -1;
     while (f && fgets(line, sizeof(line), f)) {
         line[strcspn(line, "\r\n")] = 0;
-        if (strncmp(line, "game=", 5) == 0 && line[5]) {
-            put(out, size, "%s", line + 5);
+        if (strncmp(line, key, n) == 0 && line[n] == '=' && line[n + 1]) {
+            put(out, size, "%s", line + n + 1);
             found = 0;
         }
     }
@@ -105,6 +106,11 @@ static int remembered(char *out, size_t size)
         fclose(f);
     }
     return found;
+}
+
+static int remembered(char *out, size_t size)
+{
+    return install_setting("game", out, size);
 }
 
 static void remember(const char *game, int verbose)
@@ -124,6 +130,17 @@ static void remember(const char *game, int verbose)
         return;
     }
     fprintf(f, "# Imhotep: the game directory found at the last start (see imhotep --help)\ngame=%s\n", abs);
+    /* the other settings kept (display, scale: README) */
+    char line[1200];
+    FILE *in = fopen(path, "r");
+    while (in && fgets(line, sizeof(line), in)) {
+        if (line[0] != '#' && strncmp(line, "game=", 5) != 0) {
+            fputs(line, f);
+        }
+    }
+    if (in) {
+        fclose(in);
+    }
     int bad = fclose(f) != 0;
 #ifdef _WIN32
     if (!bad) {

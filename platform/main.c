@@ -95,8 +95,8 @@
 #define WM_ACTIVATE 0x06
 #define WM_ACTIVATEAPP 0x1C
 #define WM_DISPLAYCHANGE 0x7E
-#define SCREEN_W 1024 /* the screen the game starts on (the desktop's mode): GetSystemMetrics */
-#define SCREEN_H 768
+#define SCREEN_W 1024 /* the screen the game starts on (the desktop's mode): GetSystemMetrics; in fit mode */
+#define SCREEN_H 768  /* the fit size (app.desk_w / app.desk_h) */
 #define WM_PAINT 0x0F
 #define WM_CLOSE 0x10
 #define WM_KEYDOWN 0x100
@@ -154,6 +154,15 @@ static struct {
     /* the screen's mode as Windows would have it (what GetSystemMetrics answers): the desktop's (SCREEN_W x
      * SCREEN_H) windowed, the game's mode fullscreen; WM_DISPLAYCHANGE is delivered when it changes */
     int screen_w, screen_h;
+    /* @imhotep enhanced fit (docs/enhanced.md): the game drawn at its window's size. fit: on; fit_fixed:
+     * a size given (--display WxH, tests); fit_w x fit_h the size the game has or is getting; ui_scale
+     * the whole-number scale of game pixels to screen pixels (0: the screen's pixel ratio); desk_w x
+     * desk_h the screen GetSystemMetrics answers windowed (1024 x 768, or the fit size); resize_at: the
+     * time a window resize is applied (0: none pending) */
+    int fit, fit_fixed, fit_w, fit_h, ui_scale;
+    int desk_w, desk_h;
+    Uint32 resize_at;
+    boot_display *boot_disp;
 } app;
 
 /* ---- the unported calls ---- */
@@ -245,6 +254,9 @@ static void cb_present(void *ctx, uint32_t buffer, int32_t width, int32_t height
     present_copy(); /* reads the same values from the state */
 }
 
+static void scaling_update(void);
+static void window_fullscreen(int full);
+
 static void present_copy(void)
 {
     /* @bin 0x004D03F0 Blt / BltFast of the back buffer to the primary surface: here to the texture */
@@ -269,6 +281,7 @@ static void present_copy(void)
         app.h = h;
         app.tex_fmt = fmt;
         SDL_RenderSetLogicalSize(app.ren, w, h);
+        scaling_update();
         if (app.verbose) {
             fprintf(stderr, "imhotep: texture %dx%d\n", w, h);
         }
@@ -585,6 +598,10 @@ static void translate(const SDL_Event *e)
         case SDL_WINDOWEVENT_RESTORED:
         case SDL_WINDOWEVENT_SIZE_CHANGED:
             post(WM_SIZE, 0, (uint32_t) (uint16_t) app.h << 16 | (uint16_t) app.w);
+            scaling_update();
+            if (app.fit && !app.fit_fixed) {
+                app.resize_at = SDL_GetTicks() + 150; /* @imhotep enhanced fit: once the size is still */
+            }
             break;
         case SDL_WINDOWEVENT_MOVED:
             post(WM_MOVE, 0, 0);
@@ -1044,15 +1061,19 @@ static uint32_t cb_set_display(void *ctx, int32_t width, int32_t height, int32_t
      * gives the desktop's mode back (assumed: Windows' behaviour). The same mode set again (gfxBegin after
      * WM_ACTIVATEAPP) sends none */
     int full = S32(&app.st, 0x00E38E5Cu) != 0;
-    int sw = full ? width : SCREEN_W, sh = full ? height : SCREEN_H;
+    int sw = full ? width : app.desk_w, sh = full ? height : app.desk_h;
     int changed = sw != app.screen_w || sh != app.screen_h;
     app.screen_w = sw;
     app.screen_h = sh;
     app.w = width;
     app.h = height;
     if (app.win) {
-        SDL_SetWindowSize(app.win, width * app.scale, height * app.scale);
+        window_fullscreen(full);
+        if (!app.fit) {
+            SDL_SetWindowSize(app.win, width * app.scale, height * app.scale);
+        }
         SDL_RenderSetLogicalSize(app.ren, width, height);
+        scaling_update();
     }
     fprintf(stderr, "imhotep: display %dx%d %s\n", width, height, rgb565 ? "565" : "555");
     if (changed) {
@@ -1077,6 +1098,148 @@ static int cb_window_state(void *ctx, int32_t *iconic, int32_t *foreground, int3
     rect[2] = S32(&app.st, 0x00E38DB0u);
     rect[3] = S32(&app.st, 0x00E38DACu);
     return 1;
+}
+
+/* ---- the window (and the enhanced display: docs/enhanced.md) ---- */
+
+static int window_open(int w, int h, int hidden)
+{
+    /* the window, w x h points, resizable, high-DPI (the renderer draws in the screen's pixels), and its
+     * renderer (vsync; software when none) */
+    app.win = SDL_CreateWindow("Imhotep", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w, h,
+                               SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | (hidden ? SDL_WINDOW_HIDDEN : 0));
+    app.ren = app.win ? SDL_CreateRenderer(app.win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC) : NULL;
+    if (!app.ren && app.win) {
+        app.ren = SDL_CreateRenderer(app.win, -1, SDL_RENDERER_SOFTWARE);
+    }
+    if (!app.ren) {
+        fprintf(stderr, "imhotep: SDL window: %s\n", SDL_GetError());
+        return -1;
+    }
+    SDL_SetWindowMinimumSize(app.win, 640, 480);
+    return 0;
+}
+
+static void scaling_update(void)
+{
+    /* @imhotep enhanced fit: whole-number scaling (sharp pixels) when the window holds the game at least
+     * once; smaller, the picture is scaled down smoothly */
+    int pw = 0, ph = 0;
+    if (!app.ren || app.w <= 0 || app.h <= 0) {
+        return;
+    }
+    SDL_GetRendererOutputSize(app.ren, &pw, &ph);
+    int whole = pw >= app.w && ph >= app.h;
+    SDL_RenderSetIntegerScale(app.ren, whole ? SDL_TRUE : SDL_FALSE);
+    if (app.tex) {
+        SDL_SetTextureScaleMode(app.tex, whole ? SDL_ScaleModeNearest : SDL_ScaleModeLinear);
+    }
+}
+
+static void window_fullscreen(int full)
+{
+    /* the original's full screen (0x00E38E5C, F6 and the display options): the desktop's size, borderless
+     * (the screen's mode is left alone); not in tests */
+    if (!app.win || app.hidden || app.det_step) {
+        return;
+    }
+    Uint32 want = full ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0;
+    if ((SDL_GetWindowFlags(app.win) & SDL_WINDOW_FULLSCREEN_DESKTOP) != want) {
+        SDL_SetWindowFullscreen(app.win, want);
+    }
+}
+
+static void fit_size(int *gw, int *gh)
+{
+    /* @imhotep enhanced fit: the game's size for the window: its pixels divided by the scale (the
+     * setting, else the pixels per point: 2 on Retina screens), lowered while the result is under
+     * 1024 x 768; at least 1024 x 768 (core/sim/platform.c clamps it too) */
+    if (app.fit_fixed) {
+        *gw = app.fit_w;
+        *gh = app.fit_h;
+        return;
+    }
+    int pw = 1024, ph = 768, ww = 1, wh = 1;
+    if (app.ren) {
+        SDL_GetRendererOutputSize(app.ren, &pw, &ph);
+        SDL_GetWindowSize(app.win, &ww, &wh);
+    }
+    int s = app.ui_scale > 0 ? app.ui_scale : (ww > 0 ? (pw + ww / 2) / ww : 1);
+    if (s < 1) {
+        s = 1;
+    }
+    while (s > 1 && (pw / s < 1024 || ph / s < 768)) {
+        s--;
+    }
+    *gw = pw / s < 1024 ? 1024 : pw / s > 4096 ? 4096 : pw / s;
+    *gh = ph / s < 768 ? 768 : ph / s > 4096 ? 4096 : ph / s;
+}
+
+static int cb_display_fit(void *ctx, int32_t *width, int32_t *height)
+{
+    /* @imhotep enhanced fit: the window's size (sim_platform.display_fit). The first call (the boot's
+     * settings, after Pharaoh.inf: its full-screen option known) opens the window: full screen, or the
+     * screen's usable area, or the fixed size */
+    (void) ctx;
+    if (!app.fit) {
+        return 0;
+    }
+    if (!app.win) {
+        int w = 1024, h = 768;
+        SDL_Rect r;
+        if (app.fit_fixed) {
+            w = app.fit_w * app.scale, h = app.fit_h * app.scale;
+        } else if (SDL_GetDisplayUsableBounds(0, &r) == 0) {
+            w = r.w, h = r.h - 28; /* the title bar */
+        }
+        if (window_open(w, h, app.hidden) != 0) {
+            app.fit = 0;
+            return 0;
+        }
+        window_fullscreen(S32(&app.st, 0x00E38E5Cu) != 0);
+        SDL_PumpEvents();
+        fit_size(&app.fit_w, &app.fit_h);
+        app.desk_w = app.fit_w;
+        app.desk_h = app.fit_h;
+        if (app.boot_disp) {
+            app.boot_disp->width = app.fit_w;
+            app.boot_disp->height = app.fit_h;
+        }
+        if (app.verbose) {
+            fprintf(stderr, "imhotep: fit %dx%d\n", app.fit_w, app.fit_h);
+        }
+    }
+    *width = app.fit_w;
+    *height = app.fit_h;
+    return 1;
+}
+
+static void fit_resize(void)
+{
+    /* @imhotep enhanced fit: a resize applied once the size has been still for 150 ms: the screen
+     * (GetSystemMetrics) and the game's mode take the new size (display_fit_apply); in a window where the
+     * original changes no mode it is tried again later */
+    int w, h;
+    fit_size(&w, &h);
+    app.resize_at = 0;
+    if (w == S32(&app.st, 0x00E38DB0u) && h == S32(&app.st, 0x00E38DACu)) {
+        app.fit_w = w, app.fit_h = h;
+        return;
+    }
+    app.fit_w = w, app.fit_h = h;
+    app.desk_w = w, app.desk_h = h;
+    if (S32(&app.st, 0x00E38E5Cu) == 0) {
+        /* windowed: the screen's new size delivered first (WM_DISPLAYCHANGE), as the mode's set-up
+         * checks the mode against it (0x00426B40: wider than the screen forces the full screen) */
+        app.screen_w = w, app.screen_h = h;
+        dispatch((message){WM_DISPLAYCHANGE, 16, (uint32_t) (uint16_t) h << 16 | (uint16_t) w});
+    }
+    display_fit_apply(&app.st);
+    if (S32(&app.st, 0x00E38DB0u) != w || S32(&app.st, 0x00E38DACu) != h) {
+        app.resize_at = SDL_GetTicks() + 150;
+    } else if (app.verbose) {
+        fprintf(stderr, "imhotep: fit %dx%d\n", w, h);
+    }
 }
 
 static uint32_t cb_memory(void *ctx, uint32_t address, uint32_t size)
@@ -1241,6 +1404,14 @@ static void script_step(void)
                         app.mouse_y);
             }
         }
+    } else if (strcmp(cmd, "resize") == 0) {
+        /* @imhotep enhanced fit: resize W H, fit mode: the game resized to W x H, as a window resize
+         * (tests: window events are ignored with --det-clock) */
+        int w = 0, h = 0;
+        if (app.fit && sscanf(arg, "%d %d", &w, &h) == 2) {
+            app.fit_fixed = 1, app.fit_w = w, app.fit_h = h;
+            fit_resize();
+        }
     } else if (strcmp(cmd, "quit") == 0) {
         post(WM_CLOSE, 0, 0);
     }
@@ -1308,7 +1479,8 @@ static int port_boot(int sound)
     /* the screen before the game sets its mode (GetSystemMetrics): 1024 x 768, the largest mode (the
      * window then takes the mode's size); 16-bit pixels in RGB 555. The mode is the game's
      * (Pharaoh.inf, read by the boot's settings: core/boot/settings.c) */
-    boot_display display = {.width = SCREEN_W, .height = SCREEN_H, .format = 555};
+    static boot_display display = {.width = SCREEN_W, .height = SCREEN_H, .format = 555};
+    app.boot_disp = &display; /* fit mode: the screen's size is the window's (cb_display_fit) */
     int n = boot_step_count(&display, sound), r = 0;
     for (int k = 0; k < n && r == 0; k++) {
         int before = app.nun;
@@ -1341,7 +1513,10 @@ static void usage(FILE *out)
             "\n"
             "  --game DIR       the game's installation folder (the one holding Pharaoh.exe); else IMHOTEP_GAME_DIR,\n"
             "                   else the folder found at the last start, else the usual install locations\n"
-            "  --scale N        window size: N times the game's resolution\n"
+            "  --display MODE   fit (the default: the game fills its window, resizable), original (640 x 480,\n"
+            "                   800 x 600, 1024 x 768 only) or WxH (fit at that size); imhotep.cfg: display=\n"
+            "  --scale N        window size: N times the game's resolution; in fit mode the size of a game\n"
+            "                   pixel in screen pixels (imhotep.cfg: scale=, default auto: 2 on Retina)\n"
             "  --fps N          the frame rate cap, default 60 (the game's speed and the edge scrolling follow\n"
             "                   it, as on the original); 0: the display's refresh rate\n"
             "  --no-intro       skip the intro video\n"
@@ -1362,7 +1537,7 @@ static void usage(FILE *out)
 
 int main(int argc, char **argv)
 {
-    const char *boot = NULL, *script_path = NULL, *load = NULL, *game_arg = NULL;
+    const char *boot = NULL, *script_path = NULL, *load = NULL, *game_arg = NULL, *display_arg = NULL;
     int fps = -1;
     int scale = 1, hidden = 0, intro = 1, sound = 1, max_frames = 0;
     for (int i = 1; i < argc; i++) {
@@ -1400,6 +1575,8 @@ int main(int argc, char **argv)
         } else if (strcmp(a, "--det-clock") == 0 && v) {
             sscanf(v, "%u,%u", &app.det_start, &app.det_step), i++;
             app.det_now = app.det_start;
+        } else if (strcmp(a, "--display") == 0 && v) {
+            display_arg = v, i++;
         } else if (strcmp(a, "--fps") == 0 && v) {
             fps = atoi(v), i++;
         } else if (strcmp(a, "--msglog") == 0 && v) {
@@ -1426,6 +1603,8 @@ int main(int argc, char **argv)
         scale = 1;
     }
     app.scale = scale;
+    app.desk_w = SCREEN_W;
+    app.desk_h = SCREEN_H;
     if (fps < 0) {
         /* played: 60 frames a second, the usual display refresh (the original's game speed and
          * edge scrolling step once per frame at 100 %: a 120 Hz display would double both). Scripted
@@ -1444,6 +1623,32 @@ int main(int argc, char **argv)
     }
     app.game = game_path;
     app.player = player_path;
+    /* @imhotep enhanced fit: the display (README): --display, else imhotep.cfg's display= (fit unless
+     * "original"); tests (hidden, scripted) the original modes unless --display says otherwise. The scale
+     * of game pixels: imhotep.cfg's scale= (auto: the screen's pixel ratio), or --scale in fit mode */
+    char setting[64];
+    const char *disp = display_arg;
+    if (!disp && !hidden && !script_path) {
+        disp = install_setting("display", setting, sizeof(setting)) == 0 ? setting : "fit";
+    }
+    if (disp && strcmp(disp, "original") != 0) {
+        int fw = 0, fh = 0;
+        app.fit = 1;
+        if (sscanf(disp, "%dx%d", &fw, &fh) == 2) {
+            app.fit_fixed = 1, app.fit_w = fw, app.fit_h = fh;
+        } else if (strcmp(disp, "fit") != 0) {
+            fprintf(stderr, "imhotep: --display fit, original or WxH, not %s\n", disp);
+            return 2;
+        }
+        char sc[16];
+        if (install_setting("scale", sc, sizeof(sc)) == 0) {
+            app.ui_scale = atoi(sc); /* "auto": 0 */
+        }
+        if (scale > 1) {
+            app.ui_scale = scale;
+            app.scale = 1;
+        }
+    }
     if (app.verbose) {
         fprintf(stderr, "imhotep: game directory %s, player directory %s\n", app.game, app.player);
     }
@@ -1492,9 +1697,16 @@ int main(int argc, char **argv)
         .set_display = cb_set_display,
         .window_state = cb_window_state,
         .memory = cb_memory,
+        .display_fit = cb_display_fit,
     };
     app.st.platform = &app.plat;
     pmem_map(&app.st);
+    /* SDL before the boot: in fit mode the boot's settings open the window (cb_display_fit) */
+    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0) {
+        fprintf(stderr, "imhotep: SDL: %s\n", SDL_GetError());
+        return 1;
+    }
     if (!boot) {
         if (port_boot(sound) != 0) {
             return 1;
@@ -1508,29 +1720,18 @@ int main(int argc, char **argv)
     app.screen_h = S32(&app.st, 0x00E38DB4u);
 
 
-    /* SDL: the window shows the back buffer scaled */
-    SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0) {
-        fprintf(stderr, "imhotep: SDL: %s\n", SDL_GetError());
-        return 1;
-    }
+    /* SDL (initialised before the boot): the window shows the back buffer scaled */
     int w = S32(&app.st, 0x00E38DB0u), h = S32(&app.st, 0x00E38DACu);
     if (w <= 0 || h <= 0) {
         w = 1024, h = 768;
     }
-    app.win = SDL_CreateWindow("Imhotep", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, w * scale, h * scale,
-                               SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | (hidden ? SDL_WINDOW_HIDDEN : 0));
-    app.ren = app.win ? SDL_CreateRenderer(app.win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC) : NULL;
-    if (!app.ren && app.win) {
-        app.ren = SDL_CreateRenderer(app.win, -1, SDL_RENDERER_SOFTWARE);
-    }
-    if (!app.ren) {
-        fprintf(stderr, "imhotep: SDL window: %s\n", SDL_GetError());
+    if (!app.win && window_open(w * scale, h * scale, hidden) != 0) { /* fit mode: opened by the boot */
         return 1;
     }
     SDL_RenderSetLogicalSize(app.ren, w, h);
     app.w = w;
     app.h = h;
+    scaling_update();
     if (sound && audio_init() != 0) {
         fprintf(stderr, "imhotep: no sound output (%s)\n", SDL_GetError());
     }
@@ -1576,6 +1777,9 @@ int main(int argc, char **argv)
         }
         if (app.quit) {
             break;
+        }
+        if (app.resize_at && SDL_GetTicks() >= app.resize_at) {
+            fit_resize(); /* @imhotep enhanced fit */
         }
         if (U32(&app.st, 0x00E39128u) == 0 && U32(&app.st, 0x00E3912Cu) != 0) {
             if (app.det_step) {

@@ -272,6 +272,22 @@ static int32_t image_draw_any(game_state *st, uint32_t gfx, int32_t id, int32_t 
     int16_t w16 = S16(st, e + 0x14);
     S16(st, G_UD3B5BE) = w16;
     S16(st, G_UD3B5BC) = S16(st, e + 0x16);
+    int32_t sw0 = S32(st, G_SCREEN_W), sh0 = S32(st, G_SCREEN_H);
+    if (x == 0 && y == 0 && w16 == 0x400 && S16(st, e + 0x16) == 0x300 && sw0 > 0x400) {
+        /* @imhotep enhanced fit: a full-screen 1024 x 768 picture on a wider screen (docs/enhanced.md):
+         * centred, as the layout origin centres the windows over it, on black; the part windows 0x14 /
+         * 0x15 redraw is the whole picture */
+        x = (sw0 - 0x400) / 2;
+        y = (sh0 - 0x300) / 2;
+        rect_fill(st, 0, 0, sw0, y, 0);
+        rect_fill(st, 0, y + 0x300, sw0, sh0 - y - 0x300, 0);
+        rect_fill(st, 0, y, x, 0x300, 0);
+        rect_fill(st, x + 0x400, y, sw0 - x - 0x400, 0x300, 0);
+        S32(st, G_PIC_X) = 0;
+        S32(st, G_PIC_Y) = 0;
+        S32(st, G_PIC_W) = 0x400;
+        S32(st, G_PIC_H) = 0x300;
+    }
     S32(st, G_BLIT_X) = x;
     U8(st, G_IMG_TYPE) = U8(st, e + 0x32);
     S32(st, G_BLIT_Y) = y;

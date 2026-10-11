@@ -299,11 +299,13 @@ static int original_width(int32_t w)
 
 static void view_geometry_fit(game_state *st, int32_t right)
 {
-    /* @imhotep enhanced fit: the geometry for another width; the city's clip stops at the sidebar */
+    /* @imhotep enhanced fit: the geometry for another width. The view is whole tiles wide (the city
+     * draw skips a tile past its right edge rather than cutting it), so it starts left of the screen by
+     * less than a tile and ends at the sidebar's x, as the original sizes' views do (their x 0) */
     int32_t x, y;
     view_tiles(right, S32(st, G_SCREEN_H), &x, &y);
-    view_geometry_set(st, 0xE4, 0xE4, 0, 0x1E, x, y, 0x3A, 0x1E);
-    S32(st, G_CV_VIEW_RIGHT) = right;
+    view_geometry_set(st, 0xE4, 0xE4, right + 2 - 60 * x, 0x1E, x, y, 0x3A, 0x1E);
+    S32(st, G_CV_VIEW_LEFT) = 0; /* the clip within the screen (left of it a pixel lands on the row above) */
 }
 
 static void view_geometry_a(game_state *st)

@@ -451,6 +451,10 @@ void choice_window_draw(game_state *st)
     } else {
         x = 0x12E;
         y = 0xAE;
+        if (S32(st, G_SCREEN_W) > 0x400) { /* @imhotep enhanced fit: centred as at 1024 x 768 */
+            x += (S32(st, G_SCREEN_W) - 0x400) / 2;
+            y += (S32(st, G_SCREEN_H) - 0x300) / 2;
+        }
     }
     GAME_CALL(st, FN_PANEL_DRAW, x, y, 0x1A, 0x1C);
     int32_t i = 0;

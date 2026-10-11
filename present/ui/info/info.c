@@ -1080,6 +1080,14 @@ int32_t info_open(game_state *st)
         S32(st, G_INFO_Y) = S32(st, G_MOUSE_Y) > 0x18C ? 0x20 : 0x2F8 - (h << 4);
         S32(st, G_INFO_X) = collapsed ? 0xF8 : 0xBC;
     }
+    if (S32(st, G_SCREEN_W) > 0x400) {
+        /* @imhotep enhanced fit: 1024 x 768's rule for any size (docs/enhanced.md): centred over the
+         * city view (0xBC / 0xF8 at 1024), at the top when the mouse is in the lower half (0x18C at 768),
+         * else at the bottom */
+        int32_t right = collapsed ? S32(st, G_SIDEBAR_X_COLLAPSED) : S32(st, G_SIDEBAR_X);
+        S32(st, G_INFO_Y) = S32(st, G_MOUSE_Y) > screen_h / 2 + 12 ? 0x20 : screen_h - 8 - (h << 4);
+        S32(st, G_INFO_X) = (right - (S32(st, G_INFO_W) << 4)) / 2 + 1;
+    }
     if (S32(st, G_INFO_KIND) == 2) {
         info_advisors_of_building(st, G_INFO_ADVISORS);
     }

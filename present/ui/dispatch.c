@@ -522,6 +522,10 @@ void ui_draw_frame(game_state *st)
         } else {
             x = 0x12E;
             y = 0xAE;
+            if (S32(st, G_SCREEN_W) > 0x400) { /* @imhotep enhanced fit: centred as at 1024 x 768 */
+                x += (S32(st, G_SCREEN_W) - 0x400) / 2;
+                y += (S32(st, G_SCREEN_H) - 0x300) / 2;
+            }
         }
         if (rect_input(st, x, y, G_NAME_ROWS, 0x2B, G_HOVER) != 0) {
             return;

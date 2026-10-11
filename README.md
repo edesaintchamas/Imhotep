@@ -63,9 +63,29 @@ prefixes and CrossOver bottles on Linux and macOS; a checkout's `local/game/app`
 `make extract PHARAOH_INSTALLER=path/to/setup_pharaoh.exe` fills). The game folder is only read.
 Saves and settings go to `IMHOTEP_PLAYER_DIR` if set, else to the per-user data directory
 (macOS `~/Library/Application Support/Imhotep/Imhotep`, Linux `~/.local/share/Imhotep/Imhotep`,
-Windows `%APPDATA%\Imhotep\Imhotep`), which also holds `imhotep.cfg` (the remembered game folder).
-Options: `--scale N` (window size), `--no-intro`, `--no-sound`, `--load SAVE`; `build/imhotep --help`
+Windows `%APPDATA%\Imhotep\Imhotep`), which also holds `imhotep.cfg` (the remembered game folder,
+the display settings).
+Options: `--display`, `--scale N`, `--no-intro`, `--no-sound`, `--load SAVE`; `build/imhotep --help`
 lists them all.
+
+### Display
+
+The game fills its window, which you can resize, at any size from 1024 x 768 up. Wider and taller
+screens show more of the city; the sidebar stays on the right, and the full-screen pictures (menus,
+briefings) are centred. Pixels stay sharp: each game pixel is a whole number of screen pixels (2 x 2 on
+a Retina screen).
+
+- F6 or Options > Display switches between window and full screen.
+- F7 and F8 give the original 640 x 480 and 800 x 600; F9 (or the 1024 x 768 button) goes back to
+  fitting the window.
+- In `imhotep.cfg`:
+  - `display=original` keeps the original modes only (640 x 480, 800 x 600, 1024 x 768), as the
+    original game draws them;
+  - `scale=1`, `2` or `3` sets the size of a game pixel (default `auto`: the screen's pixel ratio).
+    For example, `scale=1` on a Retina screen shows far more of the city in smaller print.
+
+In every mode the simulation is the original's: the display only changes what is drawn
+([docs/enhanced.md](docs/enhanced.md)).
 
 ### If something goes wrong
 
@@ -77,6 +97,8 @@ own files; never attach files from the game's installation).
 
 ### What differs from the original
 
+- The display fits the window at any size by default (see Display above); `display=original` gives the
+  original's three modes.
 - The map editor is not included.
 - Two messages carry bytes the original never sets, so its own content varies with what was in
   memory: the tutorial's goods message and the monument-finished message. Imhotep fills them

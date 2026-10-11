@@ -7,6 +7,7 @@
  * globals the original writes on the way. */
 #include "sidebar.h"
 
+#include "draw/draw.h"
 #include "present_layout.h"
 #include "sim/call.h"
 #include "state/ported.h"
@@ -38,6 +39,31 @@ static int32_t city_i32(game_state *st, uint32_t offset)
     return S32(st, CURRENT_CITY(st) + offset);
 }
 
+/* @imhotep enhanced fit: the general layout for a screen width other than 640 / 800 / 1024 (always
+ * wider than 1024, docs/enhanced.md): 1024's layout with everything right of the city moved by the
+ * extra width. Returns that extra width, or -1 for the original widths */
+static int32_t fit_dx(game_state *st)
+{
+    int32_t w = S32(st, G_SCREEN_W);
+    return w > 0x400 ? w - 0x400 : -1;
+}
+
+/* @imhotep enhanced fit: image id drawn at (x, y0) and again below it until the screen's height, each
+ * copy without its first `skip` rows (the clip's top moved), the screen's bottom cutting the last */
+static void draw_image_down(game_state *st, int32_t id, int32_t x, int32_t y0, int32_t skip)
+{
+    int32_t iw, ih, h = S32(st, G_SCREEN_H), top = S32(st, G_CLIP_TOP);
+    draw_image(st, id, x, y0);
+    if (!image_size_on(st, G_GRAPHICS_GFX, id, &iw, &ih) || ih <= skip) {
+        return;
+    }
+    for (int32_t y = y0 + ih; y < h; y += ih - skip) {
+        S32(st, G_CLIP_TOP) = y;
+        draw_image(st, id, x, y - skip);
+    }
+    S32(st, G_CLIP_TOP) = top;
+}
+
 int32_t cityview_pixel_width(game_state *st)
 {
     /* @bin 0x00430CC0 (0x0070E458 + 2) * 0x0070E464: the city view's width in pixels */
@@ -57,6 +83,9 @@ void sidebar_set_x(game_state *st)
     } else if (w == 0x400) {
         S32(st, G_SIDEBAR_X) = 0x346;
         S32(st, G_SIDEBAR_X_COLLAPSED) = 0x3BE;
+    } else if (fit_dx(st) > 0) { /* @imhotep enhanced fit: 1024's distances from the right edge */
+        S32(st, G_SIDEBAR_X) = w - 186;
+        S32(st, G_SIDEBAR_X_COLLAPSED) = w - 66;
     }
 }
 
@@ -185,6 +214,14 @@ void topbar_draw_background(game_state *st)
         x = -0xF0;
     } else if (w == 0x400) {
         x = 0;
+    } else if (fit_dx(st) > 0) {
+        /* @imhotep enhanced fit: the 1024 bar repeated across the width (every 1000 pixels: its last 24
+         * are under the screen's right border at 1024), its right part at the edge */
+        for (x = 0; x < w - 0x400; x += 1000) {
+            draw_image(st, S32(st, G_SIDEBAR_IMAGES) + 8, x, 0);
+        }
+        draw_image(st, S32(st, G_SIDEBAR_IMAGES) + 8, w - 0x400, 0);
+        return;
     } else {
         return;
     }
@@ -274,12 +311,15 @@ void topbar_draw(game_state *st, int32_t force)
         S32(st, G_TOPBAR_DATE_X) = 0x28C;
         money_x = 0x157, money_n = 0x153, pop_x = 0x1D6, pop_n = 0x1D2, date_x = 0x28F, date_n = 0x28F,
         year_flag = 0;
-    } else if (w == 0x400) {
-        S32(st, G_TOPBAR_TREASURY_X) = 0x1ED;
-        S32(st, G_TOPBAR_POPULATION_X) = 0x27D;
-        S32(st, G_TOPBAR_DATE_X) = 0x375;
-        money_x = 0x1EF, money_n = 0x1F5, pop_x = 0x285, pop_n = 0x28B, date_x = 0x373, date_n = 0x373,
-        year_flag = 0;
+    } else if (w == 0x400 || fit_dx(st) > 0) {
+        /* @imhotep enhanced fit: wider screens, 1024's places moved by the extra width (over the bar's
+         * right part) */
+        int32_t d = fit_dx(st) > 0 ? fit_dx(st) : 0;
+        S32(st, G_TOPBAR_TREASURY_X) = 0x1ED + d;
+        S32(st, G_TOPBAR_POPULATION_X) = 0x27D + d;
+        S32(st, G_TOPBAR_DATE_X) = 0x375 + d;
+        money_x = 0x1EF + d, money_n = 0x1F5 + d, pop_x = 0x285 + d, pop_n = 0x28B + d, date_x = 0x373 + d,
+        date_n = 0x373 + d, year_flag = 0;
     } else {
         goto button;
     }
@@ -442,14 +482,17 @@ void sidebar_draw(game_state *st)
      * strip, the panel, buttons, overlay name, build picture, minimap, the panel's lower part by
      * width, then the top bar; the editor has its own panel */
     int32_t w = S32(st, G_SCREEN_W);
+    int32_t d = fit_dx(st);
     if (w == 0x400) {
         draw_image(st, S32(st, G_SIDEBAR_IMAGES) + 2, 1000, 0); /* @bin 0x00537120 the right edge */
     } else if (w == 0x320) {
         draw_image(st, S32(st, G_SIDEBAR_IMAGES) + 3, 0x2F8, 0); /* @bin 0x00537100 */
+    } else if (d > 0) {
+        draw_image_down(st, S32(st, G_SIDEBAR_IMAGES) + 2, 1000 + d, 0, 0x1E); /* @imhotep enhanced fit */
     }
     w = S32(st, G_SCREEN_W);
-    if (w == 0x400) {
-        GAME_CALL(st, FN_RECT_FILL, 0, S32(st, G_SCREEN_H) - 9, 0x400, 9, 0);
+    if (w == 0x400 || d > 0) { /* @imhotep enhanced fit: the full width */
+        GAME_CALL(st, FN_RECT_FILL, 0, S32(st, G_SCREEN_H) - 9, w, 9, 0);
     } else {
         GAME_CALL(st, FN_RECT_FILL, 0, S32(st, G_SCREEN_H) - 6, w, 6, 0);
     }
@@ -474,6 +517,12 @@ void sidebar_draw(game_state *st)
             draw_image(st, S32(st, G_SIDEBAR_IMAGES) + 6, S32(st, G_SIDEBAR_X), 0x1E0);
         } else if (w == 0x320 && collapsed == 1) {
             draw_image(st, S32(st, G_SIDEBAR_IMAGES) + 7, S32(st, G_SIDEBAR_X_COLLAPSED), 0x1E0);
+        } else if (d > 0) { /* @imhotep enhanced fit: 1024's lower part, repeated down to the bottom */
+            if (collapsed == 0) {
+                draw_image_down(st, S32(st, G_SIDEBAR_IMAGES) + 4, S32(st, G_SIDEBAR_X), 0x1E0, 0);
+            } else {
+                draw_image_down(st, S32(st, G_SIDEBAR_IMAGES) + 5, S32(st, G_SIDEBAR_X_COLLAPSED), 0x1E0, 0);
+            }
         }
         topbar_draw(st, 1);
         sidebar_draw_messages(st, 1);
@@ -543,6 +592,8 @@ void sidebar_slide(game_state *st)
         S32(st, G_CLIP_RIGHT) = 1000; /* the clip's right edge, at the screen's decorated border */
     } else if (w == 0x320) {
         S32(st, G_CLIP_RIGHT) = 0x2F8;
+    } else if (fit_dx(st) > 0) {
+        S32(st, G_CLIP_RIGHT) = 1000 + fit_dx(st); /* @imhotep enhanced fit */
     }
     U8(st, G_REDRAW_SIDEBAR) = 1;
     draw_image(st, S32(st, G_SIDEBAR_IMAGES) + 1, S32(st, G_SIDEBAR_X_COLLAPSED), 0x1E);
@@ -563,6 +614,9 @@ void sidebar_slide(game_state *st)
     } else if (w == 0x320) {
         draw_image(st, S32(st, G_SIDEBAR_IMAGES) + 7, S32(st, G_SIDEBAR_X_COLLAPSED), 0x1E0);
         draw_image(st, S32(st, G_SIDEBAR_IMAGES) + 6, S32(st, G_SIDEBAR_X) + dx, 0x1E0);
+    } else if (fit_dx(st) > 0) { /* @imhotep enhanced fit */
+        draw_image_down(st, S32(st, G_SIDEBAR_IMAGES) + 5, S32(st, G_SIDEBAR_X_COLLAPSED), 0x1E0, 0);
+        draw_image_down(st, S32(st, G_SIDEBAR_IMAGES) + 4, S32(st, G_SIDEBAR_X) + dx, 0x1E0, 0);
     }
     S32(st, G_CLIP_RIGHT) = S32(st, G_SCREEN_W);
 }

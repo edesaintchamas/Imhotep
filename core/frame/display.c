@@ -91,6 +91,9 @@ void display_fit_apply(game_state *st)
     GAME_CALL0(st, FN_DISPLAY_BEGIN);
     S32(st, G_PRESENT_WAIT) = 0;
     U8(st, G_REDRAW) = 1;
+    /* the whole interface drawn again (as when the sidebar's slide ends, 0x0051FD60): the sidebar's
+     * parts are not all redrawn by a frame */
+    GAME_CALL(st, FN_UI_REDRAW, 1);
 }
 
 void display_mode_set(game_state *st, int32_t mode)
